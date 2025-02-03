@@ -1,7 +1,6 @@
 import { Role } from "@/constants/type";
 import z from "zod";
 
-/* ------------------ SCHEMA ĐĂNG NHẬP ------------------ */
 export const SignInBody = z
   .object({
     email: z
@@ -11,7 +10,18 @@ export const SignInBody = z
     password: z
       .string()
       .min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" })
-      .max(100, { message: "Mật khẩu không được vượt quá 100 ký tự" }),
+      .max(100, { message: "Mật khẩu không được vượt quá 100 ký tự" })
+      .regex(/[A-Z]/, {
+        message: "Mật khẩu phải chứa ít nhất một chữ cái viết hoa",
+      })
+      .regex(/[a-z]/, {
+        message: "Mật khẩu phải chứa ít nhất một chữ cái viết thường",
+      })
+      .regex(/[0-9]/, { message: "Mật khẩu phải chứa ít nhất một số" })
+      .regex(/[@$!%*?&#]/, {
+        message:
+          "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@, $, !, %, *, ?, &, #, ...)",
+      }),
   })
   .strict();
 

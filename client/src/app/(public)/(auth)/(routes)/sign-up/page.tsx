@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import SignUpForm from "@/app/(auth)/(routes)/_components/sign-up-form";
+import SignUpForm from "@/app/(public)/(auth)/(routes)/_components/sign-up-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { House } from "lucide-react";
 import { useState } from "react";

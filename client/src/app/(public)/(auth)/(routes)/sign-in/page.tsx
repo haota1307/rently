@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { House } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import SignInForm from "@/app/(auth)/(routes)/_components/sign-in-form";
+import SignInForm from "@/app/(public)/(auth)/(routes)/_components/sign-in-form";
 
 const SignInPage = () => {
   const [imageLoaded, setImageLoaded] = useState(false);
