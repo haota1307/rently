@@ -124,23 +124,10 @@ const Footer = () => {
               ))}
             </div>
           </div>
-
           {/* Các liên kết */}
           {footerLinks.map(({ title, links }) => (
             <FooterLinkSection key={title} title={title} links={links} />
           ))}
-
-          {/* Đăng ký nhận tin */}
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Tin tức</h3>
-            <p className="text-gray-600 text-sm mb-4">
-              Đăng ký để nhận thông tin về ưu đãi sớm nhất.
-            </p>
-            <form className="space-y-2">
-              <Input placeholder="Nhập email của bạn." />
-              <Button className="w-full">Gửi</Button>
-            </form>
-          </div>
         </div>
 
         {/* Footer cuối */}
