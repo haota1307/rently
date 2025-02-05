@@ -46,6 +46,8 @@ const Filters = () => {
   const [selectedArea, setSelectedArea] = useState("");
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
+  console.log({ selectedPrice, selectedDistances, selectedArea });
+
   const toggleAmenity = (value: string) => {
     setSelectedAmenities((prev) =>
       prev.includes(value)

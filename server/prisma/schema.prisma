@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum TransactionType {
+  deposit
+  withdraw
+  post_payment
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  failed
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  name     String
+  email    String  @unique
+  password String
+  balance  Decimal
+
+  refreshTokens        RefreshToken[]
+  userVerifications    UserVerification[]
+  rentals              Rental[]              @relation("LandlordRentals")
+  rentalPosts          RentalPost[]          @relation("LandlordRentalPosts")
+  transactions         Transaction[]
+  sentMessages         Message[]             @relation("SentMessages")
+  receivedMessages     Message[]             @relation("ReceivedMessages")
+  conversationsOne     Conversation[]        @relation("UserOneConversations")
+  conversationsTwo     Conversation[]        @relation("UserTwoConversations")
+  conversationMessages ConversationMessage[]
+  reviews              Review[]              @relation("TenantReviews")
+  favorites            Favorite[]
+  passwordResets       PasswordReset[]
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userId Int
+}
+
+model UserVerification {
+  id        Int      @id @default(autoincrement())
+  otpCode   String
+  expiresAt DateTime
+  createdAt DateTime
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userId Int
+}
+
+model Rental {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  address     String
+  lat         Decimal
+  lng         Decimal
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  landlord     User          @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  landlordId   Int
+  rooms        Room[]
+  rentalImages RentalImage[]
+  rentalPosts  RentalPost[]
+  favorites    Favorite[]
+}
+
+model Room {
+  id          Int      @id @default(autoincrement())
+  title       String
+  price       Decimal
+  area        String
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rentalId Int
+
+  roomAmenities RoomAmenity[]
+  reviews       Review[]
+}
+
+model RentalImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  createdAt DateTime
+
+  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rentalId Int
+}
+
+model Amenity {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime
+
+  roomAmenities RoomAmenity[]
+}
+
+model RoomAmenity {
+  id Int @id @default(autoincrement())
+
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  roomId Int
+
+  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  amenityId Int
+}
+
+model RentalPost {
+  id        Int      @id @default(autoincrement())
+  startDate DateTime
+  endDate   DateTime
+  pricePaid Decimal
+  createdAt DateTime
+
+  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rentalId Int
+
+  landlord   User @relation("LandlordRentalPosts", fields: [landlordId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  landlordId Int
+}
+
+model Transaction {
+  id        Int               @id @default(autoincrement())
+  type      TransactionType
+  amount    Decimal
+  status    TransactionStatus
+  createdAt DateTime
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userId Int
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime
+
+  sender     User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  senderId   Int
+  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  receiverId Int
+}
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime
+
+  userOne   User @relation("UserOneConversations", fields: [userOneId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userOneId Int
+  userTwo   User @relation("UserTwoConversations", fields: [userTwoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userTwoId Int
+
+  messages ConversationMessage[]
+}
+
+model ConversationMessage {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversationId Int
+
+  sender   User @relation(fields: [senderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  senderId Int
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String
+  createdAt DateTime
+
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  roomId Int
+
+  tenant   User @relation("TenantReviews", fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tenantId Int
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime
+
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userId   Int
+  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rentalId Int
+}
+
+model PasswordReset {
+  id         Int      @id @default(autoincrement())
+  resetToken String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userId Int
+}

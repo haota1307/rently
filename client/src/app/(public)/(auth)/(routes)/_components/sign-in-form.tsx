@@ -59,7 +59,13 @@ const SignInForm = ({
                     required
                     {...field}
                   />
-                  <FormMessage>{/**TODO: Hiển thị lỗi */}</FormMessage>
+                  <FormMessage>
+                    {errors.email?.message && (
+                      <span className="text-red-500 text-sm">
+                        {errors.email.message}
+                      </span>
+                    )}
+                  </FormMessage>
                 </div>
               </FormItem>
             )}
@@ -81,7 +87,13 @@ const SignInForm = ({
                     required
                     {...field}
                   />
-                  <FormMessage>{/**TODO: Hiển thị lỗi */}</FormMessage>
+                  <FormMessage>
+                    {errors.password?.message && (
+                      <span className="text-red-500 text-sm">
+                        {errors.password.message}
+                      </span>
+                    )}
+                  </FormMessage>
                 </div>
               </FormItem>
             )}

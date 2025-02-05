@@ -18,7 +18,7 @@ const links = [
 
 export default function Header() {
   const [search, setSearch] = useState("");
-  const pathname = usePathname(); // Lấy đường dẫn hiện tại
+  const pathname = usePathname();
 
   return (
     <header className="bg-white sticky top-0 z-50 border-b border-gray-200 shadow-sm py-4">
@@ -67,7 +67,7 @@ export default function Header() {
                 <h3 className="text-lg font-semibold">Tìm kiếm</h3>
               </div>
               <Input
-                type="search"
+                type="text"
                 placeholder="Nhập từ khóa..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -96,7 +96,9 @@ export default function Header() {
           </Link>
 
           {/* Nút Đăng nhập */}
-          <Button>Đăng nhập</Button>
+          <Button>
+            <Link href={"/sign-in"}>Đăng nhập</Link>
+          </Button>
         </div>
       </div>
     </header>

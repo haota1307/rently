@@ -1,0 +1,154 @@
+Project RentalSystem {
+  database_type: "PostgreSQL"
+}
+
+/* Bảng người dùng */
+/* Bảng lưu refresh token */
+Table refresh_tokens {
+  id              serial       [pk]           // ID của refresh token
+  user_id         int          [ref: > users.id] // Người dùng liên quan
+  token           varchar(255) [unique]       // Refresh token
+  expires_at      timestamp                   // Thời gian hết hạn
+  created_at      timestamp    // Thời gian tạo
+}
+
+/* Quan hệ giữa bảng refresh_tokens và users */
+Table users {
+  id              serial       [pk]
+  name            varchar(255)
+  email           varchar(255) [unique]
+  password        varchar(255)
+  balance         decimal(10, 2)
+}
+
+/* Bảng xác thực tài khoản */
+Table user_verifications {
+  id              serial       [pk]           // ID xác thực
+  user_id         int          [ref: > users.id] // Người dùng liên quan
+  otp_code        varchar(6)                  // Mã OTP
+  expires_at      timestamp                   // Thời gian hết hạn OTP
+  created_at      timestamp     // Thời gian tạo
+}
+
+/* Bảng nhà trọ */
+Table rentals {
+  id              serial       [pk]           // ID nhà trọ
+  landlord_id     int          [ref: > users.id] // Người cho thuê
+  title           varchar(255)                // Tên nhà trọ
+  description     text                        // Mô tả nhà trọ
+  address         varchar(255)                // Địa chỉ
+  lat             decimal(10, 8)              // Vĩ độ
+  lng             decimal(11, 8)              // Kinh độ
+  created_at      timestamp     // Thời gian tạo
+  updated_at      timestamp     // Thời gian cập nhật
+}
+
+/* Bảng phòng trọ */
+Table rooms {
+  id              serial       [pk]           // ID phòng trọ
+  rental_id       int          [ref: > rentals.id] // Nhà trọ liên quan
+  title           varchar(255)                // Tên phòng trọ
+  price           decimal(10, 2)              // Giá phòng
+  area            varchar(50)                 // Diện tích phòng
+  is_available    boolean      [default: true] // Phòng còn trống
+  created_at      timestamp     // Thời gian tạo
+  updated_at      timestamp     // Thời gian cập nhật
+}
+
+/* Bảng hình ảnh nhà trọ */
+Table rental_images {
+  id              serial       [pk]           // ID hình ảnh
+  rental_id       int          [ref: > rentals.id] // Nhà trọ liên quan
+  image_url       varchar(255)                // URL hình ảnh
+  created_at      timestamp     // Thời gian thêm
+}
+
+/* Bảng tiện ích */
+Table amenities {
+  id              serial       [pk]           // ID tiện ích
+  name            varchar(255) [unique]       // Tên tiện ích
+  created_at      timestamp     // Thời gian thêm
+}
+
+/* Bảng tiện ích của phòng trọ */
+Table room_amenities {
+  id              serial       [pk]           // ID liên kết
+  room_id         int          [ref: > rooms.id] // Phòng trọ liên quan
+  amenity_id      int          [ref: > amenities.id] // Tiện ích liên quan
+}
+
+/* Bảng bài viết */
+Table rental_posts {
+  id              serial       [pk]           // ID bài viết
+  rental_id       int          [ref: > rentals.id] // Nhà trọ liên quan
+  landlord_id     int          [ref: > users.id]   // Người đăng
+  start_date      date                         // Ngày bắt đầu hiển thị
+  end_date        date                         // Ngày kết thúc hiển thị
+  price_paid      decimal(10, 2)               // Số tiền đã trả
+  created_at      timestamp      // Thời gian tạo
+}
+
+/* Bảng giao dịch */
+Table transactions {
+  id              serial       [pk]           // ID giao dịch
+  user_id         int          [ref: > users.id]   // Người thực hiện
+  type            enum('deposit', 'withdraw', 'post_payment') // Loại giao dịch
+  amount          decimal(10, 2)              // Số tiền giao dịch
+  status          enum('pending', 'completed', 'failed') // Trạng thái
+  created_at      timestamp     // Thời gian thực hiện
+}
+
+/* Bảng tin nhắn */
+Table messages {
+  id              serial       [pk]           // ID tin nhắn
+  sender_id       int          [ref: > users.id]   // Người gửi
+  receiver_id     int          [ref: > users.id]   // Người nhận
+  content         text                        // Nội dung tin nhắn
+  is_read         boolean      [default: false] // Tin nhắn đã đọc
+  created_at      timestamp      // Thời gian gửi
+}
+
+/* Bảng hội thoại */
+Table conversations {
+  id              serial       [pk]           // ID hội thoại
+  user_one_id     int          [ref: > users.id] // Người dùng 1
+  user_two_id     int          [ref: > users.id] // Người dùng 2
+  created_at      timestamp      // Thời gian tạo
+}
+
+/* Bảng tin nhắn trong hội thoại */
+Table conversation_messages {
+  id              serial       [pk]           // ID tin nhắn
+  conversation_id int          [ref: > conversations.id] // Hội thoại liên quan
+  sender_id       int          [ref: > users.id]   // Người gửi
+  content         text                        // Nội dung tin nhắn
+  is_read         boolean      [default: false] // Tin nhắn đã đọc
+  created_at      timestamp      // Thời gian gửi
+}
+
+/* Bảng đánh giá */
+Table reviews {
+  id              serial       [pk]           // ID đánh giá
+  room_id         int          [ref: > rooms.id]  // Phòng trọ được đánh giá
+  tenant_id       int          [ref: > users.id]  // Người thuê đánh giá
+  rating          int          [note: "Từ 1-5"]   // Điểm đánh giá (1-5 sao)
+  comment         text                         // Nội dung bình luận
+  created_at      timestamp      // Thời gian tạo
+}
+
+/* Bảng yêu thích */
+Table favorites {
+  id              serial       [pk]           // ID yêu thích
+  user_id         int          [ref: > users.id]    // Người dùng
+  rental_id       int          [ref: > rentals.id] // Nhà trọ yêu thích
+  created_at      timestamp      // Thời gian thêm
+}
+
+/* Bảng reset mật khẩu */
+Table password_resets {
+  id              serial       [pk]           // ID reset mật khẩu
+  user_id         int          [ref: > users.id]   // Người dùng liên quan
+  reset_token     varchar(255) [unique]       // Token reset
+  expires_at      timestamp                   // Thời gian hết hạn token
+  created_at      timestamp     // Thời gian tạo
+}
