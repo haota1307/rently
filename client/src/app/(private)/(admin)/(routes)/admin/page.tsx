@@ -1,68 +1,144 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { AppSidebar } from "@/app/(private)/(admin)/(routes)/_components/app-sidebar";
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
-function AutoBreadcrumb() {
-  const pathname = usePathname();
-  // Loại bỏ query string nếu có và tách các segment
-  const segments = pathname.split("?")[0].split("/").filter(Boolean);
+import { BarChart, Bar, CartesianGrid, XAxis } from "recharts";
 
-  // Tạo breadcrumb bằng cách tích lũy các segment để tạo URL cho từng bước
-  const breadcrumbs = segments.map((segment, index) => {
-    const href = "/" + segments.slice(0, index + 1).join("/");
-    // Viết hoa chữ cái đầu tiên cho tên hiển thị
-    const displayName = segment.charAt(0).toUpperCase() + segment.slice(1);
-    return { href, displayName };
-  });
+// Dữ liệu biểu đồ: tỉ lệ đặt phòng thành công theo tháng (số liệu mẫu)
+const chartData = [
+  { month: "January", success: 75 },
+  { month: "February", success: 80 },
+  { month: "March", success: 70 },
+  { month: "April", success: 85 },
+  { month: "May", success: 90 },
+  { month: "June", success: 80 },
+];
 
+// Cấu hình cho biểu đồ (định nghĩa nhãn và màu)
+const chartConfig = {
+  success: {
+    label: "Tỉ lệ đặt phòng thành công",
+    color: "hsl(var(--chart-3))", // Sử dụng biến CSS đã định nghĩa cho màu, hoặc thay đổi theo ý bạn
+  },
+};
+
+export default function AdminDashboard() {
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        {breadcrumbs.map((crumb, index) => (
-          <React.Fragment key={crumb.href}>
-            {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
-            <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
-              {index === breadcrumbs.length - 1 ? (
-                <BreadcrumbPage>{crumb.displayName}</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink href={crumb.href}>
-                  {crumb.displayName}
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>
-          </React.Fragment>
-        ))}
-      </BreadcrumbList>
-    </Breadcrumb>
-  );
-}
+    <div className="space-y-6">
+      {/* Grid cho các card thống kê */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {/* Card: Tổng Listing */}
+        <Card className="bg-card text-card-foreground shadow">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Tổng Bài viết</CardTitle>
+            <CardDescription className="text-xs">
+              +12% so với tháng trước
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">365/1,264</div>
+            <div className="text-3xl font-bold"></div>
+          </CardContent>
+        </Card>
 
-export default function Page() {
-  return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-        <div className="aspect-video rounded-xl bg-muted/50" />
-        <div className="aspect-video rounded-xl bg-muted/50" />
-        <div className="aspect-video rounded-xl bg-muted/50" />
+        {/* Card: Doanh Thu */}
+        <Card className="bg-card text-card-foreground shadow">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Doanh Thu</CardTitle>
+            <CardDescription className="text-xs">
+              +8% so với tháng trước
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">13,700,000</div>
+          </CardContent>
+        </Card>
+
+        {/* Card: Người Dùng */}
+        <Card className="bg-card text-card-foreground shadow">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Người Dùng</CardTitle>
+            <CardDescription className="text-xs">
+              +5% so với tháng trước
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">823</div>
+          </CardContent>
+        </Card>
       </div>
-      <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Biểu đồ đặt phòng thành công */}
+        <Card className="bg-card text-card-foreground shadow">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">
+              Biểu đồ tỉ lệ đặt phòng thành công
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={chartConfig}
+              className="min-h-[200px] w-full"
+            >
+              <BarChart accessibilityLayer data={chartData}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  tickFormatter={(value) => value.slice(0, 3)}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="success" fill="var(--color-success)" radius={4} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card text-card-foreground shadow">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">
+              Biểu đồ tỉ lệ đặt phòng thành công
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={chartConfig}
+              className="min-h-[200px] w-full"
+            >
+              <BarChart accessibilityLayer data={chartData}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  tickFormatter={(value) => value.slice(0, 3)}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="success" fill="var(--color-success)" radius={4} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

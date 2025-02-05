@@ -14,7 +14,7 @@ const Listings = () => {
         name: "Nguyễn Văn A",
         phone: "0901234567",
         avatar:
-          "https://meliawedding.com.vn/wp-content/uploads/2022/03/avatar-gai-xinh-49.jpg",
+          "https://cdn2.fptshop.com.vn/unsafe/Uploads/images/tin-tuc/175607/Originals/avt-cho-cute%20(9).jpg",
       },
     },
     {
@@ -28,7 +28,7 @@ const Listings = () => {
         name: "Nguyễn Văn A",
         phone: "0901234567",
         avatar:
-          "https://meliawedding.com.vn/wp-content/uploads/2022/03/avatar-gai-xinh-49.jpg",
+          "https://cdn2.fptshop.com.vn/unsafe/Uploads/images/tin-tuc/175607/Originals/avt-cho-cute%20(9).jpg",
       },
     },
     {
@@ -42,7 +42,7 @@ const Listings = () => {
         name: "Nguyễn Văn A",
         phone: "0901234567",
         avatar:
-          "https://meliawedding.com.vn/wp-content/uploads/2022/03/avatar-gai-xinh-49.jpg",
+          "https://cdn2.fptshop.com.vn/unsafe/Uploads/images/tin-tuc/175607/Originals/avt-cho-cute%20(9).jpg",
       },
     },
     {
@@ -56,7 +56,7 @@ const Listings = () => {
         name: "Nguyễn Văn A",
         phone: "0901234567",
         avatar:
-          "https://meliawedding.com.vn/wp-content/uploads/2022/03/avatar-gai-xinh-49.jpg",
+          "https://cdn2.fptshop.com.vn/unsafe/Uploads/images/tin-tuc/175607/Originals/avt-cho-cute%20(9).jpg",
       },
     },
     {
@@ -70,7 +70,7 @@ const Listings = () => {
         name: "Nguyễn Văn A",
         phone: "0901234567",
         avatar:
-          "https://meliawedding.com.vn/wp-content/uploads/2022/03/avatar-gai-xinh-49.jpg",
+          "https://cdn2.fptshop.com.vn/unsafe/Uploads/images/tin-tuc/175607/Originals/avt-cho-cute%20(9).jpg",
       },
     },
     {
@@ -84,7 +84,7 @@ const Listings = () => {
         name: "Nguyễn Văn A",
         phone: "0901234567",
         avatar:
-          "https://meliawedding.com.vn/wp-content/uploads/2022/03/avatar-gai-xinh-49.jpg",
+          "https://cdn2.fptshop.com.vn/unsafe/Uploads/images/tin-tuc/175607/Originals/avt-cho-cute%20(9).jpg",
       },
     },
     {

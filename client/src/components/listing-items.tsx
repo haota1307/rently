@@ -6,16 +6,16 @@ import { CameraIcon } from "lucide-react";
 import Image from "next/image";
 
 interface ListingItemProps {
-  image: string; // URL hình ảnh nhà trọ
-  title: string; // Tên nhà trọ
-  address: string; // Địa chỉ
-  price: string; // Giá thuê
-  area: string; // Diện tích
-  amenities: string[]; // Tiện ích
+  image: string;
+  title: string;
+  address: string;
+  price: string;
+  area: string;
+  amenities: string[];
   landlord: {
-    name: string; // Tên người cho thuê
-    phone: string; // Số điện thoại
-    avatar: string; // Hình đại diện
+    name: string;
+    phone: string;
+    avatar: string;
   };
 }
 
@@ -29,45 +29,61 @@ const ListingItem = ({
   landlord,
 }: ListingItemProps) => {
   return (
-    <div className="flex flex-col md:flex-row border-[1.5px] rounded-lg shadow-sm overflow-hidden w-full">
-      {/* Hình ảnh */}
-      <div className="relative w-full md:w-1/3 h-48 md:h-auto">
+    <div className="flex flex-col mx-12 overflow-hidden border rounded-lg bg-white text-gray-900 md:flex-row">
+      {/* Ảnh bên trái */}
+      <div className="relative h-48 w-full flex-none md:h-auto md:w-1/4">
         <Image src={image} alt={title} fill className="object-cover" priority />
-        <div className="absolute bottom-2 right-2 bg-white opacity-70 px-2 py-1 text-xs font-semibold rounded-lg shadow-sm">
-          <div className="flex items-center justify-center gap-1">
-            <CameraIcon className="size-4 text-muted-foreground" />
-            <p className="text-muted-foreground">5 hình ảnh</p>
-          </div>
+        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-white/80 px-2 py-1 text-xs font-semibold text-gray-600 shadow">
+          <CameraIcon className="h-4 w-4" />
+          <p>5 hình ảnh</p>
         </div>
       </div>
 
-      {/* Nội dung */}
-      <div className="flex-1 p-4 space-y-2">
-        <h3 className="text-lg font-semibold truncate">{title}</h3>
+      {/* Nội dung bên phải */}
+      <div className="flex flex-1 flex-col gap-2 p-4 md:p-6">
+        {/* Badge danh mục (ví dụ: "Phòng trọ") */}
+        <div className="inline-block w-fit rounded-full bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-600">
+          Phòng trọ
+        </div>
 
-        <div className="block items-center gap-2 md:flex">
-          <p className="text-primary font-bold">{price}</p>
-          <p className="text-muted-foreground hidden md:block">·</p>
-          <p className="text-sm ">{area}</p>
-          <p className="text-muted-foreground hidden md:block">·</p>
-          <p className="text-sm text-muted-foreground truncate">{address}</p>
+        {/* Tiêu đề + Ngày đăng (hoặc "Hôm nay") */}
+        <div className="flex items-start justify-between">
+          <h3 className="mr-4 text-lg tracking-wide leading-snug  font-semibold md:text-xl">
+            {title}
+          </h3>
+          {/* Chỗ hiển thị ngày hoặc thời gian */}
+          <p className="text-xs text-gray-400">Hôm nay</p>
+        </div>
+
+        {/* Mô tả ngắn (tuỳ ý) */}
+        <p className="text-sm text-gray-600">
+          Đây là mô tả ngắn về phòng trọ hoặc giới thiệu sơ lược...
+        </p>
+
+        {/* Thông tin giá & diện tích */}
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+          <span className="font-semibold text-rose-500">{price}</span>
+          <span className="text-gray-300">·</span>
+          <span>{area}</span>
+          <span className="text-gray-300">·</span>
+          <span className="truncate">{address}</span>
         </div>
 
         {/* Tiện ích */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap gap-2 pt-2">
           {amenities.map((amenity, index) => (
             <span
               key={index}
-              className="text-xs bg-gray-200 rounded-full px-2 py-1"
+              className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600"
             >
               {amenity}
             </span>
           ))}
         </div>
 
-        {/* Thông tin người cho thuê */}
-        <div className="flex items-center gap-3 my-4">
-          <Avatar>
+        {/* Thông tin chủ nhà & nút hành động */}
+        <div className="mt-auto flex items-center gap-3 pt-4">
+          <Avatar className="h-10 w-10">
             <AvatarImage src={landlord.avatar} />
             <AvatarFallback>
               {landlord.name.charAt(0).toUpperCase()}
@@ -75,12 +91,15 @@ const ListingItem = ({
           </Avatar>
           <div>
             <p className="text-sm font-medium">{landlord.name}</p>
-            <p className="text-xs text-muted-foreground">{landlord.phone}</p>
+            <p className="text-xs text-gray-400">{landlord.phone}</p>
+          </div>
+
+          <div className="ml-auto">
+            <Button variant="outline" className="text-sm">
+              Xem chi tiết
+            </Button>
           </div>
         </div>
-
-        {/* Nút hành động */}
-        <Button className="mt-2 w-full md:w-auto">Xem chi tiết</Button>
       </div>
     </div>
   );
