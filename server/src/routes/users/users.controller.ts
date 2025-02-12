@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import {
   GetMyProfileResDTO,
-  GetProfileByIdBodyDTO,
   GetProfileByIdResDTO,
+  UpdateUserProfileBodyDTO,
+  UpdateUserProfileResDTO,
 } from 'src/routes/users/user.dto';
 import { UsersService } from 'src/routes/users/users.service';
 import { AuthType, ConditionGuard } from 'src/shared/constants/auth.constant';
@@ -22,9 +23,20 @@ export class UsersController {
   }
 
   @Get(':userId')
-  async getProfileById(@Param('userId', ParseIntPipe) userId: number) {
+  async getProfileById(@Param('userId') userId: number) {
     return new GetProfileByIdResDTO(
       await this.usersService.getProfileById(Number(userId)),
+    );
+  }
+
+  @Put(':userId')
+  @Auth([AuthType.Bearer], { condition: ConditionGuard.And })
+  async updateUserProfile(
+    @Param('userId') userId: number,
+    @Body() body: UpdateUserProfileBodyDTO,
+  ) {
+    return new UpdateUserProfileResDTO(
+      await this.usersService.updateUserProfile(userId, body),
     );
   }
 }
