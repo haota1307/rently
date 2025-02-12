@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Put,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   GetMyProfileResDTO,
   GetProfileByIdResDTO,
@@ -33,8 +40,15 @@ export class UsersController {
   @Auth([AuthType.Bearer], { condition: ConditionGuard.And })
   async updateUserProfile(
     @Param('userId') userId: number,
+    @ActiveUser('userId') currentUserId: number,
     @Body() body: UpdateUserProfileBodyDTO,
   ) {
+    if (currentUserId !== userId) {
+      throw new UnauthorizedException(
+        'Không được phép sửa thông tin người khác',
+      );
+    }
+
     return new UpdateUserProfileResDTO(
       await this.usersService.updateUserProfile(userId, body),
     );
