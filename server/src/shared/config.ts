@@ -35,6 +35,12 @@ class ConfigSchema {
 
   @IsString()
   SECRET_API_KEY: string;
+
+  @IsString()
+  GMAIL_USER: string;
+
+  @IsString()
+  GMAIL_APP_PASSWORD: string;
 }
 
 const configServer = plainToInstance(ConfigSchema, process.env, {

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
@@ -155,5 +156,37 @@ export class AuthService {
 
       throw new UnauthorizedException();
     }
+  }
+
+  async changePassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Người dùng không tồn tại');
+    }
+
+    const isPasswordMatch = await this.hashingService.compare(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordMatch) {
+      throw new BadRequestException('Mật khẩu hiện tại không đúng');
+    }
+
+    const hashedNewPassword = await this.hashingService.hash(newPassword);
+
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+
+    return { message: 'Đổi mật khẩu thành công' };
   }
 }

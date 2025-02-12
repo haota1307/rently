@@ -62,3 +62,13 @@ export class LogoutResDTO {
     Object.assign(this, partial);
   }
 }
+
+export class ChangePasswordDTO {
+  @IsString()
+  @Length(6, 20, { message: 'Mật khẩu phải từ 6 đến 20 ký tự' })
+  currentPassword: string;
+
+  @IsString()
+  @Length(6, 20, { message: 'Mật khẩu phải từ 6 đến 20 ký tự' })
+  newPassword: string;
+}
