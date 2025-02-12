@@ -26,12 +26,14 @@ enum Role {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  name     String
-  email    String @unique
-  password String
-  balance  Int    @default(0)
-  role     Role   @default(USER)
+  id          Int     @id @default(autoincrement())
+  name        String
+  avatar      String?
+  phoneNumber String?
+  email       String  @unique
+  password    String
+  balance     Int     @default(0)
+  role        Role    @default(USER)
 
   refreshTokens        RefreshToken[]
   userVerifications    UserVerification[]
