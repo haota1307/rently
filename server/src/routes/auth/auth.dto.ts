@@ -1,12 +1,12 @@
-import { Decimal } from '@prisma/client/runtime/library';
-import { Exclude, Transform } from 'class-transformer';
+import { Exclude } from 'class-transformer';
 import { IsEmail, IsString, Length } from 'class-validator';
+import { Match } from 'src/shared/decorators/custom-validator.decorator';
 
 export class LoginBodyDTO {
-  @IsEmail()
+  @IsEmail({}, { message: 'Email không hợp lệ' })
   email: string;
 
-  @IsString()
+  @IsString({ message: 'Mật khẩu phải là một chuỗi' })
   @Length(6, 20, { message: 'Mật khẩu phải từ 6 đến 20 ký tự' })
   password: string;
 }
@@ -24,12 +24,12 @@ export class RegisterBodyDTO extends LoginBodyDTO {
   @IsString({ message: 'Tên phải là một chuỗi' })
   name: string;
 
-  @IsString()
-  // @Match('password', { message: 'Mật khẩu không khớp' })
+  @IsString({ message: 'Xác nhận mật khẩu phải là một chuỗi' })
+  @Match('password', { message: 'Mật khẩu xác nhận không khớp' })
   confirmPassword: string;
 }
 
-export class UserDTO {
+export class RegisterResDTO {
   id: number;
   email: string;
   name: string;
@@ -37,27 +37,28 @@ export class UserDTO {
   @Exclude()
   password: string;
 
-  @Transform(({ value }) =>
-    Decimal.isDecimal(value) ? value.toNumber() : value,
-  )
-  balance: number;
-
   createdAt: Date;
   updatedAt: Date;
 
-  constructor(partial: Partial<UserDTO>) {
+  constructor(partial: Partial<RegisterResDTO>) {
     Object.assign(this, partial);
   }
 }
 
-export class RegisterResDTO {
-  user: UserDTO;
-  accessToken: string;
+export class RefreshTokenBodyDTO {
+  @IsString({ message: 'Refresh token phải là một chuỗi' })
   refreshToken: string;
+}
 
-  constructor(partial: Partial<RegisterResDTO>) {
-    this.user = new UserDTO(partial.user as UserDTO);
-    this.accessToken = partial.accessToken as string;
-    this.refreshToken = partial.refreshToken as string;
+export class RefreshTokenResDTO extends LoginResDTO {}
+
+export class LogoutBodyDTO extends RefreshTokenBodyDTO {}
+
+export class LogoutResDTO {
+  @IsString({ message: 'Message phải là một chuỗi' })
+  message: string;
+
+  constructor(partial: Partial<LogoutResDTO>) {
+    Object.assign(this, partial);
   }
 }

@@ -1,9 +1,16 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
-import { RegisterResDTO, UserDTO } from 'src/routes/auth/auth.dto';
+import { LoginBodyDTO, RegisterBodyDTO } from 'src/routes/auth/auth.dto';
 
-import { isUniqueConstraintPrismaError } from 'src/shared/helpers';
+import {
+  isNotFoundPrismaError,
+  isUniqueConstraintPrismaError,
+} from 'src/shared/helpers';
 import { HashingService } from 'src/shared/services/hashing.service';
 import { PrismaService } from 'src/shared/services/prisma.service';
 import { TokenService } from 'src/shared/services/token.service';
@@ -15,6 +22,7 @@ export class AuthService {
     private readonly prismaService: PrismaService,
     private readonly tokenService: TokenService,
   ) {}
+
   async generateTokens(payload: { userId: number; role: Role }) {
     const [accessToken, refreshToken] = await Promise.all([
       this.tokenService.signAccessToken(payload),
@@ -35,7 +43,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async register(body: any) {
+  async register(body: RegisterBodyDTO) {
     try {
       const hashedPassword = await this.hashingService.hash(body.password);
 
@@ -44,33 +52,108 @@ export class AuthService {
           email: body.email,
           password: hashedPassword,
           name: body.name,
-          balance: new Decimal(0), // Prisma Decimal
-          role: 'USER',
         },
       });
 
-      const tokens = await this.generateTokens({
-        userId: user.id,
-        role: user.role,
-      });
-
-      // Chuyển đổi `balance` từ Decimal -> number
-      const response = new RegisterResDTO({
-        user: new UserDTO({
-          ...user,
-          balance: user.balance.toNumber(), // Chuyển đổi
-        }),
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      });
-
-      return response;
+      return user;
     } catch (error) {
       console.log({ error });
       if (isUniqueConstraintPrismaError(error)) {
         throw new ConflictException('Tài khoản đã tồn tại');
       }
       throw error;
+    }
+  }
+
+  async login(body: LoginBodyDTO) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        email: body.email,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Tài khoản không tồn tại');
+    }
+
+    const isPasswordMatch = await this.hashingService.compare(
+      body.password,
+      user.password,
+    );
+
+    if (!isPasswordMatch) {
+      throw new UnprocessableEntityException([
+        {
+          field: 'password',
+          error: 'Mật khẩu không đúng',
+        },
+      ]);
+    }
+
+    const tokens = await this.generateTokens({
+      userId: user.id,
+      role: user.role,
+    });
+
+    return tokens;
+  }
+
+  async refreshToken(refreshToken: string) {
+    try {
+      //1. Kiểm tra có hợp lệ hay không
+      const { userId, role } =
+        await this.tokenService.verifyRefreshToken(refreshToken);
+
+      // Kiểm tra có tồn tại hay không
+      await this.prismaService.refreshToken.findUniqueOrThrow({
+        where: {
+          token: refreshToken,
+        },
+      });
+
+      // Xóa rf cũ
+      await this.prismaService.refreshToken.delete({
+        where: {
+          token: refreshToken,
+        },
+      });
+
+      return await this.generateTokens({ userId, role });
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        throw new UnauthorizedException('refresh token has been revoked');
+      }
+
+      throw new UnauthorizedException();
+    }
+  }
+
+  async logout(refreshToken: string) {
+    try {
+      //1. Kiểm tra có hợp lệ hay không
+      await this.tokenService.verifyRefreshToken(refreshToken);
+
+      // Kiểm tra có tồn tại hay không
+      await this.prismaService.refreshToken.findUniqueOrThrow({
+        where: {
+          token: refreshToken,
+        },
+      });
+
+      // Xóa rf cũ
+      await this.prismaService.refreshToken.delete({
+        where: {
+          token: refreshToken,
+        },
+      });
+
+      return { message: 'Logout successfully' };
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        throw new UnauthorizedException('refresh token has been revoked');
+      }
+
+      throw new UnauthorizedException();
     }
   }
 }
