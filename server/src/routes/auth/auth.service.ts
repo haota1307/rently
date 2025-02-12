@@ -1,80 +1,76 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from 'src/routes/auth/auth.dto';
-import { PrismaService } from 'src/routes/shared/services/prisma.service';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { Role } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
+import { RegisterResDTO, UserDTO } from 'src/routes/auth/auth.dto';
+
+import { isUniqueConstraintPrismaError } from 'src/shared/helpers';
+import { HashingService } from 'src/shared/services/hashing.service';
+import { PrismaService } from 'src/shared/services/prisma.service';
+import { TokenService } from 'src/shared/services/token.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
+    private readonly hashingService: HashingService,
+    private readonly prismaService: PrismaService,
+    private readonly tokenService: TokenService,
   ) {}
+  async generateTokens(payload: { userId: number; role: Role }) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.tokenService.signAccessToken(payload),
+      this.tokenService.signRefreshToken(payload),
+    ]);
 
-  async signUp(dto: CreateUserDto) {
-    // 1. Kiểm tra xem email đã tồn tại chưa
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (existingUser) {
-      throw new BadRequestException('Email already in use');
-    }
+    const decodedRefreshToken =
+      await this.tokenService.verifyRefreshToken(refreshToken);
 
-    // 2. Hash password
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-    // 3. Tạo user mới
-    const user = await this.prisma.user.create({
-      data: {
-        name: dto.name,
-        email: dto.email,
-        password: hashedPassword,
-        balance: 0, // Ví dụ set balance mặc định = 0
-      },
-    });
-
-    // 4. Tạo refresh token
-    const refreshToken = this._signRefreshToken(user.id);
-
-    // 5. Lưu refresh token vào bảng RefreshToken
-    await this.prisma.refreshToken.create({
+    await this.prismaService.refreshToken.create({
       data: {
         token: refreshToken,
-        expiresAt: this._getRefreshTokenExpiryDate(),
+        userId: payload.userId,
         createdAt: new Date(),
-        userId: user.id,
+        expiresAt: new Date(decodedRefreshToken.exp * 1000),
       },
     });
-
-    // 6. Chuẩn bị dữ liệu trả về
-    // (Không trả password, chỉ trả thông tin cơ bản)
-    const { password, ...userData } = user;
-
-    return {
-      user: userData, // thông tin user
-      refreshToken: refreshToken, // chuỗi refresh token
-    };
+    return { accessToken, refreshToken };
   }
 
-  /**
-   * Hàm ký (sign) ra chuỗi refresh token bằng JWT
-   */
-  private _signRefreshToken(userId: number): string {
-    const payload = { sub: userId }; // Tùy ý thêm thông tin
-    // SECRET_REFRESH_KEY nên lấy từ môi trường .env
-    return this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET || 'REFRESH_SECRET',
-      expiresIn: '7d', // ví dụ refresh token 7 ngày
-    });
-  }
+  async register(body: any) {
+    try {
+      const hashedPassword = await this.hashingService.hash(body.password);
 
-  /**
-   * Trả về thời điểm hết hạn (expiresAt) cho refresh token
-   */
-  private _getRefreshTokenExpiryDate(): Date {
-    // Ví dụ 7 ngày kể từ hiện tại
-    const expires = new Date();
-    expires.setDate(expires.getDate() + 7);
-    return expires;
+      const user = await this.prismaService.user.create({
+        data: {
+          email: body.email,
+          password: hashedPassword,
+          name: body.name,
+          balance: new Decimal(0), // Prisma Decimal
+          role: 'USER',
+        },
+      });
+
+      const tokens = await this.generateTokens({
+        userId: user.id,
+        role: user.role,
+      });
+
+      // Chuyển đổi `balance` từ Decimal -> number
+      const response = new RegisterResDTO({
+        user: new UserDTO({
+          ...user,
+          balance: user.balance.toNumber(), // Chuyển đổi
+        }),
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      });
+
+      return response;
+    } catch (error) {
+      console.log({ error });
+      if (isUniqueConstraintPrismaError(error)) {
+        throw new ConflictException('Tài khoản đã tồn tại');
+      }
+      throw error;
+    }
   }
 }

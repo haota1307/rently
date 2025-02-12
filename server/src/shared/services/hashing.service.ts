@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { hash } from 'bcrypt';
+import { hash, compare } from 'bcrypt';
 
 const saltRounds = 10;
 
@@ -9,7 +9,7 @@ export class HashingService {
     return hash(value, saltRounds);
   }
 
-  compare(value: string, hash: string) {
-    return this.compare(value, hash);
+  async compare(value: string, hash: string) {
+    return compare(value, hash);
   }
 }

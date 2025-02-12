@@ -19,12 +19,19 @@ enum TransactionStatus {
   failed
 }
 
+enum Role {
+  ADMIN
+  LANDLORD
+  USER
+}
+
 model User {
   id       Int     @id @default(autoincrement())
   name     String
   email    String  @unique
   password String
-  balance  Decimal
+  balance  Decimal @default(0)
+  role     Role    @default(USER)
 
   refreshTokens        RefreshToken[]
   userVerifications    UserVerification[]

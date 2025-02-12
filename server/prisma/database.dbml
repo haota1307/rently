@@ -7,7 +7,7 @@ Project RentalSystem {
 Table refresh_tokens {
   id              serial       [pk]           // ID của refresh token
   user_id         int          [ref: > users.id] // Người dùng liên quan
-  token           varchar(255) [unique]       // Refresh token
+  token           varchar(255) [unique]       // Refresh token               // Địa chỉ IP của thiết bị
   expires_at      timestamp                   // Thời gian hết hạn
   created_at      timestamp    // Thời gian tạo
 }
@@ -19,6 +19,7 @@ Table users {
   email           varchar(255) [unique]
   password        varchar(255)
   balance         decimal(10, 2)
+  role            enum()
 }
 
 /* Bảng xác thực tài khoản */
