@@ -6,13 +6,19 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { LoginBodyDTO, RegisterBodyDTO } from 'src/routes/auth/auth.dto';
+import {
+  LoginBodyDTO,
+  RegisterBodyDTO,
+  ResendOtpDTO,
+  VerifyOtpDTO,
+} from 'src/routes/auth/auth.dto';
 
 import {
   isNotFoundPrismaError,
   isUniqueConstraintPrismaError,
 } from 'src/shared/helpers';
 import { HashingService } from 'src/shared/services/hashing.service';
+import { MailService } from 'src/shared/services/mail.service';
 import { PrismaService } from 'src/shared/services/prisma.service';
 import { TokenService } from 'src/shared/services/token.service';
 
@@ -22,6 +28,7 @@ export class AuthService {
     private readonly hashingService: HashingService,
     private readonly prismaService: PrismaService,
     private readonly tokenService: TokenService,
+    private readonly mailService: MailService,
   ) {}
 
   async generateTokens(payload: { userId: number; role: Role }) {
@@ -45,25 +52,40 @@ export class AuthService {
   }
 
   async register(body: RegisterBodyDTO) {
-    try {
-      const hashedPassword = await this.hashingService.hash(body.password);
+    const existingUser = await this.prismaService.user.findUnique({
+      where: { email: body.email },
+    });
 
-      const user = await this.prismaService.user.create({
-        data: {
-          email: body.email,
-          password: hashedPassword,
-          name: body.name,
-        },
-      });
-
-      return user;
-    } catch (error) {
-      console.log({ error });
-      if (isUniqueConstraintPrismaError(error)) {
-        throw new ConflictException('Tài khoản đã tồn tại');
-      }
-      throw error;
+    if (existingUser) {
+      throw new ConflictException(
+        'Email đã được sử dụng. Vui lòng dùng email khác.',
+      );
     }
+    const hashedPassword = await this.hashingService.hash(body.password);
+
+    const user = await this.prismaService.user.create({
+      data: {
+        email: body.email,
+        password: hashedPassword,
+        name: body.name,
+      },
+    });
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Hết hạn sau 10 phút
+
+    await this.prismaService.userVerification.create({
+      data: { otpCode, expiresAt, userId: user.id },
+    });
+
+    // Gửi email với HTML tích hợp sẵn
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      user.name,
+      otpCode,
+    );
+
+    return user;
   }
 
   async login(body: LoginBodyDTO) {
@@ -188,5 +210,85 @@ export class AuthService {
     });
 
     return { message: 'Đổi mật khẩu thành công' };
+  }
+
+  async verifyOtp(body: VerifyOtpDTO) {
+    const { email, otpCode } = body;
+
+    const verification = await this.prismaService.userVerification.findUnique({
+      where: {
+        userId: (await this.prismaService.user.findUnique({ where: { email } }))
+          ?.id,
+      },
+    });
+
+    if (!verification) {
+      throw new UnauthorizedException('Không tìm thấy mã xác thực.');
+    }
+
+    if (verification.verifiedAt) {
+      throw new BadRequestException('Tài khoản đã được xác thực.');
+    }
+
+    if (new Date() > verification.expiresAt) {
+      throw new BadRequestException('Mã OTP đã hết hạn.');
+    }
+
+    if (verification.otpCode !== otpCode) {
+      throw new BadRequestException('Mã OTP không chính xác.');
+    }
+
+    await this.prismaService.userVerification.update({
+      where: { id: verification.id },
+      data: { verifiedAt: new Date() },
+    });
+
+    await this.prismaService.user.update({
+      where: { id: verification.userId },
+      data: { isActive: true },
+    });
+
+    return { message: 'Xác thực tài khoản thành công!' };
+  }
+
+  async resendOtp(body: ResendOtpDTO) {
+    const user = await this.prismaService.user.findUnique({
+      where: { email: body.email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Tài khoản không tồn tại.');
+    }
+
+    const existingVerification =
+      await this.prismaService.userVerification.findUnique({
+        where: { userId: user.id },
+      });
+
+    if (existingVerification?.verifiedAt) {
+      throw new BadRequestException('Tài khoản đã được xác thực.');
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP mới hết hạn sau 10 phút
+
+    if (existingVerification) {
+      await this.prismaService.userVerification.update({
+        where: { userId: user.id },
+        data: { otpCode, expiresAt },
+      });
+    } else {
+      await this.prismaService.userVerification.create({
+        data: { userId: user.id, otpCode, expiresAt },
+      });
+    }
+
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      user.name,
+      otpCode,
+    );
+
+    return { message: 'OTP mới đã được gửi thành công' };
   }
 }

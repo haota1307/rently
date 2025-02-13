@@ -18,6 +18,8 @@ import {
   RefreshTokenResDTO,
   RegisterBodyDTO,
   RegisterResDTO,
+  ResendOtpDTO,
+  VerifyOtpDTO,
 } from 'src/routes/auth/auth.dto';
 import { Auth } from 'src/shared/decorators/auth.decorator';
 import { AuthType, ConditionGuard } from 'src/shared/constants/auth.constant';
@@ -62,5 +64,15 @@ export class AuthController {
       body.currentPassword,
       body.newPassword,
     );
+  }
+
+  @Put('verify-otp')
+  async verifyOtp(@Body() body: VerifyOtpDTO) {
+    return this.authService.verifyOtp(body);
+  }
+
+  @Post('resend-otp')
+  async resendOtp(@Body() body: ResendOtpDTO) {
+    return this.authService.resendOtp(body);
   }
 }

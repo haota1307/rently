@@ -72,3 +72,17 @@ export class ChangePasswordDTO {
   @Length(6, 20, { message: 'Mật khẩu phải từ 6 đến 20 ký tự' })
   newPassword: string;
 }
+
+export class VerifyOtpDTO {
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  email: string;
+
+  @IsString({ message: 'OTP phải là một chuỗi' })
+  @Length(6, 6, { message: 'OTP phải có 6 chữ số' })
+  otpCode: string;
+}
+
+export class ResendOtpDTO {
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  email: string;
+}

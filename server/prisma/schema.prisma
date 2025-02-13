@@ -32,6 +32,7 @@ model User {
   phoneNumber String?
   email       String  @unique
   password    String
+  isActive    Boolean @default(false)
   balance     Int     @default(0)
   role        Role    @default(USER)
 
@@ -61,13 +62,14 @@ model RefreshToken {
 }
 
 model UserVerification {
-  id        Int      @id @default(autoincrement())
-  otpCode   String
-  expiresAt DateTime
-  createdAt DateTime
+  id         Int       @id @default(autoincrement())
+  otpCode    String
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  verifiedAt DateTime?
 
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
 }
 
 model Rental {
