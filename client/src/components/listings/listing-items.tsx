@@ -2,10 +2,18 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { CameraIcon } from "lucide-react";
+import {
+  CalendarClockIcon,
+  CameraIcon,
+  HouseIcon,
+  MapPinnedIcon,
+  Wallet,
+} from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface ListingItemProps {
+  id: number;
   image: string;
   title: string;
   address: string;
@@ -20,6 +28,7 @@ interface ListingItemProps {
 }
 
 const ListingItem = ({
+  id,
   image,
   title,
   address,
@@ -28,6 +37,8 @@ const ListingItem = ({
   amenities,
   landlord,
 }: ListingItemProps) => {
+  const router = useRouter();
+
   return (
     <div className="flex flex-col mx-12 overflow-hidden border rounded-lg bg-white text-gray-900 md:flex-row">
       {/* Ảnh bên trái */}
@@ -52,7 +63,10 @@ const ListingItem = ({
             {title}
           </h3>
           {/* Chỗ hiển thị ngày hoặc thời gian */}
-          <p className="text-xs text-gray-400">Hôm nay</p>
+          <div className="text-xs text-gray-400 flex items-center gap-1">
+            <CalendarClockIcon className="size-4" />
+            <p className="">Hôm nay</p>
+          </div>
         </div>
 
         {/* Mô tả ngắn (tuỳ ý) */}
@@ -62,11 +76,20 @@ const ListingItem = ({
 
         {/* Thông tin giá & diện tích */}
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-          <span className="font-semibold text-rose-500">{price}</span>
+          <span className="font-semibold text-rose-500 flex items-center gap-1">
+            <Wallet className="size-4" />
+            {price}
+          </span>
           <span className="text-gray-300">·</span>
-          <span>{area}</span>
+          <span className="truncate flex items-center justify-center gap-1 ">
+            <HouseIcon className="size-4" />
+            {area}
+          </span>
           <span className="text-gray-300">·</span>
-          <span className="truncate">{address}</span>
+          <span className="truncate flex items-center justify-center gap-1 ">
+            <MapPinnedIcon className="size-4" />
+            {address}
+          </span>
         </div>
 
         {/* Tiện ích */}
@@ -95,7 +118,11 @@ const ListingItem = ({
           </div>
 
           <div className="ml-auto">
-            <Button variant="outline" className="text-sm">
+            <Button
+              variant="outline"
+              className="text-sm"
+              onClick={() => router.push(`/listings/${id}`)}
+            >
               Xem chi tiết
             </Button>
           </div>

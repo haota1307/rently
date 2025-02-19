@@ -21,7 +21,7 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="bg-white sticky top-0 z-50 border-b border-gray-200 shadow-sm py-4">
+    <header className="bg-white sticky top-0 z-[9999999] border-b border-gray-200 shadow-sm py-4">
       <div className="max-w-screen-xl mx-auto px-4 flex items-center justify-between gap-4">
         {/* LOGO */}
         <div className="flex items-center gap-4">

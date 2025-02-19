@@ -1,5 +1,5 @@
 import Filters from "@/app/(public)/(main)/_components/filters";
-import Listings from "@/components/listings";
+import Listings from "@/components/listings/listings";
 
 const Body = () => {
   return (
