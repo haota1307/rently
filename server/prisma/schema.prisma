@@ -7,40 +7,54 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TransactionType {
-  deposit
-  withdraw
-  post_payment
-}
-
 enum TransactionStatus {
-  pending
-  completed
-  failed
+  PENDING
+  COMPLETED
+  FAILED
 }
 
-enum Role {
-  ADMIN
-  LANDLORD
-  USER
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum VerificationCodeType {
+  REGISTER
+  FORGOT_PASSWORD
+}
+
+enum HTTPMethod {
+  GET
+  POST
+  PUT
+  DELETE
+  PATCH
+  OPTIONS
+  HEAD
 }
 
 model User {
-  id          Int     @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   name        String
   avatar      String?
   phoneNumber String?
-  email       String  @unique
+  email       String     @unique
   password    String
-  isActive    Boolean @default(false)
-  balance     Int     @default(0)
-  role        Role    @default(USER)
+  status      UserStatus @default(INACTIVE)
+  balance     Int        @default(0)
+  roleId      Int
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Quan hệ với model Role (một user thuộc 1 Role)
+  role Role @relation(fields: [roleId], references: [id])
 
   refreshTokens        RefreshToken[]
-  userVerifications    UserVerification[]
   rentals              Rental[]              @relation("LandlordRentals")
   rentalPosts          RentalPost[]          @relation("LandlordRentalPosts")
-  transactions         Transaction[]
   sentMessages         Message[]             @relation("SentMessages")
   receivedMessages     Message[]             @relation("ReceivedMessages")
   conversationsOne     Conversation[]        @relation("UserOneConversations")
@@ -48,7 +62,56 @@ model User {
   conversationMessages ConversationMessage[]
   reviews              Review[]              @relation("TenantReviews")
   favorites            Favorite[]
-  passwordResets       PasswordReset[]
+  RoleCreatedBy        Role[]                @relation("RoleCreatedBy")
+  RoleUpdatedBy        Role[]                @relation("RoleUpdatedBy")
+  PermissionCreatedBy  Permission[]          @relation("PermissionCreatedBy")
+  PermissionUpdatedBy  Permission[]          @relation("PermissionUpdatedBy")
+
+  @@index([name])
+  @@index([status])
+  @@index([phoneNumber])
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(500)
+  description String
+  isActive    Boolean      @default(true)
+  // Một Role có nhiều quyền và nhiều user
+  permissions Permission[]
+  users       User[]
+
+  createdById Int?
+  createdBy   User? @relation("RoleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById Int?
+  updatedBy   User? @relation("RoleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([name])
+}
+
+model Permission {
+  id          Int        @id @default(autoincrement())
+  name        String     @db.VarChar(500)
+  description String
+  path        String     @db.VarChar(1000)
+  method      HTTPMethod
+  roles       Role[]
+
+  createdById Int?
+  createdBy   User? @relation("PermissionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById Int?
+  updatedBy   User? @relation("PermissionUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([name])
+  @@index([path])
 }
 
 model RefreshToken {
@@ -57,19 +120,24 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime
 
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
-model UserVerification {
-  id         Int       @id @default(autoincrement())
-  otpCode    String
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
-  verifiedAt DateTime?
+model VerificationCode {
+  id    Int                  @id @default(autoincrement())
+  email String               @unique @db.VarChar(500)
+  code  String               @db.VarChar(50)
+  type  VerificationCodeType
 
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int  @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, code, type])
+  @@index([expiresAt])
 }
 
 model Rental {
@@ -82,12 +150,16 @@ model Rental {
   createdAt   DateTime
   updatedAt   DateTime
 
-  landlord     User          @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  landlord     User          @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade)
   landlordId   Int
   rooms        Room[]
   rentalImages RentalImage[]
   rentalPosts  RentalPost[]
   favorites    Favorite[]
+
+  @@index([landlordId])
+  @@index([title])
+  @@index([createdAt])
 }
 
 model Room {
@@ -99,11 +171,15 @@ model Room {
   createdAt   DateTime
   updatedAt   DateTime
 
-  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
 
   roomAmenities RoomAmenity[]
   reviews       Review[]
+
+  @@index([rentalId])
+  @@index([isAvailable])
+  @@index([price])
 }
 
 model RentalImage {
@@ -111,8 +187,11 @@ model RentalImage {
   imageUrl  String
   createdAt DateTime
 
-  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
+
+  @@index([rentalId])
+  @@index([createdAt])
 }
 
 model Amenity {
@@ -121,16 +200,20 @@ model Amenity {
   createdAt DateTime
 
   roomAmenities RoomAmenity[]
+
+  @@index([name])
 }
 
 model RoomAmenity {
   id Int @id @default(autoincrement())
 
-  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   roomId Int
 
-  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
   amenityId Int
+
+  @@unique([roomId, amenityId])
 }
 
 model RentalPost {
@@ -140,22 +223,35 @@ model RentalPost {
   pricePaid Decimal
   createdAt DateTime
 
-  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
 
-  landlord   User @relation("LandlordRentalPosts", fields: [landlordId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  landlord   User @relation("LandlordRentalPosts", fields: [landlordId], references: [id], onDelete: Cascade)
   landlordId Int
+
+  @@index([rentalId])
+  @@index([landlordId])
+  @@index([startDate])
 }
 
-model Transaction {
-  id        Int               @id @default(autoincrement())
-  type      TransactionType
-  amount    Decimal
-  status    TransactionStatus
-  createdAt DateTime
+model PaymentTransaction {
+  id                 Int      @id @default(autoincrement())
+  gateway            String   @db.VarChar(100)
+  transactionDate    DateTime @default(now())
+  accountNumber      String   @db.VarChar(100)
+  subAccount         String?  @db.VarChar(250)
+  amountIn           Int      @default(0)
+  amountOut          Int      @default(0)
+  accumulated        Int      @default(0)
+  code               String?  @db.VarChar(250)
+  transactionContent String?  @db.Text
+  referenceNumber    String?  @db.VarChar(255)
+  body               String?  @db.Text
+  createdAt          DateTime @default(now())
 
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  userId Int
+  @@index([transactionDate])
+  @@index([gateway])
+  @@index([accountNumber])
 }
 
 model Message {
@@ -164,22 +260,30 @@ model Message {
   isRead    Boolean  @default(false)
   createdAt DateTime
 
-  sender     User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sender     User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   senderId   Int
-  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
   receiverId Int
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([isRead])
 }
 
 model Conversation {
   id        Int      @id @default(autoincrement())
   createdAt DateTime
 
-  userOne   User @relation("UserOneConversations", fields: [userOneId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userOne   User @relation("UserOneConversations", fields: [userOneId], references: [id], onDelete: Cascade)
   userOneId Int
-  userTwo   User @relation("UserTwoConversations", fields: [userTwoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userTwo   User @relation("UserTwoConversations", fields: [userTwoId], references: [id], onDelete: Cascade)
   userTwoId Int
 
   messages ConversationMessage[]
+
+  @@index([userOneId])
+  @@index([userTwoId])
+  @@index([userOneId, userTwoId])
 }
 
 model ConversationMessage {
@@ -188,11 +292,16 @@ model ConversationMessage {
   isRead    Boolean  @default(false)
   createdAt DateTime
 
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   conversationId Int
 
-  sender   User @relation(fields: [senderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sender   User @relation(fields: [senderId], references: [id], onDelete: Cascade)
   senderId Int
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 model Review {
@@ -201,29 +310,24 @@ model Review {
   comment   String
   createdAt DateTime
 
-  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   roomId Int
 
-  tenant   User @relation("TenantReviews", fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tenant   User @relation("TenantReviews", fields: [tenantId], references: [id], onDelete: Cascade)
   tenantId Int
+
+  @@index([roomId])
+  @@index([tenantId])
 }
 
 model Favorite {
   id        Int      @id @default(autoincrement())
   createdAt DateTime
 
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   Int
-  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
-}
 
-model PasswordReset {
-  id         Int      @id @default(autoincrement())
-  resetToken String   @unique
-  expiresAt  DateTime
-  createdAt  DateTime
-
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  userId Int
+  @@unique([userId, rentalId])
 }

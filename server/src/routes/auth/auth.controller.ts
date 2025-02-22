@@ -1,78 +1,68 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Put,
-} from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 
 import { AuthService } from 'src/routes/auth/auth.service';
+
 import {
-  ChangePasswordDTO,
-  LoginBodyDTO,
-  LoginResDTO,
-  LogoutBodyDTO,
-  LogoutResDTO,
-  RefreshTokenBodyDTO,
-  RefreshTokenResDTO,
   RegisterBodyDTO,
   RegisterResDTO,
-  ResendOtpDTO,
-  VerifyOtpDTO,
+  SendOTPBodyDTO,
 } from 'src/routes/auth/auth.dto';
-import { Auth } from 'src/shared/decorators/auth.decorator';
-import { AuthType, ConditionGuard } from 'src/shared/constants/auth.constant';
-import { ActiveUser } from 'src/shared/decorators/active-user.decorator';
+import { ZodSerializerDto } from 'nestjs-zod';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @ZodSerializerDto(RegisterResDTO)
   async register(@Body() body: RegisterBodyDTO) {
-    return new RegisterResDTO(await this.authService.register(body));
+    return await this.authService.register(body);
   }
 
-  @Post('login')
-  async login(@Body() body: LoginBodyDTO) {
-    return new LoginResDTO(await this.authService.login(body));
+  @Post('otp')
+  async sendOTP(@Body() body: SendOTPBodyDTO) {
+    return await this.authService.sendOTP(body);
   }
 
-  @Post('refresh-token')
-  @HttpCode(HttpStatus.OK)
-  async refreshToken(@Body() body: RefreshTokenBodyDTO) {
-    return new RefreshTokenResDTO(
-      await this.authService.refreshToken(body.refreshToken),
-    );
-  }
+  // @Post('login')
+  // async login(@Body() body: LoginBodyDTO) {
+  //   return new LoginResDTO(await this.authService.login(body));
+  // }
 
-  @Post('logout')
-  @Auth([AuthType.Bearer], { condition: ConditionGuard.And })
-  async logout(@Body() body: LogoutBodyDTO) {
-    return new LogoutResDTO(await this.authService.logout(body.refreshToken));
-  }
+  // @Post('refresh-token')
+  // @HttpCode(HttpStatus.OK)
+  // async refreshToken(@Body() body: RefreshTokenBodyDTO) {
+  //   return new RefreshTokenResDTO(
+  //     await this.authService.refreshToken(body.refreshToken),
+  //   );
+  // }
 
-  @Put('change-password')
-  @Auth([AuthType.Bearer], { condition: ConditionGuard.And })
-  async changePassword(
-    @ActiveUser('userId') userId: number,
-    @Body() body: ChangePasswordDTO,
-  ) {
-    return this.authService.changePassword(
-      userId,
-      body.currentPassword,
-      body.newPassword,
-    );
-  }
+  // @Post('logout')
+  // @Auth([AuthType.Bearer], { condition: ConditionGuard.And })
+  // async logout(@Body() body: LogoutBodyDTO) {
+  //   return new LogoutResDTO(await this.authService.logout(body.refreshToken));
+  // }
 
-  @Put('verify-otp')
-  async verifyOtp(@Body() body: VerifyOtpDTO) {
-    return this.authService.verifyOtp(body);
-  }
+  // @Put('change-password')
+  // @Auth([AuthType.Bearer], { condition: ConditionGuard.And })
+  // async changePassword(
+  //   @ActiveUser('userId') userId: number,
+  //   @Body() body: ChangePasswordDTO,
+  // ) {
+  //   return this.authService.changePassword(
+  //     userId,
+  //     body.currentPassword,
+  //     body.newPassword,
+  //   );
+  // }
 
-  @Post('resend-otp')
-  async resendOtp(@Body() body: ResendOtpDTO) {
-    return this.authService.resendOtp(body);
-  }
+  // @Put('verify-otp')
+  // async verifyOtp(@Body() body: VerifyOtpDTO) {
+  //   return this.authService.verifyOtp(body);
+  // }
+
+  // @Post('resend-otp')
+  // async resendOtp(@Body() body: ResendOtpDTO) {
+  //   return this.authService.resendOtp(body);
+  // }
 }

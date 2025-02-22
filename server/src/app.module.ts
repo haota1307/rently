@@ -1,19 +1,29 @@
-import { ClassSerializerInterceptor, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { SharedModule } from './shared/shared.module';
+import { SharedModule } from 'src/shared/shared.module';
 import { AuthModule } from 'src/routes/auth/auth.module';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { UsersModule } from 'src/routes/users/users.module';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ZodSerializerInterceptor } from 'nestjs-zod';
+import CustomZodValidationPipe from 'src/shared/pipes/custom-zod-validation.pipe';
+import { HttpExceptionFilter } from 'src/shared/filters/http-exception.filter';
 
 @Module({
-  imports: [SharedModule, AuthModule, UsersModule],
+  imports: [SharedModule, AuthModule],
   controllers: [AppController],
   providers: [
     AppService,
     {
+      provide: APP_PIPE,
+      useClass: CustomZodValidationPipe,
+    },
+    {
       provide: APP_INTERCEPTOR,
-      useClass: ClassSerializerInterceptor, // Kích hoạt ClassSerializerInterceptor để chuyển đổi và định dạng dữ liệu trả về từ controller.
+      useClass: ZodSerializerInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
     },
   ],
 })

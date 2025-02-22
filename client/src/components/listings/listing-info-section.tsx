@@ -63,6 +63,14 @@ export function ListingInfoSection() {
 
       <div className="my-6">
         <p className="text-2xl font-medium">Vị trí & bản đồ</p>
+        {/** TODO: MAP */}
+
+        <a
+          href="https://www.google.com/maps/search/?api=1&query=10.776530,106.700981"
+          target="_blank"
+        >
+          Mở Google Maps (Giải pháp thay thế)
+        </a>
       </div>
     </div>
   );

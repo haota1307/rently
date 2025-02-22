@@ -1,26 +1,23 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
-  UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
-import {
-  LoginBodyDTO,
-  RegisterBodyDTO,
-  ResendOtpDTO,
-  VerifyOtpDTO,
-} from 'src/routes/auth/auth.dto';
 
-import {
-  isNotFoundPrismaError,
-  isUniqueConstraintPrismaError,
-} from 'src/shared/helpers';
+import { RegisterBodyType, SendOTPBodyType } from 'src/routes/auth/auth.model';
+import { AuthRepository } from 'src/routes/auth/auth.repo';
+import { RolesService } from 'src/routes/auth/roles.service';
+import { TypeOfVerificationCode } from 'src/shared/constants/auth.constant';
+import { generateOTP, isUniqueConstraintPrismaError } from 'src/shared/helpers';
+import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo';
+import { EmailService } from 'src/shared/services/email.service';
 import { HashingService } from 'src/shared/services/hashing.service';
-import { MailService } from 'src/shared/services/mail.service';
 import { PrismaService } from 'src/shared/services/prisma.service';
 import { TokenService } from 'src/shared/services/token.service';
+
+import { addMilliseconds } from 'date-fns';
+import ms from 'ms';
+import envConfig from 'src/shared/config';
 
 @Injectable()
 export class AuthService {
@@ -28,267 +25,96 @@ export class AuthService {
     private readonly hashingService: HashingService,
     private readonly prismaService: PrismaService,
     private readonly tokenService: TokenService,
-    private readonly mailService: MailService,
+    private readonly rolesService: RolesService,
+    private readonly authRepository: AuthRepository,
+    private readonly sharedUserRepository: SharedUserRepository,
+    private readonly emailService: EmailService,
   ) {}
 
-  async generateTokens(payload: { userId: number; role: Role }) {
-    const [accessToken, refreshToken] = await Promise.all([
-      this.tokenService.signAccessToken(payload),
-      this.tokenService.signRefreshToken(payload),
-    ]);
+  async register(body: RegisterBodyType) {
+    try {
+      const vevificationCode =
+        await this.authRepository.findUniqueVerificationCode({
+          email: body.email,
+          code: body.code,
+          type: TypeOfVerificationCode.REGISTER,
+        });
 
-    const decodedRefreshToken =
-      await this.tokenService.verifyRefreshToken(refreshToken);
+      if (!vevificationCode) {
+        throw new UnprocessableEntityException([
+          {
+            message: 'Mã OTP không hợp lệ',
+            path: 'code',
+          },
+        ]);
+      }
 
-    await this.prismaService.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId: payload.userId,
-        createdAt: new Date(),
-        expiresAt: new Date(decodedRefreshToken.exp * 1000),
-      },
-    });
-    return { accessToken, refreshToken };
-  }
+      if (vevificationCode.expiresAt < new Date()) {
+        throw new UnprocessableEntityException([
+          {
+            message: 'Mã OTP đã hết hạn',
+            path: 'code',
+          },
+        ]);
+      }
 
-  async register(body: RegisterBodyDTO) {
-    const existingUser = await this.prismaService.user.findUnique({
-      where: { email: body.email },
-    });
+      const clientRoleId = await this.rolesService.getClientRoleId();
+      const hashedPassword = await this.hashingService.hash(body.password);
 
-    if (existingUser) {
-      throw new ConflictException(
-        'Email đã được sử dụng. Vui lòng dùng email khác.',
-      );
-    }
-    const hashedPassword = await this.hashingService.hash(body.password);
-
-    const user = await this.prismaService.user.create({
-      data: {
+      return await this.authRepository.createUser({
         email: body.email,
-        password: hashedPassword,
         name: body.name,
-      },
-    });
+        phoneNumber: body.phoneNumber,
+        password: hashedPassword,
+        roleId: clientRoleId,
+      });
+    } catch (error) {
+      if (isUniqueConstraintPrismaError(error)) {
+        throw new ConflictException('Email đã tồn tại');
+      }
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Hết hạn sau 10 phút
-
-    await this.prismaService.userVerification.create({
-      data: { otpCode, expiresAt, userId: user.id },
-    });
-
-    // Gửi email với HTML tích hợp sẵn
-    await this.mailService.sendVerificationEmail(
-      user.email,
-      user.name,
-      otpCode,
-    );
-
-    return user;
+      throw error;
+    }
   }
 
-  async login(body: LoginBodyDTO) {
-    const user = await this.prismaService.user.findUnique({
-      where: {
-        email: body.email,
-      },
+  async sendOTP(body: SendOTPBodyType) {
+    // 1. Kiểm tra email đã tồn tại trong database chưa
+    const user = await this.sharedUserRepository.findUnique({
+      email: body.email,
     });
 
-    if (!user) {
-      throw new UnauthorizedException('Tài khoản không tồn tại');
-    }
-
-    const isPasswordMatch = await this.hashingService.compare(
-      body.password,
-      user.password,
-    );
-
-    if (!isPasswordMatch) {
+    if (user) {
       throw new UnprocessableEntityException([
         {
-          field: 'password',
-          error: 'Mật khẩu không đúng',
+          message: 'Email đã tồn tại',
+          path: 'email',
         },
       ]);
     }
 
-    const tokens = await this.generateTokens({
-      userId: user.id,
-      role: user.role,
+    // 2. Tạo mã OTP
+    const code = generateOTP();
+    const verificationCode = this.authRepository.createVerificationCode({
+      email: body.email,
+      code,
+      type: body.type,
+      expiresAt: addMilliseconds(new Date(), ms(envConfig.OTP_EXPIRES_IN)),
     });
 
-    return tokens;
-  }
-
-  async refreshToken(refreshToken: string) {
-    try {
-      //1. Kiểm tra có hợp lệ hay không
-      const { userId, role } =
-        await this.tokenService.verifyRefreshToken(refreshToken);
-
-      // Kiểm tra có tồn tại hay không
-      await this.prismaService.refreshToken.findUniqueOrThrow({
-        where: {
-          token: refreshToken,
+    // 3. Gửi mã OTP
+    const { error } = await this.emailService.sendOTP({
+      email: body.email,
+      code,
+    });
+    if (error) {
+      console.log({ error });
+      throw new UnprocessableEntityException([
+        {
+          message: 'Gửi mã OTP thất bại',
+          path: 'code',
         },
-      });
-
-      // Xóa rf cũ
-      await this.prismaService.refreshToken.delete({
-        where: {
-          token: refreshToken,
-        },
-      });
-
-      return await this.generateTokens({ userId, role });
-    } catch (error) {
-      if (isNotFoundPrismaError(error)) {
-        throw new UnauthorizedException('refresh token has been revoked');
-      }
-
-      throw new UnauthorizedException();
+      ]);
     }
-  }
-
-  async logout(refreshToken: string) {
-    try {
-      //1. Kiểm tra có hợp lệ hay không
-      await this.tokenService.verifyRefreshToken(refreshToken);
-
-      // Kiểm tra có tồn tại hay không
-      await this.prismaService.refreshToken.findUniqueOrThrow({
-        where: {
-          token: refreshToken,
-        },
-      });
-
-      // Xóa rf cũ
-      await this.prismaService.refreshToken.delete({
-        where: {
-          token: refreshToken,
-        },
-      });
-
-      return { message: 'Logout successfully' };
-    } catch (error) {
-      if (isNotFoundPrismaError(error)) {
-        throw new UnauthorizedException('refresh token has been revoked');
-      }
-
-      throw new UnauthorizedException();
-    }
-  }
-
-  async changePassword(
-    userId: number,
-    currentPassword: string,
-    newPassword: string,
-  ) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Người dùng không tồn tại');
-    }
-
-    const isPasswordMatch = await this.hashingService.compare(
-      currentPassword,
-      user.password,
-    );
-
-    if (!isPasswordMatch) {
-      throw new BadRequestException('Mật khẩu hiện tại không đúng');
-    }
-
-    const hashedNewPassword = await this.hashingService.hash(newPassword);
-
-    await this.prismaService.user.update({
-      where: { id: userId },
-      data: { password: hashedNewPassword },
-    });
-
-    return { message: 'Đổi mật khẩu thành công' };
-  }
-
-  async verifyOtp(body: VerifyOtpDTO) {
-    const { email, otpCode } = body;
-
-    const verification = await this.prismaService.userVerification.findUnique({
-      where: {
-        userId: (await this.prismaService.user.findUnique({ where: { email } }))
-          ?.id,
-      },
-    });
-
-    if (!verification) {
-      throw new UnauthorizedException('Không tìm thấy mã xác thực.');
-    }
-
-    if (verification.verifiedAt) {
-      throw new BadRequestException('Tài khoản đã được xác thực.');
-    }
-
-    if (new Date() > verification.expiresAt) {
-      throw new BadRequestException('Mã OTP đã hết hạn.');
-    }
-
-    if (verification.otpCode !== otpCode) {
-      throw new BadRequestException('Mã OTP không chính xác.');
-    }
-
-    await this.prismaService.userVerification.update({
-      where: { id: verification.id },
-      data: { verifiedAt: new Date() },
-    });
-
-    await this.prismaService.user.update({
-      where: { id: verification.userId },
-      data: { isActive: true },
-    });
-
-    return { message: 'Xác thực tài khoản thành công!' };
-  }
-
-  async resendOtp(body: ResendOtpDTO) {
-    const user = await this.prismaService.user.findUnique({
-      where: { email: body.email },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Tài khoản không tồn tại.');
-    }
-
-    const existingVerification =
-      await this.prismaService.userVerification.findUnique({
-        where: { userId: user.id },
-      });
-
-    if (existingVerification?.verifiedAt) {
-      throw new BadRequestException('Tài khoản đã được xác thực.');
-    }
-
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP mới hết hạn sau 10 phút
-
-    if (existingVerification) {
-      await this.prismaService.userVerification.update({
-        where: { userId: user.id },
-        data: { otpCode, expiresAt },
-      });
-    } else {
-      await this.prismaService.userVerification.create({
-        data: { userId: user.id, otpCode, expiresAt },
-      });
-    }
-
-    await this.mailService.sendVerificationEmail(
-      user.email,
-      user.name,
-      otpCode,
-    );
-
-    return { message: 'OTP mới đã được gửi thành công' };
+    return verificationCode;
   }
 }
