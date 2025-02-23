@@ -25,6 +25,7 @@ export class AuthController {
   }
 
   // @Post('login')
+  // @ZodSerializerDto(LoginResDTO)
   // async login(@Body() body: LoginBodyDTO) {
   //   return new LoginResDTO(await this.authService.login(body));
   // }
