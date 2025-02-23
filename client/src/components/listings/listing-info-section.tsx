@@ -1,5 +1,11 @@
 import React from "react";
 import { House, MapPinned, Wallet } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const MapWithDirections = dynamic(
+  () => import("@/components/map/map-with-directions"),
+  { ssr: false }
+);
 
 export function ListingInfoSection() {
   return (
@@ -62,15 +68,10 @@ export function ListingInfoSection() {
       </div>
 
       <div className="my-6">
-        <p className="text-2xl font-medium">Vị trí & bản đồ</p>
-        {/** TODO: MAP */}
-
-        <a
-          href="https://www.google.com/maps/search/?api=1&query=10.776530,106.700981"
-          target="_blank"
-        >
-          Mở Google Maps (Giải pháp thay thế)
-        </a>
+        <p className="text-2xl font-medium mb-4">Vị trí & bản đồ</p>
+        <MapWithDirections
+          rentalLocation={[105.72283696441788, 10.007994045116583]}
+        />
       </div>
     </div>
   );
