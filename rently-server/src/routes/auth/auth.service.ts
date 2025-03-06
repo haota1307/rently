@@ -12,9 +12,11 @@ import { TypeOfVerificationCode } from 'src/shared/constants/auth.constant';
 import { generateOTP, isUniqueConstraintPrismaError } from 'src/shared/helpers';
 import { HashingService } from 'src/shared/services/hashing.service';
 import ms from 'ms';
-import { SendOTPBodyType } from 'src/routes/auth/auth.model';
+import { LoginBodyType, SendOTPBodyType } from 'src/routes/auth/auth.model';
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo';
 import { EmailService } from 'src/shared/services/email.service';
+import { AccessTokenPayloadCreate } from 'src/shared/types/jwt.type';
+import { TokenService } from 'src/shared/services/token.service';
 
 @Injectable()
 export class AuthService {
@@ -24,7 +26,9 @@ export class AuthService {
     private readonly hashingService: HashingService,
     private readonly sharedUserRepository: SharedUserRepository,
     private readonly emailService: EmailService,
+    private readonly tokenService: TokenService,
   ) {}
+
   async register(body: RegisterBodyDTO) {
     try {
       const VerificationCode =
@@ -108,5 +112,66 @@ export class AuthService {
       ]);
     }
     return { message: 'Gửi mã OTP thành công' };
+  }
+
+  async generateTokens({ userId, roleId, roleName }: AccessTokenPayloadCreate) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.tokenService.signAccessToken({
+        userId,
+        roleId,
+        roleName,
+      }),
+
+      this.tokenService.signRefreshToken({
+        userId,
+      }),
+    ]);
+
+    const decodedRefreshToken =
+      await this.tokenService.verifyRefreshToken(refreshToken);
+
+    await this.authRepository.createRefreshToken({
+      token: refreshToken,
+      userId,
+      expiresAt: new Date(decodedRefreshToken.exp * 1000),
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  async login(body: LoginBodyType) {
+    const user = await this.authRepository.findUniqueUserIncludeRole({
+      email: body.email,
+    });
+
+    if (!user) {
+      throw new UnprocessableEntityException([
+        {
+          message: 'Email không tồn tại',
+          path: 'email',
+        },
+      ]);
+    }
+
+    const isPasswordMatch = await this.hashingService.compare(
+      body.password,
+      user.password,
+    );
+
+    if (!isPasswordMatch) {
+      throw new UnprocessableEntityException([
+        {
+          field: 'password',
+          error: 'Mật khẩu không đúng',
+        },
+      ]);
+    }
+
+    const tokens = await this.generateTokens({
+      userId: user.id,
+      roleId: user.roleId,
+      roleName: user.role.name,
+    });
+    return tokens;
   }
 }

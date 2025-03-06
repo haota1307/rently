@@ -65,4 +65,21 @@ export class AuthRepository {
       },
     });
   }
+
+  async findUniqueUserIncludeRole(
+    uniqueObject: { email: string } | { id: number },
+  ): Promise<(UserType & { role: RoleType }) | null> {
+    return this.prismaService.user.findUnique({
+      where: uniqueObject,
+      include: {
+        role: true,
+      },
+    });
+  }
+
+  createRefreshToken(data: { token: string; userId: number; expiresAt: Date }) {
+    return this.prismaService.refreshToken.create({
+      data,
+    });
+  }
 }
