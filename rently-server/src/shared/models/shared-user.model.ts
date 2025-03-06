@@ -9,7 +9,7 @@ export const UserSchema = z.object({
   phoneNumber: z.string().min(9).max(15).nullable(),
   avatar: z.string().nullable(),
   status: z.enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BLOCKED]),
-  balance: z.number().int().default(0),
+  // balance: z.number().int().default(0),
   roleId: z.number().positive(),
 
   deletedAt: z.date().nullable(),
