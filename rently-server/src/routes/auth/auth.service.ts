@@ -204,7 +204,10 @@ export class AuthService {
       }
 
       const {
-        user: { roleId, name: roleName },
+        user: {
+          roleId,
+          role: { name: roleName },
+        },
       } = refreshTokenInDb;
 
       // 3. Xóa refreshToken cũ
