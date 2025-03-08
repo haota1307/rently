@@ -11,7 +11,11 @@ import { AuthRepository } from 'src/routes/auth/auth.repo';
 import { RolesService } from 'src/routes/auth/roles.service';
 import envConfig from 'src/shared/config';
 import { TypeOfVerificationCode } from 'src/shared/constants/auth.constant';
-import { generateOTP, isUniqueConstraintPrismaError } from 'src/shared/helpers';
+import {
+  generateOTP,
+  isNotFoundPrismaError,
+  isUniqueConstraintPrismaError,
+} from 'src/shared/helpers';
 import { HashingService } from 'src/shared/services/hashing.service';
 import ms from 'ms';
 import {
@@ -222,6 +226,30 @@ export class AuthService {
       if (error instanceof HttpException) {
         throw error;
       }
+      throw new UnauthorizedException();
+    }
+  }
+
+  async logout(refreshToken: string) {
+    try {
+      // 1. Kiểm tra refreshToken có hợp lệ không
+      await this.tokenService.verifyRefreshToken(refreshToken);
+
+      // 2. Xóa refreshToken trong database
+      await this.authRepository.deleteRefreshToken({
+        token: refreshToken,
+      });
+
+      return { message: 'Đăng xuất thành công' };
+    } catch (error) {
+      // Trường hợp đã refresh token rồi, hãy thông báo cho user biết
+      // refresh token của họ đã bị đánh cắp
+      if (isNotFoundPrismaError(error)) {
+        throw new UnauthorizedException(
+          'Refresh token đã được sử dung hoặc không tồn tại',
+        );
+      }
+
       throw new UnauthorizedException();
     }
   }

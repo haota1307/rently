@@ -5,6 +5,7 @@ import { AuthService } from 'src/routes/auth/auth.service';
 import { IsPublic } from 'src/shared/decorators/auth.decorator';
 import {
   LoginResDTO,
+  LogoutBodyDTO,
   RefreshTokenBodyDTO,
   RefreshTokenResDTO,
   RegisterBodyDTO,
@@ -44,5 +45,11 @@ export class AuthController {
   @ZodSerializerDto(RefreshTokenResDTO)
   async refreshToken(@Body() body: RefreshTokenBodyDTO) {
     return this.authService.refreshToken(body);
+  }
+
+  @Post('logout')
+  @ZodSerializerDto(MessageResDTO)
+  logout(@Body() body: LogoutBodyDTO) {
+    return this.authService.logout(body.refreshToken);
   }
 }
