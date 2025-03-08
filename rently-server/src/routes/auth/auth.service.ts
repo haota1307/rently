@@ -10,7 +10,10 @@ import { RegisterBodyDTO } from 'src/routes/auth/auth.dto';
 import { AuthRepository } from 'src/routes/auth/auth.repo';
 import { RolesService } from 'src/routes/auth/roles.service';
 import envConfig from 'src/shared/config';
-import { TypeOfVerificationCode } from 'src/shared/constants/auth.constant';
+import {
+  TypeOfVerificationCode,
+  TypeOfVerificationCodeType,
+} from 'src/shared/constants/auth.constant';
 import {
   generateOTP,
   isNotFoundPrismaError,
@@ -19,6 +22,7 @@ import {
 import { HashingService } from 'src/shared/services/hashing.service';
 import ms from 'ms';
 import {
+  ForgotPasswordBodyType,
   LoginBodyType,
   RefreshTokenBodyType,
   SendOTPBodyType,
@@ -39,42 +43,70 @@ export class AuthService {
     private readonly tokenService: TokenService,
   ) {}
 
+  async validateVerificationCode({
+    email,
+    code,
+    type,
+  }: {
+    email: string;
+    code: string;
+    type: TypeOfVerificationCodeType;
+  }) {
+    const VerificationCode =
+      await this.authRepository.findUniqueVerificationCode({
+        email,
+        code,
+        type,
+      });
+
+    if (!VerificationCode) {
+      throw new UnprocessableEntityException([
+        {
+          message: 'Mã OTP không hợp lệ',
+          path: 'code',
+        },
+      ]);
+    }
+
+    if (VerificationCode.expiresAt < new Date()) {
+      throw new UnprocessableEntityException([
+        {
+          message: 'Mã OTP đã hết hạn',
+          path: 'code',
+        },
+      ]);
+    }
+
+    return VerificationCode;
+  }
+
   async register(body: RegisterBodyDTO) {
     try {
-      const VerificationCode =
-        await this.authRepository.findUniqueVerificationCode({
-          email: body.email,
-          code: body.code,
-          type: TypeOfVerificationCode.REGISTER,
-        });
-
-      if (!VerificationCode) {
-        throw new UnprocessableEntityException([
-          {
-            message: 'Mã OTP không hợp lệ',
-            path: 'code',
-          },
-        ]);
-      }
-
-      if (VerificationCode.expiresAt < new Date()) {
-        throw new UnprocessableEntityException([
-          {
-            message: 'Mã OTP đã hết hạn',
-            path: 'code',
-          },
-        ]);
-      }
+      await this.validateVerificationCode({
+        email: body.email,
+        code: body.code,
+        type: TypeOfVerificationCode.REGISTER,
+      });
 
       const clientRoleId = await this.rolesService.getClientRoleId();
       const hashedPassword = await this.hashingService.hash(body.password);
 
-      return await this.authRepository.createUser({
-        email: body.email,
-        name: body.name,
-        password: hashedPassword,
-        roleId: clientRoleId,
-      });
+      const [user] = await Promise.all([
+        await this.authRepository.createUser({
+          email: body.email,
+          name: body.name,
+          password: hashedPassword,
+          roleId: clientRoleId,
+        }),
+
+        this.authRepository.deleteVerificationCode({
+          email: body.email,
+          code: body.code,
+          type: TypeOfVerificationCode.FORGOT_PASSWORD,
+        }),
+      ]);
+
+      return user;
     } catch (error) {
       if (isUniqueConstraintPrismaError(error)) {
         throw new ConflictException('Email đã tồn tại');
@@ -90,10 +122,19 @@ export class AuthService {
       email: body.email,
     });
 
-    if (user) {
+    if (body.type === TypeOfVerificationCode.REGISTER && user) {
       throw new UnprocessableEntityException([
         {
           message: 'Email đã tồn tại',
+          path: 'email',
+        },
+      ]);
+    }
+
+    if (body.type === TypeOfVerificationCode.FORGOT_PASSWORD && !user) {
+      throw new UnprocessableEntityException([
+        {
+          message: 'Email không tồn tại',
           path: 'email',
         },
       ]);
@@ -255,5 +296,45 @@ export class AuthService {
 
       throw new UnauthorizedException();
     }
+  }
+
+  async forgotPassword(body: ForgotPasswordBodyType) {
+    const { code, email, newPassword } = body;
+
+    const user = await this.sharedUserRepository.findUnique({
+      email,
+    });
+
+    if (!user) {
+      throw new UnprocessableEntityException([
+        {
+          message: 'Email không tồn tại',
+          path: 'email',
+        },
+      ]);
+    }
+
+    await this.validateVerificationCode({
+      email,
+      code,
+      type: TypeOfVerificationCode.FORGOT_PASSWORD,
+    });
+
+    const hashedPassword = await this.hashingService.hash(newPassword);
+
+    await Promise.all([
+      this.authRepository.updateUser(
+        { id: user.id },
+        { password: hashedPassword },
+      ),
+
+      this.authRepository.deleteVerificationCode({
+        email: body.email,
+        code: body.code,
+        type: TypeOfVerificationCode.FORGOT_PASSWORD,
+      }),
+    ]);
+
+    return { message: 'Đổi mật khẩu thành công' };
   }
 }

@@ -12,7 +12,8 @@ import {
 } from '@nestjs/common';
 
 import {
-  GetAuthorizationUrlDTo,
+  ForgotPasswordBodyDTO,
+  GetAuthorizationUrlDTO,
   LoginResDTO,
   LogoutBodyDTO,
   RefreshTokenBodyDTO,
@@ -22,7 +23,10 @@ import {
   SendOTPBodyDTO,
 } from 'src/routes/auth/auth.dto';
 import { MessageResDTO } from 'src/shared/dtos/response.dto';
-import { LoginBodyType } from 'src/routes/auth/auth.model';
+import {
+  ForgotPasswordBodyType,
+  LoginBodyType,
+} from 'src/routes/auth/auth.model';
 import { GoogleService } from 'src/routes/auth/google.service';
 import { AuthService } from 'src/routes/auth/auth.service';
 import { IsPublic } from 'src/shared/decorators/auth.decorator';
@@ -71,7 +75,7 @@ export class AuthController {
 
   @Get('google-link')
   @IsPublic()
-  @ZodSerializerDto(GetAuthorizationUrlDTo)
+  @ZodSerializerDto(GetAuthorizationUrlDTO)
   getAuthorizationUrl() {
     return this.googleService.getAuthorizationUrl();
   }
@@ -102,5 +106,12 @@ export class AuthController {
         `${envConfig.GOOGLE_CLIENT_REDIRECT_URI}?error=${message}`,
       );
     }
+  }
+
+  @Post('forgot-password')
+  @IsPublic()
+  @ZodSerializerDto(MessageResDTO)
+  forgotPassword(@Body() body: ForgotPasswordBodyDTO) {
+    return this.authService.forgotPassword(body);
   }
 }
