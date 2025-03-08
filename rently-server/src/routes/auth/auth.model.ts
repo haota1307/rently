@@ -74,7 +74,6 @@ export const DeviceSchema = z.object({
 export const RefreshTokenSchema = z.object({
   token: z.string(),
   userId: z.number(),
-  deviceId: z.number(),
   expiresAt: z.date(),
   createdAt: z.date(),
 });

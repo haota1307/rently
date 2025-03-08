@@ -1,6 +1,8 @@
 import {
   ConflictException,
+  HttpException,
   Injectable,
+  UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { addMilliseconds } from 'date-fns';
@@ -12,7 +14,11 @@ import { TypeOfVerificationCode } from 'src/shared/constants/auth.constant';
 import { generateOTP, isUniqueConstraintPrismaError } from 'src/shared/helpers';
 import { HashingService } from 'src/shared/services/hashing.service';
 import ms from 'ms';
-import { LoginBodyType, SendOTPBodyType } from 'src/routes/auth/auth.model';
+import {
+  LoginBodyType,
+  RefreshTokenBodyType,
+  SendOTPBodyType,
+} from 'src/routes/auth/auth.model';
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo';
 import { EmailService } from 'src/shared/services/email.service';
 import { AccessTokenPayloadCreate } from 'src/shared/types/jwt.type';
@@ -173,5 +179,50 @@ export class AuthService {
       roleName: user.role.name,
     });
     return tokens;
+  }
+
+  async refreshToken({ refreshToken }: RefreshTokenBodyType) {
+    try {
+      // 1. Kiểm tra refreshToken có hợp lệ không
+      const { userId } =
+        await this.tokenService.verifyRefreshToken(refreshToken);
+
+      // 2. Kiểm tra refreshToken có tồn tại trong database không
+      const refreshTokenInDb =
+        await this.authRepository.findUniqueRefeshTokenIncludeUserRole({
+          token: refreshToken,
+        });
+
+      if (!refreshTokenInDb) {
+        throw new UnauthorizedException(
+          'Refresh token đã được sử dụng hoặc không tồn tại',
+        );
+      }
+
+      const {
+        user: { roleId, name: roleName },
+      } = refreshTokenInDb;
+
+      // 3. Xóa refreshToken cũ
+      const $deleteRefreshToken = this.authRepository.deleteRefreshToken({
+        token: refreshToken,
+      });
+
+      // 4. Tạo mới accessToken và refreshToken
+      const $token = this.generateTokens({
+        userId,
+        roleId,
+        roleName,
+      });
+
+      const [, token] = await Promise.all([$deleteRefreshToken, $token]);
+
+      return token;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new UnauthorizedException();
+    }
   }
 }

@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { RoleType, VerificationCodeType } from 'src/routes/auth/auth.model';
+import {
+  RefreshTokenType,
+  RoleType,
+  VerificationCodeType,
+} from 'src/routes/auth/auth.model';
 import { TypeOfVerificationCodeType } from 'src/shared/constants/auth.constant';
 import { UserType } from 'src/shared/models/shared-user.model';
 import { PrismaService } from 'src/shared/services/prisma.service';
@@ -80,6 +84,34 @@ export class AuthRepository {
   createRefreshToken(data: { token: string; userId: number; expiresAt: Date }) {
     return this.prismaService.refreshToken.create({
       data,
+    });
+  }
+
+  async findUniqueRefeshTokenIncludeUserRole(uniqueObject: {
+    token: string;
+  }): Promise<
+    | (RefreshTokenType & {
+        user: UserType & { role: RoleType };
+      })
+    | null
+  > {
+    return this.prismaService.refreshToken.findUnique({
+      where: uniqueObject,
+      include: {
+        user: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  deleteRefreshToken(uniqueObject: {
+    token: string;
+  }): Promise<RefreshTokenType> {
+    return this.prismaService.refreshToken.delete({
+      where: uniqueObject,
     });
   }
 }
