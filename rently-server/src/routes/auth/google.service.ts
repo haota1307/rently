@@ -4,6 +4,7 @@ import { google } from 'googleapis';
 import { GoogleAuthStateType } from 'src/routes/auth/auth.model';
 import { AuthRepository } from 'src/routes/auth/auth.repo';
 import { AuthService } from 'src/routes/auth/auth.service';
+import { GoogleUserInfoError } from 'src/routes/auth/error.model';
 import { RolesService } from 'src/routes/auth/roles.service';
 import envConfig from 'src/shared/config';
 import { HashingService } from 'src/shared/services/hashing.service';
@@ -45,12 +46,11 @@ export class GoogleService {
     try {
       let userAgent = 'Unknown';
       let ip = 'Unknown';
-      // 1. Lấy state từ url
+      // 1. Lấy state từ URL
       try {
         if (state) {
           const stateString = Buffer.from(state, 'base64').toString('utf-8');
           const clientInfo = JSON.parse(stateString);
-
           userAgent = clientInfo.userAgent;
           ip = clientInfo.ip;
         }
@@ -70,7 +70,7 @@ export class GoogleService {
       const { data } = await oauth2.userinfo.get();
 
       if (!data.email) {
-        throw new Error('Không thể lấy thông tin email');
+        throw GoogleUserInfoError;
       }
 
       let user = await this.authRepo.findUniqueUserIncludeRole({
@@ -91,18 +91,20 @@ export class GoogleService {
           phoneNumber: '',
           avatar: data.picture ?? '',
         });
-
-        const authTokens = await this.authService.generateTokens({
-          userId: user.id,
-          roleId: user.roleId,
-          roleName: user.role.name,
-        });
-
-        return authTokens;
       }
+
+      // Tạo token cho user (dù mới tạo hay đã tồn tại)
+      const authTokens = await this.authService.generateTokens({
+        userId: user.id,
+        roleId: user.roleId,
+        roleName: user.role.name,
+      });
+
+      return authTokens;
     } catch (error) {
-      console.log('Error', error);
-      throw new Error('Lỗi đăng nhập Google');
+      console.error('Error in Google callback', error);
+      // Sử dụng custom exception để báo lỗi đăng nhập Google
+      throw GoogleUserInfoError;
     }
   }
 }
