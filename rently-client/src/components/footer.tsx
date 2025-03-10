@@ -76,7 +76,7 @@ const FooterLinkSection = ({
 export const Footer = () => {
   return (
     <footer className="bg-white border-t">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full px-8 sm:px-6 lg:px-8">
         {/* Thông tin liên hệ */}
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 border-b">
           {contactInfo.map((item, index) => (
