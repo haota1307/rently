@@ -38,6 +38,13 @@ export const EmailNotFoundException = new UnprocessableEntityException([
   },
 ]);
 
+export const UserNotFoundException = new UnprocessableEntityException([
+  {
+    message: 'Error.UserNotFound',
+    path: 'email',
+  },
+]);
+
 export const InvalidPasswordException = new UnprocessableEntityException([
   {
     message: 'Error.InvalidPassword',
@@ -48,6 +55,7 @@ export const InvalidPasswordException = new UnprocessableEntityException([
 export const RefreshTokenAlreadyUsedException = new UnauthorizedException(
   'Error.RefreshTokenAlreadyUsed',
 );
+
 export const UnauthorizedAccessException = new UnauthorizedException(
   'Error.UnauthorizedAccess',
 );

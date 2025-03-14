@@ -120,6 +120,32 @@ export const ForgotPasswordBodySchema = z
     }
   });
 
+export const ChangePasswordBodySchema = z
+  .object({
+    oldPassword: z
+      .string()
+      .min(6, 'Mật khẩu cũ phải có ít nhất 6 ký tự')
+      .max(100),
+    newPassword: z
+      .string()
+      .min(6, 'Mật khẩu mới phải có ít nhất 6 ký tự')
+      .max(100),
+    confirmPassword: z
+      .string()
+      .min(6, 'Mật khẩu xác nhận phải có ít nhất 6 ký tự')
+      .max(100),
+  })
+  .strict()
+  .superRefine(({ newPassword, confirmPassword }, ctx) => {
+    if (newPassword !== confirmPassword) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Mật khẩu mới và mật khẩu xác nhận phải trùng khớp',
+        path: ['confirmPassword'],
+      });
+    }
+  });
+
 export type RegisterBodyType = z.infer<typeof RegisterBodySchema>;
 export type RegisterResType = z.infer<typeof RegisterResSchema>;
 export type VerificationCodeType = z.infer<typeof VerificationCodeSchema>;
@@ -137,3 +163,4 @@ export type GetAuthorizationUrlResType = z.infer<
   typeof GetAuthorizationUrlResSchema
 >;
 export type ForgotPasswordBodyType = z.infer<typeof ForgotPasswordBodySchema>;
+export type ChangePasswordBodyType = z.infer<typeof ChangePasswordBodySchema>;

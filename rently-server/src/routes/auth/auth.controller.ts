@@ -7,11 +7,13 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Put,
   Query,
   Res,
 } from '@nestjs/common';
 
 import {
+  ChangePasswordBodyDTO,
   ForgotPasswordBodyDTO,
   GetAuthorizationUrlDTO,
   LoginResDTO,
@@ -31,6 +33,7 @@ import { GoogleService } from 'src/routes/auth/google.service';
 import { AuthService } from 'src/routes/auth/auth.service';
 import { IsPublic } from 'src/shared/decorators/auth.decorator';
 import envConfig from 'src/shared/config';
+import { ActiveUser } from 'src/shared/decorators/active-user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -113,5 +116,14 @@ export class AuthController {
   @ZodSerializerDto(MessageResDTO)
   forgotPassword(@Body() body: ForgotPasswordBodyDTO) {
     return this.authService.forgotPassword(body);
+  }
+
+  @Put('change-password')
+  @ZodSerializerDto(MessageResDTO)
+  async changePassword(
+    @Body() body: ChangePasswordBodyDTO,
+    @ActiveUser('userId') userId: number,
+  ) {
+    return this.authService.changePassword(userId, body);
   }
 }

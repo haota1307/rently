@@ -20,6 +20,7 @@ import {
 import { HashingService } from 'src/shared/services/hashing.service';
 import ms from 'ms';
 import {
+  ChangePasswordBodyType,
   ForgotPasswordBodyType,
   LoginBodyType,
   RefreshTokenBodyType,
@@ -38,6 +39,7 @@ import {
   OTPExpiredException,
   RefreshTokenAlreadyUsedException,
   UnauthorizedAccessException,
+  UserNotFoundException,
 } from 'src/routes/auth/error.model';
 
 @Injectable()
@@ -292,6 +294,32 @@ export class AuthService {
         type: TypeOfVerificationCode.FORGOT_PASSWORD,
       }),
     ]);
+
+    return { message: 'Đổi mật khẩu thành công' };
+  }
+
+  async changePassword(userId: number, body: ChangePasswordBodyType) {
+    const user = await this.sharedUserRepository.findUnique({ id: userId });
+
+    if (!user) {
+      throw UserNotFoundException;
+    }
+
+    const isMatch = await this.hashingService.compare(
+      body.oldPassword,
+      user.password,
+    );
+
+    if (!isMatch) {
+      throw InvalidPasswordException;
+    }
+
+    const hashedNewPassword = await this.hashingService.hash(body.newPassword);
+
+    await this.authRepository.updateUser(
+      { id: userId },
+      { password: hashedNewPassword },
+    );
 
     return { message: 'Đổi mật khẩu thành công' };
   }
