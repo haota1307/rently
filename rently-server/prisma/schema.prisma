@@ -112,6 +112,7 @@ model Permission {
 
   @@index([name])
   @@index([path])
+  @@index([deletedAt])
 }
 
 model RefreshToken {

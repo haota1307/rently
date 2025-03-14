@@ -22,12 +22,12 @@ export function HeroSection() {
               tiện ích.
             </p>
 
-            <div className="bg-white p-6 rounded-lg shadow-lg animate-slide-up">
+            <div className="p-6 rounded-lg shadow-lg animate-slide-up">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
                   <Input
                     placeholder="Nhập khu vực cụ thể..."
-                    className="h-12 bg-background"
+                    className="h-12"
                   />
                 </div>
                 <Button size="lg" className="h-12">
