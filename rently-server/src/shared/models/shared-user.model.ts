@@ -1,5 +1,5 @@
-import { UserStatus } from 'src/shared/constants/auth.constant';
-import { z } from 'zod';
+import { UserStatus } from 'src/shared/constants/auth.constant'
+import { z } from 'zod'
 
 export const UserSchema = z.object({
   id: z.number(),
@@ -15,6 +15,6 @@ export const UserSchema = z.object({
   deletedAt: z.date().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
-});
+})
 
-export type UserType = z.infer<typeof UserSchema>;
+export type UserType = z.infer<typeof UserSchema>

@@ -2,7 +2,7 @@ export const RoleName = {
   Admin: 'ADMIN',
   Client: 'CLIENT',
   Landlord: 'LANDLORD',
-} as const;
+} as const
 
 export const HTTPMethod = {
   GET: 'GET',
@@ -12,4 +12,4 @@ export const HTTPMethod = {
   PATCH: 'PATCH',
   OPTIONS: 'OPTIONS',
   HEAD: 'HEAD',
-} as const;
+} as const

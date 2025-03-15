@@ -1,56 +1,56 @@
-import { Injectable } from '@nestjs/common';
-import { PermissionRepo } from 'src/routes/permission/permission.repo';
+import { Injectable } from '@nestjs/common'
+import { PermissionRepo } from 'src/routes/permission/permission.repo'
 import {
   CreatePermissionBodyType,
   GetPermissionsQueryType,
   UpdatePermissionBodyType,
-} from 'src/routes/permission/permission.model';
+} from 'src/routes/permission/permission.model'
 
 import {
   isNotFoundPrismaError,
   isUniqueConstraintPrismaError,
-} from 'src/shared/helpers';
-import { PermissionAlreadyExistsException } from 'src/routes/permission/permission.error';
-import { NotFoundRecordException } from 'src/shared/error';
+} from 'src/shared/helpers'
+import { PermissionAlreadyExistsException } from 'src/routes/permission/permission.error'
+import { NotFoundRecordException } from 'src/shared/error'
 
 @Injectable()
 export class PermissionService {
   constructor(private permissionRepo: PermissionRepo) {}
 
   async list(pagination: GetPermissionsQueryType) {
-    const data = await this.permissionRepo.list(pagination);
+    const data = await this.permissionRepo.list(pagination)
 
-    return data;
+    return data
   }
 
   async findById(id: number) {
-    const Permission = await this.permissionRepo.findById(id);
+    const Permission = await this.permissionRepo.findById(id)
 
     if (!Permission) {
-      throw NotFoundRecordException;
+      throw NotFoundRecordException
     }
 
-    return Permission;
+    return Permission
   }
 
   async create({
     data,
     createdById,
   }: {
-    data: CreatePermissionBodyType;
-    createdById: number;
+    data: CreatePermissionBodyType
+    createdById: number
   }) {
     try {
       return await this.permissionRepo.create({
         createdById,
         data,
-      });
+      })
     } catch (error) {
       if (isUniqueConstraintPrismaError(error)) {
-        throw PermissionAlreadyExistsException;
+        throw PermissionAlreadyExistsException
       }
 
-      throw error;
+      throw error
     }
   }
 
@@ -59,28 +59,28 @@ export class PermissionService {
     data,
     updatedById,
   }: {
-    id: number;
-    data: UpdatePermissionBodyType;
-    updatedById: number;
+    id: number
+    data: UpdatePermissionBodyType
+    updatedById: number
   }) {
     try {
       const Permission = await this.permissionRepo.update({
         id,
         updatedById,
         data,
-      });
+      })
 
-      return Permission;
+      return Permission
     } catch (error) {
       if (isNotFoundPrismaError(error)) {
-        throw NotFoundRecordException;
+        throw NotFoundRecordException
       }
 
       if (isUniqueConstraintPrismaError(error)) {
-        throw PermissionAlreadyExistsException;
+        throw PermissionAlreadyExistsException
       }
 
-      throw error;
+      throw error
     }
   }
 
@@ -89,17 +89,17 @@ export class PermissionService {
       await this.permissionRepo.delete({
         id,
         deletedById,
-      });
+      })
 
       return {
         message: 'Delete successfully',
-      };
+      }
     } catch (error) {
       if (isNotFoundPrismaError(error)) {
-        throw NotFoundRecordException;
+        throw NotFoundRecordException
       }
 
-      throw error;
+      throw error
     }
   }
 }

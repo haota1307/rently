@@ -1,15 +1,15 @@
-import * as fs from 'fs';
-import path from 'path';
-import { config } from 'dotenv';
-import { z } from 'zod';
+import * as fs from 'fs'
+import path from 'path'
+import { config } from 'dotenv'
+import { z } from 'zod'
 
 config({
   path: '.env',
-});
+})
 
 if (!fs.existsSync(path.resolve('.env'))) {
-  console.log('Không tìm thấy file .env');
-  process.exit(1);
+  console.log('Không tìm thấy file .env')
+  process.exit(1)
 }
 
 const configSchema = z.object({
@@ -30,18 +30,16 @@ const configSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string(),
   GOOGLE_REDIRECT_URI: z.string(),
   GOOGLE_CLIENT_REDIRECT_URI: z.string(),
-});
+})
 
-const configServer = configSchema.safeParse(process.env);
+const configServer = configSchema.safeParse(process.env)
 
 if (!configServer.success) {
-  console.error(
-    'Các giá trị khai báo trong file .env không hợp lệ',
-  );
-  console.error(configServer.error.format());
-  process.exit(1);
+  console.error('Các giá trị khai báo trong file .env không hợp lệ')
+  console.error(configServer.error.format())
+  process.exit(1)
 }
 
-const envConfig = configServer.data;
+const envConfig = configServer.data
 
-export default envConfig;
+export default envConfig

@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { UnprocessableEntityException } from '@nestjs/common'
 
 export const PermissionAlreadyExistsException =
   new UnprocessableEntityException([
@@ -10,4 +10,4 @@ export const PermissionAlreadyExistsException =
       message: 'Error.PermissionAlreadyExists',
       path: 'method',
     },
-  ]);
+  ])
