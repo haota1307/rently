@@ -71,9 +71,9 @@ export function RoomInfoSection() {
 
       <div className="my-6">
         <p className="text-2xl font-medium mb-4">Vị trí & bản đồ</p>
-        <MapWithDirections
+        {/* <MapWithDirections
           rentalLocation={[105.72283696441788, 10.007994045116583]}
-        />
+        /> */}
       </div>
     </div>
   );

@@ -1,32 +1,52 @@
 "use client";
 
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { cn, handleErrorApi } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-import { useForm } from "react-hook-form";
-import { cn } from "@/lib/utils";
-
-import Link from "next/link";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import Link from "next/link";
 import { GoogleIcon } from "@/features/auth/components/google-icon";
-import { LoginBody, LoginBodyType } from "@/features/auth/schema/auth.schema";
+import {
+  LoginBodySchema,
+  LoginBodyType,
+} from "@/features/auth/schema/auth.schema";
+import { useLoginMutation } from "@/features/auth/useAuth";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const LoginForm = ({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"form">) => {
+  const router = useRouter();
   const form = useForm<LoginBodyType>({
-    resolver: zodResolver(LoginBody),
+    resolver: zodResolver(LoginBodySchema),
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
+  const loginMutation = useLoginMutation();
+
   const onSubmit = async (data: LoginBodyType) => {
-    console.log({ data });
+    if (loginMutation.isPending) return;
+
+    try {
+      await loginMutation.mutateAsync(data);
+
+      toast.success("Đăng nhập thành công!");
+      router.replace("/");
+    } catch (error) {
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
+    }
   };
 
   return (
@@ -35,13 +55,11 @@ const LoginForm = ({
         className={cn("flex flex-col gap-6", className)}
         {...props}
         noValidate
-        onSubmit={form.handleSubmit(onSubmit, (err) => {
-          console.log(err);
-        })}
+        onSubmit={form.handleSubmit(onSubmit, (err) => console.log(err))}
       >
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold">Đăng nhập</h1>
-          <p className=" text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Nhập email và mật khẩu của bạn vào bên dưới để tiếp tục
           </p>
         </div>
@@ -71,16 +89,13 @@ const LoginForm = ({
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="password"
             render={({ field, formState: { errors } }) => (
               <FormItem>
                 <div className="grid gap-2">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Mật khẩu</Label>
-                  </div>
+                  <Label htmlFor="password">Mật khẩu</Label>
                   <Input
                     id="password"
                     type="password"
@@ -100,15 +115,28 @@ const LoginForm = ({
             )}
           />
 
-          <Button type="submit" className="w-full">
-            Đăng nhập
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loginMutation.isPending}
+          >
+            {loginMutation.isPending ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
+
           <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
             <span className="relative z-10 bg-background px-2 text-muted-foreground">
               Hoặc đăng nhập bằng
             </span>
           </div>
-          <Button variant="outline" className="w-full">
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              // Redirect đến endpoint Google login của backend
+              window.location.href = "/api/auth/google";
+            }}
+          >
             <GoogleIcon />
             Đăng nhập với Google
           </Button>

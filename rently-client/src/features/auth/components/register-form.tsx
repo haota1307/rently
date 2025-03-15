@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import {
-  RegisterBody,
+  RegisterBodySchema,
   RegisterBodyType,
 } from "@/features/auth/schema/auth.schema";
 import { GoogleIcon } from "@/features/auth/components/google-icon";
@@ -19,7 +19,7 @@ const RegisterForm = ({
   ...props
 }: React.ComponentPropsWithoutRef<"form">) => {
   const form = useForm<RegisterBodyType>({
-    resolver: zodResolver(RegisterBody),
+    resolver: zodResolver(RegisterBodySchema),
     defaultValues: {
       name: "",
       email: "",

@@ -1,127 +1,169 @@
-import { Role } from "@/constants/type";
-import z from "zod";
+import { z } from "zod";
+import { TypeOfVerificationCode } from "@/constants/auth.constant";
+import { UserSchema } from "@/features/auth/schema/user.schema";
 
-export const LoginBody = z
-  .object({
-    email: z
-      .string()
-      .min(1, { message: "Email không được để trống" })
-      .email({ message: "Email không hợp lệ" }),
-    password: z
-      .string()
-      .min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" })
-      .max(100, { message: "Mật khẩu không được vượt quá 100 ký tự" })
-      .regex(/[A-Z]/, {
-        message: "Mật khẩu phải chứa ít nhất một chữ cái viết hoa",
-      })
-      .regex(/[a-z]/, {
-        message: "Mật khẩu phải chứa ít nhất một chữ cái viết thường",
-      })
-      .regex(/[0-9]/, { message: "Mật khẩu phải chứa ít nhất một số" })
-      .regex(/[@$!%*?&#]/, {
-        message:
-          "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@, $, !, %, *, ?, &, #, ...)",
-      }),
-  })
-  .strict();
-
-export type LoginBodyType = z.TypeOf<typeof LoginBody>;
-
-export const LoginRes = z.object({
-  data: z.object({
-    accessToken: z.string(),
-    refreshToken: z.string(),
-    account: z.object({
-      id: z.number(),
-      name: z.string(),
-      email: z.string(),
-      role: z.enum([Role.Admin, Role.Landlord, Role.Tenant]),
-    }),
-  }),
-  message: z.string(),
-});
-
-export type LoginResType = z.TypeOf<typeof LoginRes>;
-
-/* ------------------ SCHEMA ĐĂNG KÝ ------------------ */
-export const RegisterBody = z
-  .object({
-    name: z.string().min(1, { message: "Tên không được để trống" }),
-    email: z
-      .string()
-      .min(1, { message: "Email không được để trống" })
-      .email({ message: "Email không hợp lệ" }),
-    password: z
-      .string()
-      .min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" })
-      .max(100, { message: "Mật khẩu không được vượt quá 100 ký tự" })
-      .regex(/[A-Z]/, {
-        message: "Mật khẩu phải chứa ít nhất một chữ cái viết hoa",
-      })
-      .regex(/[a-z]/, {
-        message: "Mật khẩu phải chứa ít nhất một chữ cái viết thường",
-      })
-      .regex(/[0-9]/, { message: "Mật khẩu phải chứa ít nhất một số" })
-      .regex(/[@$!%*?&#]/, {
-        message:
-          "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@, $, !, %, *, ?, &, #, ...)",
-      }),
+export const RegisterBodySchema = UserSchema.pick({
+  email: true,
+  password: true,
+  name: true,
+})
+  .extend({
     confirmPassword: z
       .string()
-      .min(6, { message: "Xác nhận mật khẩu phải có ít nhất 6 ký tự" })
-      .max(100, { message: "Xác nhận mật khẩu không được vượt quá 100 ký tự" }),
+      .min(6, "Mật khẩu xác nhận phải có ít nhất 6 ký tự")
+      .max(100, "Mật khẩu xác nhận không vượt quá 100 ký tự"),
+    code: z.string().length(6, { message: "Mã xác thực phải đúng 6 ký tự" }),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Mật khẩu và xác nhận mật khẩu không khớp",
-    path: ["confirmPassword"], // Gắn lỗi vào trường confirmPassword
+  .strict()
+  .superRefine(({ confirmPassword, password }, ctx) => {
+    if (confirmPassword !== password) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Mật khẩu và xác nhận mật khẩu phải trùng nhau",
+        path: ["confirmPassword"],
+      });
+    }
   });
 
-export type RegisterBodyType = z.TypeOf<typeof RegisterBody>;
+export const RegisterResSchema = UserSchema.omit({
+  password: true,
+});
 
-export const RegisterRes = z.object({
-  data: z.object({
-    accessToken: z.string(),
-    refreshToken: z.string(),
-    account: z.object({
-      id: z.number(),
-      name: z.string(),
-      email: z.string(),
-      role: z.enum([Role.Admin, Role.Landlord, Role.Tenant]),
+export const VerificationCodeSchema = z.object({
+  id: z.number(),
+  email: z.string().email("Email không hợp lệ"),
+  code: z.string().length(6, { message: "Mã xác thực phải đúng 6 ký tự" }),
+  type: z.enum([
+    TypeOfVerificationCode.REGISTER,
+    TypeOfVerificationCode.FORGOT_PASSWORD,
+  ]),
+  expiresAt: z.date({ invalid_type_error: "Ngày hết hạn không hợp lệ" }),
+  createdAt: z.date({ invalid_type_error: "Ngày tạo không hợp lệ" }),
+});
+
+export const SendOTPBodySchema = VerificationCodeSchema.pick({
+  email: true,
+  type: true,
+}).strict();
+
+export const LoginBodySchema = UserSchema.pick({
+  email: true,
+  password: true,
+}).strict();
+
+export const LoginResSchema = z.object({
+  accessToken: z.string({ required_error: "Access token không được để trống" }),
+  refreshToken: z.string({
+    required_error: "Refresh token không được để trống",
+  }),
+});
+
+export const RefreshTokenBodySchema = z
+  .object({
+    refreshToken: z.string({
+      required_error: "Refresh token không được để trống",
     }),
-  }),
-  message: z.string(),
-});
-
-export type RegisterResType = z.TypeOf<typeof RegisterRes>;
-
-/* ------------------ SCHEMA LÀM MỚI TOKEN ------------------ */
-export const RefreshTokenBody = z
-  .object({
-    refreshToken: z
-      .string()
-      .min(1, { message: "Refresh token không được để trống" }),
   })
   .strict();
 
-export type RefreshTokenBodyType = z.TypeOf<typeof RefreshTokenBody>;
+export const RefreshTokenResSchema = LoginResSchema;
 
-export const RefreshTokenRes = z.object({
-  data: z.object({
-    accessToken: z.string(),
-    refreshToken: z.string(),
-  }),
-  message: z.string(),
+export const RefreshTokenSchema = z.object({
+  token: z.string({ required_error: "Token không được để trống" }),
+  userId: z.number({ invalid_type_error: "User ID phải là số" }),
+  expiresAt: z.date({ invalid_type_error: "Ngày hết hạn không hợp lệ" }),
+  createdAt: z.date({ invalid_type_error: "Ngày tạo không hợp lệ" }),
 });
 
-export type RefreshTokenResType = z.TypeOf<typeof RefreshTokenRes>;
+export const RoleSchema = z.object({
+  id: z.number({ invalid_type_error: "ID phải là số" }),
+  name: z.string({ required_error: "Tên vai trò không được để trống" }),
+  description: z.string({
+    required_error: "Mô tả vai trò không được để trống",
+  }),
+  isActive: z.boolean({ invalid_type_error: "Trạng thái phải là boolean" }),
+  createdById: z
+    .number({ invalid_type_error: "CreatedById phải là số" })
+    .nullable(),
+  updatedById: z
+    .number({ invalid_type_error: "UpdatedById phải là số" })
+    .nullable(),
+  deletedAt: z
+    .date({ invalid_type_error: "DeletedAt không hợp lệ" })
+    .nullable(),
+  createdAt: z.date({ invalid_type_error: "Ngày tạo không hợp lệ" }),
+  updatedAt: z.date({ invalid_type_error: "Ngày cập nhật không hợp lệ" }),
+});
 
-/* ------------------ SCHEMA ĐĂNG XUẤT ------------------ */
-export const LogoutBody = z
+export const LogoutBodySchema = RefreshTokenBodySchema;
+
+export const GetAuthorizationUrlResSchema = z.object({
+  url: z.string().url({ message: "URL không hợp lệ" }),
+});
+
+export const ForgotPasswordBodySchema = z
   .object({
-    refreshToken: z
+    email: z.string().email("Email không hợp lệ"),
+    code: z.string().length(6, { message: "Mã xác thực phải đúng 6 ký tự" }),
+    newPassword: z
       .string()
-      .min(1, { message: "Refresh token không được để trống" }),
+      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự")
+      .max(100, "Mật khẩu mới không vượt quá 100 ký tự"),
+    confirmPassword: z
+      .string()
+      .min(6, "Mật khẩu xác nhận phải có ít nhất 6 ký tự")
+      .max(100, "Mật khẩu xác nhận không vượt quá 100 ký tự"),
   })
-  .strict();
+  .strict()
+  .superRefine(({ confirmPassword, newPassword }, ctx) => {
+    if (confirmPassword !== newPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Mật khẩu và mật khẩu xác nhận phải giống nhau",
+        path: ["confirmPassword"],
+      });
+    }
+  });
 
-export type LogoutBodyType = z.TypeOf<typeof LogoutBody>;
+export const ChangePasswordBodySchema = z
+  .object({
+    oldPassword: z
+      .string()
+      .min(6, "Mật khẩu cũ phải có ít nhất 6 ký tự")
+      .max(100, "Mật khẩu cũ không vượt quá 100 ký tự"),
+    newPassword: z
+      .string()
+      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự")
+      .max(100, "Mật khẩu mới không vượt quá 100 ký tự"),
+    confirmPassword: z
+      .string()
+      .min(6, "Mật khẩu xác nhận phải có ít nhất 6 ký tự")
+      .max(100, "Mật khẩu xác nhận không vượt quá 100 ký tự"),
+  })
+  .strict()
+  .superRefine(({ newPassword, confirmPassword }, ctx) => {
+    if (newPassword !== confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Mật khẩu mới và mật khẩu xác nhận phải trùng khớp",
+        path: ["confirmPassword"],
+      });
+    }
+  });
+
+export type RegisterBodyType = z.infer<typeof RegisterBodySchema>;
+export type RegisterResType = z.infer<typeof RegisterResSchema>;
+export type VerificationCodeType = z.infer<typeof VerificationCodeSchema>;
+export type SendOTPBodyType = z.infer<typeof SendOTPBodySchema>;
+export type LoginBodyType = z.infer<typeof LoginBodySchema>;
+export type LoginResType = z.infer<typeof LoginResSchema>;
+export type RefreshTokenType = z.infer<typeof RefreshTokenSchema>;
+export type RefreshTokenBodyType = z.infer<typeof RefreshTokenBodySchema>;
+export type RefreshTokenResType = LoginResType;
+export type RoleType = z.infer<typeof RoleSchema>;
+export type LogoutBodyType = RefreshTokenBodyType;
+export type GetAuthorizationUrlResType = z.infer<
+  typeof GetAuthorizationUrlResSchema
+>;
+export type ForgotPasswordBodyType = z.infer<typeof ForgotPasswordBodySchema>;
+export type ChangePasswordBodyType = z.infer<typeof ChangePasswordBodySchema>;

@@ -1,5 +1,4 @@
 export const TokenType = {
-  ForgotPasswordToken: "ForgotPasswordToken",
   AccessToken: "AccessToken",
   RefreshToken: "RefreshToken",
 } as const;
@@ -7,7 +6,9 @@ export const TokenType = {
 export const Role = {
   Admin: "Admin",
   Landlord: "Landlord",
-  Tenant: "Tenant",
+  Client: "Client",
 } as const;
 
-export const RoleValues = [Role.Admin, Role.Landlord, Role.Tenant] as const;
+export const RoleValues = [Role.Admin, Role.Landlord, Role.Client] as const;
+
+export type RoleType = (typeof Role)[keyof typeof Role];
