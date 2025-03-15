@@ -110,7 +110,7 @@ export function Header() {
               {/* Nút đăng nhập trên mobile */}
               <div className="mt-6">
                 <Button className="w-full">
-                  <Link href={"/sign-in"}>Đăng nhập</Link>
+                  <Link href={"/dang-nhap"}>Đăng nhập</Link>
                 </Button>
               </div>
             </SheetContent>
@@ -136,7 +136,7 @@ export function Header() {
 
           {/* Desktop: Nút Đăng nhập */}
           <Button className="hidden lg:block">
-            <Link href={"/sign-in"}>Đăng nhập</Link>
+            <Link href={"/dang-nhap"}>Đăng nhập</Link>
           </Button>
         </div>
       </div>

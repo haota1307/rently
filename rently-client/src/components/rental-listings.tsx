@@ -102,9 +102,7 @@ export default function RentalListings() {
           <p className="text-muted-foreground">
             Hiển thị {SAMPLE_LISTINGS.length} kết quả
           </p>
-          <Badge variant="outline" className="ml-2">
-            Hà Nội
-          </Badge>
+          {/* <Badge variant="outline" className="ml-2"></Badge> */}
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={sortOption} onValueChange={setSortOption}>
