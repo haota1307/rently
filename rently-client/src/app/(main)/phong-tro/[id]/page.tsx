@@ -1,7 +1,6 @@
-import MapWithGeocoding from "@/features/map/map-with-geocoding";
-import { RoomGallerySection } from "@/features/room/components/room-gallery-section";
-import { RoomInfoSection } from "@/features/room/components/room-info-section";
-import { RoomOwnerSection } from "@/features/room/components/room-owner-section";
+import { RoomGallerySection } from "@/features/rooms/components/room-gallery-section";
+import { RoomInfoSection } from "@/features/rooms/components/room-info-section";
+import { RoomOwnerSection } from "@/features/rooms/components/room-owner-section";
 
 const RoomIdPage = () => {
   const images: string[] = [
@@ -13,8 +12,8 @@ const RoomIdPage = () => {
   ];
 
   return (
-    <div className="w-full">
-      <div className="grid grid-cols-3 md:grid-cols-5 gap-y-8">
+    <div className="w-full mx-8 my-6">
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-y-8 ">
         <RoomGallerySection images={images} />
 
         <RoomOwnerSection />
