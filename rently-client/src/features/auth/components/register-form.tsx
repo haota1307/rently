@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { cn } from "@/lib/utils";
+import { cn, handleErrorApi } from "@/lib/utils";
 import Link from "next/link";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import {
@@ -13,11 +13,20 @@ import {
   RegisterBodyType,
 } from "@/features/auth/schema/auth.schema";
 import { GoogleIcon } from "@/features/auth/components/google-icon";
+import {
+  useRegisterMutation,
+  useSendOTPCodeMutation,
+} from "@/features/auth/useAuth";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 const RegisterForm = ({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"form">) => {
+  const router = useRouter();
+
   const form = useForm<RegisterBodyType>({
     resolver: zodResolver(RegisterBodySchema),
     defaultValues: {
@@ -25,18 +34,52 @@ const RegisterForm = ({
       email: "",
       password: "",
       confirmPassword: "",
+      code: "",
     },
   });
 
+  const sendOtpMutation = useSendOTPCodeMutation();
+  const registerMutation = useRegisterMutation();
+
+  const handleSendOtp = async () => {
+    if (sendOtpMutation.isPending) return;
+
+    const emailValue = form.getValues("email");
+
+    if (!emailValue) {
+      toast.error("Vui lòng nhập email trước khi gửi mã OTP");
+      return;
+    }
+
+    try {
+      await sendOtpMutation.mutateAsync({
+        email: emailValue,
+        type: "REGISTER",
+      });
+
+      toast.success(`Mã OTP đã được gửi đến email ${emailValue}`);
+    } catch (error) {
+      handleErrorApi({ error, setError: form.setError });
+    }
+  };
+
   const onSubmit = async (data: RegisterBodyType) => {
-    // Khi nhấn submit, React Hook Form sẽ validate với Zod schema
-    console.log({ data });
+    if (registerMutation.isPending) return;
+
+    try {
+      await registerMutation.mutateAsync(data);
+
+      toast.success("Đăng ký thành công!");
+      router.replace("/dang-nhap");
+    } catch (error) {
+      handleErrorApi({ error, setError: form.setError });
+    }
   };
 
   return (
     <Form {...form}>
       <form
-        className={cn("flex flex-col gap-6", className)}
+        className={cn("flex flex-col gap-4", className)}
         {...props}
         noValidate
         onSubmit={form.handleSubmit(onSubmit, (err) => {
@@ -49,7 +92,9 @@ const RegisterForm = ({
             Nhập thông tin của bạn để tạo tài khoản mới
           </p>
         </div>
-        <div className="grid gap-4">
+
+        <div className="grid gap-2.5">
+          {/* Trường Họ Tên */}
           <FormField
             control={form.control}
             name="name"
@@ -76,13 +121,33 @@ const RegisterForm = ({
             )}
           />
 
+          {/* Trường Email */}
           <FormField
             control={form.control}
             name="email"
             render={({ field, formState: { errors } }) => (
               <FormItem>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
+                <div className="grid gap-x-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="email">Email</Label>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      onClick={handleSendOtp}
+                      disabled={sendOtpMutation.isPending}
+                      className="h-8 px-3 text-xs"
+                    >
+                      {sendOtpMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          Đang gửi...
+                        </>
+                      ) : (
+                        "Gửi mã OTP"
+                      )}
+                    </Button>
+                  </div>
                   <Input
                     id="email"
                     type="email"
@@ -102,6 +167,7 @@ const RegisterForm = ({
             )}
           />
 
+          {/* Trường Mật khẩu */}
           <FormField
             control={form.control}
             name="password"
@@ -128,6 +194,7 @@ const RegisterForm = ({
             )}
           />
 
+          {/* Trường Xác nhận Mật khẩu */}
           <FormField
             control={form.control}
             name="confirmPassword"
@@ -154,7 +221,34 @@ const RegisterForm = ({
             )}
           />
 
-          <Button type="submit" className="w-full">
+          {/* Trường Nhập mã OTP */}
+          <FormField
+            control={form.control}
+            name="code"
+            render={({ field, formState: { errors } }) => (
+              <FormItem>
+                <div className="grid gap-2">
+                  <Label htmlFor="code">Mã OTP</Label>
+                  <Input
+                    id="code"
+                    type="text"
+                    placeholder="123456"
+                    required
+                    {...field}
+                  />
+                  <FormMessage>
+                    {errors.code?.message && (
+                      <span className="text-red-500 text-sm">
+                        {errors.code.message}
+                      </span>
+                    )}
+                  </FormMessage>
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit" className="w-full mt-2">
             Đăng ký
           </Button>
 

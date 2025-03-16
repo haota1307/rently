@@ -28,6 +28,7 @@ export const normalizePath = (path: string) => {
 const errorMessageMap: Record<string, string> = {
   "Error.InvalidPassword": "Mật khẩu không hợp lệ. Vui lòng thử lại.",
   "Error.EmailNotFound": "Email không tồn tại trong hệ thống.",
+  "Error.EmailAlreadyExists": "Email đã tồn tại trong hệ thống.",
 };
 
 export const handleErrorApi = ({

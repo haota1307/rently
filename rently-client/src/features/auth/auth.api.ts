@@ -4,12 +4,18 @@ import {
   LogoutBodyType,
   RefreshTokenBodyType,
   RefreshTokenResType,
+  RegisterBodyType,
+  RegisterResType,
+  SendOTPBodyType,
 } from "@/features/auth/schema/auth.schema";
 import http from "@/lib/http";
+import { MessageResType } from "@/types/message.type";
 
 const authApiRequest = {
-  // --- Server-side endpoints (dùng trong SSR hoặc nội bộ, không cần baseUrl override) ---
   sLogin: (body: LoginBodyType) => http.post<LoginResType>("/auth/login", body),
+
+  login: (body: LoginBodyType) =>
+    http.post<LoginResType>("/api/auth/login", body, { baseUrl: "" }),
 
   sLogout: (body: LogoutBodyType & { accessToken: string }) =>
     http.post(
@@ -25,11 +31,13 @@ const authApiRequest = {
   sRefreshToken: (body: RefreshTokenBodyType) =>
     http.post<RefreshTokenResType>("/auth/refresh-token", body),
 
-  // --- Client-side endpoints (đường dẫn sử dụng /api/auth/* và baseUrl là BASE_URL) ---
-  login: (body: LoginBodyType) =>
-    http.post<LoginResType>("/api/auth/login", body, { baseUrl: "" }),
+  register: (body: RegisterBodyType) =>
+    http.post<RegisterResType>("/auth/register", body),
 
-  logout: () => http.post("/api/auth/logout", null, { baseUrl: "" }),
+  sendOTPCode: (body: SendOTPBodyType) =>
+    http.post<MessageResType>("/auth/otp", body),
+
+  logout: () => http.post("/auth/logout", null, { baseUrl: "" }),
 
   // refreshTokenRequest dùng để tránh gọi nhiều lần trong cùng một chu kỳ refresh token
   refreshTokenRequest: null as Promise<{
@@ -42,7 +50,7 @@ const authApiRequest = {
       return this.refreshTokenRequest;
     }
     this.refreshTokenRequest = http.post<RefreshTokenResType>(
-      "/api/auth/refresh-token",
+      "/auth/refresh-token",
       null,
       { baseUrl: "" }
     );
@@ -53,7 +61,7 @@ const authApiRequest = {
 
   // Dùng để lưu accessToken và refreshToken vào cookie thông qua endpoint backend
   setTokenToCookie: (body: { accessToken: string; refreshToken: string }) =>
-    http.post("/api/auth/token", body, { baseUrl: "" }),
+    http.post("/auth/token", body, { baseUrl: "" }),
 };
 
 export default authApiRequest;
