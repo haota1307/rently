@@ -17,12 +17,18 @@ import {
 import { useLoginMutation } from "@/features/auth/useAuth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useAppStore } from "@/components/app-provider";
+import { RoleIdToRole } from "@/constants/type";
 
 const LoginForm = ({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"form">) => {
   const router = useRouter();
+
+  const setRole = useAppStore((state) => state.setRole);
+  const setUser = useAppStore((state) => state.setUser);
+
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBodySchema),
     defaultValues: {
@@ -37,11 +43,20 @@ const LoginForm = ({
     if (loginMutation.isPending) return;
 
     try {
-      await loginMutation.mutateAsync(data);
+      const result = await loginMutation.mutateAsync(data);
+
+      if (result) {
+        const roleId = result?.payload?.user?.roleId;
+        const role = RoleIdToRole[roleId];
+
+        setUser(result.payload.user);
+        setRole(role);
+      }
 
       toast.success("Đăng nhập thành công!");
       router.replace("/");
     } catch (error) {
+      console.log({ error });
       handleErrorApi({
         error,
         setError: form.setError,

@@ -37,24 +37,24 @@ export async function middleware(request: NextRequest) {
     const decoded = decodeAccessToken(refreshToken);
     const role = decoded?.roleName;
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/permissions?role=${role}`
-    );
+    // const res = await fetch(
+    //   `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/permissions?role=${role}`
+    // );
 
-    if (!res.ok) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
+    // if (!res.ok) {
+    //   return NextResponse.redirect(new URL("/", request.url));
+    // }
 
-    const permissions: { path: string; method: string }[] = await res.json();
-    const reqMethod = request.method;
-    const hasPermission = permissions.some((perm) => {
-      const matcher = match(perm.path, { decode: decodeURIComponent });
-      return perm.method === reqMethod && matcher(pathname) !== false;
-    });
+    // const permissions: { path: string; method: string }[] = await res.json();
+    // const reqMethod = request.method;
+    // const hasPermission = permissions.some((perm) => {
+    //   const matcher = match(perm.path, { decode: decodeURIComponent });
+    //   return perm.method === reqMethod && matcher(pathname) !== false;
+    // });
 
-    if (!hasPermission) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
+    // if (!hasPermission) {
+    //   return NextResponse.redirect(new URL("/", request.url));
+    // }
   }
 
   return NextResponse.next();

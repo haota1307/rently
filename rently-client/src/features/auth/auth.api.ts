@@ -37,7 +37,8 @@ const authApiRequest = {
   sendOTPCode: (body: SendOTPBodyType) =>
     http.post<MessageResType>("/auth/otp", body),
 
-  logout: () => http.post("/auth/logout", null, { baseUrl: "" }),
+  logout: (body: LogoutBodyType) =>
+    http.post("api/auth/logout", body, { baseUrl: "" }),
 
   // refreshTokenRequest dùng để tránh gọi nhiều lần trong cùng một chu kỳ refresh token
   refreshTokenRequest: null as Promise<{

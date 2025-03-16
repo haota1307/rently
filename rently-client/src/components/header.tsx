@@ -13,10 +13,14 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Search, Heart, Bookmark, Menu, X } from "lucide-react";
+import { useAppStore } from "@/components/app-provider";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AvatarImage } from "@radix-ui/react-avatar";
+import DropdownAvatar from "@/components/dropdown-avatar";
 
 const links = [
   { name: "Trang chủ", href: "/" },
-  { name: "Nhà trọ", href: "/listings" },
+  { name: "Nhà trọ", href: "/phong-tro" },
   { name: "Mini House", href: "/listings/mini-house" },
   { name: "Yêu thích", href: "/favorites" },
   { name: "Đánh dấu", href: "/saved" },
@@ -28,7 +32,9 @@ function normalizePath(path: string) {
 }
 
 export function Header() {
+  const { isAuth, user } = useAppStore(); // Assuming user object is stored when authenticated
   const [search, setSearch] = useState("");
+
   const pathname = usePathname();
   const normalizedPathname = normalizePath(pathname || "");
 
@@ -109,9 +115,13 @@ export function Header() {
               </div>
               {/* Nút đăng nhập trên mobile */}
               <div className="mt-6">
-                <Button className="w-full">
-                  <Link href={"/dang-nhap"}>Đăng nhập</Link>
-                </Button>
+                {!isAuth ? (
+                  <Button className="w-full">
+                    <Link href={"/dang-nhap"}>Đăng nhập</Link>
+                  </Button>
+                ) : (
+                  <DropdownAvatar />
+                )}
               </div>
             </SheetContent>
           </Sheet>
@@ -122,7 +132,7 @@ export function Header() {
             <Input
               type="search"
               placeholder="Tìm kiếm..."
-              className="pl-10 w-[100px] lg:w-[150px] lg:w-[200px]"
+              className="pl-10 w-[100px] lg:w-[250px]"
             />
           </form>
 
@@ -134,10 +144,14 @@ export function Header() {
             <Bookmark className="w-5 h-5 text-gray-600 hover:text-primary cursor-pointer" />
           </Link>
 
-          {/* Desktop: Nút Đăng nhập */}
-          <Button className="hidden lg:block">
-            <Link href={"/dang-nhap"}>Đăng nhập</Link>
-          </Button>
+          {/* Desktop: Nút Đăng nhập hoặc Avatar */}
+          {!isAuth ? (
+            <Button className="hidden lg:block">
+              <Link href={"/dang-nhap"}>Đăng nhập</Link>
+            </Button>
+          ) : (
+            <DropdownAvatar />
+          )}
         </div>
       </div>
     </header>

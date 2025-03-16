@@ -159,7 +159,7 @@ const request = async <Response>(
   if (isClient) {
     const normalizeUrl = normalizePath(url);
     if (["api/auth/login", "api/guest/auth/login"].includes(normalizeUrl)) {
-      const { accessToken, refreshToken } = payload as LoginResType;
+      const { accessToken, refreshToken } = (payload as LoginResType).tokens;
       setAccessTokenToLocalStorage(accessToken);
       setRefreshTokenToLocalStorage(refreshToken);
     } else if (
