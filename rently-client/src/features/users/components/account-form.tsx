@@ -9,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProfileTab from "@/features/accounts/components/profile-tab";
-import SecurityTab from "@/features/accounts/components/security-tab";
+import ProfileTab from "@/features/users/components/profile-tab";
+import SecurityTab from "@/features/users/components/security-tab";
 
 export default function AccountForm() {
   const [isLoading, setIsLoading] = useState(false);

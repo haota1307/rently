@@ -5,7 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 // Những page sẽ không check refresh token
-const UNAUTHENTICATED_PATH = ["/login", "/logout", "/refresh-token"];
+const UNAUTHENTICATED_PATH = [
+  "/dang-nhap",
+  "/dang-xuat",
+  "/refresh-token",
+  "/dang-ky",
+];
+
 export default function RefreshToken() {
   const pathname = usePathname();
   const router = useRouter();
@@ -16,7 +22,7 @@ export default function RefreshToken() {
       checkAndRefreshToken({
         onError: () => {
           clearInterval(interval);
-          router.push("/login");
+          router.push("/dang-nhap");
         },
         force,
       });

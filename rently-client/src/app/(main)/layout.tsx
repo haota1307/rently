@@ -9,7 +9,7 @@ const MainLayout = ({
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex">{children}</main>
+      <main className="">{children}</main>
       <Footer />
     </div>
   );

@@ -12,6 +12,7 @@ import { create } from "zustand";
 import RefreshToken from "@/components/refresh-token";
 import { RoleType } from "@/constants/type";
 import { LoginResType } from "@/features/auth/schema/auth.schema";
+import { GetMeResType } from "@/features/users/schema/account.schema";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,7 +25,7 @@ const queryClient = new QueryClient({
 type AppStoreType = {
   isAuth: boolean;
   role: RoleType | undefined;
-  user: LoginResType["user"] | undefined;
+  user: GetMeResType | undefined;
   setUser: (user?: LoginResType["user"] | undefined) => void;
   setRole: (role?: RoleType | undefined) => void;
 };

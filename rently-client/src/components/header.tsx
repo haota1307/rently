@@ -10,13 +10,11 @@ import {
   SheetTrigger,
   SheetContent,
   SheetTitle,
-  SheetClose,
 } from "@/components/ui/sheet";
-import { Search, Heart, Bookmark, Menu, X } from "lucide-react";
+import { Search, Heart, Bookmark, Menu } from "lucide-react";
 import { useAppStore } from "@/components/app-provider";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { AvatarImage } from "@radix-ui/react-avatar";
 import DropdownAvatar from "@/components/dropdown-avatar";
+import { normalizePath } from "@/lib/utils";
 
 const links = [
   { name: "Trang chủ", href: "/" },
@@ -26,13 +24,8 @@ const links = [
   { name: "Đánh dấu", href: "/saved" },
 ];
 
-// Hàm chuẩn hóa đường dẫn: loại bỏ các dấu "/" thừa ở cuối
-function normalizePath(path: string) {
-  return path.replace(/\/+$/, "");
-}
-
 export function Header() {
-  const { isAuth, user } = useAppStore(); // Assuming user object is stored when authenticated
+  const { isAuth } = useAppStore();
   const [search, setSearch] = useState("");
 
   const pathname = usePathname();
