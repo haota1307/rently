@@ -196,7 +196,10 @@ export class AuthService {
       roleId: user.roleId,
       roleName: user.role.name,
     })
-    return tokens
+    return {
+      tokens,
+      user,
+    }
   }
 
   async refreshToken({ refreshToken }: RefreshTokenBodyType) {
