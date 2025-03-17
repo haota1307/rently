@@ -67,6 +67,7 @@ model User {
   PermissionUpdatedBy  Permission[]          @relation("PermissionUpdatedBy")
   Permission           Permission[]
   deletedPermissions   Permission[]          @relation("PermissionDeletedBy")
+  Role                 Role[]                @relation("RoledeletedByIdBy")
 
   @@index([name])
   @@index([status])
@@ -75,8 +76,8 @@ model User {
 
 model Role {
   id          Int          @id @default(autoincrement())
-  name        String       @unique @db.VarChar(500)
-  description String
+  name        String       @db.VarChar(500)
+  description String       @default("")
   isActive    Boolean      @default(true)
   // Một Role có nhiều quyền và nhiều user
   permissions Permission[]
@@ -86,6 +87,8 @@ model Role {
   createdBy   User? @relation("RoleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedById Int?
   updatedBy   User? @relation("RoleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  deletedById Int?
+  deletedBy   User? @relation("RoledeletedByIdBy", fields: [deletedById], references: [id], onDelete: SetNull)
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
