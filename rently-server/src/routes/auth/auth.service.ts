@@ -241,6 +241,7 @@ export class AuthService {
 
       return token
     } catch (error) {
+      console.log({ error })
       if (error instanceof HttpException) {
         throw error
       }

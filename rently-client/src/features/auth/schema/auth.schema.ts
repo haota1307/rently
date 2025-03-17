@@ -67,7 +67,10 @@ export const RefreshTokenBodySchema = z
   })
   .strict();
 
-export const RefreshTokenResSchema = LoginResSchema;
+export const RefreshTokenResSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+});
 
 export const RefreshTokenSchema = z.object({
   token: z.string({ required_error: "Token không được để trống" }),
@@ -160,7 +163,7 @@ export type LoginBodyType = z.infer<typeof LoginBodySchema>;
 export type LoginResType = z.infer<typeof LoginResSchema>;
 export type RefreshTokenType = z.infer<typeof RefreshTokenSchema>;
 export type RefreshTokenBodyType = z.infer<typeof RefreshTokenBodySchema>;
-export type RefreshTokenResType = LoginResType;
+export type RefreshTokenResType = z.infer<typeof RefreshTokenResSchema>;
 export type RoleType = z.infer<typeof RoleSchema>;
 export type LogoutBodyType = RefreshTokenBodyType;
 export type GetAuthorizationUrlResType = z.infer<

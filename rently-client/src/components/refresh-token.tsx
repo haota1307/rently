@@ -28,6 +28,11 @@ export default function RefreshToken() {
       });
 
     onRefreshToken();
+
+    const TIMEOUT = 1000;
+    interval = setInterval(onRefreshToken, TIMEOUT);
+
+    return () => clearInterval(interval);
   }, [pathname, router]);
 
   return null;

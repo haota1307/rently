@@ -9,6 +9,7 @@ import {
   SendOTPBodyType,
 } from "@/features/auth/schema/auth.schema";
 import http from "@/lib/http";
+import { getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { MessageResType } from "@/types/message.type";
 
 const authApiRequest = {
@@ -40,20 +41,25 @@ const authApiRequest = {
   logout: (body: LogoutBodyType) =>
     http.post("api/auth/logout", body, { baseUrl: "" }),
 
-  // refreshTokenRequest dùng để tránh gọi nhiều lần trong cùng một chu kỳ refresh token
   refreshTokenRequest: null as Promise<{
     status: number;
     payload: RefreshTokenResType;
   }> | null,
 
-  refreshToken: async function () {
+  // refreshTokenRequest dùng để tránh gọi nhiều lần trong cùng một chu kỳ refresh token
+  async refreshToken() {
     if (this.refreshTokenRequest) {
       return this.refreshTokenRequest;
     }
+
+    const accessToken = getAccessTokenFromLocalStorage();
+
     this.refreshTokenRequest = http.post<RefreshTokenResType>(
-      "/auth/refresh-token",
+      "/api/auth/refresh-token",
       null,
-      { baseUrl: "" }
+      {
+        baseUrl: "",
+      }
     );
     const result = await this.refreshTokenRequest;
     this.refreshTokenRequest = null;

@@ -82,6 +82,7 @@ const request = async <Response>(
       : {
           "Content-Type": "application/json",
         };
+
   if (isClient) {
     const accessToken = getAccessTokenFromLocalStorage();
     if (accessToken) {
@@ -125,7 +126,7 @@ const request = async <Response>(
         if (!clientLogoutRequest) {
           clientLogoutRequest = fetch("/api/auth/logout", {
             method: "POST",
-            body: null, // Logout mình sẽ cho phép luôn luôn thành công
+            body: null,
             headers: {
               ...baseHeaders,
             } as any,
@@ -149,22 +150,22 @@ const request = async <Response>(
         const accessToken = (options?.headers as any)?.Authorization.split(
           "Bearer "
         )[1];
-        redirect(`/logout?accessToken=${accessToken}`);
+        console.log({ accessToken });
+        redirect(`/dang-xuat?accessToken=${accessToken}`);
       }
     } else {
+      console.log({ data });
       throw new HttpError(data);
     }
   }
   // Đảm bảo logic dưới đây chỉ chạy ở phía client (browser)
   if (isClient) {
     const normalizeUrl = normalizePath(url);
-    if (["api/auth/login", "api/guest/auth/login"].includes(normalizeUrl)) {
+    if (["api/auth/login"].includes(normalizeUrl)) {
       const { accessToken, refreshToken } = (payload as LoginResType).tokens;
       setAccessTokenToLocalStorage(accessToken);
       setRefreshTokenToLocalStorage(refreshToken);
-    } else if (
-      ["api/auth/logout", "api/guest/auth/logout"].includes(normalizeUrl)
-    ) {
+    } else if (["api/auth/logout"].includes(normalizeUrl)) {
       removeTokensFromLocalStorage;
     }
   }

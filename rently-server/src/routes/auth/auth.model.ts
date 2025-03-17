@@ -62,7 +62,10 @@ export const RefreshTokenBodySchema = z
   })
   .strict()
 
-export const RefreshTokenResSchema = LoginResSchema
+export const RefreshTokenResSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+})
 
 export const DeviceSchema = z.object({
   id: z.number(),
@@ -156,7 +159,7 @@ export type LoginBodyType = z.infer<typeof LoginBodySchema>
 export type LoginResType = z.infer<typeof LoginResSchema>
 export type RefreshTokenType = z.infer<typeof RefreshTokenSchema>
 export type RefreshTokenBodyType = z.infer<typeof RefreshTokenBodySchema>
-export type RefreshTokenResType = LoginResType
+export type RefreshTokenResType = z.infer<typeof RefreshTokenResSchema>
 export type DeviceType = z.infer<typeof DeviceSchema>
 export type RoleType = z.infer<typeof RoleSchema>
 export type LogoutBodyType = RefreshTokenBodyType

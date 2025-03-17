@@ -65,6 +65,7 @@ export class AuthController {
 
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
+  @IsPublic()
   @ZodSerializerDto(RefreshTokenResDTO)
   async refreshToken(@Body() body: RefreshTokenBodyDTO) {
     return this.authService.refreshToken(body)

@@ -12,7 +12,8 @@ export async function middleware(request: NextRequest) {
 
   if (privatePaths.some((path) => pathname.startsWith(path)) && !refreshToken) {
     const url = new URL("/dang-nhap", request.url);
-    // url.searchParams.set("clearTokens", "true");
+    url.searchParams.set("clearTokens", "true");
+
     return NextResponse.redirect(url);
   }
 
