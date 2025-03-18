@@ -24,13 +24,13 @@ export class PermissionService {
   }
 
   async findById(id: number) {
-    const Permission = await this.permissionRepo.findById(id)
+    const permission = await this.permissionRepo.findById(id)
 
-    if (!Permission) {
+    if (!permission) {
       throw NotFoundRecordException
     }
 
-    return Permission
+    return permission
   }
 
   async create({
@@ -64,13 +64,13 @@ export class PermissionService {
     updatedById: number
   }) {
     try {
-      const Permission = await this.permissionRepo.update({
+      const permission = await this.permissionRepo.update({
         id,
         updatedById,
         data,
       })
 
-      return Permission
+      return permission
     } catch (error) {
       if (isNotFoundPrismaError(error)) {
         throw NotFoundRecordException
