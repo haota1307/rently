@@ -1,11 +1,36 @@
 import accountApiRequest from "@/features/users/account.api";
-import { GetUsersQueryType } from "@/features/users/schema/account.schema";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import {
+  GetUsersQueryType,
+  UpdateUserBodyType,
+} from "@/features/users/schema/account.schema";
+import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const useAccountMe = () => {
   return useQuery({
     queryKey: ["account-me"],
     queryFn: accountApiRequest.getMe,
+  });
+};
+
+export const useUpdateMeMutation = () => {
+  const queryClient = useQueryClient();
+  const accessToken = getAccessTokenFromLocalStorage();
+  const userId = accessToken ? decodeAccessToken(accessToken).userId : null;
+
+  return useMutation({
+    mutationFn: async (body: UpdateUserBodyType) => {
+      if (!userId) {
+        return;
+      }
+      return accountApiRequest.updateUser(userId, body);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["account-me"],
+        exact: true,
+      });
+    },
   });
 };
 
@@ -25,7 +50,8 @@ export const useGetUsersQuery = (queryParams: GetUsersQueryType) => {
 
 export const useUpdateUserMutation = () => {
   return useMutation({
-    mutationFn: accountApiRequest.updateUser,
+    mutationFn: ({ id, body }: { id: number; body: UpdateUserBodyType }) =>
+      accountApiRequest.updateUser(id, body),
   });
 };
 

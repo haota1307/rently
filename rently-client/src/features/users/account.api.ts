@@ -30,8 +30,8 @@ const accountApiRequest = {
   getUser: (body: GetUserBodyType) =>
     http.get<GetUserResType>(`${prefix}/${body.id}`),
 
-  updateUser: (body: UpdateUserBodyType) =>
-    http.put<UpdateUserResType>(`${prefix}/${body.id}`, body),
+  updateUser: (id: number, body: UpdateUserBodyType) =>
+    http.put<UpdateUserResType>(`${prefix}/${id}`, body),
 
   deleteUser: (body: DeleteUserBodyType) =>
     http.delete<MessageResType>(`${prefix}/${body.id}`),

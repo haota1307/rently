@@ -18,10 +18,6 @@ export const GetUserBodySchema = z
 
 export const UpdateUserBodySchema = z
   .object({
-    id: z
-      .number()
-      .min(1, "Id phải có ít nhất 1 ký tự")
-      .max(100, "Id không vượt quá 100 ký tự"),
     name: z
       .string()
       .min(1, "Tên phải có ít nhất 1 ký tự")
@@ -34,7 +30,6 @@ export const UpdateUserBodySchema = z
       .nullable()
       .optional(),
     avatar: z.string().nullable().optional(),
-    status: z.enum(["ACTIVE", "INACTIVE", "BLOCKED"]).optional(),
   })
   .strict();
 
