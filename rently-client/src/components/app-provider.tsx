@@ -25,21 +25,13 @@ const queryClient = new QueryClient({
 type AppStoreType = {
   isAuth: boolean;
   role: RoleType | undefined;
-  user: GetMeResType | undefined;
-  setUser: (user?: LoginResType["user"] | undefined) => void;
   setRole: (role?: RoleType | undefined) => void;
 };
 
 export const useAppStore = create<AppStoreType>((set) => ({
   isAuth: false,
   role: undefined as RoleType | undefined,
-  user: undefined as LoginResType["user"] | undefined,
-  setUser: (user?: LoginResType["user"] | undefined) => {
-    set({ user, isAuth: Boolean(user) });
-    if (!user) {
-      removeTokensFromLocalStorage();
-    }
-  },
+
   setRole: (role?: RoleType | undefined) => {
     set({ role, isAuth: Boolean(role) });
     if (!role) {

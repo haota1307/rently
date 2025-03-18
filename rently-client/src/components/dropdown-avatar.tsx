@@ -21,22 +21,11 @@ import { useAccountMe } from "@/features/users/useAccount";
 
 export default function DropdownAvatar() {
   const router = useRouter();
-
-  const storeUser = useAppStore((state) => state.user);
-  const setUser = useAppStore((state) => state.setUser);
   const setRole = useAppStore((state) => state.setRole);
 
-  const enableCallApi = !!storeUser;
+  const { data } = useAccountMe();
 
-  const { data } = useAccountMe(enableCallApi);
-
-  useEffect(() => {
-    if (!storeUser && data?.payload) {
-      setUser(data.payload);
-    }
-  }, [storeUser, data, setUser]);
-
-  const user = storeUser || data?.payload;
+  const user = data?.payload;
 
   const refreshToken = getRefreshTokenFromLocalStorage();
   const logoutMutation = useLogoutMutation();
@@ -47,7 +36,6 @@ export default function DropdownAvatar() {
       await logoutMutation.mutateAsync({ refreshToken });
 
       setRole(undefined);
-      setUser(undefined);
 
       toast.success("Đăng xuất thành công!");
       router.push("/");
@@ -76,13 +64,19 @@ export default function DropdownAvatar() {
         <DropdownMenuLabel>{user?.name}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/manage/setting" className="cursor-pointer">
-            Cài đặt
+          <Link href="/tai-khoan" className="cursor-pointer">
+            Thông tin cá nhân
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>Hỗ trợ</DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/tai-khoan/quen-mat-khau" className="cursor-pointer">
+            Quên mật khẩu
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout}>Đăng xuất</DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer" onClick={logout}>
+          Đăng xuất
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

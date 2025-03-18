@@ -2,11 +2,10 @@ import accountApiRequest from "@/features/users/account.api";
 import { GetUsersQueryType } from "@/features/users/schema/account.schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
-export const useAccountMe = (enabled: boolean) => {
+export const useAccountMe = () => {
   return useQuery({
     queryKey: ["account-me"],
     queryFn: accountApiRequest.getMe,
-    enabled: !enabled,
   });
 };
 
