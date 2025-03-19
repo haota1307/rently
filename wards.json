@@ -1,0 +1,339 @@
+{
+  "wards": [
+    {
+      "id": 2973,
+      "name": "Phường An Cư",
+      "district_id": 726
+    },
+    {
+      "id": 2974,
+      "name": "Phường An Hòa",
+      "district_id": 726
+    },
+    {
+      "id": 2979,
+      "name": "Phường An Phú",
+      "district_id": 726
+    },
+    {
+      "id": 2983,
+      "name": "Phường Tân An",
+      "district_id": 726
+    },
+    {
+      "id": 2972,
+      "name": "Phường An Bình",
+      "district_id": 726
+    },
+    {
+      "id": 2975,
+      "name": "Phường An Hội",
+      "district_id": 726
+    },
+    {
+      "id": 2977,
+      "name": "Phường An Lạc",
+      "district_id": 726
+    },
+    {
+      "id": 2976,
+      "name": "Phường An Khánh",
+      "district_id": 726
+    },
+    {
+      "id": 2980,
+      "name": "Phường An Thạnh",
+      "district_id": 726
+    },
+    {
+      "id": 2981,
+      "name": "Phường Cái Khế",
+      "district_id": 726
+    },
+    {
+      "id": 2978,
+      "name": "Phường An Nghiệp",
+      "district_id": 726
+    },
+    {
+      "id": 2982,
+      "name": "Phường Hưng Lợi",
+      "district_id": 726
+    },
+    {
+      "id": 2984,
+      "name": "Phường Thới Bình",
+      "district_id": 726
+    },
+    {
+      "id": 2985,
+      "name": "Phường Xuân Khánh",
+      "district_id": 726
+    },
+    {
+      "id": 2989,
+      "name": "Phường Thới An",
+      "district_id": 727
+    },
+    {
+      "id": 2987,
+      "name": "Phường Long Hưng",
+      "district_id": 727
+    },
+    {
+      "id": 2990,
+      "name": "Phường Thới Hòa",
+      "district_id": 727
+    },
+    {
+      "id": 2991,
+      "name": "Phường Thới Long",
+      "district_id": 727
+    },
+    {
+      "id": 2988,
+      "name": "Phường Phước Thới",
+      "district_id": 727
+    },
+    {
+      "id": 2992,
+      "name": "Phường Trường Lạc",
+      "district_id": 727
+    },
+    {
+      "id": 2986,
+      "name": "Phường Châu Văn Liêm",
+      "district_id": 727
+    },
+    {
+      "id": 2945,
+      "name": "Phường 8",
+      "district_id": 728
+    },
+    {
+      "id": 2953,
+      "name": "Phường Trà An",
+      "district_id": 728
+    },
+    {
+      "id": 2946,
+      "name": "Phường An Thới",
+      "district_id": 728
+    },
+    {
+      "id": 2947,
+      "name": "Phường An Thới",
+      "district_id": 728
+    },
+    {
+      "id": 2950,
+      "name": "Phường Long Hòa",
+      "district_id": 728
+    },
+    {
+      "id": 2954,
+      "name": "Phường Trà Nóc",
+      "district_id": 728
+    },
+    {
+      "id": 2948,
+      "name": "Phường Bình Thủy",
+      "district_id": 728
+    },
+    {
+      "id": 2951,
+      "name": "Phường Long Tuyền",
+      "district_id": 728
+    },
+    {
+      "id": 2952,
+      "name": "Phường Thới An Đông",
+      "district_id": 728
+    },
+    {
+      "id": 2949,
+      "name": "Phường Bùi Hữu Nghĩa",
+      "district_id": 728
+    },
+    {
+      "id": 2955,
+      "name": "Phường Ba Láng",
+      "district_id": 729
+    },
+    {
+      "id": 2958,
+      "name": "Phường Lê Bình",
+      "district_id": 729
+    },
+    {
+      "id": 2960,
+      "name": "Phường Tân Phú",
+      "district_id": 729
+    },
+    {
+      "id": 2956,
+      "name": "Phường Hưng Phú",
+      "district_id": 729
+    },
+    {
+      "id": 2959,
+      "name": "Phường Phú Thứ",
+      "district_id": 729
+    },
+    {
+      "id": 2957,
+      "name": "Phường Hưng Thạnh",
+      "district_id": 729
+    },
+    {
+      "id": 2961,
+      "name": "Phường Thường Thạnh",
+      "district_id": 729
+    },
+    {
+      "id": 3000,
+      "name": "Phường Tân Hưng",
+      "district_id": 730
+    },
+    {
+      "id": 3001,
+      "name": "Phường Tân Lộc",
+      "district_id": 730
+    },
+    {
+      "id": 3006,
+      "name": "Phường Thuận An",
+      "district_id": 730
+    },
+    {
+      "id": 3008,
+      "name": "Phường Trung Kiên",
+      "district_id": 730
+    },
+    {
+      "id": 3002,
+      "name": "Phường Thạch Hòa",
+      "district_id": 730
+    },
+    {
+      "id": 3005,
+      "name": "Phường Thốt Nốt",
+      "district_id": 730
+    },
+    {
+      "id": 3009,
+      "name": "Phường Trung Nhứt",
+      "district_id": 730
+    },
+    {
+      "id": 3003,
+      "name": "Xã Thạnh Lộc",
+      "district_id": 730
+    },
+    {
+      "id": 3007,
+      "name": "Phường Thuận Hưng",
+      "district_id": 730
+    },
+    {
+      "id": 3004,
+      "name": "Phường Thới Thuận",
+      "district_id": 730
+    },
+    {
+      "id": 2587,
+      "name": "Xã Vĩnh Kim",
+      "district_id": 731
+    },
+    {
+      "id": 2586,
+      "name": "Xã Vĩnh Hòa",
+      "district_id": 731
+    },
+    {
+      "id": 2589,
+      "name": "Xã Vĩnh Sơn",
+      "district_id": 731
+    },
+    {
+      "id": 2584,
+      "name": "Xã Vĩnh Hảo",
+      "district_id": 731
+    },
+    {
+      "id": 2588,
+      "name": "Xã Vĩnh Quang",
+      "district_id": 731
+    },
+    {
+      "id": 2585,
+      "name": "Xã Vĩnh Hiệp",
+      "district_id": 731
+    },
+    {
+      "id": 2590,
+      "name": "Thị trấn Vĩnh Thạnh",
+      "district_id": 731
+    },
+    {
+      "id": 2591,
+      "name": "Xã Vĩnh Thịnh",
+      "district_id": 731
+    },
+    {
+      "id": 2592,
+      "name": "Xã Vĩnh Thuận",
+      "district_id": 731
+    },
+    {
+      "id": 2969,
+      "name": "Xã Trung An",
+      "district_id": 732
+    },
+    {
+      "id": 2970,
+      "name": "Xã Trung Hưng",
+      "district_id": 732
+    },
+    {
+      "id": 2964,
+      "name": "Xã Thạnh Phú",
+      "district_id": 732
+    },
+    {
+      "id": 2967,
+      "name": "Xã Thới Hưng",
+      "district_id": 732
+    },
+    {
+      "id": 2968,
+      "name": "Xã Thới Xuân",
+      "district_id": 732
+    },
+    {
+      "id": 2966,
+      "name": "Xã Thới Đông",
+      "district_id": 732
+    },
+    {
+      "id": 2971,
+      "name": "Xã Trung Thạnh",
+      "district_id": 732
+    },
+    {
+      "id": 2962,
+      "name": "Xã Đông Hiệp",
+      "district_id": 732
+    },
+    {
+      "id": 2963,
+      "name": "Xã Đông Thắng",
+      "district_id": 732
+    },
+    {
+      "id": 2965,
+      "name": "Xã Thị Trấn Cờ Đỏ",
+      "district_id": 732
+    }
+  ]
+}
