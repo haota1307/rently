@@ -19,6 +19,7 @@ async function bootstrap() {
     path: string
     method: keyof typeof HTTPMethod
     name: string
+    module: string
   }[] = router.stack
     .map(layer => {
       if (layer.route) {
@@ -26,10 +27,12 @@ async function bootstrap() {
         const method = String(
           layer.route?.stack[0].method
         ).toUpperCase() as keyof typeof HTTPMethod
+        const moduleName = String(path.split('/')[1]).toUpperCase()
         return {
           path,
           method,
           name: method + ' ' + path,
+          module: moduleName,
         }
       }
     })
