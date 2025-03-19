@@ -54,6 +54,25 @@ export class RoleService {
     }
   }
 
+  /**
+   * Kiểm tra xem role có phải là 1 trong 3 role cơ bản không
+   */
+  private async verifyRole(roleId: number) {
+    const role = await this.roleRepo.findById(roleId)
+    if (!role) {
+      throw NotFoundRecordException
+    }
+    const baseRoles: string[] = [
+      RoleName.Admin,
+      RoleName.Landlord,
+      RoleName.Client,
+    ]
+
+    if (baseRoles.includes(role.name)) {
+      throw ProhibitedActionOnBaseRoleException
+    }
+  }
+
   async update({
     id,
     data,
@@ -64,17 +83,7 @@ export class RoleService {
     updatedById: number
   }) {
     try {
-      const role = await this.roleRepo.findById(id)
-
-      if (!role) {
-        throw NotFoundRecordException
-      }
-
-      // không cho phép cập nhật role admin
-      if (role.name === RoleName.Admin) {
-        throw ProhibitedActionOnBaseRoleException
-      }
-
+      await this.verifyRole(id)
       const updatedRole = await this.roleRepo.update({
         id,
         updatedById,
@@ -97,29 +106,13 @@ export class RoleService {
 
   async delete({ id, deletedById }: { id: number; deletedById: number }) {
     try {
-      const role = await this.roleRepo.findById(id)
-
-      if (!role) {
-        throw NotFoundRecordException
-      }
-
-      // không cho phép xóa 3 role mặc định
-      const baseRole: string[] = [
-        RoleName.Admin,
-        RoleName.Client,
-        RoleName.Landlord,
-      ]
-      if (baseRole.includes(role.name)) {
-        throw ProhibitedActionOnBaseRoleException
-      }
-
+      await this.verifyRole(id)
       await this.roleRepo.delete({
         id,
         deletedById,
       })
-
       return {
-        message: 'Xoá role thành công',
+        message: 'Xóa role thành công',
       }
     } catch (error) {
       if (isNotFoundPrismaError(error)) {
