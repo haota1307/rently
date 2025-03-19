@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <div className="">
+    <div className="w-full">
       <HeroSection />
       <div className="container mx-auto px-8 py-12">
         <PageHeader

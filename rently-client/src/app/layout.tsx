@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import AppProvider from "@/components/app-provider";
+import NextTopLoader from "nextjs-toploader";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -32,6 +33,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
+        <NextTopLoader
+          color="hsl(var(--secondary-foreground))"
+          showSpinner={false}
+          speed={500}
+        />
         <AppProvider>
           <ThemeProvider
             attribute="class"
