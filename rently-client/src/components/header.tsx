@@ -11,17 +11,24 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Search, Heart, Bookmark, Menu } from "lucide-react";
+import {
+  Search,
+  Heart,
+  Bookmark,
+  Menu,
+  Home,
+  Plus,
+  Settings,
+} from "lucide-react";
 import { useAppStore } from "@/components/app-provider";
 import DropdownAvatar from "@/components/dropdown-avatar";
 import { normalizePath } from "@/lib/utils";
 
 const links = [
-  { name: "Trang chủ", href: "/" },
-  { name: "Nhà trọ", href: "/phong-tro" },
-  { name: "Mini House", href: "/listings/mini-house" },
-  { name: "Yêu thích", href: "/favorites" },
-  { name: "Đánh dấu", href: "/saved" },
+  { name: "Trang chủ", href: "/", icon: Home },
+  { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
+  { name: "Đăng bài", href: "/dang-bai", icon: Plus },
+  { name: "Quản lý", href: "/quan-ly", icon: Settings },
 ];
 
 export function Header() {
@@ -52,19 +59,19 @@ export function Header() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`font-medium transition-colors ${
+                className={`font-medium transition-colors flex items-center justify-center ${
                   isActive
                     ? "font-bold text-muted-foreground"
                     : "text-gray-800 hover:text-primary"
                 }`}
               >
+                <link.icon className="h-5 w-5 mr-1" />
                 {link.name}
               </Link>
             );
           })}
         </nav>
 
-        {/* Right section: Search, icons, auth, and mobile menu */}
         <div className="flex items-center gap-4">
           {/* Desktop search */}
           <form className="relative hidden lg:block">
@@ -75,16 +82,6 @@ export function Header() {
               className="w-[250px] pl-10"
             />
           </form>
-
-          {/* Desktop icons */}
-          <div className="hidden lg:flex items-center gap-4">
-            <Link href="/favorites">
-              <Heart className="h-5 w-5 cursor-pointer text-gray-600 hover:text-primary" />
-            </Link>
-            <Link href="/saved">
-              <Bookmark className="h-5 w-5 cursor-pointer text-gray-600 hover:text-primary" />
-            </Link>
-          </div>
 
           {/* Auth button or avatar */}
           <div className="hidden lg:block ml-2">
