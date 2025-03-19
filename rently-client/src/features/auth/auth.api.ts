@@ -1,4 +1,5 @@
 import {
+  ChangePasswordBodyType,
   LoginBodyType,
   LoginResType,
   LogoutBodyType,
@@ -69,6 +70,9 @@ const authApiRequest = {
   // Dùng để lưu accessToken và refreshToken vào cookie thông qua endpoint backend
   setTokenToCookie: (body: { accessToken: string; refreshToken: string }) =>
     http.post("/auth/token", body, { baseUrl: "" }),
+
+  changePassword: (body: ChangePasswordBodyType) =>
+    http.put<MessageResType>(`/auth/change-password`, body),
 };
 
 export default authApiRequest;

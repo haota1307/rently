@@ -27,7 +27,6 @@ const LoginForm = ({
   const router = useRouter();
 
   const setRole = useAppStore((state) => state.setRole);
-  const setUser = useAppStore((state) => state.setUser);
 
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBodySchema),
@@ -49,7 +48,6 @@ const LoginForm = ({
         const roleId = result?.payload?.user?.roleId;
         const role = RoleIdToRole[roleId];
 
-        setUser(result.payload.user);
         setRole(role);
       }
 

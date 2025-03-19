@@ -26,6 +26,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
+import {
+  ChangePasswordBodySchema,
+  ChangePasswordBodyType,
+} from "@/features/auth/schema/auth.schema";
+import { toast } from "sonner";
+import { useChangePasswordMutation } from "@/features/auth/useAuth";
+import { handleErrorApi } from "@/lib/utils";
+
 interface PasswordDialogProps {
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
@@ -39,23 +47,42 @@ export default function PasswordDialog({
   isLoading,
   setIsLoading,
 }: PasswordDialogProps) {
-  const passwordForm = useForm<any>({
-    // resolver: zodResolver(passwordFormSchema),
+  const { mutateAsync: changePassword, isPending } =
+    useChangePasswordMutation();
+
+  const form = useForm<ChangePasswordBodyType>({
+    resolver: zodResolver(ChangePasswordBodySchema),
     defaultValues: {
-      currentPassword: "",
+      oldPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
   });
 
-  function onPasswordSubmit(data: any) {
+  async function onPasswordSubmit(data: ChangePasswordBodyType) {
+    if (isPending) return;
     setIsLoading(true);
+
+    try {
+      await changePassword(data);
+      toast.success("Đổi mật khẩu thành công");
+      setIsOpen(false);
+    } catch (error) {
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Đổi mật khẩu</Button>
+        <Button variant="outline" type="button">
+          Đổi mật khẩu
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -64,15 +91,17 @@ export default function PasswordDialog({
             Nhập mật khẩu hiện tại và mật khẩu mới để thay đổi.
           </DialogDescription>
         </DialogHeader>
-        <Form {...passwordForm}>
+        <Form {...form}>
           <form
-            onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+            onSubmit={form.handleSubmit(onPasswordSubmit, (error) =>
+              console.log(error)
+            )}
             className="space-y-4"
           >
             <FormField
-              control={passwordForm.control}
-              name="currentPassword"
-              render={({ field }) => (
+              control={form.control}
+              name="oldPassword"
+              render={({ field, formState: { errors } }) => (
                 <FormItem>
                   <FormLabel>Mật khẩu hiện tại</FormLabel>
                   <FormControl>
@@ -82,14 +111,21 @@ export default function PasswordDialog({
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage>
+                    {errors.oldPassword?.message && (
+                      <span className="text-red-500 text-sm">
+                        {errors.oldPassword.message}
+                      </span>
+                    )}
+                  </FormMessage>
                 </FormItem>
               )}
             />
+
             <FormField
-              control={passwordForm.control}
+              control={form.control}
               name="newPassword"
-              render={({ field }) => (
+              render={({ field, formState: { errors } }) => (
                 <FormItem>
                   <FormLabel>Mật khẩu mới</FormLabel>
                   <FormControl>
@@ -99,18 +135,25 @@ export default function PasswordDialog({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage>
+                    {errors.newPassword?.message && (
+                      <span className="text-red-500 text-sm">
+                        {errors.newPassword.message}
+                      </span>
+                    )}
+                  </FormMessage>
                   <FormDescription>
                     Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ
                     thường và số.
                   </FormDescription>
-                  <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
-              control={passwordForm.control}
+              control={form.control}
               name="confirmPassword"
-              render={({ field }) => (
+              render={({ field, formState: { errors } }) => (
                 <FormItem>
                   <FormLabel>Xác nhận mật khẩu</FormLabel>
                   <FormControl>
@@ -120,10 +163,17 @@ export default function PasswordDialog({
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage>
+                    {errors.confirmPassword?.message && (
+                      <span className="text-red-500 text-sm">
+                        {errors.confirmPassword.message}
+                      </span>
+                    )}
+                  </FormMessage>
                 </FormItem>
               )}
             />
+
             <DialogFooter>
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

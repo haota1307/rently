@@ -39,13 +39,8 @@ export default function LandlordDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant={landlordStatus === "approved" ? "outline" : "default"}
-          disabled={landlordStatus === "pending"}
-        >
-          {landlordStatus === "none" && "Đăng ký ngay"}
-          {landlordStatus === "pending" && "Đang xét duyệt"}
-          {landlordStatus === "approved" && "Đã đăng ký"}
+        <Button variant={"outline"} disabled={landlordStatus === "pending"}>
+          Đăng ký ngay
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">

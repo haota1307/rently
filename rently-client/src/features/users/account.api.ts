@@ -1,3 +1,4 @@
+import { ChangePasswordBodyType } from "@/features/auth/schema/auth.schema";
 import {
   DeleteUserBodyType,
   GetMeResType,
