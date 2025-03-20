@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { getRefreshTokenFromLocalStorage, handleErrorApi } from "@/lib/utils";
 import { useAppStore } from "@/components/app-provider";
 import { useLogoutMutation } from "@/features/auth/useAuth";
-import { useAccountMe } from "@/features/users/useAccount";
+import { useAccountMe } from "@/features/profile/useProfile";
 
 export default function DropdownAvatar() {
   const router = useRouter();

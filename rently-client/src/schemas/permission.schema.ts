@@ -1,5 +1,5 @@
-import { HTTPMethod } from 'src/shared/constants/role.constant'
-import { z } from 'zod'
+import { HTTPMethod } from "@/constants/role.constant";
+import { z } from "zod";
 
 export const PermissionSchema = z.object({
   id: z.number(),
@@ -20,6 +20,6 @@ export const PermissionSchema = z.object({
   updatedById: z.number().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
-})
+});
 
-export type PermissionType = z.infer<typeof PermissionSchema>
+export type PermissionType = z.infer<typeof PermissionSchema>;

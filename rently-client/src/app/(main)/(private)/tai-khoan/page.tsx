@@ -1,4 +1,4 @@
-import AccountForm from "@/features/users/components/account-form";
+import AccountForm from "@/features/profile/components/account-form";
 
 const AccountPage = () => {
   return (

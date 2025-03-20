@@ -4,20 +4,20 @@ import { AppService } from './app.service'
 import { SharedModule } from 'src/shared/shared.module'
 import { AuthModule } from 'src/routes/auth/auth.module'
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core'
-import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod'
+import { ZodSerializerInterceptor } from 'nestjs-zod'
 import CustomZodValidationPipe from 'src/shared/pipes/custom-zod-validation.pipe'
 import { HttpExceptionFilter } from 'src/shared/filters/http-exception.filter'
-import { UsersModule } from 'src/routes/users/users.module'
 import { PermissionModule } from 'src/routes/permission/permission.module'
 import { RoleModule } from 'src/routes/role/role.module'
+import { ProfileModule } from 'src/routes/profile/profile.module'
 
 @Module({
   imports: [
     SharedModule,
     AuthModule,
-    UsersModule,
     PermissionModule,
     RoleModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [

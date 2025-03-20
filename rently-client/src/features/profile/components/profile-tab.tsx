@@ -13,10 +13,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useUpdateMeMutation } from "@/features/users/useAccount";
+import { useUpdateMeMutation } from "@/features/profile/useProfile";
 import { Loader2 } from "lucide-react";
-import { UpdateUserBodyType } from "@/features/users/schema/account.schema";
+
 import { toast } from "sonner";
+import { UpdateMeBodyType } from "@/schemas/profile.model";
 
 interface ProfileTabProps {
   form: UseFormReturn<any>;
@@ -31,7 +32,7 @@ export default function ProfileTab({
 }: ProfileTabProps) {
   const { mutateAsync: updateMe, isPending } = useUpdateMeMutation();
 
-  function onSubmit(data: UpdateUserBodyType) {
+  function onSubmit(data: UpdateMeBodyType) {
     if (isPending) return;
     setIsLoading(true);
 

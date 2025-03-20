@@ -8,10 +8,7 @@ import { useForm } from "react-hook-form";
 import { cn, handleErrorApi } from "@/lib/utils";
 import Link from "next/link";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import {
-  RegisterBodySchema,
-  RegisterBodyType,
-} from "@/features/auth/schema/auth.schema";
+import { RegisterBodySchema, RegisterBodyType } from "@/schemas/auth.schema";
 import { GoogleIcon } from "@/features/auth/components/google-icon";
 import {
   useRegisterMutation,

@@ -11,8 +11,8 @@ import {
 import { create } from "zustand";
 import RefreshToken from "@/components/refresh-token";
 import { RoleType } from "@/constants/type";
-import { LoginResType } from "@/features/auth/schema/auth.schema";
-import { GetMeResType } from "@/features/users/schema/account.schema";
+import { LoginResType } from "@/schemas/auth.schema";
+import { GetMeResType } from "@/schemas/profile.schema";
 
 const queryClient = new QueryClient({
   defaultOptions: {

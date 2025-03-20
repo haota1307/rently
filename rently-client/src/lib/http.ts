@@ -1,4 +1,4 @@
-import { LoginResType } from "@/features/auth/schema/auth.schema";
+import { LoginResType } from "@/schemas/auth.schema";
 import {
   getAccessTokenFromLocalStorage,
   normalizePath,

@@ -10,10 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import Link from "next/link";
 import { GoogleIcon } from "@/features/auth/components/google-icon";
-import {
-  LoginBodySchema,
-  LoginBodyType,
-} from "@/features/auth/schema/auth.schema";
+import { LoginBodySchema, LoginBodyType } from "@/schemas/auth.schema";
 import { useLoginMutation } from "@/features/auth/useAuth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";

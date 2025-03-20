@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import {
   ChangePasswordBodySchema,
   ChangePasswordBodyType,
-} from "@/features/auth/schema/auth.schema";
+} from "@/schemas/auth.schema";
 import { toast } from "sonner";
 import { useChangePasswordMutation } from "@/features/auth/useAuth";
 import { handleErrorApi } from "@/lib/utils";

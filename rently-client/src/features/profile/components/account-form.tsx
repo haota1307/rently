@@ -8,13 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProfileTab from "@/features/users/components/profile-tab";
-import SecurityTab from "@/features/users/components/security-tab";
-import { useAccountMe } from "@/features/users/useAccount";
-import {
-  UpdateUserBodySchema,
-  UpdateUserBodyType,
-} from "@/features/users/schema/account.schema";
+import ProfileTab from "@/features/profile/components/profile-tab";
+import SecurityTab from "@/features/profile/components/security-tab";
+import { useAccountMe } from "@/features/profile/useProfile";
+import { UpdateMeBodySchema, UpdateMeBodyType } from "@/schemas/profile.model";
 
 export default function AccountForm() {
   const { data } = useAccountMe();
@@ -22,8 +19,8 @@ export default function AccountForm() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [landlordStatus, setLandlordStatus] = useState(user?.status);
-  const form = useForm<UpdateUserBodyType>({
-    resolver: zodResolver(UpdateUserBodySchema),
+  const form = useForm<UpdateMeBodyType>({
+    resolver: zodResolver(UpdateMeBodySchema),
     defaultValues: {
       name: user?.name || "",
       avatar: user?.avatar || "",

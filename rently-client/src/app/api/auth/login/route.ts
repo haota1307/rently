@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 
 import { HttpError } from "@/lib/http";
-import { LoginBodyType } from "@/features/auth/schema/auth.schema";
+import { LoginBodyType } from "@/schemas/auth.schema";
 import authApiRequest from "@/features/auth/auth.api";
 
 export async function POST(request: Request) {

@@ -8,7 +8,7 @@ import {
   RegisterBodyType,
   RegisterResType,
   SendOTPBodyType,
-} from "@/features/auth/schema/auth.schema";
+} from "@/schemas/auth.schema";
 import http from "@/lib/http";
 import { getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { MessageResType } from "@/types/message.type";
