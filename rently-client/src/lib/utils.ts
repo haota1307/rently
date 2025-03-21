@@ -78,6 +78,13 @@ export const removeTokensFromLocalStorage = () => {
   isBrowser && localStorage.removeItem("refreshToken");
 };
 
+export function formatPrice(price: number) {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(price);
+}
+
 export const checkAndRefreshToken = async (param?: {
   onError?: () => void;
   onSuccess?: () => void;
