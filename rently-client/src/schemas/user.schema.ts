@@ -14,6 +14,10 @@ export const UserSchema = z.object({
   balance: z.number().int().default(0),
   roleId: z.number().positive(),
 
+  updatedById: z.number().nullable(),
+  deletedById: z.number().nullable(),
+  createdById: z.number().nullable(),
+
   deletedAt: z.date().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),

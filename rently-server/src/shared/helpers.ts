@@ -19,6 +19,15 @@ export function isNotFoundPrismaError(
   )
 }
 
+export function isForeignKeyConstraintPrismaError(
+  error: any
+): error is Prisma.PrismaClientKnownRequestError {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2003'
+  )
+}
+
 export const generateOTP = () => {
   return String(randomInt(100000, 1000000))
 }
