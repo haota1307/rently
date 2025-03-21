@@ -45,13 +45,6 @@ export const UserNotFoundException = new UnprocessableEntityException([
   },
 ])
 
-export const InvalidPasswordException = new UnprocessableEntityException([
-  {
-    message: 'Error.InvalidPassword',
-    path: 'password',
-  },
-])
-
 export const RefreshTokenAlreadyUsedException = new UnauthorizedException(
   'Error.RefreshTokenAlreadyUsed'
 )

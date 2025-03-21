@@ -15,10 +15,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function SearchFilters() {
+  // Giá trị mặc định cho bộ lọc khoảng giá và diện tích
   const [priceRange, setPriceRange] = useState([1000000, 5000000]);
   const [areaRange, setAreaRange] = useState([15, 50]);
+
+  // Lưu trạng thái cho các bộ lọc dạng select
+  const [selectedDistance, setSelectedDistance] = useState<string | null>(null);
+  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+
+  // Lưu danh sách tiện ích đã chọn
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
+  // Danh sách các tiện ích
   const amenities = [
     { id: "wifi", label: "Wi-Fi" },
     { id: "ac", label: "Điều hòa" },
@@ -30,10 +38,35 @@ export default function SearchFilters() {
     { id: "pet", label: "Thú cưng" },
   ];
 
+  // Hàm xử lý chọn/toggle tiện ích
   const toggleAmenity = (id: string) => {
     setSelectedAmenities((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  // Lưu giá trị khi chọn khoảng cách và diện tích
+  const handleDistanceChange = (value: string) => {
+    setSelectedDistance(value);
+  };
+
+  const handleAreaChange = (value: string) => {
+    setSelectedArea(value);
+  };
+
+  // Hàm xử lý khi nhấn nút "Áp dụng" bộ lọc
+  const applyFilters = () => {
+    // Tùy vào backend, bạn có thể chuyển đổi các giá trị thành object query hợp lệ
+    const filters = {
+      distance: selectedDistance,
+      area: selectedArea,
+      priceMin: priceRange[0],
+      priceMax: priceRange[1],
+      amenities: selectedAmenities,
+    };
+
+    console.log("Filters applied:", filters);
+    // Thực hiện API call hoặc cập nhật state ở đây
   };
 
   return (
@@ -42,73 +75,64 @@ export default function SearchFilters() {
         <CardTitle className="text-xl">Bộ lọc tìm kiếm</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Bộ lọc khoảng cách */}
         <div className="space-y-2">
-          <Label htmlFor="location">Khu vực</Label>
-          <Select>
-            <SelectTrigger id="location" className="w-full">
-              <SelectValue placeholder="Chọn khu vực" />
+          <Label htmlFor="distance">Khoảng cách</Label>
+          <Select onValueChange={handleDistanceChange}>
+            <SelectTrigger id="distance" className="w-full">
+              <SelectValue placeholder="Chọn khoảng cách" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="hanoi">Hà Nội</SelectItem>
-              <SelectItem value="hcm">TP. Hồ Chí Minh</SelectItem>
-              <SelectItem value="danang">Đà Nẵng</SelectItem>
-              <SelectItem value="cantho">Cần Thơ</SelectItem>
+              <SelectItem value="0-3">Dưới 3 Km</SelectItem>
+              <SelectItem value="3-5">3 Km - 5 Km</SelectItem>
+              <SelectItem value="5-10">5 Km - 10 Km</SelectItem>
+              <SelectItem value=">10">Trên 10 Km</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
+        {/* Bộ lọc diện tích */}
         <div className="space-y-2">
-          <Label htmlFor="district">Quận/Huyện</Label>
-          <Select>
-            <SelectTrigger id="district" className="w-full">
-              <SelectValue placeholder="Chọn quận/huyện" />
+          <Label htmlFor="area">Diện tích</Label>
+          <Select onValueChange={handleAreaChange}>
+            <SelectTrigger id="area" className="w-full">
+              <SelectValue placeholder="Chọn diện tích" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="quan1">Quận 1</SelectItem>
-              <SelectItem value="quan2">Quận 2</SelectItem>
-              <SelectItem value="quan3">Quận 3</SelectItem>
-              <SelectItem value="quan4">Quận 4</SelectItem>
+              <SelectItem value="0-20">
+                Dưới 20 m<sup>2</sup>
+              </SelectItem>
+              <SelectItem value="20-30">
+                20 m<sup>2</sup> - 30 m<sup>2</sup>
+              </SelectItem>
+              <SelectItem value="30-50">
+                30 m<sup>2</sup> - 50 m<sup>2</sup>
+              </SelectItem>
+              <SelectItem value=">50">
+                Trên 50 m<sup>2</sup>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex justify-between">
-            <Label>Khoảng giá</Label>
-            <span className="text-sm text-muted-foreground">
-              {priceRange[0].toLocaleString("vi-VN")}đ -{" "}
-              {priceRange[1].toLocaleString("vi-VN")}đ
-            </span>
-          </div>
+        {/* Bộ lọc khoảng giá */}
+        <div className="space-y-2">
+          <Label htmlFor="price">Khoảng giá</Label>
           <Slider
-            defaultValue={[1000000, 5000000]}
+            id="price"
+            defaultValue={priceRange}
+            min={0}
             max={10000000}
-            min={500000}
-            step={100000}
-            value={priceRange}
-            onValueChange={setPriceRange}
-            className="py-4"
+            step={500000}
+            onValueChange={(value) => setPriceRange(value)}
           />
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex justify-between">
-            <Label>Diện tích</Label>
-            <span className="text-sm text-muted-foreground">
-              {areaRange[0]}m² - {areaRange[1]}m²
-            </span>
+          <div className="flex justify-between text-sm">
+            <span>{priceRange[0].toLocaleString()} VND</span>
+            <span>{priceRange[1].toLocaleString()} VND</span>
           </div>
-          <Slider
-            defaultValue={[15, 50]}
-            max={100}
-            min={10}
-            step={5}
-            value={areaRange}
-            onValueChange={setAreaRange}
-            className="py-4"
-          />
         </div>
 
+        {/* Bộ lọc tiện ích */}
         <div className="space-y-3">
           <Label>Tiện ích</Label>
           <div className="flex flex-wrap gap-2">
@@ -127,7 +151,9 @@ export default function SearchFilters() {
           </div>
         </div>
 
-        <Button className="w-full">Áp dụng</Button>
+        <Button className="w-full" onClick={applyFilters}>
+          Áp dụng
+        </Button>
       </CardContent>
     </Card>
   );

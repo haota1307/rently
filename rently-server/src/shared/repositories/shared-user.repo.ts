@@ -4,11 +4,11 @@ import { RoleType } from 'src/shared/models/shared-role.model'
 import { UserType } from 'src/shared/models/shared-user.model'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
-type UserIncludeRolePermissionsType = UserType & {
+export type UserIncludeRolePermissionsType = UserType & {
   role: RoleType & { permissions: PermissionType[] }
 }
 
-type WhereUniqueUserType =
+export type WhereUniqueUserType =
   | { id: number; [key: string]: any }
   | { email: string; [key: string]: any }
 

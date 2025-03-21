@@ -6,7 +6,7 @@ import {
 import { addMilliseconds } from 'date-fns'
 import { RegisterBodyDTO } from 'src/routes/auth/auth.dto'
 import { AuthRepository } from 'src/routes/auth/auth.repo'
-import { RolesService } from 'src/routes/auth/roles.service'
+
 import envConfig from 'src/shared/config'
 import {
   TypeOfVerificationCode,
@@ -35,20 +35,21 @@ import {
   EmailNotFoundException,
   FailedToSendOTPException,
   InvalidOTPException,
-  InvalidPasswordException,
   OTPExpiredException,
   RefreshTokenAlreadyUsedException,
   UnauthorizedAccessException,
   UserNotFoundException,
-} from 'src/routes/auth/error.model'
+} from 'src/routes/auth/auth.error'
+import { InvalidPasswordException } from 'src/shared/error'
+import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
-    private readonly rolesService: RolesService,
-    private readonly hashingService: HashingService,
+    private readonly sharedRolesService: SharedRoleRepository,
     private readonly sharedUserRepository: SharedUserRepository,
+    private readonly hashingService: HashingService,
     private readonly emailService: EmailService,
     private readonly tokenService: TokenService
   ) {}
@@ -88,7 +89,7 @@ export class AuthService {
         type: TypeOfVerificationCode.REGISTER,
       })
 
-      const clientRoleId = await this.rolesService.getClientRoleId()
+      const clientRoleId = await this.sharedRolesService.getClientRoleId()
       const hashedPassword = await this.hashingService.hash(body.password)
 
       const [user] = await Promise.all([
@@ -288,9 +289,9 @@ export class AuthService {
     const hashedPassword = await this.hashingService.hash(newPassword)
 
     await Promise.all([
-      this.authRepository.updateUser(
-        { id: user.id },
-        { password: hashedPassword }
+      this.sharedUserRepository.update(
+        { id: user.id, deletedAt: null },
+        { password: hashedPassword, updatedAt: new Date() }
       ),
       this.authRepository.deleteVerificationCode({
         email: body.email,
@@ -303,7 +304,10 @@ export class AuthService {
   }
 
   async changePassword(userId: number, body: ChangePasswordBodyType) {
-    const user = await this.sharedUserRepository.findUnique({ id: userId })
+    const user = await this.sharedUserRepository.findUnique({
+      id: userId,
+      deletedAt: null,
+    })
 
     if (!user) {
       throw UserNotFoundException
@@ -320,9 +324,9 @@ export class AuthService {
 
     const hashedNewPassword = await this.hashingService.hash(body.newPassword)
 
-    await this.authRepository.updateUser(
-      { id: userId },
-      { password: hashedNewPassword }
+    await this.sharedUserRepository.update(
+      { id: userId, deletedAt: null },
+      { password: hashedNewPassword, updatedAt: new Date() }
     )
 
     return { message: 'Đổi mật khẩu thành công' }

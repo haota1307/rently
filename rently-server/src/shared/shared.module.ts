@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core'
 import { AuthenticationGuard } from 'src/shared/guards/authentication.guard'
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { EmailService } from 'src/shared/services/email.service'
+import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 
 @Global()
 @Module({
@@ -19,6 +20,7 @@ import { EmailService } from 'src/shared/services/email.service'
     AccessTokenGuard,
     APIKeyGuard,
     SharedUserRepository,
+    SharedRoleRepository,
     EmailService,
     {
       provide: APP_GUARD,
@@ -30,6 +32,7 @@ import { EmailService } from 'src/shared/services/email.service'
     HashingService,
     TokenService,
     SharedUserRepository,
+    SharedRoleRepository,
     EmailService,
   ],
   imports: [JwtModule],
