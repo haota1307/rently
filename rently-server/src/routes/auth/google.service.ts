@@ -40,30 +40,16 @@ export class GoogleService {
       include_granted_scopes: true,
     })
 
-    return url
+    return { url }
   }
 
   async googleCallback({ code, state }: { code: string; state: string }) {
     try {
-      let userAgent = 'Unknown'
-      let ip = 'Unknown'
-      // 1. Lấy state từ URL
-      try {
-        if (state) {
-          const stateString = Buffer.from(state, 'base64').toString('utf-8')
-          const clientInfo = JSON.parse(stateString)
-          userAgent = clientInfo.userAgent
-          ip = clientInfo.ip
-        }
-      } catch (error) {
-        console.error('Error parsing state', error)
-      }
-
-      // 2. Dùng code để lấy token
+      // `. Dùng code để lấy token
       const { tokens } = await this.oauth2Client.getToken(code)
       this.oauth2Client.setCredentials(tokens)
 
-      // 3. Lấy thông tin user
+      // 2. Lấy thông tin user
       const oauth2 = google.oauth2({
         auth: this.oauth2Client,
         version: 'v2',
@@ -78,7 +64,7 @@ export class GoogleService {
         email: data.email,
       })
 
-      // 4. Nếu user chưa tồn tại thì tạo mới
+      // 3. Nếu user chưa tồn tại thì tạo mới
       if (!user) {
         const clientRoleId = await this.sharedRolesService.getClientRoleId()
         const randomPassword = uuidv4()
@@ -94,7 +80,7 @@ export class GoogleService {
         })
       }
 
-      // Tạo token cho user (dù mới tạo hay đã tồn tại)
+      // 4. Tạo token cho user (dù mới tạo hay đã tồn tại)
       const authTokens = await this.authService.generateTokens({
         userId: user.id,
         roleId: user.roleId,
@@ -104,7 +90,6 @@ export class GoogleService {
       return authTokens
     } catch (error) {
       console.error('Error in Google callback', error)
-      // Sử dụng custom exception để báo lỗi đăng nhập Google
       throw GoogleUserInfoError
     }
   }

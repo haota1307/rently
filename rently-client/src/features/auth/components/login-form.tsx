@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/components/app-provider";
 import { RoleIdToRole } from "@/constants/type";
+import http from "@/lib/http";
 
 const LoginForm = ({
   className,
@@ -56,6 +57,17 @@ const LoginForm = ({
         error,
         setError: form.setError,
       });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const response = await http.get("/auth/google-link");
+
+      router.push((response.payload as { url: string }).url);
+    } catch (error) {
+      toast.error("Đã có lỗi xảy ra khi đăng nhập bằng Google");
+      console.log({ error });
     }
   };
 
@@ -140,12 +152,10 @@ const LoginForm = ({
           </div>
 
           <Button
+            type="button"
             variant="outline"
             className="w-full"
-            onClick={() => {
-              // Redirect đến endpoint Google login của backend
-              window.location.href = "/api/auth/google";
-            }}
+            onClick={handleGoogleLogin}
           >
             <GoogleIcon />
             Đăng nhập với Google

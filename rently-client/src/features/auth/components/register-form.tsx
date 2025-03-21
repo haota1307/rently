@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import http from "@/lib/http";
 
 const RegisterForm = ({
   className,
@@ -70,6 +71,17 @@ const RegisterForm = ({
       router.replace("/dang-nhap");
     } catch (error) {
       handleErrorApi({ error, setError: form.setError });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const response = await http.get("/auth/google-link");
+
+      router.push((response.payload as { url: string }).url);
+    } catch (error) {
+      toast.error("Đã có lỗi xảy ra khi đăng nhập bằng Google");
+      console.log({ error });
     }
   };
 
@@ -254,7 +266,12 @@ const RegisterForm = ({
               Hoặc đăng ký bằng
             </span>
           </div>
-          <Button variant="outline" className="w-full">
+          <Button
+            type="button"
+            onClick={handleGoogleLogin}
+            variant="outline"
+            className="w-full"
+          >
             <GoogleIcon />
             Đăng ký với Google
           </Button>
