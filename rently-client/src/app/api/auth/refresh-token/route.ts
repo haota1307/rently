@@ -16,8 +16,6 @@ export async function POST(request: Request) {
   try {
     const { payload } = await authApiRequest.sRefreshToken({ refreshToken });
 
-    console.log({ payload });
-
     const decodedAccessToken = jwt.decode(payload.accessToken) as {
       exp: number;
     };

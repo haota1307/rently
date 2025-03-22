@@ -27,7 +27,7 @@ import { normalizePath } from "@/lib/utils";
 const links = [
   { name: "Trang chủ", href: "/", icon: Home },
   { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
-  { name: "Đăng bài", href: "/dang-bai", icon: Plus },
+  { name: "Đăng tin", href: "/dang-tin", icon: Plus },
   { name: "Quản lý", href: "/quan-ly", icon: Settings },
 ];
 

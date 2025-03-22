@@ -18,12 +18,12 @@ export function PageHeader({ title, description }: PageHeaderProps) {
           <p className="text-muted-foreground mt-1">{description}</p>
         )}
       </div>
-      <Link href="/dang-tin">
+      {/* <Link href="/dang-tin">
         <Button className="w-full md:w-auto">
           <PlusCircle className="mr-2 h-4 w-4" />
           Đăng tin
         </Button>
-      </Link>
+      </Link> */}
     </div>
   );
 }

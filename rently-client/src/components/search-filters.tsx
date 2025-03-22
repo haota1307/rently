@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -15,18 +14,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function SearchFilters() {
-  // Giá trị mặc định cho bộ lọc khoảng giá và diện tích
-  const [priceRange, setPriceRange] = useState([1000000, 5000000]);
-  const [areaRange, setAreaRange] = useState([15, 50]);
-
-  // Lưu trạng thái cho các bộ lọc dạng select
+  // Giá trị mặc định cho bộ lọc
   const [selectedDistance, setSelectedDistance] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
-
-  // Lưu danh sách tiện ích đã chọn
+  const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
-  // Danh sách các tiện ích
+  // Danh sách tiện ích
   const amenities = [
     { id: "wifi", label: "Wi-Fi" },
     { id: "ac", label: "Điều hòa" },
@@ -45,23 +39,17 @@ export default function SearchFilters() {
     );
   };
 
-  // Lưu giá trị khi chọn khoảng cách và diện tích
-  const handleDistanceChange = (value: string) => {
-    setSelectedDistance(value);
-  };
-
-  const handleAreaChange = (value: string) => {
-    setSelectedArea(value);
-  };
+  // Lưu giá trị được chọn từ Select
+  const handleDistanceChange = (value: string) => setSelectedDistance(value);
+  const handleAreaChange = (value: string) => setSelectedArea(value);
+  const handlePriceChange = (value: string) => setSelectedPrice(value);
 
   // Hàm xử lý khi nhấn nút "Áp dụng" bộ lọc
   const applyFilters = () => {
-    // Tùy vào backend, bạn có thể chuyển đổi các giá trị thành object query hợp lệ
     const filters = {
       distance: selectedDistance,
       area: selectedArea,
-      priceMin: priceRange[0],
-      priceMax: priceRange[1],
+      priceRange: selectedPrice,
       amenities: selectedAmenities,
     };
 
@@ -99,37 +87,32 @@ export default function SearchFilters() {
               <SelectValue placeholder="Chọn diện tích" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0-20">
-                Dưới 20 m<sup>2</sup>
-              </SelectItem>
-              <SelectItem value="20-30">
-                20 m<sup>2</sup> - 30 m<sup>2</sup>
-              </SelectItem>
-              <SelectItem value="30-50">
-                30 m<sup>2</sup> - 50 m<sup>2</sup>
-              </SelectItem>
-              <SelectItem value=">50">
-                Trên 50 m<sup>2</sup>
-              </SelectItem>
+              <SelectItem value="0-20">Dưới 20 m²</SelectItem>
+              <SelectItem value="20-30">20 m² - 30 m²</SelectItem>
+              <SelectItem value="30-50">30 m² - 50 m²</SelectItem>
+              <SelectItem value=">50">Trên 50 m²</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Bộ lọc khoảng giá */}
+        {/* Bộ lọc khoảng giá*/}
         <div className="space-y-2">
           <Label htmlFor="price">Khoảng giá</Label>
-          <Slider
-            id="price"
-            defaultValue={priceRange}
-            min={0}
-            max={10000000}
-            step={500000}
-            onValueChange={(value) => setPriceRange(value)}
-          />
-          <div className="flex justify-between text-sm">
-            <span>{priceRange[0].toLocaleString()} VND</span>
-            <span>{priceRange[1].toLocaleString()} VND</span>
-          </div>
+          <Select onValueChange={handlePriceChange}>
+            <SelectTrigger id="price" className="w-full">
+              <SelectValue placeholder="Chọn khoảng giá" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0-1000000">Dưới 1 triệu VND</SelectItem>
+              <SelectItem value="1000000-3000000">
+                1 triệu - 3 triệu VND
+              </SelectItem>
+              <SelectItem value="3000000-50000000">
+                3 triệu - 5 triệu VND
+              </SelectItem>
+              <SelectItem value=">5000000">Trên 5 triệu VND</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Bộ lọc tiện ích */}
