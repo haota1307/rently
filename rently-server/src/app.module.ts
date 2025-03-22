@@ -11,6 +11,7 @@ import { PermissionModule } from 'src/routes/permission/permission.module'
 import { RoleModule } from 'src/routes/role/role.module'
 import { ProfileModule } from 'src/routes/profile/profile.module'
 import { UserModule } from 'src/routes/user/user.module'
+import { UploadModule } from 'src/routes/upload/upload.module'
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UserModule } from 'src/routes/user/user.module'
     RoleModule,
     ProfileModule,
     UserModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [
