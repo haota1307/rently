@@ -1,5 +1,6 @@
 import {
   ChangePasswordBodyType,
+  ForgotPasswordBodyType,
   LoginBodyType,
   LoginResType,
   LogoutBodyType,
@@ -73,6 +74,9 @@ const authApiRequest = {
 
   changePassword: (body: ChangePasswordBodyType) =>
     http.put<MessageResType>(`/auth/change-password`, body),
+
+  forgotPassword: (body: ForgotPasswordBodyType) =>
+    http.post<MessageResType>("/auth/forgot-password", body),
 };
 
 export default authApiRequest;

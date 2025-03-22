@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { House } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import SignInForm from "@/features/auth/components/login-form";
@@ -38,7 +39,7 @@ const SignInPage = () => {
           className={`absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale transition-opacity duration-500 ${
             imageLoaded ? "opacity-100" : "opacity-0"
           }`}
-          onLoadingComplete={() => setImageLoaded(true)}
+          onLoad={() => setImageLoaded(true)}
         />
       </div>
     </div>

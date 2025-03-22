@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Grid3X3, LayoutList } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";

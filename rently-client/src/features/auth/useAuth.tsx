@@ -36,3 +36,9 @@ export const useChangePasswordMutation = () => {
     mutationFn: authApiRequest.changePassword,
   });
 };
+
+export const useForgotPasswordMutation = () => {
+  return useMutation({
+    mutationFn: authApiRequest.forgotPassword,
+  });
+};

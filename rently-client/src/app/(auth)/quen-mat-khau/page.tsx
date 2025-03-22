@@ -1,13 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import ResetPasswordForm from "@/features/auth/components/reset-password-form";
+import ForgotPasswordForm from "@/features/auth/components/reset-password-form";
+import SendOTPForm from "@/features/auth/components/send-otp-form";
 import { House } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
-import RegisterForm from "@/features/auth/components/register-form";
 
-const RegisterPage = () => {
+const ForgotPasswordPage = () => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
@@ -37,7 +40,11 @@ const RegisterPage = () => {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-md">
-            <RegisterForm />
+            {email ? (
+              <ResetPasswordForm email={email} />
+            ) : (
+              <SendOTPForm onSuccess={(email) => setEmail(email)} />
+            )}
           </div>
         </div>
       </div>
@@ -45,4 +52,4 @@ const RegisterPage = () => {
   );
 };
 
-export default RegisterPage;
+export default ForgotPasswordPage;

@@ -117,7 +117,15 @@ const LoginForm = ({
             render={({ field, formState: { errors } }) => (
               <FormItem>
                 <div className="grid gap-2">
-                  <Label htmlFor="password">Mật khẩu</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Mật khẩu</Label>
+                    <Link
+                      href="/quen-mat-khau"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Quên mật khẩu?
+                    </Link>
+                  </div>
                   <Input
                     id="password"
                     type="password"
