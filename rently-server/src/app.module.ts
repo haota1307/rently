@@ -12,6 +12,7 @@ import { RoleModule } from 'src/routes/role/role.module'
 import { ProfileModule } from 'src/routes/profile/profile.module'
 import { UserModule } from 'src/routes/user/user.module'
 import { UploadModule } from 'src/routes/upload/upload.module'
+import { PostModule } from 'src/routes/post/post.module'
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { UploadModule } from 'src/routes/upload/upload.module'
     ProfileModule,
     UserModule,
     UploadModule,
+    PostModule,
   ],
   controllers: [AppController],
   providers: [
