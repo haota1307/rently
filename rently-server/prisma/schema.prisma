@@ -169,8 +169,8 @@ model Rental {
   address     String
   lat         Decimal
   lng         Decimal
-  createdAt   DateTime
-  updatedAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   landlord     User          @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade)
   landlordId   Int
@@ -191,7 +191,7 @@ model Room {
   area        String
   isAvailable Boolean  @default(true)
   createdAt   DateTime
-  updatedAt   DateTime
+  updatedAt   DateTime @updatedAt
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
@@ -207,7 +207,7 @@ model Room {
 model RentalImage {
   id        Int      @id @default(autoincrement())
   imageUrl  String
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
@@ -219,7 +219,7 @@ model RentalImage {
 model Amenity {
   id        Int      @id @default(autoincrement())
   name      String   @unique
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   roomAmenities RoomAmenity[]
 
@@ -243,7 +243,7 @@ model RentalPost {
   startDate DateTime
   endDate   DateTime
   pricePaid Decimal
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
@@ -280,7 +280,7 @@ model Message {
   id        Int      @id @default(autoincrement())
   content   String
   isRead    Boolean  @default(false)
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   sender     User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   senderId   Int
@@ -294,7 +294,7 @@ model Message {
 
 model Conversation {
   id        Int      @id @default(autoincrement())
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   userOne   User @relation("UserOneConversations", fields: [userOneId], references: [id], onDelete: Cascade)
   userOneId Int
@@ -312,7 +312,7 @@ model ConversationMessage {
   id        Int      @id @default(autoincrement())
   content   String
   isRead    Boolean  @default(false)
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   conversationId Int
@@ -330,7 +330,7 @@ model Review {
   id        Int      @id @default(autoincrement())
   rating    Int
   comment   String
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   roomId Int
@@ -344,7 +344,7 @@ model Review {
 
 model Favorite {
   id        Int      @id @default(autoincrement())
-  createdAt DateTime
+  createdAt DateTime @default(now())
 
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   Int
