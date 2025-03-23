@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { Transaction } from "@/app/(dashboard)/quan-ly/doanh-thu/page";
+import { Transaction } from "@/app/(dashboard)/(admin)/quan-ly/doanh-thu/page";
 
 export const revenueColumns: ColumnDef<Transaction>[] = [
   {

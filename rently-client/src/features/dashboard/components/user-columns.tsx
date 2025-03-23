@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
-import { User } from "@/app/(dashboard)/quan-ly/nguoi-dung/page";
+import { User } from "@/app/(dashboard)/(admin)/quan-ly/nguoi-dung/page";
 
 export const userColumns: ColumnDef<User>[] = [
   {

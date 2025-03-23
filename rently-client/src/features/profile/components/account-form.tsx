@@ -18,7 +18,10 @@ export default function AccountForm() {
   const user = data?.payload;
 
   const [isLoading, setIsLoading] = useState(false);
-  const [landlordStatus, setLandlordStatus] = useState(user?.status);
+  const [landlordStatus, setLandlordStatus] = useState(
+    user?.status || "INACTIVE"
+  );
+
   const form = useForm<UpdateMeBodyType>({
     resolver: zodResolver(UpdateMeBodySchema),
     defaultValues: {
@@ -31,9 +34,9 @@ export default function AccountForm() {
   useEffect(() => {
     if (user) {
       form.reset({
-        name: user.name,
-        avatar: user.avatar,
-        phoneNumber: user.phoneNumber,
+        name: user.name || "",
+        avatar: user.avatar || "",
+        phoneNumber: user.phoneNumber || "",
       });
     }
   }, [user, form]);
@@ -46,20 +49,20 @@ export default function AccountForm() {
     );
   }
 
+  // Lấy các giá trị đã được watch và ép về chuỗi nếu cần
+  const watchedName = form.watch("name") || "";
+  const watchedAvatar =
+    form.watch("avatar") || "/placeholder.svg?height=96&width=96";
+
   return (
     <Card className="overflow-hidden border-none shadow-md">
       <CardHeader className="bg-primary text-primary-foreground p-6">
         <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
           <div className="relative group">
             <Avatar className="w-24 h-24 border-4 border-primary-foreground shadow-lg">
-              <AvatarImage
-                src={
-                  form.watch("avatar") || "/placeholder.svg?height=96&width=96"
-                }
-                alt="Avatar"
-              />
+              <AvatarImage src={watchedAvatar} alt="Avatar" />
               <AvatarFallback className="bg-primary-foreground text-primary text-xl">
-                {form.watch("name")!.charAt(0).toUpperCase()}
+                {watchedName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
@@ -68,7 +71,7 @@ export default function AccountForm() {
           </div>
           <div>
             <h2 className="text-2xl font-bold">
-              {form.watch("name") || "Tên người dùng"}
+              {watchedName || "Tên người dùng"}
             </h2>
             <p className="text-primary-foreground/80">
               {user.email || "abc@gmail.com"}

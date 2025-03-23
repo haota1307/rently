@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { Room } from "@/app/(dashboard)/quan-ly/phong-tro/page";
+import { Room } from "@/app/(dashboard)/(admin)/quan-ly/phong-tro/page";
 
 export const roomColumns: ColumnDef<Room>[] = [
   {
