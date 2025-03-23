@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Grid3X3, LayoutList } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
+import { useGetRentals } from "@/features/rental/useRental";
 
 // Dữ liệu mẫu
 const SAMPLE_LISTINGS = [
@@ -93,6 +94,16 @@ const SAMPLE_LISTINGS = [
 export default function RentalListings() {
   const [sortOption, setSortOption] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const [page, setPage] = useState(1);
+
+  const limit = 10;
+
+  const { data, isLoading, error } = useGetRentals({ page, limit });
+
+  const listings = data?.data || [];
+
+  console.log({ listings });
 
   return (
     <div className="space-y-6 animate-fade-in">
