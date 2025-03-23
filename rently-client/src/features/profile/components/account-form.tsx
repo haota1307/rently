@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload } from "lucide-react";
@@ -12,10 +12,13 @@ import ProfileTab from "@/features/profile/components/profile-tab";
 import SecurityTab from "@/features/profile/components/security-tab";
 import { useAccountMe } from "@/features/profile/useProfile";
 import { UpdateMeBodySchema, UpdateMeBodyType } from "@/schemas/profile.model";
+import { useUploadImage } from "@/features/media/useMedia";
 
 export default function AccountForm() {
   const { data } = useAccountMe();
   const user = data?.payload;
+
+  const uploadAvatarMutation = useUploadImage();
 
   const [isLoading, setIsLoading] = useState(false);
   const [landlordStatus, setLandlordStatus] = useState(
@@ -31,6 +34,8 @@ export default function AccountForm() {
     },
   });
 
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     if (user) {
       form.reset({
@@ -40,6 +45,27 @@ export default function AccountForm() {
       });
     }
   }, [user, form]);
+
+  const handleAvatarUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append("image", file);
+        const response = await uploadAvatarMutation.mutateAsync(formData);
+
+        const imageUrl = response.payload.url;
+        form.setValue("avatar", imageUrl);
+      } catch (error) {
+        console.error("Lỗi upload ảnh:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   if (!user) {
     return (
@@ -65,8 +91,23 @@ export default function AccountForm() {
                 {watchedName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-              <Upload className="h-6 w-6 text-white" />
+            {/* Input file ẩn */}
+            <input
+              type="file"
+              accept="image/*"
+              ref={avatarInputRef}
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
+            <div
+              className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              {isLoading ? (
+                <Loader2 className="h-6 w-6 text-white animate-spin" />
+              ) : (
+                <Upload className="h-6 w-6 text-white" />
+              )}
             </div>
           </div>
           <div>

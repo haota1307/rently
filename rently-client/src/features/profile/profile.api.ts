@@ -1,5 +1,3 @@
-import { ChangePasswordBodyType } from "@/schemas/auth.schema";
-
 import http from "@/lib/http";
 import {
   GetUserProfileResType,
