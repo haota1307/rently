@@ -190,7 +190,7 @@ model Room {
   price       Decimal
   area        String
   isAvailable Boolean  @default(true)
-  createdAt   DateTime
+  createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)

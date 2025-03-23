@@ -43,6 +43,7 @@ export class RentalController {
     @Body() body: CreateRentalBodyDTO,
     @ActiveUser('userId') userId: number
   ) {
+    // Bạn có thể ghi đè landlordId = userId nếu muốn
     return this.rentalService.create({ data: body })
   }
 

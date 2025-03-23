@@ -15,6 +15,7 @@ import { UploadModule } from 'src/routes/upload/upload.module'
 import { PostModule } from 'src/routes/post/post.module'
 import { RentalModule } from 'src/routes/rental/rental.module'
 import { AddressModule } from 'src/routes/address/address.module'
+import { RoomModule } from 'src/routes/room/room.module'
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AddressModule } from 'src/routes/address/address.module'
     PostModule,
     RentalModule,
     AddressModule,
+    RoomModule,
   ],
   controllers: [AppController],
   providers: [

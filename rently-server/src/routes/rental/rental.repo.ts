@@ -13,28 +13,34 @@ import { Decimal } from '@prisma/client/runtime/library'
 export class RentalRepo {
   constructor(private prismaService: PrismaService) {}
 
-  // Helper để format dữ liệu: chuyển đổi các trường Decimal sang number
+  // Helper để chuyển Decimal sang number, đồng thời chuyển rentalImages -> images
   private formatRental = (rental: any): RentalType => {
     return {
       ...rental,
-      lat: rental.lat.toNumber(),
-      lng: rental.lng.toNumber(),
-      landlord: rental.landlord, // Giả sử landlord đã có sẵn thông tin (không cần chuyển đổi)
-    } as RentalType
+      lat: (rental.lat as Decimal).toNumber(),
+      lng: (rental.lng as Decimal).toNumber(),
+      // Chuyển danh sách rentalImages -> mảng string
+      images: rental.rentalImages?.map((img: any) => img.imageUrl) || [],
+    }
   }
 
   async list(query: GetRentalsQueryType): Promise<GetRentalsResType> {
     try {
       const skip = (query.page - 1) * query.limit
       const take = query.limit
+
       const [totalItems, data] = await Promise.all([
         this.prismaService.rental.count(),
         this.prismaService.rental.findMany({
           skip,
           take,
-          include: { landlord: true }, // include thông tin người cho thuê
+          include: {
+            landlord: true,
+            rentalImages: true,
+          },
         }),
       ])
+
       return {
         data: data.map(this.formatRental),
         totalItems,
@@ -51,7 +57,11 @@ export class RentalRepo {
     try {
       const rental = await this.prismaService.rental.findUnique({
         where: { id },
-        include: { landlord: true }, // bao gồm thông tin người cho thuê
+        include: {
+          landlord: true,
+          rentalImages: true,
+          rooms: true,
+        },
       })
       return rental ? this.formatRental(rental) : null
     } catch (error) {
@@ -63,7 +73,11 @@ export class RentalRepo {
     try {
       const rental = await this.prismaService.rental.create({
         data,
-        include: { landlord: true },
+        include: {
+          landlord: true,
+          rentalImages: true,
+          rooms: true,
+        },
       })
       return this.formatRental(rental)
     } catch (error) {
@@ -82,7 +96,11 @@ export class RentalRepo {
       const rental = await this.prismaService.rental.update({
         where: { id },
         data,
-        include: { landlord: true },
+        include: {
+          landlord: true,
+          rentalImages: true,
+          rooms: true,
+        },
       })
       return this.formatRental(rental)
     } catch (error) {
@@ -94,7 +112,10 @@ export class RentalRepo {
     try {
       const rental = await this.prismaService.rental.delete({
         where: { id },
-        include: { landlord: true },
+        include: {
+          landlord: true,
+          rentalImages: true,
+        },
       })
       return this.formatRental(rental)
     } catch (error) {

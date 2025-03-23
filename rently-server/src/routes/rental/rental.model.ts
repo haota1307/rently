@@ -1,6 +1,24 @@
 import { Decimal } from '@prisma/client/runtime/library'
 import { z } from 'zod'
 
+export const RoomSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  price: z.preprocess(
+    arg =>
+      typeof arg === 'object' && arg !== null && 'toNumber' in arg
+        ? (arg as Decimal).toNumber()
+        : arg,
+    z.number()
+  ),
+  area: z.string(),
+  isAvailable: z.boolean(),
+  createdAt: z.date().nullable(),
+  updatedAt: z.date().nullable(),
+  rentalId: z.number(),
+})
+
+// Rental Schema được mở rộng thêm mảng room
 export const RentalSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -21,6 +39,8 @@ export const RentalSchema = z.object({
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),
   landlordId: z.number(),
+  images: z.array(z.string()).optional(),
+  rooms: z.array(RoomSchema).optional(),
 })
 
 export const GetRentalsResSchema = z.object({
