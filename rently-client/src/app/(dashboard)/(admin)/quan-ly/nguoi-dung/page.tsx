@@ -5,8 +5,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
-import { UserFilters } from "@/features/dashboard/components/user-filters";
-import { userColumns } from "@/features/dashboard/components/user-columns";
+import { UserFilters } from "@/features/dashboard/components/filters/user-filters";
+import { userColumns } from "@/features/dashboard/components/columns/user-columns";
 import { DataTable } from "@/components/data-table";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";

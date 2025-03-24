@@ -7,6 +7,7 @@ const landlordPaths = ["/cho-thue"];
 const privatePaths = [...adminPaths, ...landlordPaths];
 
 const unAuthPaths = [
+  "/",
   "/dang-nhap",
   "/dang-ky",
   "/refresh-token",
@@ -69,7 +70,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/phong-tro/:path*",
-    "/cho-thue/:path*",
+    // "/cho-thue/:path*",
     "/dang-nhap",
     "/dang-ky",
     "/refresh-token",

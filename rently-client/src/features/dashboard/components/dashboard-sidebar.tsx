@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import {
   Home,
   Map,
@@ -9,6 +10,9 @@ import {
   LinkIcon,
   Shield,
   CreditCard,
+  LogOutIcon,
+  Building2Icon,
+  NotebookPen,
 } from "lucide-react";
 
 import {
@@ -18,14 +22,12 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-// Sử dụng TeamSwitcher như một bộ chuyển đổi "Dãy trọ" (các property)
 
 import { DashboardNavbar } from "@/features/dashboard/components/dashboard-navbar";
 import { DashboardLogo } from "@/features/dashboard/components/dashboard-logo";
-import { DashboardNavbarUser } from "@/features/dashboard/components/dashboard-navbar-user";
+import { Button } from "@/components/ui/button";
 
-// Dữ liệu mẫu cho admin quản lý tổng
-const data = {
+const defaultData = {
   user: {
     name: "Admin ",
     email: "admin@example.com",
@@ -36,19 +38,16 @@ const data = {
       title: "Tổng quan",
       url: "/quan-ly",
       icon: Home,
-      isActive: true,
     },
     {
       title: "Quản lý doanh thu",
       url: "/quan-ly/doanh-thu",
       icon: CreditCard,
-      isActive: true,
     },
     {
       title: "Quản lý người dùng",
       url: "/quan-ly/nguoi-dung",
       icon: User,
-      isActive: true,
     },
     {
       title: "Quản lý phòng trọ",
@@ -63,7 +62,38 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+const landloardData = {
+  navMain: [
+    {
+      title: "Tổng quan",
+      url: "/cho-thue",
+      icon: Home,
+    },
+    {
+      title: "Danh sách nhà trọ",
+      url: "/cho-thue/nha-tro",
+      icon: Building2Icon,
+    },
+    {
+      title: "Danh sách phòng trọ",
+      url: "/cho-thue/phong-tro",
+      icon: Home,
+    },
+    {
+      title: "Danh sách bài đăng",
+      url: "/cho-thue/lien-he",
+      icon: NotebookPen,
+    },
+  ],
+};
+
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const pahtname = usePathname();
+
+  const isChoThue = pahtname.startsWith("/cho-thue");
+
+  const data = isChoThue ? landloardData : defaultData;
+
   return (
     <Sidebar variant="sidebar" collapsible="icon" {...props}>
       <SidebarHeader>
@@ -73,7 +103,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <DashboardNavbar items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <DashboardNavbarUser user={data.user} />
+        <Button
+          className="flex items-center justify-center"
+          variant={"outline"}
+        >
+          <LogOutIcon className="size-4 mr-1" />
+          Quay về trang chủ
+        </Button>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
