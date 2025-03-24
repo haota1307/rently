@@ -1,16 +1,21 @@
 import { Decimal } from '@prisma/client/runtime/library'
+import {
+  GetlandlordResSchema,
+  GetUserProfileResSchema,
+} from 'src/shared/models/shared-user.model'
 import { z } from 'zod'
 
+// Helper để preprocess giá trị Decimal
+const preprocessDecimal = (arg: unknown) =>
+  typeof arg === 'object' && arg !== null && 'toNumber' in arg
+    ? (arg as Decimal).toNumber()
+    : arg
+
+// Schema cho Room
 export const RoomSchema = z.object({
   id: z.number(),
   title: z.string(),
-  price: z.preprocess(
-    arg =>
-      typeof arg === 'object' && arg !== null && 'toNumber' in arg
-        ? (arg as Decimal).toNumber()
-        : arg,
-    z.number()
-  ),
+  price: z.preprocess(preprocessDecimal, z.number()),
   area: z.string(),
   isAvailable: z.boolean(),
   createdAt: z.date().nullable(),
@@ -18,31 +23,33 @@ export const RoomSchema = z.object({
   rentalId: z.number(),
 })
 
-// Rental Schema được mở rộng thêm mảng room
+// Schema cho RentalImage
+export const RentalImageSchema = z.object({
+  id: z.number(),
+  imageUrl: z.string(),
+  order: z.number(),
+  createdAt: z.date().nullable(),
+  rentalId: z.number(),
+})
+
+// Schema cho Rental
 export const RentalSchema = z.object({
   id: z.number(),
   title: z.string(),
   description: z.string(),
   address: z.string(),
-  lat: z.preprocess(arg => {
-    if (typeof arg === 'object' && arg !== null && 'toNumber' in arg) {
-      return (arg as Decimal).toNumber()
-    }
-    return arg
-  }, z.number()),
-  lng: z.preprocess(arg => {
-    if (typeof arg === 'object' && arg !== null && 'toNumber' in arg) {
-      return (arg as Decimal).toNumber()
-    }
-    return arg
-  }, z.number()),
+  lat: z.preprocess(preprocessDecimal, z.number()),
+  lng: z.preprocess(preprocessDecimal, z.number()),
+  distance: z.preprocess(preprocessDecimal, z.number()).optional(),
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),
   landlordId: z.number(),
-  images: z.array(z.string()).optional(),
+  landlord: GetlandlordResSchema,
+  rentalImages: z.array(RentalImageSchema).optional(),
   rooms: z.array(RoomSchema).optional(),
 })
 
+// Schema cho phân trang và tham số
 export const GetRentalsResSchema = z.object({
   data: z.array(RentalSchema),
   totalItems: z.number(),
@@ -66,6 +73,11 @@ export const GetRentalParamsSchema = z
 
 export const GetRentalDetailResSchema = RentalSchema
 
+const CreateRentalImageSchema = z.object({
+  imageUrl: z.string(),
+  order: z.number().optional(),
+})
+
 export const CreateRentalBodySchema = z
   .object({
     title: z.string(),
@@ -74,11 +86,20 @@ export const CreateRentalBodySchema = z
     lat: z.number(),
     lng: z.number(),
     landlordId: z.number(),
+    rentalImages: z
+      .array(
+        z.object({
+          imageUrl: z.string(),
+          order: z.number().optional(),
+        })
+      )
+      .optional(),
   })
   .strict()
 
 export const UpdateRentalBodySchema = CreateRentalBodySchema
 
+// Các type được trích xuất từ các schema
 export type RentalType = z.infer<typeof RentalSchema>
 export type GetRentalsResType = z.infer<typeof GetRentalsResSchema>
 export type GetRentalsQueryType = z.infer<typeof GetRentalsQuerySchema>

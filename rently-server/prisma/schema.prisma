@@ -169,11 +169,13 @@ model Rental {
   address     String
   lat         Decimal
   lng         Decimal
+  distance    Decimal?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  landlord     User          @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade)
-  landlordId   Int
+  landlord   User @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade)
+  landlordId Int
+
   rooms        Room[]
   rentalImages RentalImage[]
   rentalPosts  RentalPost[]
@@ -208,12 +210,14 @@ model RentalImage {
   id        Int      @id @default(autoincrement())
   imageUrl  String
   createdAt DateTime @default(now())
+  order     Int
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
 
   @@index([rentalId])
   @@index([createdAt])
+  @@index([order])
 }
 
 model Amenity {

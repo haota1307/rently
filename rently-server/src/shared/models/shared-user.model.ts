@@ -23,6 +23,11 @@ export const UserSchema = z.object({
   updatedAt: z.date(),
 })
 
+export const GetlandlordResSchema = UserSchema.omit({
+  password: true,
+  balance: true,
+})
+
 /**
  * Áp dụng cho Response của api GET('profile') và GET('users/:userId')
  */

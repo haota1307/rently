@@ -8,20 +8,30 @@ import {
 } from 'src/routes/rental/rental.model'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import { Decimal } from '@prisma/client/runtime/library'
+import { calculateDistance, toNumber } from 'src/shared/helpers'
 
 @Injectable()
 export class RentalRepo {
   constructor(private prismaService: PrismaService) {}
 
-  // Helper để chuyển Decimal sang number, đồng thời chuyển rentalImages -> images
   private formatRental = (rental: any): RentalType => {
-    return {
+    const defaultLat = 10.0070868
+    const defaultLng = 105.7226855
+
+    const formattedRental: RentalType = {
       ...rental,
-      lat: (rental.lat as Decimal).toNumber(),
-      lng: (rental.lng as Decimal).toNumber(),
-      // Chuyển danh sách rentalImages -> mảng string
-      images: rental.rentalImages?.map((img: any) => img.imageUrl) || [],
+      lat: toNumber(rental.lat),
+      lng: toNumber(rental.lng),
     }
+
+    formattedRental.distance = calculateDistance(
+      defaultLat,
+      defaultLng,
+      formattedRental.lat,
+      formattedRental.lng
+    )
+
+    return formattedRental
   }
 
   async list(query: GetRentalsQueryType): Promise<GetRentalsResType> {
@@ -42,7 +52,7 @@ export class RentalRepo {
       ])
 
       return {
-        data: data.map(this.formatRental),
+        data: data.map(rental => this.formatRental(rental)),
         totalItems,
         page: query.page,
         limit: query.limit,
@@ -69,16 +79,34 @@ export class RentalRepo {
     }
   }
 
-  async create({ data }: { data: CreateRentalBodyType }): Promise<RentalType> {
+  async create({ data }: { data: CreateRentalBodyType }) {
     try {
       const rental = await this.prismaService.rental.create({
-        data,
+        data: {
+          title: data.title,
+          description: data.description,
+          address: data.address,
+          lat: data.lat,
+          lng: data.lng,
+          landlordId: data.landlordId,
+        },
         include: {
           landlord: true,
           rentalImages: true,
           rooms: true,
         },
       })
+
+      if (data.rentalImages && data.rentalImages.length > 0) {
+        await this.prismaService.rentalImage.createMany({
+          data: data.rentalImages.map(image => ({
+            rentalId: rental.id,
+            order: image.order || 0,
+            imageUrl: image.imageUrl,
+          })),
+        })
+      }
+
       return this.formatRental(rental)
     } catch (error) {
       throw new InternalServerErrorException(error.message)
@@ -93,16 +121,42 @@ export class RentalRepo {
     data: UpdateRentalBodyType
   }): Promise<RentalType> {
     try {
+      const { rentalImages, ...rentalData } = data
+
       const rental = await this.prismaService.rental.update({
         where: { id },
-        data,
+        data: rentalData,
         include: {
           landlord: true,
           rentalImages: true,
           rooms: true,
         },
       })
-      return this.formatRental(rental)
+
+      if (rentalImages) {
+        await this.prismaService.rentalImage.deleteMany({
+          where: { rentalId: id },
+        })
+
+        await this.prismaService.rentalImage.createMany({
+          data: rentalImages.map(image => ({
+            imageUrl: image.imageUrl,
+            order: image.order || 0,
+            rentalId: id,
+          })),
+        })
+      }
+
+      const updatedRental = await this.prismaService.rental.findUnique({
+        where: { id },
+        include: {
+          landlord: true,
+          rentalImages: true,
+          rooms: true,
+        },
+      })
+
+      return this.formatRental(updatedRental)
     } catch (error) {
       throw new InternalServerErrorException(error.message)
     }
