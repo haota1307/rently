@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common'
 import { RoomRepo } from 'src/routes/room/room.repo'
+
+import { NotFoundRecordException } from 'src/shared/error'
 import {
   CreateRoomBodyType,
   GetRoomsQueryType,
   UpdateRoomBodyType,
-} from 'src/routes/room/room.model'
-import { NotFoundRecordException } from 'src/shared/error'
+} from 'src/shared/models/shared-room.model'
 
 @Injectable()
 export class RoomService {

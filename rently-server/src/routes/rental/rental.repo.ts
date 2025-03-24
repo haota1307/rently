@@ -1,14 +1,15 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
+
+import { PrismaService } from 'src/shared/services/prisma.service'
+
+import { calculateDistance, toNumber } from 'src/shared/helpers'
 import {
   CreateRentalBodyType,
   GetRentalsQueryType,
   GetRentalsResType,
   RentalType,
   UpdateRentalBodyType,
-} from 'src/routes/rental/rental.model'
-import { PrismaService } from 'src/shared/services/prisma.service'
-import { Decimal } from '@prisma/client/runtime/library'
-import { calculateDistance, toNumber } from 'src/shared/helpers'
+} from 'src/shared/models/shared-rental.mode'
 
 @Injectable()
 export class RentalRepo {
@@ -89,11 +90,6 @@ export class RentalRepo {
           lat: data.lat,
           lng: data.lng,
           landlordId: data.landlordId,
-        },
-        include: {
-          landlord: true,
-          rentalImages: true,
-          rooms: true,
         },
       })
 

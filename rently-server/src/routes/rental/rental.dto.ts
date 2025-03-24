@@ -6,7 +6,7 @@ import {
   GetRentalsQuerySchema,
   GetRentalsResSchema,
   UpdateRentalBodySchema,
-} from 'src/routes/rental/rental.model'
+} from 'src/shared/models/shared-rental.mode'
 
 export class GetRentalsResDTO extends createZodDto(GetRentalsResSchema) {}
 export class GetRentalsQueryDTO extends createZodDto(GetRentalsQuerySchema) {}

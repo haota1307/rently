@@ -6,7 +6,7 @@ import {
   GetRoomsQuerySchema,
   GetRoomsResSchema,
   UpdateRoomBodySchema,
-} from 'src/routes/room/room.model'
+} from 'src/shared/models/shared-room.model'
 
 export class GetRoomsResDTO extends createZodDto(GetRoomsResSchema) {}
 export class GetRoomsQueryDTO extends createZodDto(GetRoomsQuerySchema) {}

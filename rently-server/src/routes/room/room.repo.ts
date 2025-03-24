@@ -1,13 +1,14 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
+
+import { PrismaService } from 'src/shared/services/prisma.service'
+import { Decimal } from '@prisma/client/runtime/library'
 import {
   CreateRoomBodyType,
   GetRoomsQueryType,
   GetRoomsResType,
   RoomType,
   UpdateRoomBodyType,
-} from 'src/routes/room/room.model'
-import { PrismaService } from 'src/shared/services/prisma.service'
-import { Decimal } from '@prisma/client/runtime/library'
+} from 'src/shared/models/shared-room.model'
 
 @Injectable()
 export class RoomRepo {

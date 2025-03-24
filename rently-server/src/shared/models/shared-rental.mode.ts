@@ -1,29 +1,8 @@
-import { Decimal } from '@prisma/client/runtime/library'
-import {
-  GetlandlordResSchema,
-  GetUserProfileResSchema,
-} from 'src/shared/models/shared-user.model'
+import { preprocessDecimal } from 'src/shared/helpers'
+import { RoomSchema } from 'src/shared/models/shared-room.model'
+import { GetlandlordResSchema } from 'src/shared/models/shared-user.model'
 import { z } from 'zod'
 
-// Helper để preprocess giá trị Decimal
-const preprocessDecimal = (arg: unknown) =>
-  typeof arg === 'object' && arg !== null && 'toNumber' in arg
-    ? (arg as Decimal).toNumber()
-    : arg
-
-// Schema cho Room
-export const RoomSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  price: z.preprocess(preprocessDecimal, z.number()),
-  area: z.string(),
-  isAvailable: z.boolean(),
-  createdAt: z.date().nullable(),
-  updatedAt: z.date().nullable(),
-  rentalId: z.number(),
-})
-
-// Schema cho RentalImage
 export const RentalImageSchema = z.object({
   id: z.number(),
   imageUrl: z.string(),
@@ -32,7 +11,6 @@ export const RentalImageSchema = z.object({
   rentalId: z.number(),
 })
 
-// Schema cho Rental
 export const RentalSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -44,12 +22,11 @@ export const RentalSchema = z.object({
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),
   landlordId: z.number(),
-  landlord: GetlandlordResSchema,
+  landlord: GetlandlordResSchema.optional(),
   rentalImages: z.array(RentalImageSchema).optional(),
   rooms: z.array(RoomSchema).optional(),
 })
 
-// Schema cho phân trang và tham số
 export const GetRentalsResSchema = z.object({
   data: z.array(RentalSchema),
   totalItems: z.number(),

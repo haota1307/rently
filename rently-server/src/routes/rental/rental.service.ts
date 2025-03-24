@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common'
 import { RentalRepo } from 'src/routes/rental/rental.repo'
+
+import { NotFoundRecordException } from 'src/shared/error'
 import {
   CreateRentalBodyType,
   GetRentalsQueryType,
   UpdateRentalBodyType,
-} from 'src/routes/rental/rental.model'
-import { NotFoundRecordException } from 'src/shared/error'
+} from 'src/shared/models/shared-rental.mode'
 
 @Injectable()
 export class RentalService {
