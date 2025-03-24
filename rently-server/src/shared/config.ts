@@ -33,6 +33,7 @@ const configSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string(),
   CLOUDINARY_API_KEY: z.string(),
   CLOUDINARY_API_SECRET: z.string(),
+  OPENAI_API_KEY: z.string(),
 })
 
 const configServer = configSchema.safeParse(process.env)

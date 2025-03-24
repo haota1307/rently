@@ -6,5 +6,6 @@ import { RentalService } from 'src/routes/rental/rental.service'
 @Module({
   controllers: [RentalController],
   providers: [RentalService, RentalRepo],
+  exports: [RentalService, RentalRepo],
 })
 export class RentalModule {}

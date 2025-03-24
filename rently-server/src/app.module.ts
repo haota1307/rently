@@ -16,6 +16,7 @@ import { PostModule } from 'src/routes/post/post.module'
 import { RentalModule } from 'src/routes/rental/rental.module'
 import { AddressModule } from 'src/routes/address/address.module'
 import { RoomModule } from 'src/routes/room/room.module'
+import { ChatbotModule } from 'src/routes/chatbot/chatbot.module'
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RoomModule } from 'src/routes/room/room.module'
     RentalModule,
     AddressModule,
     RoomModule,
+    ChatbotModule,
   ],
   controllers: [AppController],
   providers: [
