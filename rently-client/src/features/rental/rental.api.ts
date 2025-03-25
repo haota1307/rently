@@ -20,20 +20,25 @@ const rentalApiRequest = {
         })
     ),
 
-  // Lấy chi tiết bất động sản theo id
   detail: (rentalId: number) => http.get<RentalType>(`${prefix}/${rentalId}`),
 
-  // Tạo mới bất động sản
   create: (body: CreateRentalBodyType) =>
     http.post<RentalType>(`${prefix}`, body),
 
-  // Cập nhật bất động sản theo id
   update: (rentalId: number, body: UpdateRentalBodyType) =>
     http.put<RentalType>(`${prefix}/${rentalId}`, body),
 
-  // Xóa bất động sản theo id
   delete: (rentalId: number) =>
     http.delete<RentalType>(`${prefix}/${rentalId}`),
+
+  getRentalsById: (userId: number, params: GetRentalsQueryType) =>
+    http.get<GetRentalsResType>(
+      `${prefix}/landlord/${userId}?` +
+        queryString.stringify({
+          limit: params.limit,
+          page: params.page,
+        })
+    ),
 };
 
 export default rentalApiRequest;

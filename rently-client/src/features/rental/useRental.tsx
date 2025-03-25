@@ -17,6 +17,19 @@ export const useGetRentals = (queryParams: GetRentalsQueryType) => {
   });
 };
 
+export const useGetRentalsById = (
+  userId: number,
+  queryParams: GetRentalsQueryType
+) => {
+  return useQuery({
+    queryKey: ["rentals", queryParams],
+    queryFn: async () => {
+      const res = await rentalApiRequest.getRentalsById(userId, queryParams);
+      return res.payload;
+    },
+  });
+};
+
 export const useGetRentalDetail = (rentalId: number) => {
   return useQuery({
     queryKey: ["rental", rentalId],

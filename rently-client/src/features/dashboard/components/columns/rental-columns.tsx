@@ -15,6 +15,10 @@ import { format } from "date-fns";
 
 export const rentalColumns: ColumnDef<any>[] = [
   {
+    accessorKey: "id",
+    header: "id",
+  },
+  {
     accessorKey: "title",
     header: "Tiêu đề",
   },
@@ -42,10 +46,10 @@ export const rentalColumns: ColumnDef<any>[] = [
       return format(new Date(dateStr), "dd/MM/yyyy");
     },
   },
-  {
-    accessorKey: "landlordId",
-    header: "Chủ trọ",
-  },
+  // {
+  //   accessorKey: "landlordId",
+  //   header: "Chủ trọ",
+  // },
   {
     id: "actions",
     cell: ({ row }) => {

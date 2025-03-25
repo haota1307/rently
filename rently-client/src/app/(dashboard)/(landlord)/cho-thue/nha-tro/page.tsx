@@ -7,49 +7,27 @@ import { Plus } from "lucide-react";
 import { rentalColumns } from "@/features/dashboard/components/columns/rental-columns";
 import { CreateRentalModal } from "@/features/rental/component/create-rental-modal";
 import { CreateRentalBodyType } from "@/schemas/rental.schema";
-
-export const rentals = [
-  {
-    id: 1,
-    title: "Nhà trọ Trần Hào 1",
-    description: "Gần trung tâm, tiện nghi cao cấp",
-    address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
-    lat: 10.774567,
-    lng: 106.700345,
-    createdAt: "2023-01-15T00:00:00Z",
-    updatedAt: "2023-01-15T00:00:00Z",
-    landlordId: 2,
-    rentalImages: [],
-  },
-  {
-    id: 2,
-    title: "Nhà trọ Trần Hào 2",
-    description: "Phù hợp sinh viên, có nội thất cơ bản",
-    address: "456 Xô Viết Nghệ Tĩnh, Bình Thạnh, TP.HCM",
-    lat: 10.805123,
-    lng: 106.713456,
-    createdAt: "2023-02-10T00:00:00Z",
-    updatedAt: "2023-02-12T00:00:00Z",
-    landlordId: 2,
-    rentalImages: [],
-  },
-  {
-    id: 3,
-    title: "Nhà trọ Trần Hào 3",
-    description: "Đi bộ 5 phút tới cổng trường, an ninh tốt",
-    address: "789 Lý Thường Kiệt, Quận 10, TP.HCM",
-    lat: 10.776789,
-    lng: 106.658222,
-    createdAt: "2023-03-05T00:00:00Z",
-    updatedAt: "2023-03-06T00:00:00Z",
-    landlordId: 2,
-    rentalImages: [],
-  },
-];
+import { useGetRentalsById } from "@/features/rental/useRental";
+import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 
 export default function LandlordRentalPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [rentalsList, setRentalsList] = useState(rentals);
+  const accessToken = getAccessTokenFromLocalStorage();
+  const userId = accessToken ? decodeAccessToken(accessToken).userId : null;
+
+  // Trạng thái trang hiện tại
+  const [page, setPage] = useState(1);
+  const limit = 5;
+
+  // Giả sử API trả về tổng số bản ghi để tính số trang
+  const { data } = useGetRentalsById(userId!, {
+    page,
+    limit,
+  });
+
+  const rentals = data?.data || [];
+  const totalCount = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 0;
 
   const handleCreateRental = (data: CreateRentalBodyType) => {
     setIsModalOpen(false);
@@ -67,11 +45,15 @@ export default function LandlordRentalPage() {
           <span>Thêm nhà trọ</span>
         </Button>
 
+        {/* Truyền thông tin phân trang cho DataTable */}
         <DataTable
           columns={rentalColumns}
-          data={rentalsList}
+          data={rentals}
           searchKey="title"
           searchPlaceholder="Tìm kiếm theo tiêu đề..."
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
 
         <CreateRentalModal
