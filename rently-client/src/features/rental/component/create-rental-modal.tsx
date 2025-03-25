@@ -17,6 +17,14 @@ import {
 } from "@/schemas/rental.schema";
 import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { RentalForm } from "@/features/rental/component/rental-form";
+import { useCreateRental } from "@/features/rental/useRental";
+import { useUploadImages } from "@/features/media/useMedia";
+
+export type ImageSlot = {
+  file: File;
+  previewUrl: string;
+  order: number;
+} | null;
 
 interface CreateRentalModalProps {
   isOpen: boolean;
@@ -33,9 +41,19 @@ export function CreateRentalModal({
   const decodedToken = accessToken ? decodeAccessToken(accessToken) : null;
   const userId = decodedToken ? decodedToken.userId : 0;
 
-  const [imageSlots, setImageSlots] = React.useState<
-    Array<{ imageUrl: string; order: number } | null>
-  >([null, null, null, null, null]);
+  const { mutateAsync: rentalCreate, isPending: rentalCreating } =
+    useCreateRental();
+
+  const { mutateAsync: imageUpload, isPending: imageUploading } =
+    useUploadImages();
+
+  const [imageSlots, setImageSlots] = React.useState<ImageSlot[]>([
+    null,
+    null,
+    null,
+    null,
+    null,
+  ]);
 
   const form = useForm<CreateRentalBodyType>({
     resolver: zodResolver(CreateRentalBodySchema),
@@ -50,26 +68,45 @@ export function CreateRentalModal({
     },
   });
 
-  const handleSubmit = (values: CreateRentalBodyType) => {
-    const images = imageSlots
-      .filter(
-        (slot): slot is { imageUrl: string; order: number } => slot !== null
-      )
-      .map((image, index) => ({
-        ...image,
-        order: index + 1,
-      }));
+  const handleSubmit = async (values: CreateRentalBodyType) => {
+    const validSlots = imageSlots.filter(
+      (slot): slot is { file: File; previewUrl: string; order: number } =>
+        slot !== null
+    );
 
-    const dataToSubmit = {
+    let uploadedImages: Array<{ url: string; public_id: string }> = [];
+    if (validSlots.length > 0) {
+      try {
+        const formData = new FormData();
+        validSlots.forEach((slot) => {
+          formData.append("images", slot.file);
+        });
+
+        const uploadResponse = await imageUpload(formData);
+        uploadedImages = uploadResponse.payload;
+      } catch (error) {
+        console.error("Lỗi upload ảnh:", error);
+        return;
+      }
+    }
+
+    const dataToSubmit: CreateRentalBodyType = {
       ...values,
-      rentalImages: images,
+      rentalImages: uploadedImages.map((img, index) => ({
+        imageUrl: img.url,
+        order: index + 1,
+      })),
     };
 
-    console.log({ dataToSubmit });
+    try {
+      const rentalResult = await rentalCreate(dataToSubmit);
+      onSubmit(dataToSubmit);
 
-    onSubmit(dataToSubmit);
-    form.reset();
-    setImageSlots([null, null, null, null, null]);
+      form.reset();
+      setImageSlots([null, null, null, null, null]);
+    } catch (error) {
+      console.error("Lỗi tạo rental:", error);
+    }
   };
 
   return (

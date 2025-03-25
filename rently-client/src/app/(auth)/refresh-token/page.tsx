@@ -6,6 +6,7 @@ import {
 } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function RefreshTokenPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function RefreshTokenPage() {
         },
       });
     } else {
+      toast.error('Ô token hết hạn ở "refresh-token page"');
       router.push("/dang-nhap");
     }
   }, [router, refreshTokenFromUrl, redirectPathname]);

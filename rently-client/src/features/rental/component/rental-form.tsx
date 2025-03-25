@@ -15,8 +15,10 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { CreateRentalBodyType } from "@/schemas/rental.schema";
 import AddressSelector from "@/features/rental/component/address-selector";
+
+import { ImageSlot } from "@/features/rental/component/create-rental-modal"; // hoặc import từ file modal
+import { ImageUploadSlots } from "./image-upload-slots"; // Tuỳ bạn có component con hay không
 import MapWithGeocode from "@/features/map/map-with-geocode";
-import { ImageUploadSlots } from "@/features/rental/component/image-upload-slots";
 
 // Custom hook: debounce giá trị đầu vào
 function useDebounce<T>(value: T, delay: number): T {
@@ -31,10 +33,8 @@ function useDebounce<T>(value: T, delay: number): T {
 interface RentalFormProps {
   form: UseFormReturn<CreateRentalBodyType>;
   handleSubmit: (values: CreateRentalBodyType) => void;
-  imageSlots: Array<{ imageUrl: string; order: number } | null>;
-  setImageSlots: React.Dispatch<
-    React.SetStateAction<Array<{ imageUrl: string; order: number } | null>>
-  >;
+  imageSlots: ImageSlot[];
+  setImageSlots: React.Dispatch<React.SetStateAction<ImageSlot[]>>;
   onClose: () => void;
 }
 
@@ -45,14 +45,12 @@ export function RentalForm({
   imageSlots,
   setImageSlots,
 }: RentalFormProps) {
-  // Sử dụng useWatch để theo dõi giá trị "address" mà không gây render lại không cần thiết
   const watchedAddress = useWatch({
     control: form.control,
     name: "address",
   });
   const debouncedAddress = useDebounce(watchedAddress, 500);
 
-  // Khi AddressSelector thay đổi, cập nhật giá trị address trong form nếu có sự thay đổi thực sự
   const handleAddressChange = (address: string) => {
     const currentAddress = form.getValues("address");
     if (address !== currentAddress) {
@@ -60,17 +58,18 @@ export function RentalForm({
     }
   };
 
-  // Xử lý upload hình ảnh
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
     slotIndex: number
   ) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      const imageUrl = URL.createObjectURL(file);
+      const previewUrl = URL.createObjectURL(file);
+
       const newImageSlots = [...imageSlots];
       newImageSlots[slotIndex] = {
-        imageUrl,
+        file,
+        previewUrl,
         order: slotIndex + 1,
       };
       setImageSlots(newImageSlots);
@@ -86,7 +85,6 @@ export function RentalForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        {/* Trường tiêu đề */}
         <FormField
           control={form.control}
           name="title"
@@ -101,7 +99,6 @@ export function RentalForm({
           )}
         />
 
-        {/* Trường mô tả */}
         <FormField
           control={form.control}
           name="description"
@@ -116,7 +113,6 @@ export function RentalForm({
           )}
         />
 
-        {/* Trường địa chỉ (readOnly) */}
         <FormField
           control={form.control}
           name="address"
@@ -131,23 +127,25 @@ export function RentalForm({
           )}
         />
 
-        {/* Thành phần chọn địa chỉ */}
         <AddressSelector onAddressChange={handleAddressChange} />
 
-        {/* Bản đồ hiển thị dựa trên địa chỉ đã debounce */}
         <MapWithGeocode
           address={debouncedAddress}
           onCoordinateChange={(coord) => {
-            // MapBox trả về [lng, lat] nên cập nhật form: lat = coord[1], lng = coord[0]
-            form.setValue("lat", coord[1]);
+            // coord là [lng, lat]
             form.setValue("lng", coord[0]);
+            form.setValue("lat", coord[1]);
           }}
         />
 
-        {/* Hình ảnh */}
         <FormLabel>Hình ảnh (tối đa 5 ảnh)</FormLabel>
+
         <ImageUploadSlots
-          imageSlots={imageSlots}
+          imageSlots={
+            imageSlots.map((slot) =>
+              slot ? { imageUrl: slot.previewUrl, order: slot.order } : null
+            ) as Array<{ imageUrl: string; order: number } | null>
+          }
           handleImageUpload={handleImageUpload}
           removeImage={removeImage}
         />
