@@ -24,6 +24,10 @@ export class RentalService {
     return rental
   }
 
+  async findByLandlord(landlordId: number, query: GetRentalsQueryType) {
+    return this.rentalRepo.findByLandlord(landlordId, query)
+  }
+
   async create({ data }: { data: CreateRentalBodyType }) {
     return this.rentalRepo.create({ data })
   }

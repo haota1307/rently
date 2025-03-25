@@ -1,7 +1,7 @@
+import { z } from 'zod'
 import { preprocessDecimal } from 'src/shared/helpers'
 import { RoomSchema } from 'src/shared/models/shared-room.model'
 import { GetlandlordResSchema } from 'src/shared/models/shared-user.model'
-import { z } from 'zod'
 
 export const RentalImageSchema = z.object({
   id: z.number(),
@@ -49,11 +49,6 @@ export const GetRentalParamsSchema = z
   .strict()
 
 export const GetRentalDetailResSchema = RentalSchema
-
-const CreateRentalImageSchema = z.object({
-  imageUrl: z.string(),
-  order: z.number().optional(),
-})
 
 export const CreateRentalBodySchema = z
   .object({

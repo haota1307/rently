@@ -80,6 +80,38 @@ export class RentalRepo {
     }
   }
 
+  async findByLandlord(
+    landlordId: number,
+    query: GetRentalsQueryType
+  ): Promise<GetRentalsResType> {
+    try {
+      const skip = (query.page - 1) * query.limit
+      const take = query.limit
+
+      const [totalItems, data] = await Promise.all([
+        this.prismaService.rental.count({
+          where: { landlordId: Number(landlordId) },
+        }),
+        this.prismaService.rental.findMany({
+          where: { landlordId: Number(landlordId) },
+          skip,
+          take,
+          include: { rentalImages: true },
+        }),
+      ])
+
+      return {
+        data: data.map(this.formatRental),
+        totalItems,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(totalItems / query.limit),
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(error.message)
+    }
+  }
+
   async create({ data }: { data: CreateRentalBodyType }) {
     try {
       const rental = await this.prismaService.rental.create({

@@ -37,6 +37,15 @@ export class RentalController {
     return this.rentalService.findById(params.rentalId)
   }
 
+  @Get('landlord/:landlordId')
+  @ZodSerializerDto(GetRentalsResDTO)
+  listByLandlord(
+    @Param('landlordId') landlordId: number,
+    @Query() query: GetRentalsQueryDTO
+  ) {
+    return this.rentalService.findByLandlord(landlordId, query)
+  }
+
   @Post()
   @ZodSerializerDto(GetRentalDetailResDTO)
   create(
