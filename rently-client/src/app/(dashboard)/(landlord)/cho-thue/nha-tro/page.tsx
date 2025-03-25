@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { rentalColumns } from "@/features/dashboard/components/columns/rental-columns";
+import { CreateRentalModal } from "@/features/rental/component/create-rental-modal";
+import { CreateRentalBodyType } from "@/schemas/rental.schema";
 
 export const rentals = [
   {
@@ -16,6 +19,7 @@ export const rentals = [
     createdAt: "2023-01-15T00:00:00Z",
     updatedAt: "2023-01-15T00:00:00Z",
     landlordId: 2,
+    rentalImages: [],
   },
   {
     id: 2,
@@ -27,6 +31,7 @@ export const rentals = [
     createdAt: "2023-02-10T00:00:00Z",
     updatedAt: "2023-02-12T00:00:00Z",
     landlordId: 2,
+    rentalImages: [],
   },
   {
     id: 3,
@@ -38,12 +43,18 @@ export const rentals = [
     createdAt: "2023-03-05T00:00:00Z",
     updatedAt: "2023-03-06T00:00:00Z",
     landlordId: 2,
+    rentalImages: [],
   },
 ];
 
-export type Rental = (typeof rentals)[0];
-
 export default function LandlordRentalPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [rentalsList, setRentalsList] = useState(rentals);
+
+  const handleCreateRental = (data: CreateRentalBodyType) => {
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen">
       <header className="flex h-16 items-center gap-2 border-b px-4">
@@ -51,17 +62,22 @@ export default function LandlordRentalPage() {
       </header>
 
       <div className="m-4 space-y-4">
-        <Button>
+        <Button onClick={() => setIsModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           <span>Thêm nhà trọ</span>
         </Button>
 
-        {/* DataTable hiển thị danh sách rental */}
         <DataTable
           columns={rentalColumns}
-          data={rentals}
+          data={rentalsList}
           searchKey="title"
           searchPlaceholder="Tìm kiếm theo tiêu đề..."
+        />
+
+        <CreateRentalModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleCreateRental}
         />
       </div>
     </div>

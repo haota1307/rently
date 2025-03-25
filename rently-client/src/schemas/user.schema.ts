@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { UserStatus } from "@/constants/auth.constant";
-import { RoleSchema } from "@/schemas/auth.schema";
+import { RoleSchema } from "@/schemas/role.schema";
 import { PermissionSchema } from "@/schemas/permission.schema";
 
 export const UserSchema = z.object({
@@ -21,6 +21,11 @@ export const UserSchema = z.object({
   deletedAt: z.date().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
+});
+
+export const GetlandlordResSchema = UserSchema.omit({
+  password: true,
+  balance: true,
 });
 
 /**

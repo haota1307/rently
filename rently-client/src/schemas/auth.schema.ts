@@ -92,26 +92,6 @@ export const RoleSchema = z.object({
   updatedAt: z.date(),
 });
 
-// export const RoleSchema = z.object({
-//   id: z.number({ invalid_type_error: "ID phải là số" }),
-//   name: z.string({ required_error: "Tên vai trò không được để trống" }),
-//   description: z.string({
-//     required_error: "Mô tả vai trò không được để trống",
-//   }),
-//   isActive: z.boolean({ invalid_type_error: "Trạng thái phải là boolean" }),
-//   createdById: z
-//     .number({ invalid_type_error: "CreatedById phải là số" })
-//     .nullable(),
-//   updatedById: z
-//     .number({ invalid_type_error: "UpdatedById phải là số" })
-//     .nullable(),
-//   deletedAt: z
-//     .date({ invalid_type_error: "DeletedAt không hợp lệ" })
-//     .nullable(),
-//   createdAt: z.date({ invalid_type_error: "Ngày tạo không hợp lệ" }),
-//   updatedAt: z.date({ invalid_type_error: "Ngày cập nhật không hợp lệ" }),
-// });
-
 export const LogoutBodySchema = RefreshTokenBodySchema;
 
 export const GetAuthorizationUrlResSchema = z.object({

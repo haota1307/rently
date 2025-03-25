@@ -130,3 +130,8 @@ export const checkAndRefreshToken = async (param?: {
     }
   }
 };
+
+export const preprocessDecimal = (arg: unknown) =>
+  typeof arg === "object" && arg !== null && "toNumber" in arg
+    ? (arg as any).toNumber()
+    : arg;

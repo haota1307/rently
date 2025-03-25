@@ -1,25 +1,30 @@
+import { preprocessDecimal } from "@/lib/utils";
+import { RoomSchema } from "@/schemas/room.schema";
+import { GetlandlordResSchema } from "@/schemas/user.schema";
 import { z } from "zod";
+
+export const RentalImageSchema = z.object({
+  id: z.number(),
+  imageUrl: z.string(),
+  order: z.number(),
+  createdAt: z.date().nullable(),
+  rentalId: z.number(),
+});
 
 export const RentalSchema = z.object({
   id: z.number(),
   title: z.string(),
   description: z.string(),
   address: z.string(),
-  lat: z.preprocess((arg) => {
-    if (typeof arg === "object" && arg !== null && "toNumber" in arg) {
-      return (arg as any).toNumber();
-    }
-    return arg;
-  }, z.number()),
-  lng: z.preprocess((arg) => {
-    if (typeof arg === "object" && arg !== null && "toNumber" in arg) {
-      return (arg as any).toNumber();
-    }
-    return arg;
-  }, z.number()),
+  lat: z.preprocess(preprocessDecimal, z.number()),
+  lng: z.preprocess(preprocessDecimal, z.number()),
+  distance: z.preprocess(preprocessDecimal, z.number()).optional(),
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),
   landlordId: z.number(),
+  landlord: GetlandlordResSchema.optional(),
+  rentalImages: z.array(RentalImageSchema).optional(),
+  rooms: z.array(RoomSchema).optional(),
 });
 
 export const GetRentalsResSchema = z.object({
@@ -45,6 +50,11 @@ export const GetRentalParamsSchema = z
 
 export const GetRentalDetailResSchema = RentalSchema;
 
+const CreateRentalImageSchema = z.object({
+  imageUrl: z.string(),
+  order: z.number().optional(),
+});
+
 export const CreateRentalBodySchema = z
   .object({
     title: z.string(),
@@ -53,6 +63,14 @@ export const CreateRentalBodySchema = z
     lat: z.number(),
     lng: z.number(),
     landlordId: z.number(),
+    rentalImages: z
+      .array(
+        z.object({
+          imageUrl: z.string(),
+          order: z.number().optional(),
+        })
+      )
+      .optional(),
   })
   .strict();
 

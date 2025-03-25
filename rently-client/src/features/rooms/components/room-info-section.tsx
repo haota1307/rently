@@ -5,7 +5,7 @@ import { House, MapPinned, Wallet } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const MapWithDirections = dynamic(
-  () => import("@/features/map/map-with-directions"),
+  () => import("@/features/map/map-with-geocode"),
   { ssr: false }
 );
 
