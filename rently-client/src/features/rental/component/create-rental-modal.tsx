@@ -19,6 +19,7 @@ import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { RentalForm } from "@/features/rental/component/rental-form";
 import { useCreateRental } from "@/features/rental/useRental";
 import { useUploadImages } from "@/features/media/useMedia";
+import { toast } from "sonner";
 
 export type ImageSlot = {
   file: File;
@@ -70,8 +71,6 @@ export function CreateRentalModal({
 
   const handleSubmit = async (values: CreateRentalBodyType) => {
     try {
-      console.log("Form values trước khi xử lý:", values);
-
       const validSlots = imageSlots.filter(
         (slot): slot is { file: File; previewUrl: string; order: number } =>
           slot !== null
@@ -79,6 +78,7 @@ export function CreateRentalModal({
 
       let uploadedImages: Array<{ url: string; public_id: string }> = [];
       if (validSlots.length > 0) {
+        if (imageUploading || rentalCreating) return;
         try {
           const formData = new FormData();
           validSlots.forEach((slot) => {
@@ -101,10 +101,14 @@ export function CreateRentalModal({
         })),
       };
 
-      console.log("Data to submit:", dataToSubmit);
+      try {
+        if (rentalCreating) return;
+        await rentalCreate(dataToSubmit);
 
-      await rentalCreate(dataToSubmit);
-      onSubmit(dataToSubmit);
+        toast.success("Tạo nhà trọ thành công");
+      } catch (error) {
+        toast.error("Tạo nhà trọ thất bại");
+      }
 
       form.reset();
       setImageSlots([null, null, null, null, null]);
