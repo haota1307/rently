@@ -16,7 +16,7 @@ import { format } from "date-fns";
 export const rentalColumns: ColumnDef<any>[] = [
   {
     accessorKey: "id",
-    header: "id",
+    header: "ID",
   },
   {
     accessorKey: "title",

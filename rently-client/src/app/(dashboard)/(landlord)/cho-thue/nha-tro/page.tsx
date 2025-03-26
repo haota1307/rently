@@ -17,7 +17,7 @@ export default function LandlordRentalPage() {
 
   // Trạng thái trang hiện tại
   const [page, setPage] = useState(1);
-  const limit = 5;
+  const limit = 10;
 
   // Giả sử API trả về tổng số bản ghi để tính số trang
   const { data } = useGetRentalsById(userId!, {
