@@ -4,70 +4,100 @@ import { GetlandlordResSchema } from "@/schemas/user.schema";
 import { z } from "zod";
 
 export const RentalImageSchema = z.object({
-  id: z.number(),
-  imageUrl: z.string(),
-  order: z.number(),
-  createdAt: z.date().nullable(),
-  rentalId: z.number(),
+  id: z.number({ invalid_type_error: "Mã hình ảnh không hợp lệ" }),
+  imageUrl: z.string({ required_error: "Đường dẫn hình ảnh là bắt buộc" }),
+  order: z.number({ invalid_type_error: "Thứ tự hình ảnh không hợp lệ" }),
+  createdAt: z
+    .date({ invalid_type_error: "Thời gian tạo không hợp lệ" })
+    .nullable(),
+  rentalId: z.number({ invalid_type_error: "Mã nhà trọ không hợp lệ" }),
 });
 
 export const RentalSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  description: z.string(),
-  address: z.string(),
-  lat: z.preprocess(preprocessDecimal, z.number()),
-  lng: z.preprocess(preprocessDecimal, z.number()),
-  distance: z.preprocess(preprocessDecimal, z.number()).optional(),
-  createdAt: z.date().nullable(),
-  updatedAt: z.date().nullable(),
-  landlordId: z.number(),
+  id: z.number({ invalid_type_error: "Mã nhà trọ không hợp lệ" }),
+  title: z.string({ required_error: "Tiêu đề là bắt buộc" }),
+  description: z.string({ required_error: "Mô tả là bắt buộc" }),
+  address: z.string({ required_error: "Địa chỉ là bắt buộc" }),
+  lat: z.preprocess(
+    preprocessDecimal,
+    z.number({ invalid_type_error: "Vĩ độ không hợp lệ" })
+  ),
+  lng: z.preprocess(
+    preprocessDecimal,
+    z.number({ invalid_type_error: "Kinh độ không hợp lệ" })
+  ),
+  distance: z
+    .preprocess(
+      preprocessDecimal,
+      z.number({ invalid_type_error: "Khoảng cách không hợp lệ" })
+    )
+    .optional(),
+  createdAt: z.date({ invalid_type_error: "Ngày tạo không hợp lệ" }).nullable(),
+  updatedAt: z
+    .date({ invalid_type_error: "Ngày cập nhật không hợp lệ" })
+    .nullable(),
+  landlordId: z.number({ invalid_type_error: "Mã chủ nhà không hợp lệ" }),
   landlord: GetlandlordResSchema.optional(),
   rentalImages: z.array(RentalImageSchema).optional(),
   rooms: z.array(RoomSchema).optional(),
 });
 
 export const GetRentalsResSchema = z.object({
-  data: z.array(RentalSchema),
-  totalItems: z.number(),
-  page: z.number(),
-  limit: z.number(),
-  totalPages: z.number(),
+  data: z.array(RentalSchema, { invalid_type_error: "Dữ liệu không hợp lệ" }),
+  totalItems: z.number({ invalid_type_error: "Tổng số không hợp lệ" }),
+  page: z.number({ invalid_type_error: "Số trang không hợp lệ" }),
+  limit: z.number({ invalid_type_error: "Giới hạn không hợp lệ" }),
+  totalPages: z.number({ invalid_type_error: "Tổng số trang không hợp lệ" }),
 });
 
 export const GetRentalsQuerySchema = z
   .object({
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().default(10),
+    page: z.coerce
+      .number()
+      .int()
+      .positive({ message: "Số trang phải là số nguyên dương" })
+      .default(1),
+    limit: z.coerce
+      .number()
+      .int()
+      .positive({ message: "Giới hạn phải là số nguyên dương" })
+      .default(10),
   })
   .strict();
 
 export const GetRentalParamsSchema = z
   .object({
-    rentalId: z.coerce.number(),
+    rentalId: z.coerce.number({
+      invalid_type_error: "Mã nhà trọ không hợp lệ",
+    }),
   })
   .strict();
 
 export const GetRentalDetailResSchema = RentalSchema;
 
-const CreateRentalImageSchema = z.object({
-  imageUrl: z.string(),
-  order: z.number().optional(),
-});
-
 export const CreateRentalBodySchema = z
   .object({
-    title: z.string(),
-    description: z.string(),
-    address: z.string(),
-    lat: z.number(),
-    lng: z.number(),
-    landlordId: z.number(),
+    title: z
+      .string({ required_error: "Tiêu đề là bắt buộc" })
+      .min(1, { message: "Tiêu đề không được để trống" }),
+    description: z
+      .string({ required_error: "Mô tả là bắt buộc" })
+      .min(1, { message: "Mô tả không được để trống" }),
+    address: z
+      .string({ required_error: "Địa chỉ là bắt buộc" })
+      .min(1, { message: "Địa chỉ không được để trống" }),
+    lat: z.number({ invalid_type_error: "Vĩ độ không hợp lệ" }),
+    lng: z.number({ invalid_type_error: "Kinh độ không hợp lệ" }),
+    landlordId: z.number({ invalid_type_error: "Mã chủ nhà không hợp lệ" }),
     rentalImages: z
       .array(
         z.object({
-          imageUrl: z.string(),
-          order: z.number().optional(),
+          imageUrl: z.string({
+            required_error: "Đường dẫn hình ảnh là bắt buộc",
+          }),
+          order: z
+            .number({ invalid_type_error: "Thứ tự hình ảnh không hợp lệ" })
+            .optional(),
         })
       )
       .optional(),

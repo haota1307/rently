@@ -15,18 +15,15 @@ export default function LandlordRentalPage() {
   const accessToken = getAccessTokenFromLocalStorage();
   const userId = accessToken ? decodeAccessToken(accessToken).userId : null;
 
-  // Trạng thái trang hiện tại
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  // Giả sử API trả về tổng số bản ghi để tính số trang
   const { data } = useGetRentalsById(userId!, {
     page,
     limit,
   });
 
   const rentals = data?.data || [];
-  const totalCount = data?.totalItems || 0;
   const totalPages = data?.totalPages || 0;
 
   const handleCreateRental = (data: CreateRentalBodyType) => {
@@ -45,7 +42,6 @@ export default function LandlordRentalPage() {
           <span>Thêm nhà trọ</span>
         </Button>
 
-        {/* Truyền thông tin phân trang cho DataTable */}
         <DataTable
           columns={rentalColumns}
           data={rentals}

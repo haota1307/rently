@@ -117,7 +117,7 @@ export function RentalForm({
           control={form.control}
           name="address"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="hidden">
               <FormLabel>Địa chỉ</FormLabel>
               <FormControl>
                 <Input placeholder="Địa chỉ chi tiết" {...field} readOnly />
@@ -132,7 +132,6 @@ export function RentalForm({
         <MapWithGeocode
           address={debouncedAddress}
           onCoordinateChange={(coord) => {
-            // coord là [lng, lat]
             form.setValue("lng", coord[0]);
             form.setValue("lat", coord[1]);
           }}

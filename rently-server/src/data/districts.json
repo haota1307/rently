@@ -1,628 +1,94 @@
 {
-  "streets": [
-    {
-      "id": 19132,
-      "name": "Đường số 1"
-    },
-    {
-      "id": 10944,
-      "name": "Đường số 2"
-    },
-    {
-      "id": 10951,
-      "name": "Đường số 3"
-    },
-    {
-      "id": 10954,
-      "name": "Đường số 4"
-    },
-    {
-      "id": 10955,
-      "name": "Đường số 5"
-    },
-    {
-      "id": 10956,
-      "name": "Đường số 6"
-    },
-    {
-      "id": 10957,
-      "name": "Đường số 7"
-    },
-    {
-      "id": 10958,
-      "name": "Đường số 8"
-    },
-    {
-      "id": 10940,
-      "name": "Đường số 10"
-    },
-    {
-      "id": 10941,
-      "name": "Đường số 12"
-    },
-    {
-      "id": 10942,
-      "name": "Đường số 13"
-    },
-    {
-      "id": 10943,
-      "name": "Đường số 18"
-    },
-    {
-      "id": 10945,
-      "name": "Đường số 20"
-    },
-    {
-      "id": 10946,
-      "name": "Đường số 21"
-    },
-    {
-      "id": 10947,
-      "name": "Đường số 22"
-    },
-    {
-      "id": 10948,
-      "name": "Phố số 24"
-    },
-    {
-      "id": 10949,
-      "name": "Đường số 27"
-    },
-    {
-      "id": 10950,
-      "name": "Đường số 28"
-    },
-    {
-      "id": 10959,
-      "name": "Đường số 8A"
-    },
-    {
-      "id": 10961,
-      "name": "Đường A1"
-    },
-    {
-      "id": 10962,
-      "name": "Đường A2"
-    },
-    {
-      "id": 10963,
-      "name": "Đường A3"
-    },
-    {
-      "id": 10964,
-      "name": "Đường B1"
-    },
-    {
-      "id": 18994,
-      "name": "Đường B4"
-    },
-    {
-      "id": 10973,
-      "name": "Đường B5"
-    },
-    {
-      "id": 10952,
-      "name": "Đường số 3/2"
-    },
-    {
-      "id": 10960,
-      "name": "Đường số 91B"
-    },
-    {
-      "id": 10965,
-      "name": "Đường B10"
-    },
-    {
-      "id": 10966,
-      "name": "Đường B11"
-    },
-    {
-      "id": 10967,
-      "name": "Đường B12"
-    },
-    {
-      "id": 10968,
-      "name": "Đường B13"
-    },
-    {
-      "id": 10969,
-      "name": "Đường B19"
-    },
-    {
-      "id": 10970,
-      "name": "Đường B25"
-    },
-    {
-      "id": 10971,
-      "name": "Đường B26"
-    },
-    {
-      "id": 10972,
-      "name": "Đường B31"
-    },
-    {
-      "id": 10953,
-      "name": "Đường số 30/4"
-    },
-    {
-      "id": 10992,
-      "name": "Phố E4-D4"
-    },
-    {
-      "id": 11004,
-      "name": "Đường Lê Lai"
-    },
-    {
-      "id": 11007,
-      "name": "Đường Lò Mỗ"
-    },
-    {
-      "id": 11059,
-      "name": "Đường Tầm Vu"
-    },
-    {
-      "id": 11003,
-      "name": "Đường Lê Bình"
-    },
-    {
-      "id": 11005,
-      "name": "Đường Lê Lợi"
-    },
-    {
-      "id": 10999,
-      "name": "Đường Hưng Phú"
-    },
-    {
-      "id": 11060,
-      "name": "Đường Tân Trào"
-    },
-    {
-      "id": 10975,
-      "name": "Phố Bà Triệu"
-    },
-    {
-      "id": 10982,
-      "name": "Đường Cao Thắng"
-    },
-    {
-      "id": 11014,
-      "name": "Đường Mậu Thân"
-    },
-    {
-      "id": 11017,
-      "name": "Đường Ngân Hàng"
-    },
-    {
-      "id": 11030,
-      "name": "Đường Nguyễn Du"
-    },
-    {
-      "id": 11056,
-      "name": "Đường Quang Trung"
-    },
-    {
-      "id": 11058,
-      "name": "Đường Sông Hậu"
-    },
-    {
-      "id": 11072,
-      "name": "Đường Trần Phú"
-    },
-    {
-      "id": 10985,
-      "name": "Đường Đề Thám"
-    },
-    {
-      "id": 11021,
-      "name": "Đường Ngô Quyền"
-    },
-    {
-      "id": 11089,
-      "name": "Đường Xuân Thủy"
-    },
-    {
-      "id": 10981,
-      "name": "Đường Cao Bá Quát"
-    },
-    {
-      "id": 10987,
-      "name": "Đường Diên Thạnh"
-    },
-    {
-      "id": 11000,
-      "name": "Đường Hùng Vương"
-    },
-    {
-      "id": 19209,
-      "name": "Đường Lê Anh Xuân"
-    },
-    {
-      "id": 11019,
-      "name": "Đường Ngô Gia Tự"
-    },
-    {
-      "id": 11052,
-      "name": "Đường Phan Huy Chú"
-    },
-    {
-      "id": 10993,
-      "name": "Phố Hai Bà Trưng"
-    },
-    {
-      "id": 11023,
-      "name": "Đường Ngô Văn Sở"
-    },
-    {
-      "id": 11025,
-      "name": "Đường Nguyễn Bình"
-    },
-    {
-      "id": 11037,
-      "name": "Đường Nguyễn Trãi"
-    },
-    {
-      "id": 11028,
-      "name": "Đường Nguyễn Đệ"
-    },
-    {
-      "id": 11049,
-      "name": "Đường Phan Chu Trinh"
-    },
-    {
-      "id": 11084,
-      "name": "Đường Võ Thị Sáu"
-    },
-    {
-      "id": 11087,
-      "name": "Đường Võ Văn Tần"
-    },
-    {
-      "id": 10991,
-      "name": "Đường Đồng Khởi"
-    },
-    {
-      "id": 10976,
-      "name": "Đường Bế Văn Đàn"
-    },
-    {
-      "id": 11001,
-      "name": "Đường Huỳnh Cương"
-    },
-    {
-      "id": 11008,
-      "name": "Đường Lộ Vòng Cung"
-    },
-    {
-      "id": 11016,
-      "name": "Đường Nam Sông Hậu"
-    },
-    {
-      "id": 11036,
-      "name": "Đường Nguyễn Thông"
-    },
-    {
-      "id": 11054,
-      "name": "Đường Phan Văn Trị"
-    },
-    {
-      "id": 11057,
-      "name": "Đường Quốc lộ 91B"
-    },
-    {
-      "id": 11061,
-      "name": "Đường Thới Nhựt 1"
-    },
-    {
-      "id": 11062,
-      "name": "Đường Thới Nhựt 2"
-    },
-    {
-      "id": 11064,
-      "name": "Đường Tỉnh Lộ 923"
-    },
-    {
-      "id": 18993,
-      "name": "Đường Trần Nam Phú"
-    },
-    {
-      "id": 11078,
-      "name": "Đường Trần Văn Ơn"
-    },
-    {
-      "id": 11082,
-      "name": "Đường Ung Văn Khiêm"
-    },
-    {
-      "id": 11086,
-      "name": "Đường Võ Văn Kiệt"
-    },
-    {
-      "id": 10978,
-      "name": "Đường Bùi Thị Xuân"
-    },
-    {
-      "id": 10983,
-      "name": "Đường Châu Văn Liêm"
-    },
-    {
-      "id": 10994,
-      "name": "Đường Hồ Tùng Mậu"
-    },
-    {
-      "id": 11006,
-      "name": "Đường Lê Thánh Tông"
-    },
-    {
-      "id": 11012,
-      "name": "Đường Lý Tự Trọng"
-    },
-    {
-      "id": 11013,
-      "name": "Đường Mạc Đĩnh Chi"
-    },
-    {
-      "id": 11022,
-      "name": "Đường Ngô Thì Nhậm"
-    },
-    {
-      "id": 11018,
-      "name": "Đường Ngô Đức Kế"
-    },
-    {
-      "id": 11024,
-      "name": "Đường Nguyễn An Ninh"
-    },
-    {
-      "id": 11047,
-      "name": "Đường Phạm Ngũ Lão"
-    },
-    {
-      "id": 11048,
-      "name": "Đường Phan Bội Châu"
-    },
-    {
-      "id": 11050,
-      "name": "Phố Phan Đăng Lưu"
-    },
-    {
-      "id": 11063,
-      "name": "Đường Thủ Khoa Huân"
-    },
-    {
-      "id": 11068,
-      "name": "Đường Trần Hoàng Na"
-    },
-    {
-      "id": 19142,
-      "name": "Đường Trần Văn Long"
-    },
-    {
-      "id": 11081,
-      "name": "Đường Trương Định"
-    },
-    {
-      "id": 10977,
-      "name": "Đường Bùi Hữu Nghĩa"
-    },
-    {
-      "id": 10995,
-      "name": "Đường Hồ Xáng Thổi"
-    },
-    {
-      "id": 10998,
-      "name": "Đường Hoàng Văn Thụ"
-    },
-    {
-      "id": 11020,
-      "name": "Đường Ngô Hữu Hạnh"
-    },
-    {
-      "id": 11032,
-      "name": "Đường Nguyễn Khuyến"
-    },
-    {
-      "id": 11053,
-      "name": "Đường Phan Thế Hiển"
-    },
-    {
-      "id": 11070,
-      "name": "Đường Trần Khánh Dư"
-    },
-    {
-      "id": 11076,
-      "name": "Đường Trần Văn Hoài"
-    },
-    {
-      "id": 11077,
-      "name": "Đường Trần Văn Khéo"
-    },
-    {
-      "id": 10996,
-      "name": "Đường Hồ Xuân Hương"
-    },
-    {
-      "id": 11010,
-      "name": "Đường Lý Hồng Thạnh"
-    },
-    {
-      "id": 11027,
-      "name": "Đường Nguyễn Cư Trinh"
-    },
-    {
-      "id": 11039,
-      "name": "Đường Nguyễn Văn Côn"
-    },
-    {
-      "id": 11040,
-      "name": "Đường Nguyễn Văn Cừ"
-    },
-    {
-      "id": 11041,
-      "name": "Đường Nguyễn Văn Linh"
-    },
-    {
-      "id": 11051,
-      "name": "Đường Phan Đình Phùng"
-    },
-    {
-      "id": 10988,
-      "name": "Đường Đinh Công Tráng"
-    },
-    {
-      "id": 10989,
-      "name": "Đường Đinh Tiên Hoàng"
-    },
-    {
-      "id": 11045,
-      "name": "Đường Phạm Hồng Thái"
-    },
-    {
-      "id": 19164,
-      "name": "Đường Phạm Ngọc Hưng"
-    },
-    {
-      "id": 11069,
-      "name": "Đường Trần Hưng Đạo"
-    },
-    {
-      "id": 11071,
-      "name": "Đường Trần Ngọc Quế"
-    },
-    {
-      "id": 11073,
-      "name": "Đường Trần Quang Diệu"
-    },
-    {
-      "id": 11074,
-      "name": "Đường Trần Quang Khải"
-    },
-    {
-      "id": 11079,
-      "name": "Đường Trần Việt Châu"
-    },
-    {
-      "id": 11080,
-      "name": "Đường Trần Vĩnh Kiết"
-    },
-    {
-      "id": 10986,
-      "name": "Đường Điện Biên Phủ"
-    },
-    {
-      "id": 10997,
-      "name": "Đường Hoàng Quốc Việt"
-    },
-    {
-      "id": 11002,
-      "name": "Đường Huỳnh Thúc Kháng"
-    },
-    {
-      "id": 11011,
-      "name": "Phố Lý Thường Kiệt"
-    },
-    {
-      "id": 11033,
-      "name": "Đường Nguyễn Thái Học"
-    },
-    {
-      "id": 11042,
-      "name": "Đường Nguyễn Văn Trỗi"
-    },
-    {
-      "id": 11055,
-      "name": "Đường Quán Trọng Hoàng"
-    },
-    {
-      "id": 11066,
-      "name": "Đường Trần Bình Trọng"
-    },
-    {
-      "id": 11075,
-      "name": "Đường Trần Quốc Toản"
-    },
-    {
-      "id": 11067,
-      "name": "Phố Trần Đại Nghĩa"
-    },
-    {
-      "id": 11085,
-      "name": "Đường Võ Trường Toản"
-    },
-    {
-      "id": 10990,
-      "name": "Đường Đoàn Thị Điểm"
-    },
-    {
-      "id": 11009,
-      "name": "Phố Lương Định Của"
-    },
-    {
-      "id": 11038,
-      "name": "Đường Nguyễn Tri Phương"
-    },
-    {
-      "id": 11046,
-      "name": "Đường Phạm Ngọc Thạch"
-    },
-    {
-      "id": 11065,
-      "name": "Đường Trần Bạch Đằng"
-    },
-    {
-      "id": 10974,
-      "name": "Phố Bà Huyện Thanh Quan"
-    },
-    {
-      "id": 11015,
-      "name": "Đường Nam Kỳ Khởi Nghĩa"
-    },
-    {
-      "id": 11026,
-      "name": "Đường Nguyễn Bỉnh Khiêm"
-    },
-    {
-      "id": 11034,
-      "name": "Đường Nguyễn Thần Hiến"
-    },
-    {
-      "id": 11044,
-      "name": "Đường Nguyễn Việt Hồng"
-    },
-    {
-      "id": 11031,
-      "name": "Đường Nguyễn Đức Cảnh"
-    },
-    {
-      "id": 10984,
-      "name": "Đường Đại lộ Hòa Bình"
-    },
-    {
-      "id": 10980,
-      "name": "Đường Cái Sơn - Hàng Bàng"
-    },
-    {
-      "id": 11043,
-      "name": "Đường Nguyễn Văn Trường"
-    },
-    {
-      "id": 11029,
-      "name": "Đường Nguyễn Đình Chiểu"
-    },
-    {
-      "id": 11088,
-      "name": "Đường Xô Viết Nghệ Tĩnh"
-    },
-    {
-      "id": 10979,
-      "name": "Đường Cách Mạng Tháng Tám"
-    },
-    {
-      "id": 11035,
-      "name": "Đường Nguyễn Thị Minh Khai"
-    },
-    {
-      "id": 11083,
-      "name": "Đường Vành đai Phi Trường"
+  "districts": [
+    {
+      "id": 726,
+      "term_id": 726,
+      "name": "Qu\u1eadn Ninh Ki\u1ec1u",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
+    },
+    {
+      "id": 727,
+      "term_id": 727,
+      "name": "Qu\u1eadn \u00d4 M\u00f4n",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
+    },
+    {
+      "id": 728,
+      "term_id": 728,
+      "name": "Qu\u1eadn B\u00ecnh Thu\u1ef7",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
+    },
+    {
+      "id": 729,
+      "term_id": 729,
+      "name": "Qu\u1eadn C\u00e1i R\u0103ng",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
+    },
+    {
+      "id": 730,
+      "term_id": 730,
+      "name": "Qu\u1eadn Th\u1ed1t N\u1ed1t",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
+    },
+    {
+      "id": 731,
+      "term_id": 731,
+      "name": "Huy\u1ec7n V\u0129nh Th\u1ea1nh",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
+    },
+    {
+      "id": 732,
+      "term_id": 732,
+      "name": "Huy\u1ec7n C\u1edd \u0110\u1ecf",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
+    },
+    {
+      "id": 733,
+      "term_id": 733,
+      "name": "Huy\u1ec7n Phong \u0110i\u1ec1n",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
+    },
+    {
+      "id": 734,
+      "term_id": 734,
+      "name": "Huy\u1ec7n Th\u1edbi Lai",
+      "district_id": 0,
+      "province_id": 0,
+      "ward_id": 0,
+      "parent_id": 99,
+      "location": "district"
     }
   ]
 }

@@ -9,41 +9,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-
-interface District {
-  id: string;
-  name: string;
-  wards: Ward[];
-  streets: string[];
-}
-
-interface Ward {
-  id: string;
-  name: string;
-}
-
-// Dữ liệu ví dụ
-const districtsData: District[] = [
-  {
-    id: "1",
-    name: "Quận Ninh Kiều",
-    wards: [
-      { id: "1", name: "Phường An Khánh" },
-      { id: "2", name: "Phường An Cư" },
-      { id: "3", name: "Phường Xuân Khánh" },
-    ],
-    streets: ["Đường 30 Tháng 4", "Đường 3/2", "Đường Lý Thường Kiệt"],
-  },
-  {
-    id: "2",
-    name: "Quận Bình Thủy",
-    wards: [
-      { id: "4", name: "Phường Long Hòa" },
-      { id: "5", name: "Phường Xuân Khánh" },
-    ],
-    streets: ["Đường Lê Hồng Phong", "Đường Nguyễn Văn Cừ"],
-  },
-];
+import {
+  useDistricts,
+  useStreets,
+  useWards,
+} from "@/features/address/useAddress";
 
 interface AddressSelectorProps {
   onAddressChange?: (address: string) => void;
@@ -52,27 +22,32 @@ interface AddressSelectorProps {
 const AddressSelector: React.FC<AddressSelectorProps> = ({
   onAddressChange,
 }) => {
-  const province = "Cần Thơ"; // Cố định
-  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(
-    null
-  );
+  const province = "Cần Thơ";
+  const [selectedDistrict, setSelectedDistrict] = useState<any>(null);
   const [selectedWard, setSelectedWard] = useState<string>("");
   const [selectedStreet, setSelectedStreet] = useState<string>("");
   const [detailedAddress, setDetailedAddress] = useState<string>("");
 
+  const { data: districts } = useDistricts();
+  const { data: wards } = useWards();
+
+  const districtsData = districts?.payload.districts || [];
+  const wardsData = wards?.payload.wards || [];
+
   useEffect(() => {
-    let address = province;
+    let address = `Việt Nam, ${province}`;
+
     if (selectedDistrict) {
-      address += ", " + selectedDistrict.name;
+      address += `, ${selectedDistrict.name}`;
     }
+
     if (selectedWard) {
-      address += ", " + selectedWard;
+      address += `, ${selectedWard}`;
     }
+
     if (selectedStreet) {
-      address += ", " + selectedStreet;
+      address += `, ${selectedStreet}`;
     }
-    // Thêm "Việt Nam" để Mapbox nhận dạng tốt hơn
-    address += ", Việt Nam";
 
     setDetailedAddress(address);
 
@@ -98,7 +73,8 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
         <label className="block text-sm font-medium mb-1">Quận/Huyện</label>
         <Select
           onValueChange={(value: string) => {
-            const district = districtsData.find((d) => d.id === value) || null;
+            const district =
+              districtsData.find((d) => d.id === Number(value)) || null;
             setSelectedDistrict(district);
             setSelectedWard("");
             setSelectedStreet("");
@@ -109,7 +85,7 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
           </SelectTrigger>
           <SelectContent>
             {districtsData.map((district) => (
-              <SelectItem key={district.id} value={district.id}>
+              <SelectItem key={district.id} value={district.id.toString()}>
                 {district.name}
               </SelectItem>
             ))}
@@ -128,31 +104,13 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
           </SelectTrigger>
           <SelectContent>
             {selectedDistrict &&
-              selectedDistrict.wards.map((ward) => (
-                <SelectItem key={ward.id} value={ward.name}>
-                  {ward.name}
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">Đường</label>
-        <Select
-          onValueChange={(value: string) => setSelectedStreet(value)}
-          disabled={!selectedDistrict}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Chọn đường" />
-          </SelectTrigger>
-          <SelectContent>
-            {selectedDistrict &&
-              selectedDistrict.streets.map((street, idx) => (
-                <SelectItem key={idx} value={street}>
-                  {street}
-                </SelectItem>
-              ))}
+              wardsData
+                .filter((ward) => ward.district_id === selectedDistrict.id)
+                .map((ward) => (
+                  <SelectItem key={ward.id} value={ward.name}>
+                    {ward.name}
+                  </SelectItem>
+                ))}
           </SelectContent>
         </Select>
       </div>

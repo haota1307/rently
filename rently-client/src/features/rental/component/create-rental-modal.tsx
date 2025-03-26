@@ -62,56 +62,63 @@ export function CreateRentalModal({
       title: "",
       description: "",
       address: "",
-      lat: 0,
-      lng: 0,
+      lat: 10.762622,
+      lng: 106.660172,
       rentalImages: [],
     },
   });
 
   const handleSubmit = async (values: CreateRentalBodyType) => {
-    const validSlots = imageSlots.filter(
-      (slot): slot is { file: File; previewUrl: string; order: number } =>
-        slot !== null
-    );
-
-    let uploadedImages: Array<{ url: string; public_id: string }> = [];
-    if (validSlots.length > 0) {
-      try {
-        const formData = new FormData();
-        validSlots.forEach((slot) => {
-          formData.append("images", slot.file);
-        });
-
-        const uploadResponse = await imageUpload(formData);
-        uploadedImages = uploadResponse.payload;
-      } catch (error) {
-        console.error("Lỗi upload ảnh:", error);
-        return;
-      }
-    }
-
-    const dataToSubmit: CreateRentalBodyType = {
-      ...values,
-      rentalImages: uploadedImages.map((img, index) => ({
-        imageUrl: img.url,
-        order: index + 1,
-      })),
-    };
-
     try {
-      const rentalResult = await rentalCreate(dataToSubmit);
+      console.log("Form values trước khi xử lý:", values);
+
+      const validSlots = imageSlots.filter(
+        (slot): slot is { file: File; previewUrl: string; order: number } =>
+          slot !== null
+      );
+
+      let uploadedImages: Array<{ url: string; public_id: string }> = [];
+      if (validSlots.length > 0) {
+        try {
+          const formData = new FormData();
+          validSlots.forEach((slot) => {
+            formData.append("images", slot.file);
+          });
+
+          const uploadResponse = await imageUpload(formData);
+          uploadedImages = uploadResponse.payload;
+        } catch (error) {
+          console.error("Lỗi upload ảnh:", error);
+          return;
+        }
+      }
+
+      const dataToSubmit: CreateRentalBodyType = {
+        ...values,
+        rentalImages: uploadedImages.map((img, index) => ({
+          imageUrl: img.url,
+          order: index + 1,
+        })),
+      };
+
+      console.log("Data to submit:", dataToSubmit);
+
+      await rentalCreate(dataToSubmit);
       onSubmit(dataToSubmit);
 
       form.reset();
       setImageSlots([null, null, null, null, null]);
     } catch (error) {
       console.error("Lỗi tạo rental:", error);
+      if (error instanceof Error) {
+        console.error("Chi tiết lỗi:", error.message);
+      }
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Thêm nhà trọ mới</DialogTitle>
           <DialogDescription>

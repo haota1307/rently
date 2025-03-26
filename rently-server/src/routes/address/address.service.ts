@@ -5,12 +5,9 @@ import streets from 'src/data/streets.json'
 
 @Injectable()
 export class AddressService {
-  // Lấy danh sách phường (wards)
   getWards() {
     return wards
   }
-
-  // Lấy danh sách quận/huyện (districts)
   getDistricts() {
     return districts
   }

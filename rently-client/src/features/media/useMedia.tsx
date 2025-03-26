@@ -1,6 +1,5 @@
 import mediaApiRequest from "@/features/media/media.api";
 import { useMutation } from "@tanstack/react-query";
-import { console } from "inspector";
 
 export const useUploadImage = () => {
   return useMutation({
