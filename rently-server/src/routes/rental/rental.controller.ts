@@ -66,7 +66,10 @@ export class RentalController {
 
   @Delete(':rentalId')
   @ZodSerializerDto(MessageResDTO)
-  delete(@Param() params: GetRentalParamsDTO) {
+  delete(
+    @Param() params: GetRentalParamsDTO,
+    @ActiveUser('userId') userId: number
+  ) {
     return this.rentalService.delete({ id: params.rentalId })
   }
 }

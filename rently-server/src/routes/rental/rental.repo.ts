@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common'
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common'
 
 import { PrismaService } from 'src/shared/services/prisma.service'
 
@@ -10,6 +15,7 @@ import {
   RentalType,
   UpdateRentalBodyType,
 } from 'src/shared/models/shared-rental.mode'
+import { NotFoundRecordException } from 'src/shared/error'
 
 @Injectable()
 export class RentalRepo {
@@ -192,15 +198,32 @@ export class RentalRepo {
 
   async delete({ id }: { id: number }): Promise<RentalType> {
     try {
-      const rental = await this.prismaService.rental.delete({
+      const rental = await this.prismaService.rental.findUnique({
         where: { id },
-        include: {
-          landlord: true,
-          rentalImages: true,
-        },
+        include: { rooms: true },
       })
-      return this.formatRental(rental)
+
+      console.log({ rental })
+
+      if (!rental) {
+        throw NotFoundRecordException
+      }
+
+      if (rental?.rooms && rental.rooms.length > 0) {
+        throw new BadRequestException(
+          'Không thể xóa nhà trọ vì có phòng trọ. Vui lòng xóa hết các phòng trước.'
+        )
+      }
+
+      const deletedRental = await this.prismaService.rental.delete({
+        where: { id },
+      })
+
+      return this.formatRental(deletedRental)
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error
+      }
       throw new InternalServerErrorException(error.message)
     }
   }

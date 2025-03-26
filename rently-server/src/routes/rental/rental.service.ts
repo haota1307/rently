@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { HttpException, Injectable } from '@nestjs/common'
 import { RentalRepo } from 'src/routes/rental/rental.repo'
 
 import { NotFoundRecordException } from 'src/shared/error'
@@ -45,6 +45,9 @@ export class RentalService {
       await this.rentalRepo.delete({ id })
       return { message: 'Delete successfully' }
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error
+      }
       throw NotFoundRecordException
     }
   }

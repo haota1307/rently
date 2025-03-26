@@ -25,10 +25,7 @@ import {
   SendOTPBodyDTO,
 } from 'src/routes/auth/auth.dto'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
-import {
-  ForgotPasswordBodyType,
-  LoginBodyType,
-} from 'src/routes/auth/auth.model'
+import { LoginBodyType } from 'src/routes/auth/auth.model'
 import { GoogleService } from 'src/routes/auth/google.service'
 import { AuthService } from 'src/routes/auth/auth.service'
 import { IsPublic } from 'src/shared/decorators/auth.decorator'
