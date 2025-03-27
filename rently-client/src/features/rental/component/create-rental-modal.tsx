@@ -135,6 +135,7 @@ export function CreateRentalModal({
           imageSlots={imageSlots}
           setImageSlots={setImageSlots}
           onClose={onClose}
+          isLoading={rentalCreating || imageUploading}
         />
       </DialogContent>
     </Dialog>

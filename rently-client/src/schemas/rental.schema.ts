@@ -104,7 +104,9 @@ export const CreateRentalBodySchema = z
   })
   .strict();
 
-export const UpdateRentalBodySchema = CreateRentalBodySchema;
+export const UpdateRentalBodySchema = CreateRentalBodySchema.extend({
+  id: z.number({ invalid_type_error: "Mã nhà trọ không hợp lệ" }),
+});
 
 export type RentalType = z.infer<typeof RentalSchema>;
 export type GetRentalsResType = z.infer<typeof GetRentalsResSchema>;

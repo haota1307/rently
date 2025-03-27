@@ -36,6 +36,7 @@ interface RentalFormProps {
   imageSlots: ImageSlot[];
   setImageSlots: React.Dispatch<React.SetStateAction<ImageSlot[]>>;
   onClose: () => void;
+  isLoading: boolean;
 }
 
 export function RentalForm({
@@ -44,6 +45,7 @@ export function RentalForm({
   onClose,
   imageSlots,
   setImageSlots,
+  isLoading,
 }: RentalFormProps) {
   const watchedAddress = useWatch({
     control: form.control,
@@ -153,7 +155,9 @@ export function RentalForm({
           <Button type="button" variant="outline" onClick={onClose}>
             Hủy
           </Button>
-          <Button type="submit">Tạo nhà trọ</Button>
+          <Button disabled={!form.formState.isValid || isLoading} type="submit">
+            {isLoading ? "Đang tạo..." : "Tạo nhà trọ"}
+          </Button>
         </DialogFooter>
       </form>
     </Form>

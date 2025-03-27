@@ -85,7 +85,7 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
           </SelectTrigger>
           <SelectContent>
             {districtsData.map((district) => (
-              <SelectItem key={district.id} value={district.id.toString()}>
+              <SelectItem key={district.name} value={district.id.toString()}>
                 {district.name}
               </SelectItem>
             ))}
@@ -107,7 +107,7 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
               wardsData
                 .filter((ward) => ward.district_id === selectedDistrict.id)
                 .map((ward) => (
-                  <SelectItem key={ward.id} value={ward.name}>
+                  <SelectItem key={ward.name} value={ward.name}>
                     {ward.name}
                   </SelectItem>
                 ))}
