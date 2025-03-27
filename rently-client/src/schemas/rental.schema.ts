@@ -1,6 +1,7 @@
 import { preprocessDecimal } from "@/lib/utils";
 import { RoomSchema } from "@/schemas/room.schema";
 import { GetlandlordResSchema } from "@/schemas/user.schema";
+import { title } from "process";
 import { z } from "zod";
 
 export const RentalImageSchema = z.object({
@@ -62,6 +63,7 @@ export const GetRentalsQuerySchema = z
       .int()
       .positive({ message: "Giới hạn phải là số nguyên dương" })
       .default(10),
+    title: z.string().optional(),
   })
   .strict();
 

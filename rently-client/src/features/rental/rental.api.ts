@@ -37,6 +37,7 @@ const rentalApiRequest = {
         queryString.stringify({
           limit: params.limit,
           page: params.page,
+          title: params.title,
         })
     ),
 };

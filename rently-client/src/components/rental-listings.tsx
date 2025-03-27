@@ -99,11 +99,9 @@ export default function RentalListings() {
 
   const limit = 10;
 
-  const { data, isLoading, error } = useGetRentals({ page, limit });
+  const { data } = useGetRentals({ page, limit });
 
   const listings = data?.data || [];
-
-  console.log({ listings });
 
   return (
     <div className="space-y-6 animate-fade-in">

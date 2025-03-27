@@ -93,8 +93,9 @@ function RentalActions({ rental }: { rental: RentalType }) {
 
 export const rentalColumns: ColumnDef<any>[] = [
   {
-    accessorKey: "id",
-    header: "ID",
+    id: "index",
+    header: "STT",
+    cell: ({ row }) => row.index + 1,
   },
   {
     accessorKey: "title",
