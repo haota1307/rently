@@ -12,8 +12,8 @@ import {
 export class RentalService {
   constructor(private readonly rentalRepo: RentalRepo) {}
 
-  async list(query: GetRentalsQueryType) {
-    return this.rentalRepo.list(query)
+  async list(query: GetRentalsQueryType, userId?: number) {
+    return this.rentalRepo.list(query, userId)
   }
 
   async findById(id: number) {

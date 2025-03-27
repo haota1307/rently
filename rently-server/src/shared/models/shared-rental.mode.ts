@@ -39,6 +39,7 @@ export const GetRentalsQuerySchema = z
   .object({
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().default(10),
+    title: z.string().optional(),
   })
   .strict()
 

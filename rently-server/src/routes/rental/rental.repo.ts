@@ -41,14 +41,28 @@ export class RentalRepo {
     return formattedRental
   }
 
-  async list(query: GetRentalsQueryType): Promise<GetRentalsResType> {
+  async list(
+    query: GetRentalsQueryType,
+    userId?: number
+  ): Promise<GetRentalsResType> {
     try {
       const skip = (query.page - 1) * query.limit
       const take = query.limit
+      const where: any = {}
+      if (query.title) {
+        where.title = {
+          contains: query.title,
+          mode: 'insensitive',
+        }
+      }
 
       const [totalItems, data] = await Promise.all([
-        this.prismaService.rental.count(),
+        this.prismaService.rental.count({ where }),
         this.prismaService.rental.findMany({
+          where: {
+            ...where,
+            landlordId: userId,
+          },
           skip,
           take,
           include: {

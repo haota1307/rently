@@ -27,8 +27,11 @@ export class RentalController {
 
   @Get()
   @ZodSerializerDto(GetRentalsResDTO)
-  list(@Query() query: GetRentalsQueryDTO) {
-    return this.rentalService.list(query)
+  list(
+    @Query() query: GetRentalsQueryDTO,
+    @ActiveUser('userId') userId: number
+  ) {
+    return this.rentalService.list(query, userId)
   }
 
   @Get(':rentalId')
