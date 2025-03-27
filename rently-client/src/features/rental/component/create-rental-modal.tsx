@@ -20,12 +20,7 @@ import { RentalForm } from "@/features/rental/component/rental-form";
 import { useCreateRental } from "@/features/rental/useRental";
 import { useUploadImages } from "@/features/media/useMedia";
 import { toast } from "sonner";
-
-export type ImageSlot = {
-  file: File;
-  previewUrl: string;
-  order: number;
-} | null;
+import { ImageSlot } from "@/types/images.type";
 
 interface CreateRentalModalProps {
   isOpen: boolean;
@@ -136,6 +131,7 @@ export function CreateRentalModal({
           setImageSlots={setImageSlots}
           onClose={onClose}
           isLoading={rentalCreating || imageUploading}
+          submitButtonText="Tạo nhà trọ"
         />
       </DialogContent>
     </Dialog>

@@ -17,15 +17,23 @@ import {
 
 interface AddressSelectorProps {
   onAddressChange?: (address: string) => void;
+  defaultDistrict?: string;
+  defaultWard?: string;
+  defaultStreet?: string;
 }
 
 const AddressSelector: React.FC<AddressSelectorProps> = ({
   onAddressChange,
+  defaultDistrict,
+  defaultWard,
+  defaultStreet,
 }) => {
   const province = "Cần Thơ";
   const [selectedDistrict, setSelectedDistrict] = useState<any>(null);
-  const [selectedWard, setSelectedWard] = useState<string>("");
-  const [selectedStreet, setSelectedStreet] = useState<string>("");
+  const [selectedWard, setSelectedWard] = useState<string>(defaultWard || "");
+  const [selectedStreet, setSelectedStreet] = useState<string>(
+    defaultStreet || ""
+  );
   const [detailedAddress, setDetailedAddress] = useState<string>("");
 
   const { data: districts } = useDistricts();
@@ -35,20 +43,17 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
   const wardsData = wards?.payload.wards || [];
 
   useEffect(() => {
-    let address = `Việt Nam, ${province}`;
+    const addressParts = [
+      "Việt Nam".trim(),
+      province.trim(),
+      selectedDistrict && selectedDistrict.name
+        ? selectedDistrict.name.trim()
+        : "",
+      selectedWard ? selectedWard.trim() : "",
+      selectedStreet ? selectedStreet.trim() : "",
+    ].filter((part) => part !== "");
 
-    if (selectedDistrict) {
-      address += `, ${selectedDistrict.name}`;
-    }
-
-    if (selectedWard) {
-      address += `, ${selectedWard}`;
-    }
-
-    if (selectedStreet) {
-      address += `, ${selectedStreet}`;
-    }
-
+    const address = addressParts.join(", ");
     setDetailedAddress(address);
 
     if (onAddressChange) {
@@ -79,6 +84,7 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
             setSelectedWard("");
             setSelectedStreet("");
           }}
+          defaultValue={defaultDistrict}
         >
           <SelectTrigger>
             <SelectValue placeholder="Chọn quận/huyện" />

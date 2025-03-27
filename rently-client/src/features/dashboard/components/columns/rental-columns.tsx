@@ -17,22 +17,25 @@ import { ConfirmModal } from "@/components/confirm-modal";
 import { useDeleteRental } from "@/features/rental/useRental";
 import { toast } from "sonner";
 import { RentalType } from "@/schemas/rental.schema";
+import { useRouter } from "next/navigation";
+import { UpdateRentalModal } from "@/features/rental/component/update-rental-modal";
 
 function RentalActions({ rental }: { rental: RentalType }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const { mutateAsync: deleteRental, isPending } = useDeleteRental();
+  const router = useRouter();
 
   const handleDelete = async () => {
     if (isPending) return;
 
     try {
       await deleteRental(rental.id);
-
       toast.success("Xóa nhà trọ thành công");
     } catch (error: any) {
       toast.error(`Xóa nhà trọ thất bại: ${error?.payload?.message}`);
     } finally {
-      setIsModalOpen(false);
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -55,32 +58,34 @@ function RentalActions({ rental }: { rental: RentalType }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              console.log("Xem chi tiết", rental.id);
+              router.push(`/cho-thue/nha-tro/${rental.id}`);
             }}
           >
             Xem chi tiết
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              console.log("Chỉnh sửa", rental.id);
-            }}
-          >
+          <DropdownMenuItem onClick={() => setIsUpdateModalOpen(true)}>
             Chỉnh sửa
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsModalOpen(true)}>
+          <DropdownMenuItem onClick={() => setIsDeleteModalOpen(true)}>
             Xóa nhà trọ
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <ConfirmModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
         title="Xác nhận xóa"
         description="Bạn có chắc chắn muốn xóa nhà trọ này không? Sau khi xóa, dữ liệu sẽ không thể khôi phục lại."
         confirmText="Xóa"
         cancelText="Hủy"
+      />
+
+      <UpdateRentalModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+        rental={rental}
       />
     </>
   );

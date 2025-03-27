@@ -13,22 +13,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { UseFormReturn, useWatch } from "react-hook-form";
-import { CreateRentalBodyType } from "@/schemas/rental.schema";
+import {
+  CreateRentalBodyType,
+  RentalType,
+  UpdateRentalBodyType,
+} from "@/schemas/rental.schema";
 import AddressSelector from "@/features/rental/component/address-selector";
 
-import { ImageSlot } from "@/features/rental/component/create-rental-modal"; // hoặc import từ file modal
-import { ImageUploadSlots } from "./image-upload-slots"; // Tuỳ bạn có component con hay không
+import { ImageUploadSlots } from "./image-upload-slots";
 import MapWithGeocode from "@/features/map/map-with-geocode";
-
-// Custom hook: debounce giá trị đầu vào
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debouncedValue;
-}
+import { ImageSlot } from "@/types/images.type";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface RentalFormProps {
   form: UseFormReturn<CreateRentalBodyType>;
@@ -37,6 +32,8 @@ interface RentalFormProps {
   setImageSlots: React.Dispatch<React.SetStateAction<ImageSlot[]>>;
   onClose: () => void;
   isLoading: boolean;
+  submitButtonText?: string;
+  rental?: RentalType;
 }
 
 export function RentalForm({
@@ -46,12 +43,26 @@ export function RentalForm({
   imageSlots,
   setImageSlots,
   isLoading,
+  rental,
+  submitButtonText = "Tạo nhà trọ",
 }: RentalFormProps) {
   const watchedAddress = useWatch({
     control: form.control,
     name: "address",
   });
   const debouncedAddress = useDebounce(watchedAddress, 500);
+
+  let defaultDistrict = "";
+  let defaultWard = "";
+  let defaultStreet = "";
+
+  if (rental) {
+    const address = rental.address;
+    const addressParts = address.split(",");
+    defaultDistrict = addressParts[1];
+    defaultWard = addressParts[2];
+    defaultStreet = addressParts[3];
+  }
 
   const handleAddressChange = (address: string) => {
     const currentAddress = form.getValues("address");
@@ -129,7 +140,12 @@ export function RentalForm({
           )}
         />
 
-        <AddressSelector onAddressChange={handleAddressChange} />
+        <AddressSelector
+          onAddressChange={handleAddressChange}
+          defaultDistrict={defaultDistrict}
+          defaultWard={defaultWard}
+          defaultStreet={defaultStreet}
+        />
 
         <MapWithGeocode
           address={debouncedAddress}
@@ -156,7 +172,9 @@ export function RentalForm({
             Hủy
           </Button>
           <Button disabled={!form.formState.isValid || isLoading} type="submit">
-            {isLoading ? "Đang tạo..." : "Tạo nhà trọ"}
+            {isLoading
+              ? `Đang ${submitButtonText.toLowerCase()}...`
+              : submitButtonText}
           </Button>
         </DialogFooter>
       </form>
