@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Form,
   FormField,
@@ -12,18 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { UseFormReturn, useWatch } from "react-hook-form";
-import {
-  CreateRentalBodyType,
-  RentalType,
-  UpdateRentalBodyType,
-} from "@/schemas/rental.schema";
-import AddressSelector from "@/features/rental/component/address-selector";
-
-import { ImageUploadSlots } from "./image-upload-slots";
+import { UseFormReturn } from "react-hook-form";
+import AddressAutocomplete from "@/features/map/address-auto-complete";
 import MapWithGeocode from "@/features/map/map-with-geocode";
+import { ImageUploadSlots } from "./image-upload-slots";
 import { ImageSlot } from "@/types/images.type";
-import { useDebounce } from "@/hooks/useDebounce";
+import { CreateRentalBodyType, RentalType } from "@/schemas/rental.schema";
 
 interface RentalFormProps {
   form: UseFormReturn<CreateRentalBodyType>;
@@ -46,125 +40,172 @@ export function RentalForm({
   rental,
   submitButtonText = "Tạo nhà trọ",
 }: RentalFormProps) {
-  const watchedAddress = useWatch({
-    control: form.control,
-    name: "address",
-  });
-  const debouncedAddress = useDebounce(watchedAddress, 500);
-
-  let defaultDistrict = "";
-  let defaultWard = "";
-  let defaultStreet = "";
-
-  if (rental) {
-    const address = rental.address;
-    const addressParts = address.split(",");
-    defaultDistrict = addressParts[1];
-    defaultWard = addressParts[2];
-    defaultStreet = addressParts[3];
-  }
-
-  const handleAddressChange = (address: string) => {
-    const currentAddress = form.getValues("address");
-    if (address !== currentAddress) {
-      form.setValue("address", address);
-    }
-  };
-
-  const handleImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    slotIndex: number
-  ) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const previewUrl = URL.createObjectURL(file);
-
-      const newImageSlots = [...imageSlots];
-      newImageSlots[slotIndex] = {
-        file,
-        previewUrl,
-        order: slotIndex + 1,
-      };
-      setImageSlots(newImageSlots);
-    }
-  };
-
-  const removeImage = (slotIndex: number) => {
-    const newImageSlots = [...imageSlots];
-    newImageSlots[slotIndex] = null;
-    setImageSlots(newImageSlots);
-  };
+  const isEditMode = Boolean(rental);
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
+        {isEditMode ? (
+          <>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tiêu đề</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Tiêu đề" {...field} disabled />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mô tả</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Mô tả" {...field} disabled />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Địa chỉ chi tiết</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Nhập địa chỉ chi tiết"
+                      {...field}
+                      value={form.watch("address") || ""}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormItem>
-              <FormLabel>Tiêu đề</FormLabel>
-              <FormControl>
-                <Input placeholder="Nhập tiêu đề nhà trọ" {...field} />
-              </FormControl>
-              <FormMessage />
+              <FormLabel>Bản đồ</FormLabel>
+              <MapWithGeocode
+                address={form.watch("address")}
+                defaultCoordinate={[
+                  form.getValues("lng"),
+                  form.getValues("lat"),
+                ]}
+                onCoordinateChange={(coord) => {
+                  form.setValue("lng", coord[0]);
+                  form.setValue("lat", coord[1]);
+                }}
+                onAddressChange={(newAddress) => {
+                  form.setValue("address", newAddress, {
+                    shouldValidate: true,
+                  });
+                }}
+              />
             </FormItem>
-          )}
-        />
+          </>
+        ) : (
+          <>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tiêu đề</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nhập tiêu đề nhà trọ" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Mô tả</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Mô tả chi tiết" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mô tả</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Mô tả chi tiết" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem className="hidden">
-              <FormLabel>Địa chỉ</FormLabel>
-              <FormControl>
-                <Input placeholder="Địa chỉ chi tiết" {...field} readOnly />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem className="hidden">
+                  <FormLabel>Địa chỉ</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Địa chỉ chi tiết" {...field} readOnly />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <AddressSelector
-          onAddressChange={handleAddressChange}
-          defaultDistrict={defaultDistrict}
-          defaultWard={defaultWard}
-          defaultStreet={defaultStreet}
-        />
+            <AddressAutocomplete
+              value={form.watch("address")}
+              onCoordinateChange={(coord) => {
+                form.setValue("lng", coord[0]);
+                form.setValue("lat", coord[1]);
+              }}
+              onAddressChange={(address) => {
+                form.setValue("address", address, { shouldValidate: true });
+              }}
+            />
 
-        <MapWithGeocode
-          address={debouncedAddress}
-          onCoordinateChange={(coord) => {
-            form.setValue("lng", coord[0]);
-            form.setValue("lat", coord[1]);
-          }}
-        />
+            <MapWithGeocode
+              address={form.watch("address")}
+              defaultCoordinate={[form.getValues("lng"), form.getValues("lat")]}
+              onCoordinateChange={(coord) => {
+                form.setValue("lng", coord[0]);
+                form.setValue("lat", coord[1]);
+              }}
+              onAddressChange={(newAddress) => {
+                form.setValue("address", newAddress, { shouldValidate: true });
+              }}
+            />
+          </>
+        )}
 
         <FormLabel>Hình ảnh (tối đa 5 ảnh)</FormLabel>
-
         <ImageUploadSlots
-          imageSlots={
-            imageSlots.map((slot) =>
-              slot ? { imageUrl: slot.previewUrl, order: slot.order } : null
-            ) as Array<{ imageUrl: string; order: number } | null>
-          }
-          handleImageUpload={handleImageUpload}
-          removeImage={removeImage}
+          imageSlots={imageSlots.map((slot) =>
+            slot ? { imageUrl: slot.previewUrl || "", order: slot.order } : null
+          )}
+          handleImageUpload={(e, slotIndex) => {
+            if (e.target.files && e.target.files.length > 0) {
+              const file = e.target.files[0];
+              const previewUrl = URL.createObjectURL(file);
+              const newImageSlots = [...imageSlots];
+              newImageSlots[slotIndex] = {
+                file,
+                previewUrl,
+                order: slotIndex + 1,
+              };
+              setImageSlots(newImageSlots);
+            }
+          }}
+          removeImage={(slotIndex) => {
+            const newImageSlots = [...imageSlots];
+            newImageSlots[slotIndex] = null as any;
+            setImageSlots(newImageSlots);
+          }}
         />
 
         <DialogFooter>
