@@ -4,7 +4,6 @@ import { z } from 'zod'
 export const RoomSchema = z.object({
   id: z.number(),
   title: z.string(),
-  // Giá phòng được lưu ở dạng Decimal trong DB, chuyển đổi thành number.
   price: z.preprocess(
     arg =>
       typeof arg === 'object' && arg !== null && 'toNumber' in arg
@@ -12,9 +11,7 @@ export const RoomSchema = z.object({
         : arg,
     z.number()
   ),
-  // Diện tích phòng: nếu lưu dưới dạng string, giữ nguyên; nếu cần chuyển đổi, thay đổi logic.
-  area: z.string(),
-  // Trạng thái phòng: mặc định true nếu không truyền
+  area: z.number(),
   isAvailable: z.boolean().default(true),
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),
@@ -33,6 +30,11 @@ export const GetRoomsQuerySchema = z
   .object({
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().default(10),
+    ownerId: z.coerce.number().optional(),
+    title: z.string().optional(),
+    status: z.string().optional(),
+    priceRange: z.string().optional(),
+    areaRange: z.coerce.string().optional(),
   })
   .strict()
 
@@ -48,7 +50,7 @@ export const CreateRoomBodySchema = z
   .object({
     title: z.string(),
     price: z.number(),
-    area: z.string(),
+    area: z.number(),
     isAvailable: z.boolean().optional().default(true),
     rentalId: z.number(),
   })

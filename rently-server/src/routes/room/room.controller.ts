@@ -18,6 +18,7 @@ import {
   UpdateRoomBodyDTO,
 } from 'src/routes/room/room.dto'
 import { RoomService } from 'src/routes/room/room.service'
+import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('rooms')
@@ -28,6 +29,15 @@ export class RoomController {
   @ZodSerializerDto(GetRoomsResDTO)
   list(@Query() query: GetRoomsQueryDTO) {
     return this.roomService.list(query)
+  }
+
+  @Get('my')
+  @ZodSerializerDto(GetRoomsResDTO)
+  listMyRooms(
+    @Query() query: GetRoomsQueryDTO,
+    @ActiveUser('userId') userId: number
+  ) {
+    return this.roomService.listMyRooms(userId, query)
   }
 
   @Get(':roomId')

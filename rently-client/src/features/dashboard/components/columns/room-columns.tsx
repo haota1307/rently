@@ -13,16 +13,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { Room } from "@/app/(dashboard)/(admin)/quan-ly/phong-tro/page";
+import { RoomType } from "@/schemas/room.schema";
 
-export const roomColumns: ColumnDef<Room>[] = [
+export const roomColumns: ColumnDef<RoomType>[] = [
   {
     accessorKey: "title",
     header: "Tiêu đề",
   },
   {
-    accessorKey: "address",
+    id: "address",
     header: "Địa chỉ",
+    cell: () => "Không có",
   },
   {
     accessorKey: "price",
@@ -36,36 +37,21 @@ export const roomColumns: ColumnDef<Room>[] = [
     accessorKey: "area",
     header: "Diện tích",
     cell: ({ row }) => {
-      const area = row.getValue("area") as number;
+      const areaStr = row.getValue("area") as string;
+      const area = parseFloat(areaStr);
       return `${area} m²`;
     },
   },
   {
-    accessorKey: "status",
+    accessorFn: (row) => row.isAvailable,
+    id: "status",
     header: "Trạng thái",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      let statusText = "";
-      let statusClass = "";
-
-      switch (status) {
-        case "available":
-          statusText = "Còn trống";
-          statusClass = "bg-green-100 text-green-800";
-          break;
-        case "rented":
-          statusText = "Đã thuê";
-          statusClass = "bg-blue-100 text-blue-800";
-          break;
-        case "maintenance":
-          statusText = "Bảo trì";
-          statusClass = "bg-yellow-100 text-yellow-800";
-          break;
-        default:
-          statusText = status;
-          statusClass = "bg-gray-100 text-gray-800";
-      }
-
+    cell: ({ getValue }) => {
+      const isAvailable = getValue() as boolean;
+      const statusText = isAvailable ? "Còn trống" : "Đã thuê";
+      const statusClass = isAvailable
+        ? "bg-green-100 text-green-800"
+        : "bg-blue-100 text-blue-800";
       return (
         <div
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}
@@ -76,18 +62,23 @@ export const roomColumns: ColumnDef<Room>[] = [
     },
   },
   {
-    accessorKey: "landlord",
+    id: "landlord",
     header: "Chủ trọ",
+    cell: () => "Không có",
   },
   {
     accessorKey: "createdAt",
     header: "Ngày đăng",
+    cell: ({ row }) => {
+      const createdAt = row.getValue("createdAt") as Date | null;
+      if (!createdAt) return "";
+      return new Date(createdAt).toLocaleDateString();
+    },
   },
   {
     id: "actions",
     cell: ({ row }) => {
       const room = row.original;
-
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -99,7 +90,7 @@ export const roomColumns: ColumnDef<Room>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Hành động</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(room.id)}
+              onClick={() => navigator.clipboard.writeText(room.id.toString())}
             >
               Sao chép ID
             </DropdownMenuItem>

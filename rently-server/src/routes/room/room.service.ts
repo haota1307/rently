@@ -16,6 +16,10 @@ export class RoomService {
     return this.roomRepo.list(query)
   }
 
+  async listMyRooms(userId: number, query: GetRoomsQueryType) {
+    return this.roomRepo.list({ ...query, ownerId: userId })
+  }
+
   async findById(id: number) {
     const room = await this.roomRepo.findById(id)
     if (!room) {

@@ -17,7 +17,6 @@ import { ConfirmModal } from "@/components/confirm-modal";
 import { useDeleteRental } from "@/features/rental/useRental";
 import { toast } from "sonner";
 import { RentalType } from "@/schemas/rental.schema";
-import { useRouter } from "next/navigation";
 import { UpdateRentalModal } from "@/features/rental/component/update-rental-modal";
 import { RentalDetailModal } from "@/features/rental/component/rental-detail-modal";
 

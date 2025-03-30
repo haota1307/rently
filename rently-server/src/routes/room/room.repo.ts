@@ -26,13 +26,73 @@ export class RoomRepo {
     try {
       const skip = (query.page - 1) * query.limit
       const take = query.limit
+      const where: any = {}
+
+      if (query.title) {
+        where.title = { contains: query.title, mode: 'insensitive' }
+      }
+
+      // Lọc theo trạng thái
+      if (query.status) {
+        if (query.status === 'available') {
+          where.isAvailable = true
+        } else if (query.status === 'rented') {
+          where.isAvailable = false
+        }
+      }
+
+      // Lọc theo khoảng giá
+      if (query.priceRange) {
+        if (query.priceRange === 'under-3m') {
+          where.price = { lt: 3000000 }
+        } else if (query.priceRange === '3m-5m') {
+          where.price = { gte: 3000000, lte: 5000000 }
+        } else if (query.priceRange === 'over-5m') {
+          where.price = { gt: 5000000 }
+        }
+      }
+
+      // Lọc theo khoảng diện tích
+      if (query.areaRange) {
+        if (query.areaRange === 'under-20') {
+          where.area = { lt: 20 }
+        } else if (query.areaRange === '20-25') {
+          where.area = { gte: 20, lte: 25 }
+        } else if (query.areaRange === 'over-25') {
+          where.area = { gt: 25 }
+        }
+      }
+
+      if (query.ownerId) {
+        const rentals = await this.prismaService.rental.findMany({
+          where: { landlordId: query.ownerId },
+          select: { id: true },
+        })
+
+        const rentalIds = rentals.map(rental => rental.id)
+
+        if (rentalIds.length === 0) {
+          return {
+            data: [],
+            totalItems: 0,
+            page: query.page,
+            limit: query.limit,
+            totalPages: 0,
+          }
+        }
+
+        where.rentalId = { in: rentalIds }
+      }
+
       const [totalItems, data] = await Promise.all([
-        this.prismaService.room.count(),
+        this.prismaService.room.count({ where }),
         this.prismaService.room.findMany({
+          where,
           skip,
           take,
         }),
       ])
+
       return {
         data: data.map(this.formatRoom),
         totalItems,

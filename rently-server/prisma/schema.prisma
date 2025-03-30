@@ -190,7 +190,7 @@ model Room {
   id          Int      @id @default(autoincrement())
   title       String
   price       Decimal
-  area        String
+  area        Int
   isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

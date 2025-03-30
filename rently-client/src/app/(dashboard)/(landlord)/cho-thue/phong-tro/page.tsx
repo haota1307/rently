@@ -8,101 +8,43 @@ import { roomColumns } from "@/features/dashboard/components/columns/room-column
 import { RoomFilters } from "@/features/dashboard/components/filters/room-filters";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-
-export const rooms = [
-  {
-    id: "1",
-    title: "Phòng trọ cao cấp 1",
-    address: "Nhà trọ Trần Hào 1",
-    price: 5000000,
-    area: 25,
-    status: "available",
-    landlord: "Trần Anh Hào",
-    createdAt: "2023-01-15",
-  },
-  {
-    id: "2",
-    title: "Phòng trọ cao cấp 1 - nhà trọ Trần Hào 1",
-    address: "Nhà trọ Trần Hào 1",
-    price: 3000000,
-    area: 20,
-    status: "rented",
-    landlord: "Trần Anh Hào",
-    createdAt: "2023-02-10",
-  },
-  {
-    id: "3",
-    title: "Phòng trọ gần ĐH Bách Khoa",
-    address: "Nhà trọ Trần Hào 1",
-    price: 2500000,
-    area: 18,
-    status: "available",
-    landlord: "Trần Anh Hào",
-    createdAt: "2023-03-05",
-  },
-  {
-    id: "4",
-    title: "Phòng trọ cao cấp quận 7",
-    address: "Nhà trọ Trần Hào 2",
-    price: 6000000,
-    area: 30,
-    status: "maintenance",
-    landlord: "Trần Anh Hào",
-    createdAt: "2023-02-20",
-  },
-  {
-    id: "5",
-    title: "Phòng trọ gần ĐH Kinh Tế",
-    address: "Nhà trọ Trần Hào 3",
-    price: 3500000,
-    area: 22,
-    status: "available",
-    landlord: "Trần Anh Hào",
-    createdAt: "2023-04-15",
-  },
-];
-
-export type Room = (typeof rooms)[0];
+import { useGetMyRooms, useGetRooms } from "@/features/rooms/useRoom";
 
 export default function RoomsPage() {
-  const [filteredData, setFilteredData] = useState<Room[]>(rooms);
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priceFilter, setPriceFilter] = useState<string>("all");
   const [areaFilter, setAreaFilter] = useState<string>("all");
 
+  const limit = 5;
+
+  const queryParams = {
+    limit,
+    page,
+    ...(statusFilter !== "all" && { status: statusFilter }),
+    ...(priceFilter !== "all" && { priceRange: priceFilter }),
+    ...(areaFilter !== "all" && { areaRange: areaFilter }),
+  };
+
+  const { data, isLoading, error } = useGetMyRooms(queryParams);
+
+  const roomsData = data?.data ?? [];
+  const totalCount = data?.totalPages ?? 0;
+  const totalPages = Math.ceil(totalCount / limit);
+
   const handleStatusFilterChange = (status: string) => {
-    filterData(status, priceFilter, areaFilter);
+    setPage(1);
+    setStatusFilter(status);
   };
 
   const handlePriceFilterChange = (price: string) => {
-    filterData(statusFilter, price, areaFilter);
+    setPage(1);
+    setPriceFilter(price);
   };
 
   const handleAreaFilterChange = (area: string) => {
-    filterData(statusFilter, priceFilter, area);
-  };
-
-  const filterData = (status: string, price: string, area: string) => {
-    setStatusFilter(status);
-    setPriceFilter(price);
+    setPage(1);
     setAreaFilter(area);
-
-    const filtered = rooms.filter((room) => {
-      if (status !== "all" && room.status !== status) return false;
-
-      if (price === "under-3m" && room.price >= 3000000) return false;
-      if (price === "3m-5m" && (room.price < 3000000 || room.price > 5000000))
-        return false;
-      if (price === "over-5m" && room.price <= 5000000) return false;
-
-      if (area === "under-20" && room.area >= 20) return false;
-      if (area === "20-25" && (room.area < 20 || room.area > 25)) return false;
-      if (area === "over-25" && room.area <= 25) return false;
-
-      return true;
-    });
-
-    setFilteredData(filtered);
   };
 
   return (
@@ -127,12 +69,21 @@ export default function RoomsPage() {
           />
         </div>
 
-        <DataTable
-          columns={roomColumns}
-          data={filteredData}
-          searchKey="title"
-          searchPlaceholder="Tìm kiếm theo tiêu đề..."
-        />
+        {isLoading ? (
+          <div>Loading...</div>
+        ) : error ? (
+          <div>Error occurred</div>
+        ) : (
+          <DataTable
+            columns={roomColumns}
+            data={roomsData}
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            searchKey="title"
+            searchPlaceholder="Tìm kiếm theo tiêu đề..."
+          />
+        )}
       </div>
     </SidebarInset>
   );
