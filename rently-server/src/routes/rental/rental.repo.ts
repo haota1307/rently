@@ -133,7 +133,7 @@ export class RentalRepo {
           },
           skip,
           take,
-          include: { rentalImages: true },
+          include: { rentalImages: true, rooms: true },
         }),
       ])
 

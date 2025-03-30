@@ -19,12 +19,13 @@ import { toast } from "sonner";
 import { RentalType } from "@/schemas/rental.schema";
 import { useRouter } from "next/navigation";
 import { UpdateRentalModal } from "@/features/rental/component/update-rental-modal";
+import { RentalDetailModal } from "@/features/rental/component/rental-detail-modal";
 
 function RentalActions({ rental }: { rental: RentalType }) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const { mutateAsync: deleteRental, isPending } = useDeleteRental();
-  const router = useRouter();
 
   const handleDelete = async () => {
     if (isPending) return;
@@ -56,11 +57,7 @@ function RentalActions({ rental }: { rental: RentalType }) {
             Sao chép ID
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => {
-              router.push(`/cho-thue/nha-tro/${rental.id}`);
-            }}
-          >
+          <DropdownMenuItem onClick={() => setIsDetailModalOpen(true)}>
             Xem chi tiết
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsUpdateModalOpen(true)}>
@@ -85,6 +82,12 @@ function RentalActions({ rental }: { rental: RentalType }) {
       <UpdateRentalModal
         isOpen={isUpdateModalOpen}
         onClose={() => setIsUpdateModalOpen(false)}
+        rental={rental}
+      />
+
+      <RentalDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
         rental={rental}
       />
     </>

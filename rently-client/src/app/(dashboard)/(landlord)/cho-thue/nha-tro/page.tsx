@@ -46,6 +46,8 @@ export default function LandlordRentalPage() {
     title: searchTitle,
   });
 
+  console.log(data);
+
   const rentals = data?.data || [];
   const totalPages = data?.totalPages || 0;
 
