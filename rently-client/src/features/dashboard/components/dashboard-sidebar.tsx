@@ -81,7 +81,7 @@ const landloardData = {
     },
     {
       title: "Danh sách bài đăng",
-      url: "/cho-thue/lien-he",
+      url: "/cho-thue/quan-ly-bai-dang",
       icon: NotebookPen,
     },
   ],

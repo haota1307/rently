@@ -16,6 +16,10 @@ export class PostService {
     return this.rentalPostRepo.list(pagination)
   }
 
+  async listByUserId(pagination: GetPostsQueryType, userId: number) {
+    return this.rentalPostRepo.listByUserId(pagination, userId)
+  }
+
   async findById(id: number) {
     const rentalPost = await this.rentalPostRepo.findById(id)
     if (!rentalPost) {

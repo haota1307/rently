@@ -29,10 +29,16 @@ export class PostController {
   @Get()
   @ZodSerializerDto(GetPostsResDTO)
   list(@Query() query: GetPostsQueryDTO) {
-    return this.rentalPostService.list({
-      page: query.page,
-      limit: query.limit,
-    })
+    return this.rentalPostService.list(query)
+  }
+
+  @Get('my')
+  @ZodSerializerDto(GetPostsResDTO)
+  listByUserId(
+    @Query() query: GetPostsQueryDTO,
+    @ActiveUser('userId') userId: number
+  ) {
+    return this.rentalPostService.listByUserId(query, userId)
   }
 
   @Get(':rentalPostId')

@@ -32,11 +32,91 @@ export class PostRepo {
       const skip = (pagination.page - 1) * pagination.limit
       const take = pagination.limit
 
+      // Xây dựng điều kiện lọc dựa trên các query parameter
+      const whereClause: any = {}
+
+      if (pagination.title) {
+        // Giả sử tiêu đề của bài đăng nằm trong thông tin rental.title
+        whereClause.rental = {
+          title: { contains: pagination.title, mode: 'insensitive' },
+        }
+      }
+
+      if (pagination.startDate) {
+        // Lọc các bài đăng có startDate >= ngày được truyền vào
+        whereClause.startDate = { gte: new Date(pagination.startDate) }
+      }
+
+      if (pagination.endDate) {
+        // Lọc các bài đăng có endDate <= ngày được truyền vào
+        whereClause.endDate = { lte: new Date(pagination.endDate) }
+      }
+
+      if (pagination.status) {
+        // Nếu có trường status trong model, áp dụng điều kiện lọc (giả sử model có trường status)
+        whereClause.status = pagination.status
+      }
+
       const [totalItems, data] = await Promise.all([
-        this.prismaService.rentalPost.count(),
+        this.prismaService.rentalPost.count({ where: whereClause }),
         this.prismaService.rentalPost.findMany({
           skip,
           take,
+          where: whereClause,
+          include: { rental: true, landlord: true },
+        }),
+      ])
+
+      return {
+        data: data.map(this.formatPost),
+        totalItems,
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: Math.ceil(totalItems / pagination.limit),
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(error.message)
+    }
+  }
+
+  async listByUserId(
+    pagination: GetPostsQueryType,
+    userId: number
+  ): Promise<GetPostsResType> {
+    try {
+      const skip = (pagination.page - 1) * pagination.limit
+      const take = pagination.limit
+
+      // Thêm điều kiện lọc theo userId (landlordId)
+      const whereClause: any = {
+        landlordId: userId,
+      }
+
+      if (pagination.title) {
+        // Giả sử tiêu đề của bài đăng nằm trong thông tin rental.title
+        whereClause.rental = {
+          title: { contains: pagination.title, mode: 'insensitive' },
+        }
+      }
+
+      if (pagination.startDate) {
+        whereClause.startDate = { gte: new Date(pagination.startDate) }
+      }
+
+      if (pagination.endDate) {
+        whereClause.endDate = { lte: new Date(pagination.endDate) }
+      }
+
+      if (pagination.status) {
+        whereClause.status = pagination.status
+      }
+
+      const [totalItems, data] = await Promise.all([
+        this.prismaService.rentalPost.count({ where: whereClause }),
+        this.prismaService.rentalPost.findMany({
+          skip,
+          take,
+          where: whereClause,
           include: { rental: true, landlord: true },
         }),
       ])
