@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common'
 
 import { NotFoundRecordException } from 'src/shared/error'
+
+import { AmenityRepo } from 'src/routes/amenity/amenity.repo'
 import {
   CreateAmenityBodyType,
   GetAmenitiesQueryType,
   UpdateAmenityBodyType,
-} from 'src/routes/amenity/amenity.dto'
-import { AmenityRepo } from 'src/routes/amenity/amenity.repo'
+} from 'src/routes/amenity/amenity.schema'
 
 @Injectable()
 export class AmenityService {

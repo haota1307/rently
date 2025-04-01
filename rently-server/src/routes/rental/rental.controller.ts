@@ -19,12 +19,14 @@ import {
 } from 'src/routes/rental/rental.dto'
 import { RentalService } from 'src/routes/rental/rental.service'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('rentals')
 export class RentalController {
   constructor(private readonly rentalService: RentalService) {}
 
+  @IsPublic()
   @Get()
   @ZodSerializerDto(GetRentalsResDTO)
   list(
