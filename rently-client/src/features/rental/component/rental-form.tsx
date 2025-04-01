@@ -54,7 +54,7 @@ export function RentalForm({
                 <FormItem>
                   <FormLabel>Tiêu đề</FormLabel>
                   <FormControl>
-                    <Input placeholder="Tiêu đề" {...field} disabled />
+                    <Input placeholder="Tiêu đề" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -68,7 +68,7 @@ export function RentalForm({
                 <FormItem>
                   <FormLabel>Mô tả</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Mô tả" {...field} disabled />
+                    <Textarea placeholder="Mô tả" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

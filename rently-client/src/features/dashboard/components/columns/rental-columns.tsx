@@ -62,7 +62,10 @@ function RentalActions({ rental }: { rental: RentalType }) {
           <DropdownMenuItem onClick={() => setIsUpdateModalOpen(true)}>
             Chỉnh sửa
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsDeleteModalOpen(true)}>
+          <DropdownMenuItem
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="text-red-600"
+          >
             Xóa nhà trọ
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -110,6 +113,12 @@ export const rentalColumns: ColumnDef<any>[] = [
   {
     accessorKey: "description",
     header: "Mô tả",
+    cell: ({ row }) => {
+      const description = row.getValue("description") as string;
+      return description && description.length > 50
+        ? `${description.substring(0, 50)}...`
+        : description;
+    },
   },
   {
     accessorKey: "createdAt",
@@ -120,15 +129,8 @@ export const rentalColumns: ColumnDef<any>[] = [
     },
   },
   {
-    accessorKey: "updatedAt",
-    header: "Ngày cập nhật",
-    cell: ({ row }) => {
-      const dateStr = row.getValue("updatedAt") as string;
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    },
-  },
-  {
     id: "actions",
+    header: "Hành động",
     cell: ({ row }) => {
       const rental = row.original;
       return <RentalActions rental={rental} />;

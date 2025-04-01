@@ -1,7 +1,6 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,13 +16,21 @@ import { RoomType } from "@/schemas/room.schema";
 
 export const roomColumns: ColumnDef<RoomType>[] = [
   {
+    id: "index",
+    header: "STT",
+    cell: ({ row }) => row.index + 1,
+  },
+  {
     accessorKey: "title",
     header: "Tiêu đề",
   },
   {
-    id: "address",
-    header: "Địa chỉ",
-    cell: () => "Không có",
+    id: "rental",
+    header: "Nhà trọ",
+    cell: ({ row }) => {
+      const rental = row.original.rentalId;
+      return rental ? rental : "Không có";
+    },
   },
   {
     accessorKey: "price",
@@ -62,11 +69,6 @@ export const roomColumns: ColumnDef<RoomType>[] = [
     },
   },
   {
-    id: "landlord",
-    header: "Chủ trọ",
-    cell: () => "Không có",
-  },
-  {
     accessorKey: "createdAt",
     header: "Ngày đăng",
     cell: ({ row }) => {
@@ -77,6 +79,7 @@ export const roomColumns: ColumnDef<RoomType>[] = [
   },
   {
     id: "actions",
+    header: "Hành động",
     cell: ({ row }) => {
       const room = row.original;
       return (
