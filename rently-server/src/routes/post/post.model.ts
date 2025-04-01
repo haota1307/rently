@@ -51,7 +51,7 @@ export const PostSchema = z.object({
 export const PostDetailSchema = PostSchema.extend({
   rental: RentalSchema,
   landlord: LandlordSchema,
-  room: RoomSchema,
+  room: RoomSchema.optional(),
 })
 
 // Schema cho kết quả trả về khi lấy danh sách bài đăng
