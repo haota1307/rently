@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import postApiRequest from "@/features/post/post.api";
-import { GetPostsQueryType, GetPostsResType } from "@/schemas/post.schema";
+import {
+  GetPostDetailResType,
+  GetPostsQueryType,
+  GetPostsResType,
+} from "@/schemas/post.schema";
 
 export const useGetPosts = (queryParams: GetPostsQueryType) => {
   return useQuery({
@@ -23,11 +27,11 @@ export const useGetMyPosts = (queryParams: GetPostsQueryType) => {
 };
 
 export const useGetPostDetail = (postId: number) => {
-  return useQuery({
+  return useQuery<GetPostDetailResType>({
     queryKey: ["post", postId],
     queryFn: async () => {
       const res = await postApiRequest.detail(postId);
-      return res.payload;
+      return res.payload as GetPostDetailResType;
     },
     enabled: !!postId,
   });

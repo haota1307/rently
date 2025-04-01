@@ -1,5 +1,12 @@
 import { Decimal } from '@prisma/client/runtime/library'
+import { RoomSchema } from 'src/shared/models/shared-room.model'
 import { z } from 'zod'
+
+export enum RentalPostStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  DELETED = 'DELETED',
+}
 
 // Schema cho thông tin bất động sản (Rental)
 export const RentalSchema = z.object({
@@ -32,6 +39,9 @@ export const PostSchema = z.object({
     }
     return arg
   }, z.number()),
+  title: z.string(),
+  status: z.nativeEnum(RentalPostStatus),
+  description: z.string(),
   rentalId: z.number(),
   landlordId: z.number(),
   createdAt: z.date(),
@@ -41,6 +51,7 @@ export const PostSchema = z.object({
 export const PostDetailSchema = PostSchema.extend({
   rental: RentalSchema,
   landlord: LandlordSchema,
+  room: RoomSchema,
 })
 
 // Schema cho kết quả trả về khi lấy danh sách bài đăng
@@ -81,6 +92,13 @@ export const CreatePostBodySchema = z
       .string()
       .refine(val => !isNaN(Date.parse(val)), { message: 'Invalid endDate' })
       .transform(val => new Date(val)),
+    title: z.string(),
+    roomId: z.number(),
+    description: z.string(),
+    status: z
+      .nativeEnum(RentalPostStatus)
+      .optional()
+      .default(RentalPostStatus.ACTIVE),
     pricePaid: z.number(),
     rentalId: z.number(),
   })

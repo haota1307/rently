@@ -200,6 +200,7 @@ model Room {
 
   roomAmenities RoomAmenity[]
   reviews       Review[]
+  RentalPost    RentalPost[]
 
   @@index([rentalId])
   @@index([isAvailable])
@@ -242,15 +243,27 @@ model RoomAmenity {
   @@unique([roomId, amenityId])
 }
 
+enum RentalPostStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
 model RentalPost {
-  id        Int      @id @default(autoincrement())
-  startDate DateTime
-  endDate   DateTime
-  pricePaid Decimal
-  createdAt DateTime @default(now())
+  id          Int              @id @default(autoincrement())
+  startDate   DateTime
+  endDate     DateTime
+  title       String           @db.VarChar(250)
+  description String
+  pricePaid   Decimal
+  status      RentalPostStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now())
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
+
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId Int
 
   landlord   User @relation("LandlordRentalPosts", fields: [landlordId], references: [id], onDelete: Cascade)
   landlordId Int

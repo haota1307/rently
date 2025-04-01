@@ -11,6 +11,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { RentalPostStatus } from "@/schemas/post.schema";
 
 type PostDetailModalProps = {
   isOpen: boolean;
@@ -56,7 +57,7 @@ export function PostDetailModal({
             <div className="grid grid-cols-2 gap-2">
               <div className="text-sm font-medium">Phòng trọ:</div>
               <div className="text-sm">
-                {post.room?.title || `Phòng #${post.roomId}`}
+                {post.room?.title || `Phòng #${post.rentalId}`}
               </div>
             </div>
 
@@ -93,20 +94,20 @@ export function PostDetailModal({
               <div className="text-sm">
                 <span
                   className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                    post.status === "active"
+                    post.status === RentalPostStatus.ACTIVE
                       ? "bg-green-100 text-green-800"
-                      : post.status === "pending"
+                      : post.status === RentalPostStatus.INACTIVE
                       ? "bg-yellow-100 text-yellow-800"
-                      : post.status === "expired"
+                      : post.status === RentalPostStatus.DELETED
                       ? "bg-red-100 text-red-800"
                       : "bg-gray-100 text-gray-800"
                   }`}
                 >
-                  {post.status === "active"
+                  {post.status === RentalPostStatus.ACTIVE
                     ? "Đang hoạt động"
-                    : post.status === "pending"
+                    : post.status === RentalPostStatus.INACTIVE
                     ? "Đang chờ duyệt"
-                    : post.status === "expired"
+                    : post.status === RentalPostStatus.DELETED
                     ? "Hết hạn"
                     : "Chưa xác định"}
                 </span>
@@ -122,14 +123,14 @@ export function PostDetailModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            {/* <div className="grid grid-cols-2 gap-2">
               <div className="text-sm font-medium">Cập nhật lần cuối:</div>
               <div className="text-sm">
-                {post.updatedAt
+                {post.
                   ? new Date(post.updatedAt).toLocaleDateString("vi-VN")
                   : "Không có"}
               </div>
-            </div>
+            </div> */}
           </div>
         ) : (
           <div className="py-4 text-center">

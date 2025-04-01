@@ -62,25 +62,21 @@ export default function RentalPostsPage() {
   const posts = data?.data || [];
   const totalPages = data?.totalPages || 0;
 
-  // Xử lý xem chi tiết
   const handleViewPost = (post: any) => {
     setSelectedPost(post);
     setIsDetailModalOpen(true);
   };
 
-  // Xử lý chỉnh sửa
   const handleEditPost = (post: any) => {
     setSelectedPost(post);
     setIsUpdateModalOpen(true);
   };
 
-  // Xử lý xóa
   const handleDeletePost = (post: any) => {
     setSelectedPost(post);
     setIsDeleteModalOpen(true);
   };
 
-  // Xác nhận xóa
   const confirmDelete = async () => {
     if (!selectedPost || isPending) return;
 

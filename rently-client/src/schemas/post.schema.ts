@@ -1,4 +1,11 @@
+import { RoomSchema } from "@/schemas/room.schema";
 import { z } from "zod";
+
+export enum RentalPostStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  DELETED = "DELETED",
+}
 
 // Schema cho thông tin bất động sản (Rental)
 export const RentalSchema = z.object({
@@ -31,6 +38,9 @@ export const PostSchema = z.object({
     }
     return arg;
   }, z.number()),
+  title: z.string(),
+  description: z.string(),
+  status: z.nativeEnum(RentalPostStatus),
   rentalId: z.number(),
   landlordId: z.number(),
   createdAt: z.date(),
@@ -40,6 +50,7 @@ export const PostSchema = z.object({
 export const PostDetailSchema = PostSchema.extend({
   rental: RentalSchema,
   landlord: LandlordSchema,
+  room: RoomSchema,
 });
 
 // Schema cho kết quả trả về khi lấy danh sách bài đăng
@@ -82,6 +93,13 @@ export const CreatePostBodySchema = z
       .string()
       .refine((val) => !isNaN(Date.parse(val)), { message: "Invalid endDate" })
       .transform((val) => new Date(val)),
+    title: z.string(),
+    roomId: z.number(),
+    description: z.string(),
+    status: z
+      .nativeEnum(RentalPostStatus)
+      .optional()
+      .default(RentalPostStatus.ACTIVE),
     pricePaid: z.number(),
     rentalId: z.number(),
   })
@@ -94,6 +112,5 @@ export type GetPostsResType = z.infer<typeof GetPostsResSchema>;
 export type GetPostsQueryType = z.infer<typeof GetPostsQuerySchema>;
 export type GetPostParamsType = z.infer<typeof GetPostParamsSchema>;
 export type GetPostDetailResType = z.infer<typeof GetPostDetailResSchema>;
-
 export type CreatePostBodyType = z.infer<typeof CreatePostBodySchema>;
 export type UpdatePostBodyType = z.infer<typeof UpdatePostBodySchema>;

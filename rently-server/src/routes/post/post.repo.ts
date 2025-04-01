@@ -31,29 +31,23 @@ export class PostRepo {
     try {
       const skip = (pagination.page - 1) * pagination.limit
       const take = pagination.limit
-
-      // Xây dựng điều kiện lọc dựa trên các query parameter
       const whereClause: any = {}
 
       if (pagination.title) {
-        // Giả sử tiêu đề của bài đăng nằm trong thông tin rental.title
         whereClause.rental = {
           title: { contains: pagination.title, mode: 'insensitive' },
         }
       }
 
       if (pagination.startDate) {
-        // Lọc các bài đăng có startDate >= ngày được truyền vào
         whereClause.startDate = { gte: new Date(pagination.startDate) }
       }
 
       if (pagination.endDate) {
-        // Lọc các bài đăng có endDate <= ngày được truyền vào
         whereClause.endDate = { lte: new Date(pagination.endDate) }
       }
 
       if (pagination.status) {
-        // Nếu có trường status trong model, áp dụng điều kiện lọc (giả sử model có trường status)
         whereClause.status = pagination.status
       }
 
@@ -63,7 +57,7 @@ export class PostRepo {
           skip,
           take,
           where: whereClause,
-          include: { rental: true, landlord: true },
+          include: { rental: true, landlord: true, room: true },
         }),
       ])
 
@@ -93,9 +87,9 @@ export class PostRepo {
       }
 
       if (pagination.title) {
-        // Giả sử tiêu đề của bài đăng nằm trong thông tin rental.title
-        whereClause.rental = {
-          title: { contains: pagination.title, mode: 'insensitive' },
+        whereClause.title = {
+          contains: pagination.title,
+          mode: 'insensitive',
         }
       }
 
@@ -117,7 +111,7 @@ export class PostRepo {
           skip,
           take,
           where: whereClause,
-          include: { rental: true, landlord: true },
+          include: { rental: true, landlord: true, room: true },
         }),
       ])
 
@@ -137,7 +131,7 @@ export class PostRepo {
     try {
       const post = await this.prismaService.rentalPost.findUnique({
         where: { id },
-        include: { rental: true, landlord: true },
+        include: { rental: true, landlord: true, room: true },
       })
       return post ? this.formatPost(post) : null
     } catch (error) {

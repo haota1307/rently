@@ -33,6 +33,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     pricePaid: "",
   });
 
+  // State để lưu trữ các phòng trọ đã được lọc theo nhà trọ đã chọn
   const [filteredRooms, setFilteredRooms] = useState<any[]>([]);
 
   const accessToken = getAccessTokenFromLocalStorage();
@@ -40,6 +41,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
 
   const { mutateAsync: createPost, isPending } = useCreatePost();
 
+  // Lấy danh sách nhà trọ của người dùng
   const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentalsById(
     userId!,
     {
@@ -103,6 +105,11 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       return;
     }
 
+    if (!formData.title) {
+      toast.error("Vui lòng nhập tiêu đề bài đăng");
+      return;
+    }
+
     const startDate = new Date(formData.startDate);
     const endDate = new Date(formData.endDate);
 
@@ -112,16 +119,22 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     }
 
     const payload = {
+      title: formData.title,
+      description: formData.description,
       rentalId: Number(formData.rentalId),
+      roomId: Number(formData.roomId),
       startDate: formData.startDate,
       endDate: formData.endDate,
       pricePaid: Number(formData.pricePaid),
     };
 
+    console.log("Sending payload:", payload);
+
     try {
       await createPost(payload);
       toast.success("Tạo bài đăng thành công");
       onClose();
+      // Reset form
       setFormData({
         title: "",
         description: "",
@@ -143,19 +156,19 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="space-y-1">
-          <DialogTitle className="text-xl">Tạo bài đăng mới</DialogTitle>
-          <DialogDescription className="text-sm">
+      <DialogContent className="sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Tạo bài đăng mới</DialogTitle>
+          <DialogDescription>
             Tạo bài đăng cho thuê phòng trọ của bạn
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="mt-4">
+        <form onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {/* Tiêu đề */}
-            <div className="grid w-full gap-1.5">
+            {/* Tiêu đề - giờ bắt buộc phải gửi đến API */}
+            <div className="grid w-full items-center gap-1.5">
               <label htmlFor="title" className="text-sm font-medium">
-                Tiêu đề bài đăng
+                Tiêu đề bài đăng <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -163,16 +176,13 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-1 focus:ring-offset-0 focus:ring-primary"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                Tiêu đề bài đăng sẽ được tạo tự động từ thông tin phòng trọ
-              </p>
             </div>
 
-            {/* Mô tả */}
-            <div className="grid w-full gap-1.5">
+            {/* Mô tả - giờ sẽ gửi đến API */}
+            <div className="grid w-full items-center gap-1.5">
               <label htmlFor="description" className="text-sm font-medium">
                 Mô tả chi tiết
               </label>
@@ -182,17 +192,13 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                 value={formData.description}
                 onChange={handleInputChange}
                 rows={3}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-1 focus:ring-offset-0 focus:ring-primary"
-                required
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
-              <p className="text-xs text-muted-foreground">
-                Mô tả bài đăng sẽ được tạo tự động từ thông tin phòng trọ
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Chọn nhà trọ */}
-              <div className="grid w-full gap-1.5">
+              {/* Chọn nhà trọ TRƯỚC */}
+              <div className="grid w-full items-center gap-1.5">
                 <label htmlFor="rentalId" className="text-sm font-medium">
                   Chọn nhà trọ <span className="text-red-500">*</span>
                 </label>
@@ -201,7 +207,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                   name="rentalId"
                   value={formData.rentalId}
                   onChange={handleInputChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-1 focus:ring-offset-0 focus:ring-primary"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   required
                 >
                   <option value="">
@@ -215,8 +221,8 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                 </select>
               </div>
 
-              {/* Chọn phòng */}
-              <div className="grid w-full gap-1.5">
+              {/* Chọn phòng SAU khi đã chọn nhà trọ - bây giờ sẽ gửi đến API */}
+              <div className="grid w-full items-center gap-1.5">
                 <label htmlFor="roomId" className="text-sm font-medium">
                   Chọn phòng trọ <span className="text-red-500">*</span>
                 </label>
@@ -225,7 +231,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                   name="roomId"
                   value={formData.roomId}
                   onChange={handleInputChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-1 focus:ring-offset-0 focus:ring-primary"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   required
                   disabled={!formData.rentalId || filteredRooms.length === 0}
                 >
@@ -235,7 +241,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                       : isRoomsLoading
                       ? "Đang tải phòng..."
                       : filteredRooms.length === 0
-                      ? "Không có phòng trống"
+                      ? "Không có phòng trống trong nhà trọ này"
                       : "Chọn phòng trọ"}
                   </option>
                   {filteredRooms.map((room: any) => (
@@ -245,15 +251,12 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-muted-foreground">
-                  Chọn phòng trọ để hiển thị thông tin
-                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Ngày bắt đầu */}
-              <div className="grid w-full gap-1.5">
+              <div className="grid w-full items-center gap-1.5">
                 <label htmlFor="startDate" className="text-sm font-medium">
                   Ngày bắt đầu <span className="text-red-500">*</span>
                 </label>
@@ -263,13 +266,13 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleInputChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-1 focus:ring-offset-0 focus:ring-primary"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   required
                 />
               </div>
 
               {/* Ngày kết thúc */}
-              <div className="grid w-full gap-1.5">
+              <div className="grid w-full items-center gap-1.5">
                 <label htmlFor="endDate" className="text-sm font-medium">
                   Ngày kết thúc <span className="text-red-500">*</span>
                 </label>
@@ -279,14 +282,14 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                   name="endDate"
                   value={formData.endDate}
                   onChange={handleInputChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-1 focus:ring-offset-0 focus:ring-primary"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   required
                 />
               </div>
             </div>
 
             {/* Giá đăng bài */}
-            <div className="grid w-full gap-1.5">
+            <div className="grid w-full items-center gap-1.5">
               <label htmlFor="pricePaid" className="text-sm font-medium">
                 Giá đăng bài (VNĐ) <span className="text-red-500">*</span>
               </label>
@@ -296,12 +299,12 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                 name="pricePaid"
                 value={formData.pricePaid}
                 onChange={handleInputChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-1 focus:ring-offset-0 focus:ring-primary"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 required
               />
             </div>
           </div>
-          <DialogFooter className="mt-6 flex-col space-y-2 sm:space-y-0 sm:flex-row sm:justify-end">
+          <DialogFooter className="mt-6 flex-col space-y-2 sm:space-y-0 sm:flex-row">
             <Button
               type="button"
               variant="outline"
