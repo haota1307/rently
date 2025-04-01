@@ -59,7 +59,6 @@ export default function RentalPostsPage() {
     limit,
     title: searchTitle,
   });
-
   const posts = data?.data || [];
   const totalPages = data?.totalPages || 0;
 

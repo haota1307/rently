@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import postApiRequest from "@/features/post/post.api";
+import { GetPostsQueryType, GetPostsResType } from "@/schemas/post.schema";
 
-export const useGetPosts = (queryParams: any) => {
+export const useGetPosts = (queryParams: GetPostsQueryType) => {
   return useQuery({
     queryKey: ["posts", queryParams],
     queryFn: async () => {
@@ -11,8 +12,8 @@ export const useGetPosts = (queryParams: any) => {
   });
 };
 
-export const useGetMyPosts = (queryParams: any) => {
-  return useQuery({
+export const useGetMyPosts = (queryParams: GetPostsQueryType) => {
+  return useQuery<GetPostsResType>({
     queryKey: ["my-posts", queryParams],
     queryFn: async () => {
       const res = await postApiRequest.listMyPosts(queryParams);
@@ -73,4 +74,5 @@ export const useDeletePost = () => {
       queryClient.invalidateQueries({ queryKey: ["my-posts"] });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
-  }); 
+  });
+};

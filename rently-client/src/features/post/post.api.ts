@@ -3,6 +3,7 @@ import http from "@/lib/http";
 import {
   CreatePostBodyType,
   GetPostsQueryType,
+  GetPostsResType,
   UpdatePostBodyType,
 } from "@/schemas/post.schema";
 import queryString from "query-string";
@@ -25,7 +26,7 @@ const postApiRequest = {
 
   // Nếu có API riêng cho "my posts", cần thêm vào service ở phía server
   listMyPosts: (params: GetPostsQueryType) =>
-    http.get(
+    http.get<GetPostsResType>(
       `${prefix}/my?` +
         queryString.stringify({
           limit: params.limit,

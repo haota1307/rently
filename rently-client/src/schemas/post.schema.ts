@@ -94,5 +94,6 @@ export type GetPostsResType = z.infer<typeof GetPostsResSchema>;
 export type GetPostsQueryType = z.infer<typeof GetPostsQuerySchema>;
 export type GetPostParamsType = z.infer<typeof GetPostParamsSchema>;
 export type GetPostDetailResType = z.infer<typeof GetPostDetailResSchema>;
+
 export type CreatePostBodyType = z.infer<typeof CreatePostBodySchema>;
 export type UpdatePostBodyType = z.infer<typeof UpdatePostBodySchema>;
