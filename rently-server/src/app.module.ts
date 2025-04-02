@@ -18,6 +18,7 @@ import { AddressModule } from 'src/routes/address/address.module'
 import { RoomModule } from 'src/routes/room/room.module'
 import { ChatbotModule } from 'src/routes/chatbot/chatbot.module'
 import { AmenityModule } from 'src/routes/amenity/amenity.module'
+import { StatisticsModule } from 'src/routes/statistics/statistics.module'
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AmenityModule } from 'src/routes/amenity/amenity.module'
     RoomModule,
     ChatbotModule,
     AmenityModule,
+    StatisticsModule,
   ],
   controllers: [AppController],
   providers: [
