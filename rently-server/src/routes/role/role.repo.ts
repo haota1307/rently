@@ -28,6 +28,9 @@ export class RoleRepo {
         },
         skip,
         take,
+        include: {
+          permissions: true,
+        },
       }),
     ])
     return {
