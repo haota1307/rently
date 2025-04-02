@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { Plus, MoreHorizontal, Filter } from "lucide-react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useGetMyPosts, useDeletePost } from "@/features/post/usePost";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 // Custom hook debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -40,6 +56,9 @@ function useDebounce<T>(value: T, delay: number): T {
 export default function RentalPostsPage() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -58,6 +77,9 @@ export default function RentalPostsPage() {
     page,
     limit,
     title: searchTitle,
+    status: statusFilter === "ALL" ? undefined : statusFilter,
+    startDate: startDate?.toISOString(),
+    endDate: endDate?.toISOString(),
   });
   const posts = data?.data || [];
   const totalPages = data?.totalPages || 0;
@@ -108,15 +130,15 @@ export default function RentalPostsPage() {
         let statusClass = "bg-gray-100 text-gray-800";
         let statusText = "Chưa xác định";
 
-        if (status === "active") {
+        if (status === "ACTIVE") {
           statusClass = "bg-green-100 text-green-800";
           statusText = "Đang hoạt động";
-        } else if (status === "pending") {
+        } else if (status === "INACTIVE") {
           statusClass = "bg-yellow-100 text-yellow-800";
           statusText = "Đang chờ duyệt";
-        } else if (status === "expired") {
+        } else if (status === "DELETED") {
           statusClass = "bg-red-100 text-red-800";
-          statusText = "Hết hạn";
+          statusText = "Đã xóa";
         }
 
         return (
@@ -210,7 +232,67 @@ export default function RentalPostsPage() {
             <span>Thêm bài đăng</span>
           </Button>
 
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Lọc theo trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả</SelectItem>
+                  <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
+                  <SelectItem value="INACTIVE">Đang chờ duyệt</SelectItem>
+                  <SelectItem value="DELETED">Đã xóa</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[240px] justify-start text-left font-normal",
+                      !startDate && !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <Filter className="mr-2 h-4 w-4" />
+                    {startDate && endDate ? (
+                      <>
+                        {format(startDate, "dd/MM/yyyy", { locale: vi })} -{" "}
+                        {format(endDate, "dd/MM/yyyy", { locale: vi })}
+                      </>
+                    ) : (
+                      <span>Lọc theo thời gian</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={startDate}
+                    selected={{
+                      from: startDate,
+                      to: endDate,
+                    }}
+                    onSelect={(range) => {
+                      setStartDate(range?.from);
+                      setEndDate(range?.to);
+                      setPage(1);
+                    }}
+                    numberOfMonths={1}
+                    locale={vi}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
             <Input
               placeholder="Tìm kiếm theo tiêu đề..."
               value={searchInput}
