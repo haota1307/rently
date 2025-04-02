@@ -37,6 +37,9 @@ export class UserController {
     return this.userService.list({
       page: query.page,
       limit: query.limit,
+      name: query.name,
+      status: query.status,
+      roleId: query.roleId,
     })
   }
 

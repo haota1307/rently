@@ -21,6 +21,16 @@ export const GetUsersQuerySchema = z
   .object({
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().default(10),
+    name: z.string().optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED']).optional(),
+    roleId: z.coerce
+      .number()
+      .int()
+      .positive()
+      .refine(val => !isNaN(val), {
+        message: 'roleId phải là số nguyên dương',
+      })
+      .optional(),
   })
   .strict()
 
@@ -40,7 +50,17 @@ export const CreateUserBodySchema = UserSchema.pick({
   roleId: true,
 }).strict()
 
-export const UpdateUserBodySchema = CreateUserBodySchema
+export const UpdateUserBodySchema = z
+  .object({
+    email: z.string().email().optional(),
+    name: z.string().min(1).max(100).optional(),
+    phoneNumber: z.string().min(9).max(15).nullable().optional(),
+    avatar: z.string().nullable().optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED']).optional(),
+    password: z.string().min(6).max(100).optional(),
+    roleId: z.number().positive().optional(),
+  })
+  .strict()
 
 export type GetUsersResType = z.infer<typeof GetUsersResSchema>
 export type GetUsersQueryType = z.infer<typeof GetUsersQuerySchema>

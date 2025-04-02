@@ -18,8 +18,8 @@ export function UserFilters({
   onStatusFilterChange,
   onRoleFilterChange,
 }: UserFiltersProps) {
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
@@ -40,9 +40,9 @@ export function UserFilters({
             <SelectValue placeholder="Chọn trạng thái" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="active">Hoạt động</SelectItem>
-            <SelectItem value="inactive">Không hoạt động</SelectItem>
+            <SelectItem value="ALL">Tất cả</SelectItem>
+            <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+            <SelectItem value="INACTIVE">Không hoạt động</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -54,10 +54,10 @@ export function UserFilters({
             <SelectValue placeholder="Chọn vai trò" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="admin">Quản trị viên</SelectItem>
-            <SelectItem value="landlord">Người cho thuê</SelectItem>
-            <SelectItem value="user">Người dùng</SelectItem>
+            <SelectItem value="ALL">Tất cả</SelectItem>
+            <SelectItem value="1">Quản trị viên</SelectItem>
+            <SelectItem value="2">Người cho thuê</SelectItem>
+            <SelectItem value="3">Người dùng</SelectItem>
           </SelectContent>
         </Select>
       </div>

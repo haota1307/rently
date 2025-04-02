@@ -1,91 +1,126 @@
 "use client";
 
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-
+import { Plus, Search } from "lucide-react";
 import { UserFilters } from "@/features/dashboard/components/filters/user-filters";
-import { userColumns } from "@/features/dashboard/components/columns/user-columns";
+import {
+  userColumns,
+  User,
+} from "@/features/dashboard/components/columns/user-columns";
 import { DataTable } from "@/components/data-table";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { ColumnDef } from "@tanstack/react-table";
+import { CreateUserModal } from "@/features/dashboard/components/modals/create-user-modal";
+import { EditUserModal } from "@/features/dashboard/components/modals/edit-user-modal";
+import { ViewUserModal } from "@/features/dashboard/components/modals/view-user-modal";
+import { useGetUsers, useDeleteUser } from "@/features/user/useUser";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { DialogClose } from "@radix-ui/react-dialog";
 
-export const users = [
-  {
-    id: "1",
-    name: "Nguyễn Văn A",
-    email: "nguyenvana@example.com",
-    phone: "0901234567",
-    status: "active",
-    role: "user",
-    createdAt: "2023-01-15",
-  },
-  {
-    id: "2",
-    name: "Trần Thị B",
-    email: "tranthib@example.com",
-    phone: "0912345678",
-    status: "active",
-    role: "user",
-    createdAt: "2023-02-20",
-  },
-  {
-    id: "3",
-    name: "Lê Văn C",
-    email: "levanc@example.com",
-    phone: "0923456789",
-    status: "inactive",
-    role: "user",
-    createdAt: "2023-03-10",
-  },
-  {
-    id: "4",
-    name: "Phạm Thị D",
-    email: "phamthid@example.com",
-    phone: "0934567890",
-    status: "active",
-    role: "admin",
-    createdAt: "2023-04-05",
-  },
-  {
-    id: "5",
-    name: "Hoàng Văn E",
-    email: "hoangvane@example.com",
-    phone: "0945678901",
-    status: "active",
-    role: "landlord",
-    createdAt: "2023-05-12",
-  },
-];
+// Custom hook debounce
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
-export type User = (typeof users)[0];
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export default function UsersPage() {
-  const [filteredData, setFilteredData] = useState<User[]>(users);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const handleStatusFilterChange = (status: string) => {
-    filterData(status, roleFilter);
+  const { data: usersData, isLoading } = useGetUsers({
+    page: currentPage,
+    limit: 10,
+    name: debouncedSearchQuery || undefined,
+    status:
+      statusFilter === "ALL"
+        ? undefined
+        : (statusFilter as "ACTIVE" | "INACTIVE" | "BLOCKED"),
+    roleId: roleFilter === "ALL" ? undefined : Number(roleFilter) || undefined,
+  });
+
+  const deleteUserMutation = useDeleteUser();
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
   };
 
-  const handleRoleFilterChange = (role: string) => {
-    filterData(statusFilter, role);
+  const handleRoleFilterChange = (value: string) => {
+    setRoleFilter(value);
+    setCurrentPage(1);
   };
 
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
 
-  const filterData = (status: string, role: string) => {
-    setStatusFilter(status);
-    setRoleFilter(role);
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
+  };
 
-    const filtered = users.filter((user) => {
-      if (status !== "all" && user.status !== status) return false;
-      if (role !== "all" && user.role !== role) return false;
-      return true;
-    });
+  const handleConfirmDelete = (userId: number) => {
+    // Tìm thông tin user để hiển thị tên trong dialog xác nhận
+    const user = usersData?.data.find((u) => u.id === userId) || null;
+    setSelectedUser(user);
+    setIsDeleteDialogOpen(true);
+  };
 
-    setFilteredData(filtered);
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await deleteUserMutation.mutateAsync(selectedUser.id);
+      toast.success("Xóa người dùng thành công");
+      setIsDeleteDialogOpen(false);
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        if (typeof error.response.data.message === "string") {
+          toast.error(error.response.data.message);
+        } else if (Array.isArray(error.response.data.message)) {
+          error.response.data.message.forEach((err: any) => {
+            toast.error(`Lỗi: ${err.message}`);
+          });
+        }
+      } else {
+        toast.error("Xóa người dùng thất bại");
+      }
+    }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
   };
 
   return (
@@ -96,25 +131,94 @@ export default function UsersPage() {
         <h1 className="text-lg font-semibold">Quản lý người dùng</h1>
       </header>
 
-      <div className="flex flex-col justify-between m-4 gap-4">
-        <div className="flex items-center justify-between">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            <span>Thêm người dùng</span>
-          </Button>
+      <div className="p-4 space-y-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 md:max-w-sm">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Tìm kiếm theo tên..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <UserFilters
-            onStatusFilterChange={handleStatusFilterChange}
-            onRoleFilterChange={handleRoleFilterChange}
-          />
-        </div>
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between w-full md:w-auto">
+                <UserFilters
+                  onStatusFilterChange={handleStatusFilterChange}
+                  onRoleFilterChange={handleRoleFilterChange}
+                />
+
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Thêm người dùng</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <DataTable
-          columns={userColumns}
-          data={filteredData}
-          searchKey="name"
-          searchPlaceholder="Tìm kiếm theo tên..."
+          columns={
+            userColumns({
+              onDelete: handleConfirmDelete,
+              onEdit: handleEditUser,
+              onView: handleViewUser,
+            }) as ColumnDef<User>[]
+          }
+          data={usersData?.data || []}
+          currentPage={currentPage}
+          totalPages={usersData?.totalPages || 1}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
         />
+
+        <CreateUserModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+        />
+
+        <EditUserModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          user={selectedUser}
+        />
+
+        <ViewUserModal
+          isOpen={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+          user={selectedUser}
+        />
+
+        {/* Dialog xác nhận xóa */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Xác nhận xóa</DialogTitle>
+              <DialogDescription>
+                {selectedUser
+                  ? `Bạn có chắc chắn muốn xóa người dùng ${selectedUser.name}?`
+                  : "Bạn có chắc chắn muốn xóa người dùng này?"}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Hủy</Button>
+              </DialogClose>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteUser}
+                disabled={deleteUserMutation.isPending}
+              >
+                {deleteUserMutation.isPending ? "Đang xóa..." : "Xóa"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarInset>
   );

@@ -119,6 +119,7 @@ export class UserService {
       this.verifyYourself({
         userAgentId: updatedById,
         userTargetId: id,
+        roleNameAgent: updatedByRoleName,
       })
 
       // Lấy roleId ban đầu của người được update để kiểm tra xem liệu người update có quyền update không
@@ -164,10 +165,18 @@ export class UserService {
   private verifyYourself({
     userAgentId,
     userTargetId,
+    roleNameAgent,
   }: {
     userAgentId: number
     userTargetId: number
+    roleNameAgent: string
   }) {
+    // Admin được phép cập nhật thông tin của chính mình
+    if (roleNameAgent === RoleName.Admin) {
+      return true
+    }
+
+    // Các vai trò khác không được phép cập nhật chính mình
     if (userAgentId === userTargetId) {
       throw CannotUpdateOrDeleteYourselfException
     }
@@ -183,10 +192,11 @@ export class UserService {
     deletedByRoleName: string
   }) {
     try {
-      // Không thể xóa chính mình
+      // Không thể xóa chính mình (trừ khi là admin)
       this.verifyYourself({
         userAgentId: deletedById,
         userTargetId: id,
+        roleNameAgent: deletedByRoleName,
       })
 
       const roleIdTarget = await this.getRoleIdByUserId(id)

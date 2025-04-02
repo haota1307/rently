@@ -12,9 +12,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
-import { User } from "@/app/(dashboard)/(admin)/quan-ly/nguoi-dung/page";
 
-export const userColumns: ColumnDef<User>[] = [
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  roleId: number;
+  status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface UserColumnsProps {
+  onDelete: (userId: number) => void;
+  onEdit: (user: User) => void;
+  onView: (user: User) => void;
+}
+
+export const userColumns = ({
+  onDelete,
+  onEdit,
+  onView,
+}: UserColumnsProps): ColumnDef<User>[] => [
   {
     accessorKey: "name",
     header: "Tên",
@@ -24,8 +44,9 @@ export const userColumns: ColumnDef<User>[] = [
     header: "Email",
   },
   {
-    accessorKey: "phone",
+    accessorKey: "phoneNumber",
     header: "Số điện thoại",
+    cell: ({ row }) => row.getValue("phoneNumber") || "N/A",
   },
   {
     accessorKey: "status",
@@ -35,29 +56,35 @@ export const userColumns: ColumnDef<User>[] = [
       return (
         <div
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            status === "active"
+            status === "ACTIVE"
               ? "bg-green-100 text-green-800"
+              : status === "INACTIVE"
+              ? "bg-yellow-100 text-yellow-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {status === "active" ? "Hoạt động" : "Không hoạt động"}
+          {status === "ACTIVE"
+            ? "Hoạt động"
+            : status === "INACTIVE"
+            ? "Không hoạt động"
+            : "Bị khóa"}
         </div>
       );
     },
   },
   {
-    accessorKey: "role",
+    accessorKey: "roleId",
     header: "Vai trò",
     cell: ({ row }) => {
-      const role = row.getValue("role");
+      const roleId = row.getValue("roleId");
 
       let bgColor = "bg-blue-100 text-blue-800";
       let roleText = "Người dùng";
 
-      if (role === "admin") {
+      if (roleId === 1) {
         bgColor = "bg-purple-100 text-purple-800";
         roleText = "Quản trị viên";
-      } else if (role === "landlord") {
+      } else if (roleId === 2) {
         bgColor = "bg-green-100 text-green-800";
         roleText = "Người cho thuê";
       }
@@ -71,10 +98,13 @@ export const userColumns: ColumnDef<User>[] = [
       );
     },
   },
-
   {
     accessorKey: "createdAt",
     header: "Ngày tạo",
+    cell: ({ row }) => {
+      const date = new Date(row.getValue("createdAt"));
+      return date.toLocaleDateString("vi-VN");
+    },
   },
   {
     id: "actions",
@@ -92,14 +122,23 @@ export const userColumns: ColumnDef<User>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Hành động</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(user.id)}
+              onClick={() => navigator.clipboard.writeText(user.id.toString())}
             >
               Sao chép ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
-            <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600">Xóa</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onView(user)}>
+              Xem chi tiết
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(user)}>
+              Chỉnh sửa
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-red-600"
+              onClick={() => onDelete(user.id)}
+            >
+              Xóa
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

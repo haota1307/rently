@@ -30,6 +30,8 @@ interface DataTableProps<TData, TValue> {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onSearchChange?: (value: string) => void;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -40,6 +42,8 @@ export function DataTable<TData, TValue>({
   currentPage,
   totalPages,
   onPageChange,
+  onSearchChange,
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
@@ -61,15 +65,17 @@ export function DataTable<TData, TValue>({
             value={
               (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
             }
-            onChange={(event) =>
-              table.getColumn(searchKey)?.setFilterValue(event.target.value)
-            }
+            onChange={(event) => {
+              const value = event.target.value;
+              table.getColumn(searchKey)?.setFilterValue(value);
+              onSearchChange?.(value);
+            }}
             className="max-w-sm rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500"
           />
         </div>
       )}
 
-      <div className="rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      <div className="rounded-md border">
         <Table>
           <TableHeader className="bg-gray-50">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -90,9 +96,17 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-gray-500"
+                >
+                  Đang tải...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -124,7 +138,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between space-x-2">
+      <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
           Trang {currentPage} / {totalPages}
         </div>
