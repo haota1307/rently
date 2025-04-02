@@ -12,6 +12,7 @@ import { CreateRentalBodyType, RentalType } from "@/schemas/rental.schema";
 import {
   useGetRentalsById,
   useDeleteRental,
+  useGetRentalDetail,
 } from "@/features/rental/useRental";
 import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ export default function LandlordRentalPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<RentalType | null>(null);
+  const [selectedRentalId, setSelectedRentalId] = useState<number | null>(null);
 
   const { mutateAsync: deleteRental, isPending } = useDeleteRental();
 
@@ -69,6 +71,12 @@ export default function LandlordRentalPage() {
     title: searchTitle,
   });
 
+  // Fetch detailed rental information
+  const { data: detailedRental, isLoading: isLoadingDetail } =
+    useGetRentalDetail(selectedRentalId || 0, {
+      enabled: !!selectedRentalId && isDetailModalOpen,
+    });
+
   const rentals = data?.data || [];
   const totalPages = data?.totalPages || 0;
 
@@ -79,6 +87,7 @@ export default function LandlordRentalPage() {
   // Xử lý xem chi tiết
   const handleViewRental = (rental: RentalType) => {
     setSelectedRental(rental);
+    setSelectedRentalId(rental.id);
     setIsDetailModalOpen(true);
   };
 
@@ -213,8 +222,11 @@ export default function LandlordRentalPage() {
 
             <RentalDetailModal
               isOpen={isDetailModalOpen}
-              onClose={() => setIsDetailModalOpen(false)}
-              rental={selectedRental}
+              onClose={() => {
+                setIsDetailModalOpen(false);
+                setSelectedRentalId(null);
+              }}
+              rental={detailedRental || selectedRental}
             />
 
             <ConfirmModal

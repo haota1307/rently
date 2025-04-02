@@ -50,8 +50,8 @@ const defaultData = {
       icon: User,
     },
     {
-      title: "Quản lý phòng trọ",
-      url: "/quan-ly/phong-tro",
+      title: "Quản lý nhà trọ",
+      url: "/quan-ly/nha-tro",
       icon: Map,
     },
     {

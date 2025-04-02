@@ -38,10 +38,22 @@ export class UserRepo {
 
     // Thêm điều kiện lọc theo roleId
     if (pagination.roleId) {
-      whereClause.roleId = parseInt(pagination.roleId.toString())
+      // Kiểm tra xem roleId có phải là chuỗi chứa dấu phẩy không
+      if (
+        typeof pagination.roleId === 'string' &&
+        pagination.roleId.includes(',')
+      ) {
+        const roleIds = pagination.roleId
+          .split(',')
+          .map(id => parseInt(id.trim()))
+        whereClause.roleId = { in: roleIds }
+      } else {
+        whereClause.roleId =
+          typeof pagination.roleId === 'string'
+            ? parseInt(pagination.roleId)
+            : pagination.roleId
+      }
     }
-
-    console.log('Final where clause:', JSON.stringify(whereClause, null, 2))
 
     const [totalItems, data] = await Promise.all([
       this.prismaService.user.count({
@@ -61,8 +73,6 @@ export class UserRepo {
         },
       }),
     ])
-
-    console.log(`Found ${data.length} users out of ${totalItems} total`)
 
     return {
       data,

@@ -64,6 +64,7 @@ export const GetRentalsQuerySchema = z
       .positive({ message: "Giới hạn phải là số nguyên dương" })
       .default(10),
     title: z.string().optional(),
+    landlordId: z.coerce.number().int().positive().optional(),
   })
   .strict();
 

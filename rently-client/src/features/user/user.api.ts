@@ -26,6 +26,29 @@ const userApiRequest = {
         })
     ),
 
+  // Lấy danh sách chủ trọ
+  listLandlords: (
+    params: {
+      page?: number;
+      limit?: number;
+      name?: string;
+      status?: "ACTIVE" | "INACTIVE" | "BLOCKED";
+    } = {
+      page: 1,
+      limit: 999,
+    }
+  ) =>
+    http.get<GetUsersResType>(
+      `${prefix}?` +
+        queryString.stringify({
+          limit: params.limit || 999, // Lấy tất cả
+          page: params.page || 1,
+          name: params.name,
+          status: params.status || "ACTIVE",
+          roleId: [1, 2].join(","), // Lấy cả admin (1) và landlord (2)
+        })
+    ),
+
   // Lấy thông tin chi tiết của 1 người dùng theo userId
   detail: (userId: number) =>
     http.get<GetUserProfileResType>(`${prefix}/${userId}`),

@@ -49,6 +49,7 @@ export class RentalRepo {
       const skip = (query.page - 1) * query.limit
       const take = query.limit
       const where: any = {}
+
       if (query.title) {
         where.title = {
           contains: query.title,
@@ -56,18 +57,23 @@ export class RentalRepo {
         }
       }
 
+      if (query.landlordId) {
+        where.landlordId = Number(query.landlordId)
+      }
+
       const [totalItems, data] = await Promise.all([
         this.prismaService.rental.count({ where }),
         this.prismaService.rental.findMany({
           where: {
             ...where,
-            landlordId: userId,
+            ...(userId ? { landlordId: userId } : {}),
           },
           skip,
           take,
           include: {
             landlord: true,
             rentalImages: true,
+            rooms: true,
           },
         }),
       ])

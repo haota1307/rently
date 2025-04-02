@@ -37,9 +37,10 @@ export const GetRentalsResSchema = z.object({
 
 export const GetRentalsQuerySchema = z
   .object({
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().default(10),
+    page: z.coerce.number().default(1),
+    limit: z.coerce.number().default(10),
     title: z.string().optional(),
+    landlordId: z.coerce.number().optional(),
   })
   .strict()
 

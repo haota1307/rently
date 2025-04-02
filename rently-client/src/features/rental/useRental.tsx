@@ -30,13 +30,17 @@ export const useGetRentalsById = (
   });
 };
 
-export const useGetRentalDetail = (rentalId: number) => {
+export const useGetRentalDetail = (
+  rentalId: number,
+  options?: { enabled?: boolean }
+) => {
   return useQuery({
     queryKey: ["rental", rentalId],
     queryFn: async () => {
       const res = await rentalApiRequest.detail(rentalId);
       return res.payload as RentalType;
     },
+    enabled: options?.enabled !== undefined ? options.enabled : !!rentalId,
   });
 };
 

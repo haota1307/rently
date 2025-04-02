@@ -10,7 +10,13 @@ export const RoomSchema = z.object({
         : arg,
     z.number()
   ),
-  area: z.string(),
+  area: z.preprocess(
+    (arg) =>
+      typeof arg === "object" && arg !== null && "toNumber" in arg
+        ? (arg as any).toNumber()
+        : arg,
+    z.number()
+  ),
   isAvailable: z.boolean().default(true),
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),

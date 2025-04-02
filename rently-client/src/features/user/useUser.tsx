@@ -18,6 +18,24 @@ export const useGetUsers = (queryParams: GetUsersQueryType) => {
   });
 };
 
+// Hook lấy danh sách chủ trọ
+export const useGetLandlords = (
+  params: {
+    page?: number;
+    limit?: number;
+    name?: string;
+    status?: "ACTIVE" | "INACTIVE" | "BLOCKED";
+  } = {}
+) => {
+  return useQuery({
+    queryKey: ["landlords", params],
+    queryFn: async () => {
+      const res = await userApiRequest.listLandlords(params);
+      return res.payload;
+    },
+  });
+};
+
 // Hook lấy chi tiết thông tin người dùng theo userId
 export const useGetUserDetail = (
   userId: number,

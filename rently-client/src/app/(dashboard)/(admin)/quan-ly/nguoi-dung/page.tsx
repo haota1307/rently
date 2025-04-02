@@ -17,7 +17,11 @@ import { ColumnDef } from "@tanstack/react-table";
 import { CreateUserModal } from "@/features/dashboard/components/modals/create-user-modal";
 import { EditUserModal } from "@/features/dashboard/components/modals/edit-user-modal";
 import { ViewUserModal } from "@/features/dashboard/components/modals/view-user-modal";
-import { useGetUsers, useDeleteUser } from "@/features/user/useUser";
+import {
+  useGetUsers,
+  useDeleteUser,
+  useGetLandlords,
+} from "@/features/user/useUser";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -56,7 +60,7 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const { data: usersData, isLoading } = useGetUsers({
+  const { data: usersData, isLoading } = useGetLandlords({
     page: currentPage,
     limit: 10,
     name: debouncedSearchQuery || undefined,
@@ -64,7 +68,6 @@ export default function UsersPage() {
       statusFilter === "ALL"
         ? undefined
         : (statusFilter as "ACTIVE" | "INACTIVE" | "BLOCKED"),
-    roleId: roleFilter === "ALL" ? undefined : Number(roleFilter) || undefined,
   });
 
   const deleteUserMutation = useDeleteUser();

@@ -23,13 +23,32 @@ export const GetUsersQuerySchema = z
     limit: z.coerce.number().int().positive().default(10),
     name: z.string().optional(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED']).optional(),
-    roleId: z.coerce
-      .number()
-      .int()
-      .positive()
-      .refine(val => !isNaN(val), {
-        message: 'roleId phải là số nguyên dương',
-      })
+    roleId: z
+      .union([
+        z.coerce
+          .number()
+          .int()
+          .positive()
+          .refine(val => !isNaN(val), {
+            message: 'roleId phải là số nguyên dương',
+          }),
+        z.string().refine(
+          val => {
+            if (val.includes(',')) {
+              // Kiểm tra xem chuỗi có định dạng "1,2,3"
+              return val.split(',').every(id => {
+                const num = parseInt(id.trim())
+                return !isNaN(num) && num > 0
+              })
+            }
+            return false
+          },
+          {
+            message:
+              'roleId phải là danh sách các số nguyên dương phân cách bởi dấu phẩy',
+          }
+        ),
+      ])
       .optional(),
   })
   .strict()

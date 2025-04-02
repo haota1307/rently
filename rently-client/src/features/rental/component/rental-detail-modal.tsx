@@ -30,6 +30,9 @@ export function RentalDetailModal({
 }: RentalDetailModalProps) {
   if (!rental) return null;
 
+  console.log("Rental detail data:", rental);
+  console.log("Rooms data:", rental.rooms);
+
   const simpleMapUrl = `https://maps.google.com/maps?q=${rental.lat},${rental.lng}&z=17&output=embed`;
 
   return (
@@ -171,38 +174,50 @@ export function RentalDetailModal({
             <ScrollArea className="h-[60vh]">
               {rental.rooms && rental.rooms.length > 0 ? (
                 <div className="space-y-4">
-                  {rental.rooms.map((room) => (
-                    <Card key={room.id}>
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-center">
-                          <CardTitle className="text-lg">
-                            {room.title}
-                          </CardTitle>
-                          <Badge>{room.isAvailable}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm font-semibold">Giá phòng:</p>
-                            <p className="text-sm">
-                              {room.price.toLocaleString()} VNĐ
-                            </p>
+                  {rental.rooms.map((room) => {
+                    const isAvailable = String(room.isAvailable) === "true";
+
+                    return (
+                      <Card key={room.id}>
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-lg">
+                              {room.title}
+                            </CardTitle>
+                            <Badge
+                              variant={isAvailable ? "outline" : "destructive"}
+                            >
+                              {isAvailable ? "Còn trống" : "Đã thuê"}
+                            </Badge>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold">Diện tích:</p>
-                            <p className="text-sm">{room.area} m²</p>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm font-semibold">
+                                Giá phòng:
+                              </p>
+                              <p className="text-sm">
+                                {Number(room.price).toLocaleString()} VNĐ
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">
+                                Diện tích:
+                              </p>
+                              <p className="text-sm">{Number(room.area)} m²</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">Mô tả:</p>
+                              <p className="text-sm">
+                                {room.title || "Không có mô tả"}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold">Mô tả:</p>
-                            <p className="text-sm">
-                              {room.title || "Không có mô tả"}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-40">
