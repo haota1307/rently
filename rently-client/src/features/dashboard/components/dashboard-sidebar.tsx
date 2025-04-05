@@ -55,6 +55,11 @@ const defaultData = {
       icon: Map,
     },
     {
+      title: "Quản lý tiện ích",
+      url: "/quan-ly/tien-ich",
+      icon: Building2Icon,
+    },
+    {
       title: "Quản lý quyền",
       url: "/quan-ly/quyen",
       icon: Shield,

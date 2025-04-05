@@ -109,6 +109,13 @@ export class RoomRepo {
     try {
       const room = await this.prismaService.room.findUnique({
         where: { id },
+        include: {
+          roomAmenities: {
+            include: {
+              amenity: true,
+            },
+          },
+        },
       })
       return room ? this.formatRoom(room) : null
     } catch (error) {
@@ -118,8 +125,20 @@ export class RoomRepo {
 
   async create({ data }: { data: CreateRoomBodyType }): Promise<RoomType> {
     try {
+      const { amenityIds, ...roomData } = data
+
       const room = await this.prismaService.room.create({
-        data,
+        data: {
+          ...roomData,
+          ...(amenityIds &&
+            amenityIds.length > 0 && {
+              roomAmenities: {
+                create: amenityIds.map(amenityId => ({
+                  amenity: { connect: { id: amenityId } },
+                })),
+              },
+            }),
+        },
       })
       return this.formatRoom(room)
     } catch (error) {
@@ -135,9 +154,29 @@ export class RoomRepo {
     data: UpdateRoomBodyType
   }): Promise<RoomType> {
     try {
+      const { amenityIds, ...roomData } = data
+
+      // Nếu có amenityIds, xóa tất cả liên kết hiện tại và tạo mới
+      if (amenityIds) {
+        // Xóa tất cả room amenities hiện tại
+        await this.prismaService.roomAmenity.deleteMany({
+          where: { roomId: id },
+        })
+
+        // Tạo mới roomAmenities nếu có amenityIds
+        if (amenityIds.length > 0) {
+          await this.prismaService.roomAmenity.createMany({
+            data: amenityIds.map(amenityId => ({
+              roomId: id,
+              amenityId,
+            })),
+          })
+        }
+      }
+
       const room = await this.prismaService.room.update({
         where: { id },
-        data,
+        data: roomData,
       })
       return this.formatRoom(room)
     } catch (error) {

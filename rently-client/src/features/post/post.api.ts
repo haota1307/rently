@@ -4,23 +4,21 @@ import {
   CreatePostBodyType,
   GetPostsQueryType,
   GetPostsResType,
+  PostType,
   UpdatePostBodyType,
 } from "@/schemas/post.schema";
 import queryString from "query-string";
 
-const prefix = "/posts"; // Đã chỉnh từ /rental-posts thành /posts theo controller
+const prefix = "/posts";
 
 const postApiRequest = {
   list: (params: GetPostsQueryType) =>
-    http.get(
+    http.get<GetPostsResType>(
       `${prefix}?` +
         queryString.stringify({
           limit: params.limit,
           page: params.page,
           title: params.title,
-          status: params.status,
-          startDate: params.startDate,
-          endDate: params.endDate,
         })
     ),
 
@@ -32,20 +30,17 @@ const postApiRequest = {
           limit: params.limit,
           page: params.page,
           title: params.title,
-          status: params.status,
-          startDate: params.startDate,
-          endDate: params.endDate,
         })
     ),
 
-  detail: (postId: number) => http.get(`${prefix}/${postId}`),
+  detail: (postId: number) => http.get<PostType>(`${prefix}/${postId}`),
 
-  create: (body: CreatePostBodyType) => http.post(`${prefix}`, body),
+  create: (body: CreatePostBodyType) => http.post<PostType>(`${prefix}`, body),
 
   update: (postId: number, body: UpdatePostBodyType) =>
-    http.put(`${prefix}/${postId}`, body),
+    http.put<PostType>(`${prefix}/${postId}`, body),
 
-  delete: (postId: number) => http.delete(`${prefix}/${postId}`),
+  delete: (postId: number) => http.delete<PostType>(`${prefix}/${postId}`),
 };
 
 export default postApiRequest;

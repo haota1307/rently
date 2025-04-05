@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AmenitySchema } from "@/schemas/amenity.schema";
 
 export const RoomSchema = z.object({
   id: z.number(),
@@ -21,6 +22,7 @@ export const RoomSchema = z.object({
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),
   rentalId: z.number(),
+  amenities: z.array(AmenitySchema).optional(),
 });
 
 export const GetRoomsResSchema = z.object({
@@ -58,6 +60,7 @@ export const CreateRoomBodySchema = z
     area: z.number(),
     isAvailable: z.boolean().optional().default(true),
     rentalId: z.number(),
+    amenityIds: z.array(z.number()).optional(),
   })
   .strict();
 

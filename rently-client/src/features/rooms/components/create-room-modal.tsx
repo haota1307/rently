@@ -4,6 +4,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCreateRoom } from "@/features/rooms/useRoom";
 import { useGetRentals } from "@/features/rental/useRental";
+import { AmenitySelector } from "@/features/dashboard/components/amenity-selector";
+import { AmenityType } from "@/schemas/amenity.schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  CreateRoomBodySchema,
+  CreateRoomBodyType,
+} from "@/schemas/room.schema";
+import { toast } from "sonner";
 
 import {
   Dialog,
@@ -13,6 +23,22 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CreateRoomModalProps = {
   open: boolean;
@@ -20,14 +46,8 @@ type CreateRoomModalProps = {
 };
 
 export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
-  const [newRoom, setNewRoom] = useState({
-    title: "",
-    price: "",
-    area: "",
-    rentalId: "",
-  });
-
-  const { mutateAsync: createRoom } = useCreateRoom();
+  const [selectedAmenities, setSelectedAmenities] = useState<AmenityType[]>([]);
+  const { mutateAsync: createRoom, isPending } = useCreateRoom();
 
   // Lấy danh sách nhà trọ
   const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentals({
@@ -36,136 +56,187 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
   });
   const rentalOptions = rentalsData?.data ?? [];
 
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    setNewRoom({
-      ...newRoom,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Chuyển đổi các giá trị số
-    const payload = {
-      title: newRoom.title,
-      price: Number(newRoom.price),
-      area: Number(newRoom.area),
-      rentalId: Number(newRoom.rentalId),
+  // Form validation
+  const form = useForm<CreateRoomBodyType>({
+    resolver: zodResolver(CreateRoomBodySchema),
+    defaultValues: {
+      title: "",
+      price: 0,
+      area: 0,
+      rentalId: 0,
       isAvailable: true,
-    };
+      amenityIds: [],
+    },
+  });
 
+  const handleSubmit = async (values: CreateRoomBodyType) => {
     try {
+      // Thêm danh sách ID tiện ích
+      const amenityIds = selectedAmenities.map((amenity) => amenity.id);
+      const payload = {
+        ...values,
+        amenityIds,
+      };
+
       await createRoom(payload);
+      toast.success("Tạo phòng trọ thành công");
       resetForm();
       onOpenChange(false);
-    } catch (err) {
-      console.error("Error creating room:", err);
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        if (typeof error.response.data.message === "string") {
+          toast.error(error.response.data.message);
+        } else if (Array.isArray(error.response.data.message)) {
+          error.response.data.message.forEach((err: any) => {
+            toast.error(`Lỗi: ${err.message}`);
+          });
+        }
+      } else {
+        toast.error("Tạo phòng trọ thất bại");
+      }
     }
   };
 
   const resetForm = () => {
-    setNewRoom({ title: "", price: "", area: "", rentalId: "" });
+    form.reset();
+    setSelectedAmenities([]);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>Tạo phòng trọ mới</DialogTitle>
           <DialogDescription>
             Vui lòng điền thông tin phòng trọ theo đúng yêu cầu.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* Tiêu đề */}
-            <div className="grid w-full items-center gap-1.5">
-              <label htmlFor="title" className="text-sm font-medium">
-                Tiêu đề
-              </label>
-              <input
-                type="text"
-                id="title"
+
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Tiêu đề */}
+              <FormField
+                control={form.control}
                 name="title"
-                value={newRoom.title}
-                onChange={handleInputChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                required
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tiêu đề</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nhập tiêu đề phòng trọ" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            {/* Giá */}
-            <div className="grid w-full items-center gap-1.5">
-              <label htmlFor="price" className="text-sm font-medium">
-                Giá (VNĐ)
-              </label>
-              <input
-                type="number"
-                id="price"
-                name="price"
-                value={newRoom.price}
-                onChange={handleInputChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                required
-              />
-            </div>
-
-            {/* Diện tích */}
-            <div className="grid w-full items-center gap-1.5">
-              <label htmlFor="area" className="text-sm font-medium">
-                Diện tích (m²)
-              </label>
-              <input
-                type="number"
-                id="area"
-                name="area"
-                value={newRoom.area}
-                onChange={handleInputChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                required
-              />
-            </div>
-
-            {/* Chọn nhà trọ qua combobox */}
-            <div className="grid w-full items-center gap-1.5">
-              <label htmlFor="rentalId" className="text-sm font-medium">
-                Nhà trọ
-              </label>
-              <select
-                id="rentalId"
+              {/* Chọn nhà trọ */}
+              <FormField
+                control={form.control}
                 name="rentalId"
-                value={newRoom.rentalId}
-                onChange={handleInputChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                required
-                disabled={isRentalsLoading}
-              >
-                <option value="">
-                  {isRentalsLoading ? "Đang tải nhà trọ..." : "Chọn nhà trọ"}
-                </option>
-                {rentalOptions.map((rental: any) => (
-                  <option key={rental.id} value={rental.id}>
-                    {rental.title || rental.name || `Nhà trọ ${rental.id}`}
-                  </option>
-                ))}
-              </select>
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nhà trọ</FormLabel>
+                    <Select
+                      disabled={isRentalsLoading}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value ? String(field.value) : undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              isRentalsLoading
+                                ? "Đang tải nhà trọ..."
+                                : "Chọn nhà trọ"
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {rentalOptions.map((rental: any) => (
+                          <SelectItem key={rental.id} value={String(rental.id)}>
+                            {rental.title ||
+                              rental.name ||
+                              `Nhà trọ ${rental.id}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Giá */}
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Giá (VNĐ)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Nhập giá phòng"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Diện tích */}
+              <FormField
+                control={form.control}
+                name="area"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Diện tích (m²)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Nhập diện tích phòng"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          </div>
-          <DialogFooter className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Hủy
-            </Button>
-            <Button type="submit">Tạo phòng</Button>
-          </DialogFooter>
-        </form>
+
+            {/* Tiện ích */}
+            <div>
+              <FormLabel>Tiện ích</FormLabel>
+              <AmenitySelector
+                selectedAmenities={selectedAmenities}
+                onChange={setSelectedAmenities}
+                maxHeight="200px"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isPending}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Đang tạo..." : "Tạo phòng"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -4,7 +4,7 @@ import { decodeAccessToken } from "@/lib/utils";
 const adminPaths = ["/quan-ly"];
 const landlordPaths = ["/cho-thue"];
 
-const privatePaths = [...adminPaths, ...landlordPaths];
+const privatePaths = [...adminPaths, ...landlordPaths, "/phong-tro/:path*"];
 
 const unAuthPaths = [
   "/",

@@ -16,6 +16,20 @@ export const RoomSchema = z.object({
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),
   rentalId: z.number(),
+  roomAmenities: z
+    .array(
+      z.object({
+        id: z.number(),
+        roomId: z.number(),
+        amenityId: z.number(),
+        amenity: z.object({
+          id: z.number(),
+          name: z.string(),
+          createdAt: z.date(),
+        }),
+      })
+    )
+    .optional(),
 })
 
 export const GetRoomsResSchema = z.object({
@@ -53,6 +67,7 @@ export const CreateRoomBodySchema = z
     area: z.number(),
     isAvailable: z.boolean().optional().default(true),
     rentalId: z.number(),
+    amenityIds: z.array(z.number()).optional(),
   })
   .strict()
 

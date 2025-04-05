@@ -20,97 +20,82 @@ import { Button } from "@/components/ui/button";
 import { Grid3X3, LayoutList } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
 import { useGetRentals } from "@/features/rental/useRental";
+import { GetRentalsResType, RentalType } from "@/schemas/rental.schema";
 
-// Dữ liệu mẫu
-const SAMPLE_LISTINGS = [
-  {
-    id: "1",
-    title: "Phòng trọ cao cấp gần trung tâm",
-    address: "Quận 1, TP. Hồ Chí Minh",
-    price: 3500000,
-    area: 25,
-    images: ["/placeholder.svg?height=200&width=300"],
-    amenities: ["Điều hòa", "Wi-Fi", "Chỗ để xe"],
-    distance: 1.2,
-    isNew: true,
-  },
-  {
-    id: "2",
-    title: "Căn hộ mini đầy đủ nội thất",
-    address: "Quận 2, TP. Hồ Chí Minh",
-    price: 4200000,
-    area: 30,
-    images: ["/placeholder.svg?height=200&width=300"],
-    amenities: ["Điều hòa", "Wi-Fi", "Tủ lạnh", "Máy giặt"],
-    distance: 2.5,
-    isNew: true,
-  },
-  {
-    id: "3",
-    title: "Phòng trọ giá rẻ cho sinh viên",
-    address: "Quận Thủ Đức, TP. Hồ Chí Minh",
-    price: 1800000,
-    area: 18,
-    images: ["/placeholder.svg?height=200&width=300"],
-    amenities: ["Wi-Fi", "Chỗ để xe"],
-    distance: 3.8,
-    isNew: false,
-  },
-  {
-    id: "4",
-    title: "Căn hộ dịch vụ cao cấp",
-    address: "Quận 3, TP. Hồ Chí Minh",
-    price: 6500000,
-    area: 45,
-    images: ["/placeholder.svg?height=200&width=300"],
-    amenities: ["Điều hòa", "Wi-Fi", "Tủ lạnh", "Máy giặt", "Bảo vệ 24/7"],
-    distance: 0.8,
-    isNew: false,
-  },
-  {
-    id: "5",
-    title: "Phòng trọ mới xây gần chợ",
-    address: "Quận 7, TP. Hồ Chí Minh",
-    price: 2500000,
-    area: 22,
-    images: ["/placeholder.svg?height=200&width=300"],
-    amenities: ["Điều hòa", "Wi-Fi", "Chỗ để xe"],
-    distance: 1.5,
-    isNew: true,
-  },
-  {
-    id: "6",
-    title: "Phòng trọ tiện nghi gần trường đại học",
-    address: "Quận Bình Thạnh, TP. Hồ Chí Minh",
-    price: 2800000,
-    area: 20,
-    images: ["/placeholder.svg?height=200&width=300"],
-    amenities: ["Điều hòa", "Wi-Fi", "Chỗ để xe", "Tủ quần áo"],
-    distance: 2.0,
-    isNew: false,
-  },
-];
+// Định nghĩa interface cho dữ liệu truyền vào RentalCard
+export interface Listing {
+  id: string;
+  title: string;
+  address: string;
+  price: number;
+  area: number;
+  images: string[];
+  amenities: string[];
+  distance: number;
+  isNew?: boolean;
+}
 
 export default function RentalListings() {
   const [sortOption, setSortOption] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
   const [page, setPage] = useState(1);
-
   const limit = 10;
 
-  const { data } = useGetRentals({ page, limit });
+  const { data, isLoading } = useGetRentals({ page, limit });
+  const rentalsData = data as unknown as GetRentalsResType;
 
-  const listings = data?.data || [];
+  const rentals = rentalsData?.data || [];
+  const totalPages = rentalsData?.totalPages || 1;
+  const totalItems = rentalsData?.totalItems || 0;
+
+  const listings: Listing[] = rentals.map((rental: RentalType) => {
+    let price = 0;
+    let area = 0;
+    let roomTitles: string[] = ["Phòng trống"];
+
+    if (rental.rooms && rental.rooms.length > 0) {
+      const cheapestRoom = rental.rooms.reduce((prev, current) =>
+        prev.price < current.price ? prev : current
+      );
+      price = cheapestRoom.price;
+      area = cheapestRoom.area;
+      roomTitles = rental.rooms.map((room) => room.title);
+    }
+
+    const images =
+      rental.rentalImages && rental.rentalImages.length > 0
+        ? rental.rentalImages.map((img) => img.imageUrl)
+        : ["/placeholder.svg?height=200&width=300"];
+
+    const creationDate = rental.createdAt
+      ? new Date(rental.createdAt)
+      : new Date();
+    const isNew = creationDate.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+    return {
+      id: String(rental.id),
+      title: rental.title,
+      address: rental.address,
+      price,
+      area,
+      images,
+      amenities: roomTitles,
+      distance: rental.distance || 0,
+      isNew,
+    };
+  });
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setPage(newPage);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
-          <p className="text-muted-foreground">
-            Hiển thị {SAMPLE_LISTINGS.length} kết quả
-          </p>
-          {/* <Badge variant="outline" className="ml-2"></Badge> */}
+          <p className="text-muted-foreground">Hiển thị {totalItems} kết quả</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={sortOption} onValueChange={setSortOption}>
@@ -151,39 +136,77 @@ export default function RentalListings() {
         </div>
       </div>
 
-      <div
-        className={
-          viewMode === "grid"
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            : "grid grid-cols-1 gap-4"
-        }
-      >
-        {SAMPLE_LISTINGS.map((listing) => (
-          <RentalCard key={listing.id} listing={listing} viewMode={viewMode} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center min-h-[300px]">
+          <p>Đang tải...</p>
+        </div>
+      ) : (
+        <>
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "grid grid-cols-1 gap-4"
+            }
+          >
+            {listings.length > 0 ? (
+              listings.map((listing) => (
+                <RentalCard
+                  key={listing.id}
+                  listing={listing}
+                  viewMode={viewMode}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-10">
+                <p>Không tìm thấy kết quả nào</p>
+              </div>
+            )}
+          </div>
 
-      <Pagination>
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious href="#" />
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationLink href="#" isActive>
-              1
-            </PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationLink href="#">2</PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationLink href="#">3</PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationNext href="#" />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+          {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(page - 1)}
+                    className={
+                      page <= 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+
+                {[...Array(totalPages)]
+                  .map((_, index) => (
+                    <PaginationItem key={index}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(index + 1)}
+                        isActive={page === index + 1}
+                        className="cursor-pointer"
+                      >
+                        {index + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))
+                  .slice(Math.max(0, page - 3), Math.min(totalPages, page + 2))}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(page + 1)}
+                    className={
+                      page >= totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </>
+      )}
     </div>
   );
 }
