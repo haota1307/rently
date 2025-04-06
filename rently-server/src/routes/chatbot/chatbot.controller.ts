@@ -10,7 +10,7 @@ export class ChatbotController {
     if (!body.message || body.message.trim() === '') {
       return { error: 'Tin nhắn không được để trống' }
     }
-    const result = await this.chatbotService.searchRentals(body.message)
+    const result = await this.chatbotService.search(body.message)
     return result
   }
 }

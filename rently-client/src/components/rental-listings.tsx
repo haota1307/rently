@@ -85,7 +85,6 @@ export default function RentalListings({
   const listings: Listing[] = [];
 
   posts.forEach((post: PostType) => {
-    // Lấy thông tin phòng từ bài đăng
     const room = post.room;
     const rental = post.rental;
 

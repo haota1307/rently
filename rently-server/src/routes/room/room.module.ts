@@ -6,5 +6,6 @@ import { RoomRepo } from 'src/routes/room/room.repo'
 @Module({
   controllers: [RoomController],
   providers: [RoomService, RoomRepo],
+  exports: [RoomService, RoomRepo],
 })
 export class RoomModule {}
