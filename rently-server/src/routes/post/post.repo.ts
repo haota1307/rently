@@ -57,7 +57,24 @@ export class PostRepo {
           skip,
           take,
           where: whereClause,
-          include: { rental: true, landlord: true, room: true },
+          include: {
+            rental: {
+              include: {
+                rentalImages: true,
+              },
+            },
+            landlord: true,
+            room: {
+              include: {
+                roomImages: true,
+                roomAmenities: {
+                  include: {
+                    amenity: true,
+                  },
+                },
+              },
+            },
+          },
         }),
       ])
 
@@ -111,7 +128,24 @@ export class PostRepo {
           skip,
           take,
           where: whereClause,
-          include: { rental: true, landlord: true, room: true },
+          include: {
+            rental: {
+              include: {
+                rentalImages: true,
+              },
+            },
+            landlord: true,
+            room: {
+              include: {
+                roomImages: true,
+                roomAmenities: {
+                  include: {
+                    amenity: true,
+                  },
+                },
+              },
+            },
+          },
         }),
       ])
 
@@ -131,7 +165,24 @@ export class PostRepo {
     try {
       const post = await this.prismaService.rentalPost.findUnique({
         where: { id },
-        include: { rental: true, landlord: true, room: true },
+        include: {
+          rental: {
+            include: {
+              rentalImages: true,
+            },
+          },
+          landlord: true,
+          room: {
+            include: {
+              roomImages: true,
+              roomAmenities: {
+                include: {
+                  amenity: true,
+                },
+              },
+            },
+          },
+        },
       })
       return post ? this.formatPost(post) : null
     } catch (error) {
@@ -149,7 +200,24 @@ export class PostRepo {
     try {
       const post = await this.prismaService.rentalPost.create({
         data: { ...data, landlordId, createdAt: new Date() },
-        include: { rental: true, landlord: true },
+        include: {
+          rental: {
+            include: {
+              rentalImages: true,
+            },
+          },
+          landlord: true,
+          room: {
+            include: {
+              roomImages: true,
+              roomAmenities: {
+                include: {
+                  amenity: true,
+                },
+              },
+            },
+          },
+        },
       })
       return this.formatPost(post)
     } catch (error) {
@@ -168,7 +236,24 @@ export class PostRepo {
       const post = await this.prismaService.rentalPost.update({
         where: { id },
         data,
-        include: { rental: true, landlord: true },
+        include: {
+          rental: {
+            include: {
+              rentalImages: true,
+            },
+          },
+          landlord: true,
+          room: {
+            include: {
+              roomImages: true,
+              roomAmenities: {
+                include: {
+                  amenity: true,
+                },
+              },
+            },
+          },
+        },
       })
       return this.formatPost(post)
     } catch (error) {
@@ -180,7 +265,24 @@ export class PostRepo {
     try {
       const post = await this.prismaService.rentalPost.delete({
         where: { id },
-        include: { rental: true, landlord: true },
+        include: {
+          rental: {
+            include: {
+              rentalImages: true,
+            },
+          },
+          landlord: true,
+          room: {
+            include: {
+              roomImages: true,
+              roomAmenities: {
+                include: {
+                  amenity: true,
+                },
+              },
+            },
+          },
+        },
       })
       return this.formatPost(post)
     } catch (error) {

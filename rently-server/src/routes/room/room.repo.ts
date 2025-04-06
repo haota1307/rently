@@ -115,6 +115,7 @@ export class RoomRepo {
               amenity: true,
             },
           },
+          roomImages: true,
         },
       })
       return room ? this.formatRoom(room) : null
@@ -125,7 +126,7 @@ export class RoomRepo {
 
   async create({ data }: { data: CreateRoomBodyType }): Promise<RoomType> {
     try {
-      const { amenityIds, ...roomData } = data
+      const { amenityIds, roomImages, ...roomData } = data
 
       const room = await this.prismaService.room.create({
         data: {
@@ -139,8 +140,41 @@ export class RoomRepo {
               },
             }),
         },
+        include: {
+          roomAmenities: {
+            include: {
+              amenity: true,
+            },
+          },
+          roomImages: true,
+        },
       })
-      return this.formatRoom(room)
+
+      // Thêm hình ảnh phòng nếu có
+      if (roomImages && roomImages.length > 0) {
+        await this.prismaService.roomImage.createMany({
+          data: roomImages.map(image => ({
+            roomId: room.id,
+            order: image.order || 0,
+            imageUrl: image.imageUrl,
+          })),
+        })
+      }
+
+      // Lấy phòng đã tạo với tất cả thông tin
+      const createdRoom = await this.prismaService.room.findUnique({
+        where: { id: room.id },
+        include: {
+          roomAmenities: {
+            include: {
+              amenity: true,
+            },
+          },
+          roomImages: true,
+        },
+      })
+
+      return this.formatRoom(createdRoom)
     } catch (error) {
       throw new InternalServerErrorException(error.message)
     }
@@ -154,7 +188,7 @@ export class RoomRepo {
     data: UpdateRoomBodyType
   }): Promise<RoomType> {
     try {
-      const { amenityIds, ...roomData } = data
+      const { amenityIds, roomImages, ...roomData } = data
 
       // Nếu có amenityIds, xóa tất cả liên kết hiện tại và tạo mới
       if (amenityIds) {
@@ -174,11 +208,45 @@ export class RoomRepo {
         }
       }
 
+      // Cập nhật thông tin cơ bản của phòng
       const room = await this.prismaService.room.update({
         where: { id },
         data: roomData,
       })
-      return this.formatRoom(room)
+
+      // Nếu có cập nhật hình ảnh
+      if (roomImages) {
+        // Xóa tất cả hình ảnh hiện tại
+        await this.prismaService.roomImage.deleteMany({
+          where: { roomId: id },
+        })
+
+        // Thêm các hình ảnh mới
+        if (roomImages.length > 0) {
+          await this.prismaService.roomImage.createMany({
+            data: roomImages.map(image => ({
+              roomId: id,
+              imageUrl: image.imageUrl,
+              order: image.order || 0,
+            })),
+          })
+        }
+      }
+
+      // Lấy phòng đã cập nhật với tất cả thông tin
+      const updatedRoom = await this.prismaService.room.findUnique({
+        where: { id },
+        include: {
+          roomAmenities: {
+            include: {
+              amenity: true,
+            },
+          },
+          roomImages: true,
+        },
+      })
+
+      return this.formatRoom(updatedRoom)
     } catch (error) {
       throw new InternalServerErrorException(error.message)
     }

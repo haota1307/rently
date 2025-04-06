@@ -19,8 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Grid3X3, LayoutList } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
-import { useGetRentals } from "@/features/rental/useRental";
-import { GetRentalsResType, RentalType } from "@/schemas/rental.schema";
+import { useGetPosts } from "@/features/post/usePost";
+import { PostType } from "@/schemas/post.schema";
 
 // Định nghĩa interface cho dữ liệu truyền vào RentalCard
 export interface Listing {
@@ -33,6 +33,8 @@ export interface Listing {
   amenities: string[];
   distance: number;
   isNew?: boolean;
+  rentalId?: string;
+  rentalTitle?: string;
 }
 
 export default function RentalListings() {
@@ -41,48 +43,58 @@ export default function RentalListings() {
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  const { data, isLoading } = useGetRentals({ page, limit });
-  const rentalsData = data as unknown as GetRentalsResType;
+  const { data, isLoading } = useGetPosts({ page, limit });
+  const postsData = data;
 
-  const rentals = rentalsData?.data || [];
-  const totalPages = rentalsData?.totalPages || 1;
-  const totalItems = rentalsData?.totalItems || 0;
+  const posts = postsData?.data || [];
+  const totalPages = postsData?.totalPages || 1;
+  const totalItems = postsData?.totalItems || 0;
 
-  const listings: Listing[] = rentals.map((rental: RentalType) => {
-    let price = 0;
-    let area = 0;
-    let roomTitles: string[] = ["Phòng trống"];
+  // Tạo danh sách bài đăng từ dữ liệu post
+  const listings: Listing[] = [];
 
-    if (rental.rooms && rental.rooms.length > 0) {
-      const cheapestRoom = rental.rooms.reduce((prev, current) =>
-        prev.price < current.price ? prev : current
-      );
-      price = cheapestRoom.price;
-      area = cheapestRoom.area;
-      roomTitles = rental.rooms.map((room) => room.title);
+  posts.forEach((post: PostType) => {
+    // Lấy thông tin phòng từ bài đăng
+    const room = post.room;
+    const rental = post.rental;
+
+    if (!room || !rental) return;
+
+    // Lấy hình ảnh phòng hoặc nhà trọ
+    let images: string[] = ["/placeholder.svg?height=200&width=300"];
+
+    if (room.roomImages && room.roomImages.length > 0) {
+      images = room.roomImages.map((img) => img.imageUrl);
+    } else if (rental.rentalImages && rental.rentalImages.length > 0) {
+      images = rental.rentalImages.map((img) => img.imageUrl);
     }
 
-    const images =
-      rental.rentalImages && rental.rentalImages.length > 0
-        ? rental.rentalImages.map((img) => img.imageUrl)
-        : ["/placeholder.svg?height=200&width=300"];
-
-    const creationDate = rental.createdAt
-      ? new Date(rental.createdAt)
-      : new Date();
+    // Kiểm tra xem bài đăng có phải là mới không
+    const creationDate = post.createdAt ? new Date(post.createdAt) : new Date();
     const isNew = creationDate.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-    return {
-      id: String(rental.id),
-      title: rental.title,
+    // Lấy giá và diện tích từ thông tin phòng
+    const price = room.price;
+    const area = room.area;
+
+    // Lấy danh sách tiện ích
+    const amenities = room.roomAmenities
+      ? room.roomAmenities.map((amenity) => amenity.amenity.name)
+      : [];
+
+    listings.push({
+      id: String(post.id),
+      title: post.title,
       address: rental.address,
       price,
       area,
       images,
-      amenities: roomTitles,
-      distance: rental.distance || 0,
+      amenities,
+      distance: 0,
       isNew,
-    };
+      rentalId: String(rental.id),
+      rentalTitle: rental.title,
+    });
   });
 
   const handlePageChange = (newPage: number) => {
@@ -95,7 +107,9 @@ export default function RentalListings() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
-          <p className="text-muted-foreground">Hiển thị {totalItems} kết quả</p>
+          <p className="text-muted-foreground">
+            Hiển thị {listings.length} kết quả
+          </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={sortOption} onValueChange={setSortOption}>

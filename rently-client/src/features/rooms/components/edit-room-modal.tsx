@@ -11,6 +11,8 @@ import { AmenityType } from "@/schemas/amenity.schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useUploadImages } from "@/features/media/useMedia";
+import { ImageSlot } from "@/types/images.type";
 
 import {
   Dialog,
@@ -37,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ImageUploadSlots } from "@/features/rental/component/image-upload-slots";
 
 type EditRoomModalProps = {
   open: boolean;
@@ -50,7 +53,16 @@ export function EditRoomModal({
   roomId,
 }: EditRoomModalProps) {
   const [selectedAmenities, setSelectedAmenities] = useState<AmenityType[]>([]);
+  const [imageSlots, setImageSlots] = useState<ImageSlot[]>([
+    null,
+    null,
+    null,
+    null,
+    null,
+  ]);
   const { mutateAsync: updateRoom, isPending: isUpdating } = useUpdateRoom();
+  const { mutateAsync: imageUpload, isPending: imageUploading } =
+    useUploadImages();
 
   const form = useForm<UpdateRoomBodyType>({
     defaultValues: {
@@ -60,6 +72,7 @@ export function EditRoomModal({
       rentalId: 0,
       isAvailable: true,
       amenityIds: [],
+      roomImages: [],
     },
   });
 
@@ -94,6 +107,23 @@ export function EditRoomModal({
       } else {
         setSelectedAmenities([]);
       }
+
+      // Nếu phòng có hình ảnh, cập nhật các slot hình ảnh
+      if (roomData.roomImages && roomData.roomImages.length > 0) {
+        const newImageSlots: ImageSlot[] = [null, null, null, null, null];
+        roomData.roomImages.forEach((image, index) => {
+          if (index < 5) {
+            newImageSlots[index] = {
+              file: null,
+              previewUrl: image.imageUrl,
+              order: image.order || index + 1,
+            };
+          }
+        });
+        setImageSlots(newImageSlots);
+      } else {
+        setImageSlots([null, null, null, null, null]);
+      }
     }
   }, [roomData, open, form]);
 
@@ -103,10 +133,64 @@ export function EditRoomModal({
     try {
       // Thêm danh sách ID tiện ích
       const amenityIds = selectedAmenities.map((amenity) => amenity.id);
+
+      // Xử lý upload ảnh
+      const validSlots = imageSlots.filter(
+        (slot): slot is { file: File; previewUrl: string; order: number } =>
+          slot !== null
+      );
+
+      let roomImages = roomData?.roomImages || [];
+
+      // Nếu có ảnh mới được tải lên (có file)
+      const newImageSlots = validSlots.filter((slot) => slot.file !== null);
+      if (newImageSlots.length > 0) {
+        if (imageUploading || isUpdating) return;
+        try {
+          const formData = new FormData();
+          newImageSlots.forEach((slot) => {
+            formData.append("images", slot.file);
+          });
+
+          const uploadResponse = await imageUpload(formData);
+          const newUploadedImages = uploadResponse.payload;
+
+          // Kết hợp ảnh cũ (không có file) và ảnh mới
+          const existingImages = validSlots
+            .filter((slot) => slot.file === null)
+            .map((slot, index) => ({
+              imageUrl: slot.previewUrl || "",
+              order: slot.order,
+            }));
+
+          roomImages = [
+            ...existingImages,
+            ...newUploadedImages.map((img, index) => ({
+              imageUrl: img.url,
+              order: newImageSlots[index].order,
+            })),
+          ];
+        } catch (error) {
+          console.error("Lỗi upload ảnh:", error);
+          toast.error("Không thể tải lên hình ảnh, vui lòng thử lại");
+          return;
+        }
+      } else {
+        // Chỉ có ảnh cũ hoặc không có ảnh
+        roomImages = validSlots.map((slot) => ({
+          imageUrl: slot.previewUrl || "",
+          order: slot.order,
+        }));
+      }
+
+      // Tạo payload
       const payload = {
         ...values,
         amenityIds,
+        roomImages,
       };
+
+      console.log("Payload room images:", payload.roomImages); // Kiểm tra dữ liệu ảnh trước khi gửi
 
       await updateRoom({ roomId, body: payload });
       toast.success("Cập nhật phòng trọ thành công");
@@ -146,7 +230,7 @@ export function EditRoomModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Chỉnh sửa phòng trọ</DialogTitle>
           <DialogDescription>
@@ -264,29 +348,56 @@ export function EditRoomModal({
                     </FormItem>
                   )}
                 />
+
+                {/* Trạng thái */}
+                <FormField
+                  control={form.control}
+                  name="isAvailable"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-3">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Còn trống</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              {/* Trạng thái phòng */}
-              <FormField
-                control={form.control}
-                name="isAvailable"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Còn trống</FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        Phòng này hiện vẫn còn trống và có thể cho thuê
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
+              {/* Hình ảnh */}
+              <div>
+                <FormLabel>Hình ảnh (tối đa 5 ảnh)</FormLabel>
+                <ImageUploadSlots
+                  imageSlots={imageSlots.map((slot) =>
+                    slot
+                      ? { imageUrl: slot.previewUrl || "", order: slot.order }
+                      : null
+                  )}
+                  handleImageUpload={(e, slotIndex) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      const file = e.target.files[0];
+                      const previewUrl = URL.createObjectURL(file);
+                      const newImageSlots = [...imageSlots];
+                      newImageSlots[slotIndex] = {
+                        file,
+                        previewUrl,
+                        order: slotIndex + 1,
+                      };
+                      setImageSlots(newImageSlots);
+                    }
+                  }}
+                  removeImage={(slotIndex) => {
+                    const newImageSlots = [...imageSlots];
+                    newImageSlots[slotIndex] = null;
+                    setImageSlots(newImageSlots);
+                  }}
+                />
+              </div>
 
               {/* Tiện ích */}
               <div>
@@ -294,7 +405,7 @@ export function EditRoomModal({
                 <AmenitySelector
                   selectedAmenities={selectedAmenities}
                   onChange={setSelectedAmenities}
-                  maxHeight="200px"
+                  maxHeight="180px"
                 />
               </div>
 
@@ -303,12 +414,14 @@ export function EditRoomModal({
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  disabled={isUpdating}
+                  disabled={isUpdating || imageUploading}
                 >
                   Hủy
                 </Button>
-                <Button type="submit" disabled={isUpdating}>
-                  {isUpdating ? "Đang cập nhật..." : "Cập nhật"}
+                <Button type="submit" disabled={isUpdating || imageUploading}>
+                  {isUpdating || imageUploading
+                    ? "Đang cập nhật..."
+                    : "Cập nhật"}
                 </Button>
               </DialogFooter>
             </form>

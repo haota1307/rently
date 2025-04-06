@@ -1,6 +1,14 @@
 import { Decimal } from '@prisma/client/runtime/library'
 import { z } from 'zod'
 
+export const RoomImageSchema = z.object({
+  id: z.number(),
+  imageUrl: z.string(),
+  order: z.number(),
+  createdAt: z.date().nullable(),
+  roomId: z.number(),
+})
+
 export const RoomSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -16,6 +24,7 @@ export const RoomSchema = z.object({
   createdAt: z.date().nullable(),
   updatedAt: z.date().nullable(),
   rentalId: z.number(),
+  roomImages: z.array(RoomImageSchema).optional(),
   roomAmenities: z
     .array(
       z.object({
@@ -68,6 +77,14 @@ export const CreateRoomBodySchema = z
     isAvailable: z.boolean().optional().default(true),
     rentalId: z.number(),
     amenityIds: z.array(z.number()).optional(),
+    roomImages: z
+      .array(
+        z.object({
+          imageUrl: z.string(),
+          order: z.number().optional(),
+        })
+      )
+      .optional(),
   })
   .strict()
 

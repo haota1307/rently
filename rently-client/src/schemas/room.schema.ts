@@ -1,6 +1,20 @@
 import { z } from "zod";
 import { AmenitySchema } from "@/schemas/amenity.schema";
 
+export const RoomImageSchema = z.object({
+  id: z.number().optional(),
+  imageUrl: z.string(),
+  order: z.number().optional(),
+  roomId: z.number().optional(),
+});
+
+export const RoomAmenitySchema = z.object({
+  id: z.number(),
+  roomId: z.number(),
+  amenityId: z.number(),
+  amenity: AmenitySchema,
+});
+
 export const RoomSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -23,6 +37,8 @@ export const RoomSchema = z.object({
   updatedAt: z.date().nullable(),
   rentalId: z.number(),
   amenities: z.array(AmenitySchema).optional(),
+  roomAmenities: z.array(RoomAmenitySchema).optional(),
+  roomImages: z.array(RoomImageSchema).optional(),
 });
 
 export const GetRoomsResSchema = z.object({
@@ -61,6 +77,14 @@ export const CreateRoomBodySchema = z
     isAvailable: z.boolean().optional().default(true),
     rentalId: z.number(),
     amenityIds: z.array(z.number()).optional(),
+    roomImages: z
+      .array(
+        z.object({
+          imageUrl: z.string(),
+          order: z.number().optional(),
+        })
+      )
+      .optional(),
   })
   .strict();
 

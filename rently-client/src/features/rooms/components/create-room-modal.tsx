@@ -14,6 +14,8 @@ import {
   CreateRoomBodyType,
 } from "@/schemas/room.schema";
 import { toast } from "sonner";
+import { useUploadImages } from "@/features/media/useMedia";
+import { ImageSlot } from "@/types/images.type";
 
 import {
   Dialog,
@@ -39,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUploadSlots } from "@/features/rental/component/image-upload-slots";
 
 type CreateRoomModalProps = {
   open: boolean;
@@ -47,7 +50,16 @@ type CreateRoomModalProps = {
 
 export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
   const [selectedAmenities, setSelectedAmenities] = useState<AmenityType[]>([]);
+  const [imageSlots, setImageSlots] = useState<ImageSlot[]>([
+    null,
+    null,
+    null,
+    null,
+    null,
+  ]);
   const { mutateAsync: createRoom, isPending } = useCreateRoom();
+  const { mutateAsync: imageUpload, isPending: imageUploading } =
+    useUploadImages();
 
   // Lấy danh sách nhà trọ
   const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentals({
@@ -66,6 +78,7 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
       rentalId: 0,
       isAvailable: true,
       amenityIds: [],
+      roomImages: [],
     },
   });
 
@@ -73,9 +86,40 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
     try {
       // Thêm danh sách ID tiện ích
       const amenityIds = selectedAmenities.map((amenity) => amenity.id);
+
+      // Xử lý upload ảnh
+      const validSlots = imageSlots.filter(
+        (slot): slot is { file: File; previewUrl: string; order: number } =>
+          slot !== null
+      );
+
+      let uploadedImages: Array<{ url: string; public_id: string }> = [];
+      if (validSlots.length > 0) {
+        if (imageUploading || isPending) return;
+        try {
+          const formData = new FormData();
+          validSlots.forEach((slot) => {
+            formData.append("images", slot.file);
+          });
+
+          const uploadResponse = await imageUpload(formData);
+          console.log("Upload response:", uploadResponse);
+          uploadedImages = uploadResponse.payload;
+        } catch (error) {
+          console.error("Lỗi upload ảnh:", error);
+          toast.error("Không thể tải lên hình ảnh, vui lòng thử lại");
+          return;
+        }
+      }
+
+      // Tạo payload
       const payload = {
         ...values,
         amenityIds,
+        roomImages: uploadedImages.map((img, index) => ({
+          imageUrl: img.url,
+          order: index + 1,
+        })),
       };
 
       await createRoom(payload);
@@ -100,11 +144,12 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
   const resetForm = () => {
     form.reset();
     setSelectedAmenities([]);
+    setImageSlots([null, null, null, null, null]);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Tạo phòng trọ mới</DialogTitle>
           <DialogDescription>
@@ -212,13 +257,43 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
               />
             </div>
 
+            {/* Hình ảnh */}
+            <div>
+              <FormLabel>Hình ảnh (tối đa 5 ảnh)</FormLabel>
+              <ImageUploadSlots
+                imageSlots={imageSlots.map((slot) =>
+                  slot
+                    ? { imageUrl: slot.previewUrl || "", order: slot.order }
+                    : null
+                )}
+                handleImageUpload={(e, slotIndex) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const previewUrl = URL.createObjectURL(file);
+                    const newImageSlots = [...imageSlots];
+                    newImageSlots[slotIndex] = {
+                      file,
+                      previewUrl,
+                      order: slotIndex + 1,
+                    };
+                    setImageSlots(newImageSlots);
+                  }
+                }}
+                removeImage={(slotIndex) => {
+                  const newImageSlots = [...imageSlots];
+                  newImageSlots[slotIndex] = null;
+                  setImageSlots(newImageSlots);
+                }}
+              />
+            </div>
+
             {/* Tiện ích */}
             <div>
               <FormLabel>Tiện ích</FormLabel>
               <AmenitySelector
                 selectedAmenities={selectedAmenities}
                 onChange={setSelectedAmenities}
-                maxHeight="200px"
+                maxHeight="180px"
               />
             </div>
 
@@ -227,12 +302,12 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isPending}
+                disabled={isPending || imageUploading}
               >
                 Hủy
               </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Đang tạo..." : "Tạo phòng"}
+              <Button type="submit" disabled={isPending || imageUploading}>
+                {isPending || imageUploading ? "Đang tạo..." : "Tạo phòng"}
               </Button>
             </DialogFooter>
           </form>

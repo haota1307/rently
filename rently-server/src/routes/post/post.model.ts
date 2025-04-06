@@ -17,6 +17,16 @@ export const RentalSchema = z.object({
   lat: z.number(),
   lng: z.number(),
   createdAt: z.date(),
+  rentalImages: z
+    .array(
+      z.object({
+        id: z.number(),
+        imageUrl: z.string(),
+        order: z.number(),
+        createdAt: z.date(),
+      })
+    )
+    .optional(),
 })
 
 // Schema cho thông tin người đăng (Landlord) - dùng thông tin từ model User

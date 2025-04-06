@@ -12,6 +12,7 @@ import { useGetMyRooms } from "@/features/rooms/useRoom";
 import { CreateRoomModal } from "@/features/rooms/components/create-room-modal";
 import { EditRoomModal } from "@/features/rooms/components/edit-room-modal";
 import { DeleteRoomConfirm } from "@/features/rooms/components/delete-room-confirm";
+import { RoomDetailModal } from "@/features/rooms/components/room-detail-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,12 +175,20 @@ export default function RoomsPage() {
       {selectedRoom && (
         <>
           {/* Modal xem chi tiết phòng */}
+          <RoomDetailModal
+            open={isDetailModalOpen}
+            onOpenChange={setIsDetailModalOpen}
+            roomId={selectedRoom.id}
+          />
+
+          {/* Modal chỉnh sửa phòng */}
           <EditRoomModal
             open={isEditModalOpen}
             onOpenChange={setIsEditModalOpen}
             roomId={selectedRoom.id}
           />
 
+          {/* Modal xóa phòng */}
           <DeleteRoomConfirm
             open={isDeleteModalOpen}
             onOpenChange={setIsDeleteModalOpen}

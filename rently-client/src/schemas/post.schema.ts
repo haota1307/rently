@@ -7,6 +7,14 @@ export enum RentalPostStatus {
   DELETED = "DELETED",
 }
 
+// Schema cho thông tin ảnh nhà trọ
+export const RentalImageSchema = z.object({
+  id: z.number(),
+  imageUrl: z.string(),
+  order: z.number(),
+  createdAt: z.date().nullable(),
+});
+
 // Schema cho thông tin bất động sản (Rental)
 export const RentalSchema = z.object({
   id: z.number(),
@@ -16,6 +24,7 @@ export const RentalSchema = z.object({
   lat: z.number(),
   lng: z.number(),
   createdAt: z.date(),
+  rentalImages: z.array(RentalImageSchema).optional(),
 });
 
 // Schema cho thông tin người đăng (Landlord) - dùng thông tin từ model User

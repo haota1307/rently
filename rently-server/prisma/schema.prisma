@@ -199,6 +199,7 @@ model Room {
   rentalId Int
 
   roomAmenities RoomAmenity[]
+  roomImages    RoomImage[]
   reviews       Review[]
   RentalPost    RentalPost[]
 
@@ -217,6 +218,20 @@ model RentalImage {
   rentalId Int
 
   @@index([rentalId])
+  @@index([createdAt])
+  @@index([order])
+}
+
+model RoomImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  createdAt DateTime @default(now())
+  order     Int
+
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId Int
+
+  @@index([roomId])
   @@index([createdAt])
   @@index([order])
 }
