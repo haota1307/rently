@@ -7,6 +7,7 @@ import { useGetRooms } from "@/features/rooms/useRoom";
 import { useGetRentalsById } from "@/features/rental/useRental";
 import { toast } from "sonner";
 import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
+import { RentalPostStatus } from "@/schemas/post.schema";
 
 import {
   Dialog,
@@ -123,9 +124,10 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       description: formData.description,
       rentalId: Number(formData.rentalId),
       roomId: Number(formData.roomId),
-      startDate: formData.startDate,
-      endDate: formData.endDate,
+      startDate: new Date(formData.startDate),
+      endDate: new Date(formData.endDate),
       pricePaid: Number(formData.pricePaid),
+      status: RentalPostStatus.ACTIVE,
     };
 
     console.log("Sending payload:", payload);

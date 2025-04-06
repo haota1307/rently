@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useUpdatePost } from "@/features/post/usePost";
 import { useGetRooms } from "@/features/rooms/useRoom";
 import { toast } from "sonner";
+import { RentalPostStatus } from "@/schemas/post.schema";
 
 import {
   Dialog,
@@ -87,21 +88,37 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
       return;
     }
 
+    // Tìm rentalId từ phòng đã chọn
+    const selectedRoom = rooms.find(
+      (room) => room.id === Number(formData.roomId)
+    );
+
+    if (!selectedRoom) {
+      toast.error("Không tìm thấy thông tin phòng đã chọn");
+      return;
+    }
+
     // Chuyển đổi các giá trị số
     const payload = {
       title: formData.title,
       description: formData.description,
       roomId: Number(formData.roomId),
-      startDate: formData.startDate,
-      endDate: formData.endDate,
+      startDate: new Date(formData.startDate),
+      endDate: new Date(formData.endDate),
       pricePaid: Number(formData.pricePaid),
+      rentalId: selectedRoom.rentalId,
+      status: post.status
+        ? (post.status as RentalPostStatus)
+        : RentalPostStatus.ACTIVE,
     };
 
     try {
+      console.log("Payload gửi đi:", payload);
       await updatePost({ postId: post.id, body: payload });
       toast.success("Cập nhật bài đăng thành công");
       onClose();
     } catch (err: any) {
+      console.error("Lỗi khi cập nhật bài đăng:", err);
       toast.error(
         `Cập nhật bài đăng thất bại: ${
           err?.payload?.message || "Lỗi không xác định"

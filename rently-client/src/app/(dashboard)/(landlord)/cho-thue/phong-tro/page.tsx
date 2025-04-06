@@ -8,6 +8,7 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { roomColumns } from "@/features/dashboard/components/columns/room-columns";
 import { RoomFilters } from "@/features/dashboard/components/filters/room-filters";
+import { CommonFilterLayout } from "@/features/dashboard/components/filters/common-filter-layout";
 import { useGetMyRooms } from "@/features/rooms/useRoom";
 import { CreateRoomModal } from "@/features/rooms/components/create-room-modal";
 import { EditRoomModal } from "@/features/rooms/components/edit-room-modal";
@@ -27,6 +28,7 @@ export default function RoomsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priceFilter, setPriceFilter] = useState<string>("all");
   const [areaFilter, setAreaFilter] = useState<string>("all");
+  const [searchInput, setSearchInput] = useState<string>("");
   const [isAddRoomDialogOpen, setIsAddRoomDialogOpen] = useState(false);
 
   // State cho chức năng chỉnh sửa và xóa
@@ -62,6 +64,14 @@ export default function RoomsPage() {
   const handleAreaFilterChange = (area: string) => {
     setPage(1);
     setAreaFilter(area);
+  };
+
+  const handleClearAllFilters = () => {
+    setStatusFilter("all");
+    setPriceFilter("all");
+    setAreaFilter("all");
+    setSearchInput("");
+    setPage(1);
   };
 
   // Callback khi người dùng chọn xem chi tiết
@@ -135,23 +145,42 @@ export default function RoomsPage() {
       </header>
 
       <div className="flex flex-col justify-between m-4 gap-4">
-        <div className="flex items-center justify-between">
-          <Button onClick={() => setIsAddRoomDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            <span>Thêm phòng trọ</span>
-          </Button>
+        <CommonFilterLayout
+          searchInput={searchInput}
+          onSearchChange={(value) => {
+            setSearchInput(value);
+            setPage(1);
+          }}
+          clearAllFilters={handleClearAllFilters}
+          showClearButton={
+            statusFilter !== "all" ||
+            priceFilter !== "all" ||
+            areaFilter !== "all" ||
+            searchInput.trim() !== ""
+          }
+          searchPlaceholder="Tìm kiếm theo tiêu đề..."
+          actionButton={
+            <Button onClick={() => setIsAddRoomDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              <span>Thêm phòng trọ</span>
+            </Button>
+          }
+          filterControls={
+            <RoomFilters
+              onStatusFilterChange={handleStatusFilterChange}
+              onPriceFilterChange={handlePriceFilterChange}
+              onAreaFilterChange={handleAreaFilterChange}
+              statusValue={statusFilter}
+              priceValue={priceFilter}
+              areaValue={areaFilter}
+            />
+          }
+        />
 
-          <CreateRoomModal
-            open={isAddRoomDialogOpen}
-            onOpenChange={setIsAddRoomDialogOpen}
-          />
-
-          <RoomFilters
-            onStatusFilterChange={handleStatusFilterChange}
-            onPriceFilterChange={handlePriceFilterChange}
-            onAreaFilterChange={handleAreaFilterChange}
-          />
-        </div>
+        <CreateRoomModal
+          open={isAddRoomDialogOpen}
+          onOpenChange={setIsAddRoomDialogOpen}
+        />
 
         {isLoading ? (
           <div className="py-8 text-center text-gray-500">Đang tải...</div>
@@ -166,8 +195,6 @@ export default function RoomsPage() {
             currentPage={page}
             totalPages={totalPages}
             onPageChange={setPage}
-            searchKey="title"
-            searchPlaceholder="Tìm kiếm theo tiêu đề..."
           />
         )}
       </div>

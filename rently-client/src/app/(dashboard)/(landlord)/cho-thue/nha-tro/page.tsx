@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CommonFilterLayout } from "@/features/dashboard/components/filters/common-filter-layout";
 
 // Custom hook debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -159,6 +160,11 @@ export default function LandlordRentalPage() {
     },
   ];
 
+  const handleClearAllFilters = () => {
+    setSearchInput("");
+    setPage(1);
+  };
+
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 w-full">
@@ -168,24 +174,22 @@ export default function LandlordRentalPage() {
       </header>
 
       <div className="flex flex-col justify-between m-4 gap-4">
-        <div className="flex items-center justify-between">
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            <span>Thêm nhà trọ</span>
-          </Button>
-
-          <div className="flex items-center">
-            <Input
-              placeholder="Tìm kiếm theo tiêu đề..."
-              value={searchInput}
-              onChange={(e) => {
-                setSearchInput(e.target.value);
-                setPage(1);
-              }}
-              className="max-w-sm"
-            />
-          </div>
-        </div>
+        <CommonFilterLayout
+          searchInput={searchInput}
+          onSearchChange={(value) => {
+            setSearchInput(value);
+            setPage(1);
+          }}
+          clearAllFilters={handleClearAllFilters}
+          showClearButton={searchInput.trim() !== ""}
+          searchPlaceholder="Tìm kiếm theo tiêu đề..."
+          actionButton={
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              <span>Thêm nhà trọ</span>
+            </Button>
+          }
+        />
 
         {isLoading ? (
           <div className="py-8 text-center text-gray-500">Đang tải...</div>
@@ -200,8 +204,6 @@ export default function LandlordRentalPage() {
             currentPage={page}
             totalPages={totalPages}
             onPageChange={setPage}
-            searchKey="title"
-            searchPlaceholder="Tìm kiếm theo tiêu đề..."
           />
         )}
 

@@ -37,6 +37,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { CommonFilterLayout } from "@/features/dashboard/components/filters/common-filter-layout";
 
 // Custom hook debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -73,14 +74,18 @@ export default function RentalPostsPage() {
   const searchTitle =
     debouncedSearch.trim() !== "" ? debouncedSearch.trim() : undefined;
 
-  const { data, isLoading, error } = useGetMyPosts({
+  const queryParams = {
     page,
     limit,
     title: searchTitle,
     status: statusFilter === "ALL" ? undefined : statusFilter,
     startDate: startDate?.toISOString(),
     endDate: endDate?.toISOString(),
-  });
+  };
+
+  console.log("Query params:", queryParams);
+
+  const { data, isLoading, error } = useGetMyPosts(queryParams);
   const posts = data?.data || [];
   const totalPages = data?.totalPages || 0;
 
@@ -110,6 +115,14 @@ export default function RentalPostsPage() {
     } finally {
       setIsDeleteModalOpen(false);
     }
+  };
+
+  const handleClearAllFilters = () => {
+    setStatusFilter("ALL");
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSearchInput("");
+    setPage(1);
   };
 
   const postColumns = [
@@ -226,14 +239,28 @@ export default function RentalPostsPage() {
       </header>
 
       <div className="flex flex-col justify-between m-4 gap-4">
-        <div className="flex items-center justify-between">
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            <span>Thêm bài đăng</span>
-          </Button>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+        <CommonFilterLayout
+          searchInput={searchInput}
+          onSearchChange={(value) => {
+            setSearchInput(value);
+            setPage(1);
+          }}
+          clearAllFilters={handleClearAllFilters}
+          showClearButton={
+            statusFilter !== "ALL" ||
+            !!startDate ||
+            !!endDate ||
+            searchInput.trim() !== ""
+          }
+          searchPlaceholder="Tìm kiếm theo tiêu đề..."
+          actionButton={
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              <span>Thêm bài đăng</span>
+            </Button>
+          }
+          filterControls={
+            <div className="flex gap-2">
               <Select
                 value={statusFilter}
                 onValueChange={(value) => {
@@ -241,11 +268,11 @@ export default function RentalPostsPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Lọc theo trạng thái" />
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả</SelectItem>
+                  <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                   <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
                   <SelectItem value="INACTIVE">Đang chờ duyệt</SelectItem>
                   <SelectItem value="DELETED">Đã xóa</SelectItem>
@@ -263,47 +290,52 @@ export default function RentalPostsPage() {
                   >
                     <Filter className="mr-2 h-4 w-4" />
                     {startDate && endDate ? (
-                      <>
+                      <span className="truncate">
                         {format(startDate, "dd/MM/yyyy", { locale: vi })} -{" "}
                         {format(endDate, "dd/MM/yyyy", { locale: vi })}
-                      </>
+                      </span>
                     ) : (
                       <span>Lọc theo thời gian</span>
                     )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={startDate}
-                    selected={{
-                      from: startDate,
-                      to: endDate,
-                    }}
-                    onSelect={(range) => {
-                      setStartDate(range?.from);
-                      setEndDate(range?.to);
-                      setPage(1);
-                    }}
-                    numberOfMonths={1}
-                    locale={vi}
-                  />
+                  <div className="p-2">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={startDate}
+                      selected={{
+                        from: startDate,
+                        to: endDate,
+                      }}
+                      onSelect={(range) => {
+                        setStartDate(range?.from);
+                        setEndDate(range?.to);
+                        setPage(1);
+                      }}
+                      numberOfMonths={1}
+                      locale={vi}
+                    />
+                    {(startDate || endDate) && (
+                      <Button
+                        variant="outline"
+                        className="mt-2 w-full"
+                        onClick={() => {
+                          setStartDate(undefined);
+                          setEndDate(undefined);
+                          setPage(1);
+                        }}
+                      >
+                        Xóa bộ lọc thời gian
+                      </Button>
+                    )}
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
-
-            <Input
-              placeholder="Tìm kiếm theo tiêu đề..."
-              value={searchInput}
-              onChange={(e) => {
-                setSearchInput(e.target.value);
-                setPage(1);
-              }}
-              className="max-w-sm"
-            />
-          </div>
-        </div>
+          }
+        />
 
         {isLoading ? (
           <div className="py-8 text-center text-gray-500">Đang tải...</div>
@@ -318,8 +350,6 @@ export default function RentalPostsPage() {
             currentPage={page}
             totalPages={totalPages}
             onPageChange={setPage}
-            searchKey="title"
-            searchPlaceholder="Tìm kiếm theo tiêu đề..."
           />
         )}
 

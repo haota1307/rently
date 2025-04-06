@@ -30,6 +30,9 @@ const postApiRequest = {
           limit: params.limit,
           page: params.page,
           title: params.title,
+          status: params.status,
+          startDate: params.startDate,
+          endDate: params.endDate,
         })
     ),
 
