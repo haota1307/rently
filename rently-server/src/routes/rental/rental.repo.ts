@@ -16,6 +16,7 @@ import {
   UpdateRentalBodyType,
 } from 'src/shared/models/shared-rental.mode'
 import { NotFoundRecordException } from 'src/shared/error'
+import { Decimal } from '@prisma/client/runtime/library'
 
 @Injectable()
 export class RentalRepo {
@@ -29,14 +30,17 @@ export class RentalRepo {
       ...rental,
       lat: toNumber(rental.lat),
       lng: toNumber(rental.lng),
+      distance: toNumber(rental.distance) || 0,
     }
 
-    formattedRental.distance = calculateDistance(
-      defaultLat,
-      defaultLng,
-      formattedRental.lat,
-      formattedRental.lng
-    )
+    if (!rental.distance) {
+      formattedRental.distance = calculateDistance(
+        defaultLat,
+        defaultLng,
+        formattedRental.lat,
+        formattedRental.lng
+      )
+    }
 
     return formattedRental
   }
@@ -157,6 +161,15 @@ export class RentalRepo {
 
   async create({ data }: { data: CreateRentalBodyType }) {
     try {
+      const defaultLat = 10.0070868
+      const defaultLng = 105.7226855
+      const distance = calculateDistance(
+        defaultLat,
+        defaultLng,
+        data.lat,
+        data.lng
+      )
+
       const rental = await this.prismaService.rental.create({
         data: {
           title: data.title,
@@ -164,6 +177,7 @@ export class RentalRepo {
           address: data.address,
           lat: data.lat,
           lng: data.lng,
+          distance: new Decimal(distance),
           landlordId: data.landlordId,
         },
       })
@@ -194,9 +208,25 @@ export class RentalRepo {
     try {
       const { rentalImages, ...rentalData } = data
 
+      let distanceUpdate = {}
+      if (rentalData.lat && rentalData.lng) {
+        const defaultLat = 10.0070868
+        const defaultLng = 105.7226855
+        const distance = calculateDistance(
+          defaultLat,
+          defaultLng,
+          rentalData.lat,
+          rentalData.lng
+        )
+        distanceUpdate = { distance: new Decimal(distance) }
+      }
+
       const rental = await this.prismaService.rental.update({
         where: { id },
-        data: rentalData,
+        data: {
+          ...rentalData,
+          ...distanceUpdate,
+        },
         include: {
           landlord: true,
           rentalImages: true,

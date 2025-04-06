@@ -6,7 +6,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, MapPin, Maximize2, Home, Phone } from "lucide-react";
+import {
+  Heart,
+  MapPin,
+  Maximize2,
+  Home,
+  Phone,
+  Navigation,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
@@ -112,6 +119,20 @@ export const RentalCard = ({
               <span className="truncate">{listing.address}</span>
             </div>
 
+            {listing.distance > 0 && (
+              <div className="flex items-center text-sm">
+                <Navigation className="mr-1 h-4 w-4 text-blue-500" />
+                <span className="font-medium text-blue-600">
+                  {listing.distance < 1
+                    ? `${(listing.distance * 1000).toFixed(0)} m`
+                    : `${listing.distance.toFixed(1)} km`}
+                </span>
+                <span className="ml-1 text-muted-foreground">
+                  Từ Đại học Nam Cần Thơ
+                </span>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-1">
               {listing.amenities.slice(0, 3).map((amenity, index) => (
                 <Badge key={index} variant="outline" className="text-xs">
@@ -206,6 +227,18 @@ export const RentalCard = ({
               <MapPin className="mr-1 h-4 w-4" />
               <span className="truncate">{listing.address}</span>
             </div>
+
+            {listing.distance > 0 && (
+              <div className="flex items-center text-sm">
+                <Navigation className="mr-1 h-4 w-4 text-blue-500" />
+                <span className="font-medium text-blue-600">
+                  {listing.distance < 1
+                    ? `${(listing.distance * 1000).toFixed(0)} m`
+                    : `${listing.distance.toFixed(1)} km`}
+                </span>
+                <span className="ml-1 text-muted-foreground">từ trung tâm</span>
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-1 flex-1">
               {listing.amenities.slice(0, 5).map((amenity, index) => (

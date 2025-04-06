@@ -137,6 +137,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     src={images[activeImageIndex].url}
                     alt={`Hình ảnh ${activeImageIndex + 1}`}
                     fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover"
                   />
                   <Badge
@@ -192,6 +193,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         src={image.url}
                         alt={`Thumbnail ${index + 1}`}
                         fill
+                        sizes="96px"
                         className="object-cover"
                       />
                     </div>
@@ -313,6 +315,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     }
                     alt={post.landlord?.name || "Chủ nhà"}
                     fill
+                    sizes="56px"
                     className="object-cover"
                   />
                 </div>

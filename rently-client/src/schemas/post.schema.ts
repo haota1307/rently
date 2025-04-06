@@ -23,6 +23,7 @@ export const RentalSchema = z.object({
   address: z.string(),
   lat: z.number(),
   lng: z.number(),
+  distance: z.number().optional(),
   createdAt: z.date(),
   rentalImages: z.array(RentalImageSchema).optional(),
 });

@@ -7,6 +7,7 @@ import {
   UpdatePostBodyType,
 } from 'src/routes/post/post.model'
 import { PrismaService } from 'src/shared/services/prisma.service'
+import { Decimal } from '@prisma/client/runtime/library'
 
 @Injectable()
 export class PostRepo {
@@ -23,6 +24,11 @@ export class PostRepo {
         ...post.rental,
         lat: post.rental.lat.toNumber(),
         lng: post.rental.lng.toNumber(),
+        distance: post.rental.distance
+          ? post.rental.distance instanceof Decimal
+            ? post.rental.distance.toNumber()
+            : post.rental.distance
+          : 0,
       },
     } as PostType
   }

@@ -15,6 +15,7 @@ export const RentalSchema = z.object({
   description: z.string(),
   address: z.string(),
   lat: z.number(),
+  distance: z.number(),
   lng: z.number(),
   createdAt: z.date(),
   rentalImages: z
@@ -81,6 +82,8 @@ export const GetPostsQuerySchema = z
     status: z.string().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
+    lat: z.coerce.number().optional(),
+    lng: z.coerce.number().optional(),
   })
   .strict()
 

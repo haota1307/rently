@@ -48,10 +48,11 @@ export default function RentalListings() {
 
   const posts = postsData?.data || [];
   const totalPages = postsData?.totalPages || 1;
-  const totalItems = postsData?.totalItems || 0;
 
   // Tạo danh sách bài đăng từ dữ liệu post
   const listings: Listing[] = [];
+
+  console.log(posts);
 
   posts.forEach((post: PostType) => {
     // Lấy thông tin phòng từ bài đăng
@@ -90,11 +91,31 @@ export default function RentalListings() {
       area,
       images,
       amenities,
-      distance: 0,
+      distance: rental.distance !== undefined ? Number(rental.distance) : 0,
       isNew,
       rentalId: String(rental.id),
       rentalTitle: rental.title,
     });
+  });
+
+  // Sắp xếp danh sách theo option được chọn
+  const sortedListings = [...listings].sort((a, b) => {
+    switch (sortOption) {
+      case "newest":
+        return 0; // Giữ thứ tự ban đầu từ API
+      case "price-asc":
+        return a.price - b.price;
+      case "price-desc":
+        return b.price - a.price;
+      case "area-asc":
+        return a.area - b.area;
+      case "area-desc":
+        return b.area - a.area;
+      case "distance":
+        return a.distance - b.distance;
+      default:
+        return 0;
+    }
   });
 
   const handlePageChange = (newPage: number) => {
@@ -164,7 +185,7 @@ export default function RentalListings() {
             }
           >
             {listings.length > 0 ? (
-              listings.map((listing) => (
+              sortedListings.map((listing) => (
                 <RentalCard
                   key={listing.id}
                   listing={listing}
