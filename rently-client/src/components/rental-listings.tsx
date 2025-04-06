@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Pagination,
   PaginationContent,
@@ -17,10 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Grid3X3, LayoutList } from "lucide-react";
+import { Grid3X3, LayoutList, X } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
 import { useGetPosts } from "@/features/post/usePost";
 import { PostType } from "@/schemas/post.schema";
+import { useSearchParams } from "next/navigation";
+import { FilterValues } from "./search-filters";
+import { Badge } from "@/components/ui/badge";
+import { useGetAmenities } from "@/features/amenity/useAmenity";
 
 // Định nghĩa interface cho dữ liệu truyền vào RentalCard
 export interface Listing {
@@ -31,19 +35,47 @@ export interface Listing {
   area: number;
   images: string[];
   amenities: string[];
+  amenityIds: number[];
   distance: number;
   isNew?: boolean;
   rentalId?: string;
   rentalTitle?: string;
 }
 
-export default function RentalListings() {
+interface RentalListingsProps {
+  filters?: FilterValues;
+  onFiltersChange?: (filters: FilterValues) => void;
+}
+
+export default function RentalListings({
+  filters = {},
+  onFiltersChange,
+}: RentalListingsProps) {
+  const searchParams = useSearchParams();
   const [sortOption, setSortOption] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  const { data, isLoading } = useGetPosts({ page, limit });
+  // Lấy thông tin tìm kiếm từ URL (chỉ phần tìm kiếm, không phải filter)
+  const title = searchParams.get("title") || undefined;
+
+  // Lấy thông tin từ filters prop thay vì URL
+  const {
+    distance,
+    area: areaFilter,
+    price,
+    amenities: amenityIds = [],
+  } = filters;
+
+  // Đếm số lượng bộ lọc đang được áp dụng
+  const activeFilterCount = Object.keys(filters).length;
+
+  const { data, isLoading } = useGetPosts({
+    page,
+    limit,
+    title,
+  });
   const postsData = data;
 
   const posts = postsData?.data || [];
@@ -51,8 +83,6 @@ export default function RentalListings() {
 
   // Tạo danh sách bài đăng từ dữ liệu post
   const listings: Listing[] = [];
-
-  console.log(posts);
 
   posts.forEach((post: PostType) => {
     // Lấy thông tin phòng từ bài đăng
@@ -83,6 +113,11 @@ export default function RentalListings() {
       ? room.roomAmenities.map((amenity) => amenity.amenity.name)
       : [];
 
+    // Lấy danh sách ID của tiện ích
+    const amenityIds = room.roomAmenities
+      ? room.roomAmenities.map((amenity) => amenity.amenityId)
+      : [];
+
     listings.push({
       id: String(post.id),
       title: post.title,
@@ -91,6 +126,7 @@ export default function RentalListings() {
       area,
       images,
       amenities,
+      amenityIds,
       distance: rental.distance !== undefined ? Number(rental.distance) : 0,
       isNew,
       rentalId: String(rental.id),
@@ -98,8 +134,55 @@ export default function RentalListings() {
     });
   });
 
+  // Lọc danh sách dựa trên các bộ lọc
+  const filteredListings = listings.filter((listing) => {
+    // Lọc theo khoảng cách
+    if (distance) {
+      const [min, max] = distance.includes(">")
+        ? [parseFloat(distance.replace(">", "")), Infinity]
+        : distance.split("-").map(Number);
+
+      if (listing.distance < min || listing.distance > max) return false;
+    }
+
+    // Lọc theo diện tích
+    if (areaFilter) {
+      const [min, max] = areaFilter.includes(">")
+        ? [parseFloat(areaFilter.replace(">", "")), Infinity]
+        : areaFilter.split("-").map(Number);
+
+      if (listing.area < min || listing.area > max) return false;
+    }
+
+    // Lọc theo giá
+    if (price) {
+      const [min, max] = price.includes(">")
+        ? [parseFloat(price.replace(">", "")), Infinity]
+        : price.split("-").map(Number);
+
+      if (listing.price < min || listing.price > max) return false;
+    }
+
+    // Lọc theo tiện ích
+    if (amenityIds.length > 0) {
+      // Chuyển đổi amenityIds sang kiểu số để so sánh đúng với listing.amenityIds
+      const numericAmenityIds = amenityIds.map((id) =>
+        typeof id === "string" ? parseInt(id, 10) : id
+      );
+
+      // Kiểm tra xem tất cả các amenityIds được chọn có nằm trong listing.amenityIds không
+      const hasAllAmenities = numericAmenityIds.every((id) =>
+        listing.amenityIds.includes(id)
+      );
+
+      if (!hasAllAmenities) return false;
+    }
+
+    return true;
+  });
+
   // Sắp xếp danh sách theo option được chọn
-  const sortedListings = [...listings].sort((a, b) => {
+  const sortedListings = [...filteredListings].sort((a, b) => {
     switch (sortOption) {
       case "newest":
         return 0; // Giữ thứ tự ban đầu từ API
@@ -124,13 +207,112 @@ export default function RentalListings() {
     }
   };
 
+  // Lấy danh sách tiện ích để hiển thị tên thay vì ID
+  const { data: amenitiesData } = useGetAmenities();
+  const amenitiesList = amenitiesData?.data || [];
+
+  // Hàm để xóa một bộ lọc cụ thể
+  const removeFilter = (filterKey: keyof FilterValues, amenityId?: number) => {
+    if (!onFiltersChange) return;
+
+    const newFilters = { ...filters };
+
+    if (filterKey === "amenities" && amenityId !== undefined) {
+      // Xóa một tiện ích cụ thể
+      const newAmenities = (newFilters.amenities || []).filter(
+        (id) => id !== amenityId
+      );
+      if (newAmenities.length === 0) {
+        delete newFilters.amenities;
+      } else {
+        newFilters.amenities = newAmenities;
+      }
+    } else {
+      // Xóa bộ lọc khác
+      delete newFilters[filterKey];
+    }
+
+    onFiltersChange(newFilters);
+  };
+
+  // Tìm tên tiện ích dựa trên ID
+  const getAmenityName = (id: number) => {
+    const amenity = amenitiesList.find((a) => a.id === id);
+    return amenity ? amenity.name : String(id);
+  };
+
+  // Lấy nhãn của bộ lọc để hiển thị
+  const getFilterLabel = (key: string, value: any) => {
+    switch (key) {
+      case "distance":
+        return `Khoảng cách: ${
+          value.includes(">")
+            ? `>${value.replace(">", "")}km`
+            : `${value.split("-").join("-")}km`
+        }`;
+      case "area":
+        return `Diện tích: ${
+          value.includes(">")
+            ? `>${value.replace(">", "")}m²`
+            : `${value.split("-").join("-")}m²`
+        }`;
+      case "price":
+        return `Giá: ${
+          value.includes(">")
+            ? `>${value.replace(">", "")}đ`
+            : `${value.split("-").join("-")}đ`
+        }`;
+      default:
+        return `${key}: ${value}`;
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2">
           <p className="text-muted-foreground">
-            Hiển thị {listings.length} kết quả
+            Hiển thị {sortedListings.length} kết quả
+            {activeFilterCount > 0 && (
+              <span> với {activeFilterCount} bộ lọc</span>
+            )}
           </p>
+
+          {activeFilterCount > 0 && onFiltersChange && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {Object.entries(filters).map(([key, value]) => {
+                if (key === "amenities") {
+                  // Hiển thị từng tiện ích dưới dạng badge riêng biệt
+                  return (value as number[]).map((amenityId) => (
+                    <Badge
+                      key={`amenity-${amenityId}`}
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
+                      {getAmenityName(amenityId)}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => removeFilter("amenities", amenityId)}
+                      />
+                    </Badge>
+                  ));
+                }
+                return (
+                  <Badge
+                    key={key}
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    {getFilterLabel(key, value)}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => removeFilter(key as keyof FilterValues)}
+                    />
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={sortOption} onValueChange={setSortOption}>
@@ -184,7 +366,7 @@ export default function RentalListings() {
                 : "grid grid-cols-1 gap-4"
             }
           >
-            {listings.length > 0 ? (
+            {sortedListings.length > 0 ? (
               sortedListings.map((listing) => (
                 <RentalCard
                   key={listing.id}

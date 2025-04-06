@@ -7,11 +7,17 @@ import {
   UpdateAmenityBodyType,
 } from "@/schemas/amenity.schema";
 
-export const useGetAmenities = (queryParams: GetAmenitiesQueryType) => {
+export const useGetAmenities = (
+  queryParams?: Partial<GetAmenitiesQueryType>
+) => {
   return useQuery({
     queryKey: ["amenities", queryParams],
     queryFn: async () => {
-      const res = await amenityApiRequest.list(queryParams);
+      const res = await amenityApiRequest.list({
+        page: queryParams?.page,
+        limit: queryParams?.limit,
+        name: queryParams?.name,
+      });
       return res.payload;
     },
   });

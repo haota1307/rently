@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,28 +12,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { useGetAmenities } from "@/features/amenity/useAmenity";
+import { AmenityType } from "@/schemas/amenity.schema";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function SearchFilters() {
-  // Giá trị mặc định cho bộ lọc
-  const [selectedDistance, setSelectedDistance] = useState<string | null>(null);
-  const [selectedArea, setSelectedArea] = useState<string | null>(null);
-  const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+// Định nghĩa các loại bộ lọc
+export interface FilterValues {
+  distance?: string;
+  area?: string;
+  price?: string;
+  amenities?: number[];
+}
 
-  // Danh sách tiện ích
-  const amenities = [
-    { id: "wifi", label: "Wi-Fi" },
-    { id: "ac", label: "Điều hòa" },
-    { id: "parking", label: "Chỗ để xe" },
-    { id: "security", label: "An ninh" },
-    { id: "furniture", label: "Nội thất" },
-    { id: "private-wc", label: "WC riêng" },
-    { id: "kitchen", label: "Nhà bếp" },
-    { id: "pet", label: "Thú cưng" },
-  ];
+interface SearchFiltersProps {
+  onFiltersChange: (filters: FilterValues) => void;
+}
+
+export default function SearchFilters({ onFiltersChange }: SearchFiltersProps) {
+  // Định nghĩa trạng thái cho các bộ lọc
+  const [selectedDistance, setSelectedDistance] = useState<string>("all");
+  const [selectedArea, setSelectedArea] = useState<string>("all");
+  const [selectedPrice, setSelectedPrice] = useState<string>("all");
+  const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
+
+  // Lấy danh sách tiện ích từ API
+  const { data: amenitiesData, isLoading } = useGetAmenities();
+  const amenities = amenitiesData?.data || [];
 
   // Hàm xử lý chọn/toggle tiện ích
-  const toggleAmenity = (id: string) => {
+  const toggleAmenity = (id: number) => {
     setSelectedAmenities((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
@@ -46,15 +53,27 @@ export default function SearchFilters() {
 
   // Hàm xử lý khi nhấn nút "Áp dụng" bộ lọc
   const applyFilters = () => {
-    const filters = {
-      distance: selectedDistance,
-      area: selectedArea,
-      priceRange: selectedPrice,
-      amenities: selectedAmenities,
-    };
+    const filters: FilterValues = {};
 
-    console.log("Filters applied:", filters);
-    // Thực hiện API call hoặc cập nhật state ở đây
+    // Chỉ đưa vào filters các giá trị khác "all"
+    if (selectedDistance !== "all") filters.distance = selectedDistance;
+    if (selectedArea !== "all") filters.area = selectedArea;
+    if (selectedPrice !== "all") filters.price = selectedPrice;
+    if (selectedAmenities.length > 0) filters.amenities = selectedAmenities;
+
+    // Gọi callback để thông báo lên component cha
+    onFiltersChange(filters);
+  };
+
+  // Hàm xử lý khi nhấn nút "Xóa tất cả"
+  const clearAllFilters = () => {
+    setSelectedDistance("all");
+    setSelectedArea("all");
+    setSelectedPrice("all");
+    setSelectedAmenities([]);
+
+    // Gọi callback để thông báo lên component cha
+    onFiltersChange({});
   };
 
   return (
@@ -66,11 +85,12 @@ export default function SearchFilters() {
         {/* Bộ lọc khoảng cách */}
         <div className="space-y-2">
           <Label htmlFor="distance">Khoảng cách</Label>
-          <Select onValueChange={handleDistanceChange}>
+          <Select value={selectedDistance} onValueChange={handleDistanceChange}>
             <SelectTrigger id="distance" className="w-full">
               <SelectValue placeholder="Chọn khoảng cách" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Tất cả khoảng cách</SelectItem>
               <SelectItem value="0-3">Dưới 3 Km</SelectItem>
               <SelectItem value="3-5">3 Km - 5 Km</SelectItem>
               <SelectItem value="5-10">5 Km - 10 Km</SelectItem>
@@ -82,11 +102,12 @@ export default function SearchFilters() {
         {/* Bộ lọc diện tích */}
         <div className="space-y-2">
           <Label htmlFor="area">Diện tích</Label>
-          <Select onValueChange={handleAreaChange}>
+          <Select value={selectedArea} onValueChange={handleAreaChange}>
             <SelectTrigger id="area" className="w-full">
               <SelectValue placeholder="Chọn diện tích" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Tất cả diện tích</SelectItem>
               <SelectItem value="0-20">Dưới 20 m²</SelectItem>
               <SelectItem value="20-30">20 m² - 30 m²</SelectItem>
               <SelectItem value="30-50">30 m² - 50 m²</SelectItem>
@@ -98,16 +119,17 @@ export default function SearchFilters() {
         {/* Bộ lọc khoảng giá*/}
         <div className="space-y-2">
           <Label htmlFor="price">Khoảng giá</Label>
-          <Select onValueChange={handlePriceChange}>
+          <Select value={selectedPrice} onValueChange={handlePriceChange}>
             <SelectTrigger id="price" className="w-full">
               <SelectValue placeholder="Chọn khoảng giá" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Tất cả mức giá</SelectItem>
               <SelectItem value="0-1000000">Dưới 1 triệu VND</SelectItem>
               <SelectItem value="1000000-3000000">
                 1 triệu - 3 triệu VND
               </SelectItem>
-              <SelectItem value="3000000-50000000">
+              <SelectItem value="3000000-5000000">
                 3 triệu - 5 triệu VND
               </SelectItem>
               <SelectItem value=">5000000">Trên 5 triệu VND</SelectItem>
@@ -118,25 +140,44 @@ export default function SearchFilters() {
         {/* Bộ lọc tiện ích */}
         <div className="space-y-3">
           <Label>Tiện ích</Label>
-          <div className="flex flex-wrap gap-2">
-            {amenities.map((amenity) => (
-              <Badge
-                key={amenity.id}
-                variant={
-                  selectedAmenities.includes(amenity.id) ? "default" : "outline"
-                }
-                className="cursor-pointer transition-all"
-                onClick={() => toggleAmenity(amenity.id)}
-              >
-                {amenity.label}
-              </Badge>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-6 w-16 rounded-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {amenities.map((amenity: AmenityType) => (
+                <Badge
+                  key={amenity.id}
+                  variant={
+                    selectedAmenities.includes(amenity.id)
+                      ? "default"
+                      : "outline"
+                  }
+                  className="cursor-pointer transition-all"
+                  onClick={() => toggleAmenity(amenity.id)}
+                >
+                  {amenity.name}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
-        <Button className="w-full" onClick={applyFilters}>
-          Áp dụng
-        </Button>
+        <div className="flex gap-2 w-full">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={clearAllFilters}
+          >
+            Xóa tất cả
+          </Button>
+          <Button className="flex-1" onClick={applyFilters}>
+            Áp dụng
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

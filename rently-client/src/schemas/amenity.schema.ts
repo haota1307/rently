@@ -1,34 +1,24 @@
 import { z } from "zod";
 
 export const AmenitySchema = z.object({
-  id: z.number({ invalid_type_error: "Mã tiện ích không hợp lệ" }),
-  name: z.string({ required_error: "Tên tiện ích là bắt buộc" }),
-  createdAt: z.date({ invalid_type_error: "Ngày tạo không hợp lệ" }),
+  id: z.number(),
+  name: z.string(),
+  createdAt: z.date(),
 });
 
 export const GetAmenitiesResSchema = z.object({
-  data: z.array(AmenitySchema, { invalid_type_error: "Dữ liệu không hợp lệ" }),
-  totalItems: z.number({ invalid_type_error: "Tổng số không hợp lệ" }),
-  page: z.number({ invalid_type_error: "Số trang không hợp lệ" }),
-  limit: z.number({ invalid_type_error: "Giới hạn không hợp lệ" }),
-  totalPages: z.number({ invalid_type_error: "Tổng số trang không hợp lệ" }),
+  data: z.array(AmenitySchema),
+  totalItems: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  totalPages: z.number(),
 });
 
-export const GetAmenitiesQuerySchema = z
-  .object({
-    page: z.coerce
-      .number()
-      .int()
-      .positive({ message: "Số trang phải là số nguyên dương" })
-      .default(1),
-    limit: z.coerce
-      .number()
-      .int()
-      .positive({ message: "Giới hạn phải là số nguyên dương" })
-      .default(10),
-    name: z.string().optional(),
-  })
-  .strict();
+export const GetAmenitiesQuerySchema = z.object({
+  page: z.number().default(1),
+  limit: z.number().default(100),
+  name: z.string().optional(),
+});
 
 export const CreateAmenityBodySchema = z
   .object({

@@ -11,12 +11,12 @@ import queryString from "query-string";
 const prefix = "/amenities";
 
 const amenityApiRequest = {
-  list: (params: GetAmenitiesQueryType) =>
+  list: (params: { page?: number; limit?: number; name?: string }) =>
     http.get<GetAmenitiesResType>(
       `${prefix}?` +
         queryString.stringify({
-          limit: params.limit,
-          page: params.page,
+          limit: params.limit || 100,
+          page: params.page || 1,
           name: params.name,
         })
     ),
@@ -24,10 +24,9 @@ const amenityApiRequest = {
   detail: (amenityId: number) =>
     http.get<AmenityType>(`${prefix}/${amenityId}`),
 
-  create: (body: CreateAmenityBodyType) =>
-    http.post<AmenityType>(`${prefix}`, body),
+  create: (body: { name: string }) => http.post<AmenityType>(`${prefix}`, body),
 
-  update: (amenityId: number, body: UpdateAmenityBodyType) =>
+  update: (amenityId: number, body: { name: string }) =>
     http.put<AmenityType>(`${prefix}/${amenityId}`, body),
 
   delete: (amenityId: number) =>

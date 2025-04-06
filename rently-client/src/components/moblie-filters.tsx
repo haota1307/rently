@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import {
   Sheet,
   SheetContent,
@@ -22,31 +21,53 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useGetAmenities } from "@/features/amenity/useAmenity";
+import { AmenityType } from "@/schemas/amenity.schema";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FilterValues } from "./search-filters";
 
-export function MobileFilters() {
-  const [priceRange, setPriceRange] = useState([1000000, 5000000]);
-  const [areaRange, setAreaRange] = useState([15, 50]);
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+interface MobileFiltersProps {
+  onFiltersChange: (filters: FilterValues) => void;
+}
 
-  const amenities = [
-    { id: "wifi", label: "Wi-Fi" },
-    { id: "ac", label: "Điều hòa" },
-    { id: "parking", label: "Chỗ để xe" },
-    { id: "security", label: "An ninh" },
-    { id: "furniture", label: "Nội thất" },
-    { id: "private-wc", label: "WC riêng" },
-    { id: "kitchen", label: "Nhà bếp" },
-    { id: "pet", label: "Thú cưng" },
-  ];
+export function MobileFilters({ onFiltersChange }: MobileFiltersProps) {
+  // Định nghĩa trạng thái cho các bộ lọc
+  const [selectedDistance, setSelectedDistance] = useState<string>("all");
+  const [selectedArea, setSelectedArea] = useState<string>("all");
+  const [selectedPrice, setSelectedPrice] = useState<string>("all");
+  const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
+  const [open, setOpen] = useState(false);
 
-  const toggleAmenity = (id: string) => {
+  // Lấy danh sách tiện ích từ API
+  const { data: amenitiesData, isLoading } = useGetAmenities();
+  const amenities = amenitiesData?.data || [];
+
+  const toggleAmenity = (id: number) => {
     setSelectedAmenities((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
+  const handleDistanceChange = (value: string) => setSelectedDistance(value);
+  const handleAreaChange = (value: string) => setSelectedArea(value);
+  const handlePriceChange = (value: string) => setSelectedPrice(value);
+
+  const applyFilters = () => {
+    const filters: FilterValues = {};
+
+    // Chỉ đưa vào filters các giá trị khác "all"
+    if (selectedDistance !== "all") filters.distance = selectedDistance;
+    if (selectedArea !== "all") filters.area = selectedArea;
+    if (selectedPrice !== "all") filters.price = selectedPrice;
+    if (selectedAmenities.length > 0) filters.amenities = selectedAmenities;
+
+    // Gọi callback để thông báo lên component cha
+    onFiltersChange(filters);
+    setOpen(false); // Đóng sheet sau khi áp dụng bộ lọc
+  };
+
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="outline" className="w-full">
           <Filter className="mr-2 h-4 w-4" />
@@ -61,95 +82,97 @@ export function MobileFilters() {
           </SheetDescription>
         </SheetHeader>
         <div className="space-y-6 py-4 overflow-y-auto max-h-[calc(85vh-10rem)]">
+          {/* Bộ lọc khoảng cách */}
           <div className="space-y-2">
-            <Label htmlFor="mobile-location">Khu vực</Label>
-            <Select>
-              <SelectTrigger id="mobile-location">
-                <SelectValue placeholder="Chọn khu vực" />
+            <Label htmlFor="mobile-distance">Khoảng cách</Label>
+            <Select
+              value={selectedDistance}
+              onValueChange={handleDistanceChange}
+            >
+              <SelectTrigger id="mobile-distance">
+                <SelectValue placeholder="Chọn khoảng cách" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="hanoi">Hà Nội</SelectItem>
-                <SelectItem value="hcm">TP. Hồ Chí Minh</SelectItem>
-                <SelectItem value="danang">Đà Nẵng</SelectItem>
-                <SelectItem value="cantho">Cần Thơ</SelectItem>
+                <SelectItem value="all">Tất cả khoảng cách</SelectItem>
+                <SelectItem value="0-3">Dưới 3 Km</SelectItem>
+                <SelectItem value="3-5">3 Km - 5 Km</SelectItem>
+                <SelectItem value="5-10">5 Km - 10 Km</SelectItem>
+                <SelectItem value=">10">Trên 10 Km</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
+          {/* Bộ lọc diện tích */}
           <div className="space-y-2">
-            <Label htmlFor="mobile-district">Quận/Huyện</Label>
-            <Select>
-              <SelectTrigger id="mobile-district">
-                <SelectValue placeholder="Chọn quận/huyện" />
+            <Label htmlFor="mobile-area">Diện tích</Label>
+            <Select value={selectedArea} onValueChange={handleAreaChange}>
+              <SelectTrigger id="mobile-area">
+                <SelectValue placeholder="Chọn diện tích" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="quan1">Quận 1</SelectItem>
-                <SelectItem value="quan2">Quận 2</SelectItem>
-                <SelectItem value="quan3">Quận 3</SelectItem>
-                <SelectItem value="quan4">Quận 4</SelectItem>
+                <SelectItem value="all">Tất cả diện tích</SelectItem>
+                <SelectItem value="0-20">Dưới 20 m²</SelectItem>
+                <SelectItem value="20-30">20 m² - 30 m²</SelectItem>
+                <SelectItem value="30-50">30 m² - 50 m²</SelectItem>
+                <SelectItem value=">50">Trên 50 m²</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <Label>Khoảng giá</Label>
-              <span className="text-sm text-muted-foreground">
-                {priceRange[0].toLocaleString("vi-VN")}đ -{" "}
-                {priceRange[1].toLocaleString("vi-VN")}đ
-              </span>
-            </div>
-            <Slider
-              defaultValue={[1000000, 5000000]}
-              max={10000000}
-              min={500000}
-              step={100000}
-              value={priceRange}
-              onValueChange={setPriceRange}
-              className="py-4"
-            />
+          {/* Bộ lọc khoảng giá */}
+          <div className="space-y-2">
+            <Label htmlFor="mobile-price">Khoảng giá</Label>
+            <Select value={selectedPrice} onValueChange={handlePriceChange}>
+              <SelectTrigger id="mobile-price">
+                <SelectValue placeholder="Chọn khoảng giá" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả mức giá</SelectItem>
+                <SelectItem value="0-1000000">Dưới 1 triệu VND</SelectItem>
+                <SelectItem value="1000000-3000000">
+                  1 triệu - 3 triệu VND
+                </SelectItem>
+                <SelectItem value="3000000-5000000">
+                  3 triệu - 5 triệu VND
+                </SelectItem>
+                <SelectItem value=">5000000">Trên 5 triệu VND</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <Label>Diện tích</Label>
-              <span className="text-sm text-muted-foreground">
-                {areaRange[0]}m² - {areaRange[1]}m²
-              </span>
-            </div>
-            <Slider
-              defaultValue={[15, 50]}
-              max={100}
-              min={10}
-              step={5}
-              value={areaRange}
-              onValueChange={setAreaRange}
-              className="py-4"
-            />
-          </div>
-
+          {/* Bộ lọc tiện ích */}
           <div className="space-y-3">
             <Label>Tiện ích</Label>
-            <div className="flex flex-wrap gap-2">
-              {amenities.map((amenity) => (
-                <Badge
-                  key={amenity.id}
-                  variant={
-                    selectedAmenities.includes(amenity.id)
-                      ? "default"
-                      : "outline"
-                  }
-                  className="cursor-pointer transition-all"
-                  onClick={() => toggleAmenity(amenity.id)}
-                >
-                  {amenity.label}
-                </Badge>
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="h-6 w-16 rounded-full" />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {amenities.map((amenity: AmenityType) => (
+                  <Badge
+                    key={amenity.id}
+                    variant={
+                      selectedAmenities.includes(amenity.id)
+                        ? "default"
+                        : "outline"
+                    }
+                    className="cursor-pointer transition-all"
+                    onClick={() => toggleAmenity(amenity.id)}
+                  >
+                    {amenity.name}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <SheetFooter className="pt-2">
-          <Button className="w-full">Áp dụng</Button>
+          <Button className="w-full" onClick={applyFilters}>
+            Áp dụng
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
