@@ -19,6 +19,7 @@ import { RoomModule } from 'src/routes/room/room.module'
 import { ChatbotModule } from 'src/routes/chatbot/chatbot.module'
 import { AmenityModule } from 'src/routes/amenity/amenity.module'
 import { StatisticsModule } from 'src/routes/statistics/statistics.module'
+import { RoleUpgradeRequestModule } from 'src/routes/role-upgrade-request/role-upgrade-request.module'
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { StatisticsModule } from 'src/routes/statistics/statistics.module'
     ChatbotModule,
     AmenityModule,
     StatisticsModule,
+    RoleUpgradeRequestModule,
   ],
   controllers: [AppController],
   providers: [

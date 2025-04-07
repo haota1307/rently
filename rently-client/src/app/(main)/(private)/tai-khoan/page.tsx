@@ -1,3 +1,5 @@
+"use client";
+
 import AccountForm from "@/features/profile/components/account-form";
 
 const AccountPage = () => {
