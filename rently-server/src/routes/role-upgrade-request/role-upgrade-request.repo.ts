@@ -13,7 +13,7 @@ export class RoleUpgradeRequestRepo {
 
   async list(query: GetRoleUpgradeRequestsQueryType) {
     const { page = 1, limit = 10, status, userId } = query
-    const skip = (page - 1) * limit
+    const skip = (page - 1) * Number(limit)
 
     const where = {
       ...(status && { status }),
@@ -24,13 +24,17 @@ export class RoleUpgradeRequestRepo {
       this.prismaService.roleUpgradeRequest.findMany({
         where,
         skip,
-        take: limit,
+        take: Number(limit),
         include: {
           user: {
             select: {
               id: true,
               name: true,
               email: true,
+              avatar: true,
+              phoneNumber: true,
+              status: true,
+              balance: true,
             },
           },
           processedBy: {
@@ -53,19 +57,25 @@ export class RoleUpgradeRequestRepo {
       totalItems,
       page,
       limit,
-      totalPages: Math.ceil(totalItems / limit),
+      totalPages: Math.ceil(totalItems / Number(limit)),
     }
   }
 
   async findById(id: number) {
     return this.prismaService.roleUpgradeRequest.findUnique({
-      where: { id },
+      where: {
+        id: Number(id),
+      },
       include: {
         user: {
           select: {
             id: true,
             name: true,
             email: true,
+            avatar: true,
+            phoneNumber: true,
+            status: true,
+            balance: true,
           },
         },
         processedBy: {
@@ -98,6 +108,10 @@ export class RoleUpgradeRequestRepo {
             id: true,
             name: true,
             email: true,
+            avatar: true,
+            phoneNumber: true,
+            status: true,
+            balance: true,
           },
         },
         processedBy: {
@@ -121,7 +135,7 @@ export class RoleUpgradeRequestRepo {
     processedById: number
   }) {
     return this.prismaService.roleUpgradeRequest.update({
-      where: { id },
+      where: { id: Number(id) },
       data: {
         ...data,
         processedById,
@@ -132,6 +146,10 @@ export class RoleUpgradeRequestRepo {
             id: true,
             name: true,
             email: true,
+            avatar: true,
+            phoneNumber: true,
+            status: true,
+            balance: true,
           },
         },
         processedBy: {

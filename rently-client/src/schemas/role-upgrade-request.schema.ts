@@ -14,6 +14,10 @@ export const RoleUpgradeRequestSchema = z.object({
     id: z.number(),
     name: z.string(),
     email: z.string(),
+    avatar: z.string().nullable(),
+    phoneNumber: z.string().nullable(),
+    status: z.string(),
+    balance: z.number(),
   }),
   processedBy: z
     .object({
@@ -38,6 +42,7 @@ export const GetRoleUpgradeRequestsQuerySchema = z
     limit: z.coerce.number().int().positive().default(10),
     status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
     userId: z.coerce.number().int().positive().optional(),
+    search: z.string().optional(),
   })
   .strict();
 

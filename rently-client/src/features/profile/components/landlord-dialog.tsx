@@ -20,6 +20,8 @@ import { Label } from "@/components/ui/label";
 import { useUploadImages } from "@/features/media/useMedia";
 import { ImageUploadSlots } from "@/features/rental/component/image-upload-slots";
 import { ImageSlot } from "@/types/images.type";
+import { Role } from "@/constants/type";
+import { useAppStore } from "@/components/app-provider";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png"];
@@ -41,10 +43,16 @@ export default function LandlordDialog({
   landlordStatus,
   setLandlordStatus,
 }: LandlordDialogProps) {
+  const { role } = useAppStore();
   const [reason, setReason] = useState("");
   const [imageSlots, setImageSlots] = useState<ImageSlot[]>([null, null]);
   const { mutate: createRequest, isPending } = useCreateRoleUpgradeRequest();
   const { mutateAsync: uploadImages } = useUploadImages();
+
+  // Nếu là admin hoặc đã là landlord thì không hiển thị dialog
+  if (role === Role.Admin || role === Role.Landlord) {
+    return null;
+  }
 
   const validateFile = (file: File) => {
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {

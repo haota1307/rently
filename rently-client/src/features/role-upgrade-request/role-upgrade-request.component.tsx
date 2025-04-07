@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Role } from "@/constants/type";
+import { RoleName } from "@/constants/role.constant";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
@@ -32,6 +32,10 @@ export function RoleUpgradeRequest() {
   const [backImageUrl, setBackImageUrl] = useState<string>("");
   const { mutate: createRequest, isPending } = useCreateRoleUpgradeRequest();
   const { mutateAsync: uploadImage } = useUploadImage();
+
+  if (role === RoleName.Admin || role === RoleName.Landlord) {
+    return null;
+  }
 
   const validateFile = (file: File) => {
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -101,8 +105,6 @@ export function RoleUpgradeRequest() {
       }
     );
   };
-
-  if (!role || role !== Role.Client) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

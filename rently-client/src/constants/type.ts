@@ -4,9 +4,9 @@ export const TokenType = {
 } as const;
 
 export const Role = {
-  Admin: "Admin",
-  Landlord: "Landlord",
-  Client: "Client",
+  Admin: "ADMIN",
+  Landlord: "LANDLORD",
+  Client: "CLIENT",
 } as const;
 
 export const RoleIdToRole: Record<number, RoleType> = {
@@ -18,3 +18,5 @@ export const RoleIdToRole: Record<number, RoleType> = {
 export const RoleValues = [Role.Admin, Role.Landlord, Role.Client] as const;
 
 export type RoleType = (typeof Role)[keyof typeof Role];
+
+export type RoleUpgradeRequestStatus = "PENDING" | "APPROVED" | "REJECTED";

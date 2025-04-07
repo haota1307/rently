@@ -64,6 +64,11 @@ const defaultData = {
       url: "/quan-ly/quyen",
       icon: Shield,
     },
+    {
+      title: "Yêu cầu nâng cấp",
+      url: "/quan-ly/yeu-cau-nang-cap",
+      icon: Users,
+    },
   ],
 };
 

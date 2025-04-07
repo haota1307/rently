@@ -13,6 +13,7 @@ import SecurityTab from "@/features/profile/components/security-tab";
 import { useAccountMe } from "@/features/profile/useProfile";
 import { UpdateMeBodySchema, UpdateMeBodyType } from "@/schemas/profile.model";
 import { useUploadImage } from "@/features/media/useMedia";
+import { Role } from "@/constants/type";
 
 export default function AccountForm() {
   const { data } = useAccountMe();
@@ -21,9 +22,9 @@ export default function AccountForm() {
   const uploadAvatarMutation = useUploadImage();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [landlordStatus, setLandlordStatus] = useState(
-    user?.status || "INACTIVE"
-  );
+  const [landlordStatus, setLandlordStatus] = useState<
+    "ACTIVE" | "PENDING" | null
+  >(user?.role.name === Role.Landlord ? "ACTIVE" : null);
 
   const form = useForm<UpdateMeBodyType>({
     resolver: zodResolver(UpdateMeBodySchema),
@@ -117,14 +118,19 @@ export default function AccountForm() {
             <p className="text-primary-foreground/80">
               {user.email || "abc@gmail.com"}
             </p>
-            {landlordStatus === "ACTIVE" && (
-              <Badge className="mt-2 bg-green-500 text-primary hover:bg-green-500/95">
+            {user?.role.name === Role.Admin && (
+              <Badge className="mt-2 bg-purple-500 hover:bg-purple-500/95">
+                Quản trị viên
+              </Badge>
+            )}
+            {user?.role.name === Role.Landlord && (
+              <Badge className="mt-2 bg-green-500 hover:bg-green-500/95">
                 Người cho thuê
               </Badge>
             )}
-            {landlordStatus === "INACTIVE" && (
-              <Badge className="mt-2 bg-red-600 hover:bg-red-600/95 text-white">
-                Đang xét duyệt
+            {user?.role.name === Role.Client && (
+              <Badge className="mt-2 bg-blue-500 hover:bg-blue-500/95">
+                Người dùng
               </Badge>
             )}
           </div>

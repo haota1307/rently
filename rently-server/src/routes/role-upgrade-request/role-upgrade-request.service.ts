@@ -55,7 +55,7 @@ export class RoleUpgradeRequestService {
     data: UpdateRoleUpgradeRequestBodyType
     processedById: number
   }) {
-    const request = await this.roleUpgradeRequestRepo.findById(id)
+    const request = await this.roleUpgradeRequestRepo.findById(Number(id))
     if (!request) {
       throw new Error('Không tìm thấy yêu cầu')
     }
@@ -65,7 +65,7 @@ export class RoleUpgradeRequestService {
     }
 
     const result = await this.roleUpgradeRequestRepo.update({
-      id,
+      id: Number(id),
       data,
       processedById,
     })
