@@ -20,6 +20,7 @@ import { ChatbotModule } from 'src/routes/chatbot/chatbot.module'
 import { AmenityModule } from 'src/routes/amenity/amenity.module'
 import { StatisticsModule } from 'src/routes/statistics/statistics.module'
 import { RoleUpgradeRequestModule } from 'src/routes/role-upgrade-request/role-upgrade-request.module'
+import { FavoriteModule } from 'src/routes/favorite/favorite.module'
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { RoleUpgradeRequestModule } from 'src/routes/role-upgrade-request/role-u
     AmenityModule,
     StatisticsModule,
     RoleUpgradeRequestModule,
+    FavoriteModule,
   ],
   controllers: [AppController],
   providers: [

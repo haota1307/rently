@@ -19,6 +19,8 @@ import {
   ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { FavoriteButton } from "@/components/ui/favorite-button";
+import { ShareButton } from "@/components/ui/share-button";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -108,6 +110,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     rental?.lat && rental?.lng
       ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${rental.lat},${rental.lng}&zoom=17`
       : null;
+
+  const handleContactLandlord = () => {
+    // Implementation of handleContactLandlord function
+  };
 
   return (
     <div className="container mx-auto px-8 py-8">
@@ -299,6 +305,20 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </CardContent>
             </Card>
           )}
+
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={handleContactLandlord}
+              className="flex gap-2 items-center"
+            >
+              <Phone size={16} />
+              Liên hệ
+            </Button>
+
+            <FavoriteButton rentalId={rental?.id || 0} size="default" />
+
+            <ShareButton rentalDetail={rental} />
+          </div>
         </div>
 
         {/* Sidebar với thông tin chủ nhà và nhà trọ */}
