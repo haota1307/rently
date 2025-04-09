@@ -1,9 +1,21 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Building2, DollarSign, HomeIcon, Users } from "lucide-react";
+import { useGetStatisticsOverview } from "@/features/statistics/statistics.hooks";
+import { formatCurrency } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const landloardPage = () => {
+const LandlordPage = () => {
+  const { data: statistics, isLoading } = useGetStatisticsOverview();
+
+  const getPercentageChange = (value?: number) => {
+    if (value === undefined) return "0";
+    return `${value >= 0 ? "+" : ""}${value}`;
+  };
+
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 w-full">
@@ -18,14 +30,22 @@ const landloardPage = () => {
             <CardTitle className="text-sm font-medium">
               Tổng số nhà trọ
             </CardTitle>
-            {/* Sử dụng HomeIcon cho Tổng số nhà trọ */}
             <HomeIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1</div>
-            <p className="text-xs text-muted-foreground">
-              +12% so với tháng trước
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {statistics?.totalRentals || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {getPercentageChange(statistics?.percentageChanges?.rentals)}%
+                  so với tháng trước
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -36,10 +56,19 @@ const landloardPage = () => {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">32</div>
-            <p className="text-xs text-muted-foreground">
-              +8% so với tháng trước
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {statistics?.totalRooms || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {getPercentageChange(statistics?.percentageChanges?.rooms)}%
+                  so với tháng trước
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -47,14 +76,22 @@ const landloardPage = () => {
             <CardTitle className="text-sm font-medium">
               Tổng số bài viết đã đăng
             </CardTitle>
-            {/* Sử dụng Users cho Tổng số bài viết đã đăng */}
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">46</div>
-            <p className="text-xs text-muted-foreground">
-              +18% so với tháng trước
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {statistics?.totalPosts || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {getPercentageChange(statistics?.percentageChanges?.posts)}%
+                  so với tháng trước
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -65,10 +102,19 @@ const landloardPage = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">45,000đ</div>
-            <p className="text-xs text-muted-foreground">
-              +4% so với tháng trước
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(statistics?.accountBalance || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {getPercentageChange(statistics?.percentageChanges?.balance)}%
+                  so với tháng trước
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -114,4 +160,4 @@ const landloardPage = () => {
   );
 };
 
-export default landloardPage;
+export default LandlordPage;
