@@ -355,9 +355,10 @@ export function RentalDetailModal({
                   })}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-60 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                  <Calendar className="h-12 w-12 text-gray-300 mb-2" />
-                  <p className="text-gray-500">Không có thông tin phòng</p>
+                <div className="flex flex-col items-center justify-center h-full py-8">
+                  <p className="text-gray-500 mb-4">
+                    Nhà trọ này chưa có thông tin phòng
+                  </p>
                 </div>
               )}
             </ScrollArea>

@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { ShareButton } from "@/components/ui/share-button";
+import { CommentSection } from "@/components/comment-section";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -305,6 +306,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Phần bình luận */}
+          <Card>
+            <CardContent className="p-6">
+              <CommentSection postId={postId} />
+            </CardContent>
+          </Card>
 
           <div className="flex gap-2 mt-4">
             <Button

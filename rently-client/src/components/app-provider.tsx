@@ -11,6 +11,7 @@ import {
 import { create } from "zustand";
 import RefreshToken from "@/components/refresh-token";
 import { RoleType } from "@/constants/type";
+import { ConfirmProvider } from "./confirm-dialog";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,8 +59,10 @@ export default function AppProvider({
   }, [setRole]);
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
-      <RefreshToken />
+      <ConfirmProvider>
+        {children}
+        <RefreshToken />
+      </ConfirmProvider>
     </QueryClientProvider>
   );
 }

@@ -79,6 +79,7 @@ model User {
   conversationMessages ConversationMessage[]
   reviews              Review[]              @relation("TenantReviews")
   favorites            Favorite[]
+  comments             Comment[]
   RoleCreatedBy        Role[]                @relation("RoleCreatedBy")
   RoleUpdatedBy        Role[]                @relation("RoleUpdatedBy")
   PermissionCreatedBy  Permission[]          @relation("PermissionCreatedBy")
@@ -291,6 +292,8 @@ model RentalPost {
   landlord   User @relation("LandlordRentalPosts", fields: [landlordId], references: [id], onDelete: Cascade)
   landlordId Int
 
+  comments Comment[]
+
   @@index([rentalId])
   @@index([landlordId])
   @@index([startDate])
@@ -392,6 +395,30 @@ model Favorite {
   rentalId Int
 
   @@unique([userId, rentalId])
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  post   RentalPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId Int
+
+  // Self-relation cho parent-child comments
+  parentId Int?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
+  @@index([userId])
+  @@index([postId])
+  @@index([parentId])
+  @@index([createdAt])
 }
 
 model RoleUpgradeRequest {

@@ -21,6 +21,7 @@ import { AmenityModule } from 'src/routes/amenity/amenity.module'
 import { StatisticsModule } from 'src/routes/statistics/statistics.module'
 import { RoleUpgradeRequestModule } from 'src/routes/role-upgrade-request/role-upgrade-request.module'
 import { FavoriteModule } from 'src/routes/favorite/favorite.module'
+import { CommentModule } from 'src/routes/comment/comment.module'
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { FavoriteModule } from 'src/routes/favorite/favorite.module'
     StatisticsModule,
     RoleUpgradeRequestModule,
     FavoriteModule,
+    CommentModule,
   ],
   controllers: [AppController],
   providers: [
