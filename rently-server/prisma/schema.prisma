@@ -425,6 +425,7 @@ model RoleUpgradeRequest {
   id         Int                      @id @default(autoincrement())
   status     RoleUpgradeRequestStatus @default(PENDING)
   reason     String?
+  note       String?
   frontImage String
   backImage  String
   createdAt  DateTime                 @default(now())

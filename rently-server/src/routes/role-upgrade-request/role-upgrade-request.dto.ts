@@ -11,7 +11,7 @@ export const CreateRoleUpgradeRequestBodySchema = z
 export const UpdateRoleUpgradeRequestBodySchema = z
   .object({
     status: z.enum(['APPROVED', 'REJECTED']),
-    reason: z.string().optional(),
+    note: z.string().optional(),
   })
   .strict()
 

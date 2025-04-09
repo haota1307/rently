@@ -23,6 +23,10 @@ export class RoleUpgradeRequestService {
     return this.roleUpgradeRequestRepo.findById(id)
   }
 
+  async findLatestByUserId(userId: number) {
+    return this.roleUpgradeRequestRepo.findLatestByUserId(userId)
+  }
+
   async create({
     data,
     userId,
@@ -80,6 +84,12 @@ export class RoleUpgradeRequestService {
       })
     }
 
-    return result
+    // Trả về message theo định dạng MessageResDTO
+    return {
+      message:
+        data.status === 'APPROVED'
+          ? 'Yêu cầu đã được phê duyệt thành công'
+          : 'Yêu cầu đã bị từ chối',
+    }
   }
 }

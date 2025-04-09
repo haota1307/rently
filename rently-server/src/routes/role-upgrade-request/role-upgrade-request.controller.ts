@@ -21,6 +21,11 @@ export class RoleUpgradeRequestController {
     return this.roleUpgradeRequestService.list(query)
   }
 
+  @Get('me')
+  getMyRequestStatus(@ActiveUser('userId') userId: number) {
+    return this.roleUpgradeRequestService.findLatestByUserId(userId)
+  }
+
   @Get(':requestId')
   findById(@Param() params: GetRoleUpgradeRequestParamsDTO) {
     return this.roleUpgradeRequestService.findById(params.requestId)

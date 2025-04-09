@@ -14,17 +14,20 @@ import { useAccountMe } from "@/features/profile/useProfile";
 import { UpdateMeBodySchema, UpdateMeBodyType } from "@/schemas/profile.model";
 import { useUploadImage } from "@/features/media/useMedia";
 import { Role } from "@/constants/type";
+import { useCheckRoleUpgradeStatus } from "@/features/role-upgrade-request/role-upgrade-request.hook";
+import { toast } from "sonner";
 
 export default function AccountForm() {
   const { data } = useAccountMe();
   const user = data?.payload;
+  const { data: roleUpgradeStatus } = useCheckRoleUpgradeStatus();
 
   const uploadAvatarMutation = useUploadImage();
 
   const [isLoading, setIsLoading] = useState(false);
   const [landlordStatus, setLandlordStatus] = useState<
-    "ACTIVE" | "PENDING" | null
-  >(user?.role.name === Role.Landlord ? "ACTIVE" : null);
+    "ACTIVE" | "PENDING" | "REJECTED" | "none"
+  >("none");
 
   const form = useForm<UpdateMeBodyType>({
     resolver: zodResolver(UpdateMeBodySchema),
@@ -44,8 +47,24 @@ export default function AccountForm() {
         avatar: user.avatar || "",
         phoneNumber: user.phoneNumber || "",
       });
+
+      if (user.role.name === Role.Landlord) {
+        setLandlordStatus("ACTIVE");
+      }
     }
   }, [user, form]);
+
+  useEffect(() => {
+    if (roleUpgradeStatus) {
+      if (roleUpgradeStatus.status === "PENDING") {
+        setLandlordStatus("PENDING");
+      } else if (roleUpgradeStatus.status === "REJECTED") {
+        setLandlordStatus("REJECTED");
+      }
+    } else if (user?.role.name !== Role.Landlord) {
+      setLandlordStatus("none");
+    }
+  }, [roleUpgradeStatus]);
 
   const handleAvatarUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -76,7 +95,6 @@ export default function AccountForm() {
     );
   }
 
-  // Lấy các giá trị đã được watch và ép về chuỗi nếu cần
   const watchedName = form.watch("name") || "";
   const watchedAvatar =
     form.watch("avatar") || "/placeholder.svg?height=96&width=96";
@@ -92,7 +110,6 @@ export default function AccountForm() {
                 {watchedName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            {/* Input file ẩn */}
             <input
               type="file"
               accept="image/*"

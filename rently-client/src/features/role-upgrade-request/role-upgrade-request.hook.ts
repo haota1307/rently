@@ -50,3 +50,21 @@ export const useUpdateRoleUpgradeRequest = () => {
     },
   });
 };
+
+// Hook mới để kiểm tra trạng thái yêu cầu nâng cấp tài khoản của người dùng hiện tại
+export const useCheckRoleUpgradeStatus = () => {
+  return useQuery({
+    queryKey: ["role-upgrade-status"],
+    queryFn: async () => {
+      try {
+        // Lấy danh sách yêu cầu nâng cấp của người dùng hiện tại
+        const response = await roleUpgradeRequestApiRequest.me();
+        return response.payload; // Trả về yêu cầu mới nhất
+      } catch (error) {
+        // Xử lý trường hợp không có yêu cầu nào
+        return null;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // Cache 5 phút
+  });
+};

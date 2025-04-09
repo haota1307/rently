@@ -4,6 +4,7 @@ export const RoleUpgradeRequestSchema = z.object({
   id: z.number(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]),
   reason: z.string().nullable(),
+  note: z.string().nullable(),
   frontImage: z.string(),
   backImage: z.string(),
   createdAt: z.date(),

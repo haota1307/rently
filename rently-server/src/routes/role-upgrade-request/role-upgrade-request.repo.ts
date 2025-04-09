@@ -172,6 +172,37 @@ export class RoleUpgradeRequestRepo {
     })
   }
 
+  async findLatestByUserId(userId: number) {
+    return this.prismaService.roleUpgradeRequest.findFirst({
+      where: {
+        userId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            phoneNumber: true,
+            status: true,
+            balance: true,
+          },
+        },
+        processedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+  }
+
   async updateUserRole(userId: number, roleId: number) {
     return this.prismaService.user.update({
       where: { id: userId },

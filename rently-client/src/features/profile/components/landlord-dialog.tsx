@@ -106,7 +106,7 @@ export default function LandlordDialog({
             setIsOpen(false);
             setReason("");
             setImageSlots([null, null]);
-            setLandlordStatus("pending");
+            setLandlordStatus("PENDING");
           },
           onError: (error) => {
             toast.error(error.message || "Có lỗi xảy ra");
@@ -125,16 +125,17 @@ export default function LandlordDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant={"outline"} disabled={landlordStatus === "pending"}>
-          Đăng ký ngay
+        <Button variant={"outline"} disabled={landlordStatus === "PENDING"}>
+          {landlordStatus === "REJECTED" ? "Gửi lại yêu cầu" : "Đăng ký ngay"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Đăng ký trở thành người cho thuê</DialogTitle>
           <DialogDescription>
-            Hoàn thành đăng ký để bắt đầu cho thuê và kinh doanh trên nền tảng
-            của chúng tôi.
+            {landlordStatus === "REJECTED"
+              ? "Yêu cầu trước của bạn đã bị từ chối. Vui lòng cung cấp thông tin chính xác và đầy đủ để được phê duyệt."
+              : "Hoàn thành đăng ký để bắt đầu cho thuê và kinh doanh trên nền tảng của chúng tôi."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
