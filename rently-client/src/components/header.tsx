@@ -23,20 +23,46 @@ import {
 import { useAppStore } from "@/components/app-provider";
 import DropdownAvatar from "@/components/dropdown-avatar";
 import { normalizePath } from "@/lib/utils";
+import { Role } from "@/constants/type";
 
-const links = [
+// Link cơ bản cho tất cả người dùng
+const baseLinks = [
   { name: "Trang chủ", href: "/", icon: Home },
   { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
-  { name: "Quản lý", href: "/quan-ly", icon: Settings },
+];
+
+// Link cho admin
+const adminLinks = [{ name: "Quản lý", href: "/quan-ly", icon: Settings }];
+
+// Link cho landlord
+const landlordLinks = [
   { name: "Quản lý cho thuê", href: "/cho-thue", icon: Settings },
 ];
 
 export function Header() {
-  const { isAuth } = useAppStore();
+  const { isAuth, role } = useAppStore();
   const [search, setSearch] = useState("");
 
   const pathname = usePathname();
   const normalizedPathname = normalizePath(pathname || "");
+
+  // Tạo danh sách link dựa vào vai trò người dùng
+  const getLinksForRole = () => {
+    let links = [...baseLinks];
+
+    if (isAuth) {
+      if (role === Role.Admin) {
+        // Admin thấy cả hai liên kết
+        links = [...links, ...adminLinks, ...landlordLinks];
+      } else if (role === Role.Landlord) {
+        links = [...links, ...landlordLinks];
+      }
+    }
+
+    return links;
+  };
+
+  const links = getLinksForRole();
 
   return (
     <header className="sticky top-0 z-[999] border-b border-gray-200 bg-white py-4 shadow-sm">
@@ -72,82 +98,86 @@ export function Header() {
           })}
         </nav>
 
-        <div className="flex items-center gap-4">
+        {/* Right section: Search and actions */}
+        <div className="flex items-center">
           {/* Desktop search */}
-          <form className="relative hidden lg:block">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <form className="relative mr-3 hidden md:block">
             <Input
-              type="search"
+              type="text"
               placeholder="Tìm kiếm..."
-              className="w-[250px] pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9 w-[150px] md:w-[200px] lg:w-[300px]"
             />
+            <Search className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-500" />
           </form>
 
-          {/* Auth button or avatar */}
-          <div className="hidden lg:block ml-2">
-            {!isAuth ? (
-              <Button>
+          {/* Desktop actions */}
+          <div className="hidden md:flex items-center space-x-3">
+            {isAuth ? (
+              <DropdownAvatar />
+            ) : (
+              <Button asChild>
                 <Link href="/dang-nhap">Đăng nhập</Link>
               </Button>
-            ) : (
-              <DropdownAvatar />
             )}
           </div>
 
-          {/* Mobile menu trigger */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden">
-                <Menu className="h-5 w-5 text-gray-600" />
-                <span className="sr-only">Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <SheetTitle>Menu</SheetTitle>
-              </div>
-              <nav className="flex flex-col gap-4">
-                {links.map((link) => {
-                  const isActive =
-                    normalizedPathname === normalizePath(link.href);
-                  return (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      className={`font-medium transition-colors ${
-                        isActive
-                          ? "font-bold text-muted-foreground"
-                          : "text-gray-800 hover:text-primary"
-                      }`}
-                    >
-                      {link.name}
-                    </Link>
-                  );
-                })}
-              </nav>
-              {/* Mobile search */}
-              <div className="mt-6">
-                <Input
-                  type="text"
-                  placeholder="Tìm kiếm..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full"
-                />
-                <Button className="mt-3 w-full">Tìm kiếm</Button>
-              </div>
-              {/* Mobile login button */}
-              <div className="mt-6">
-                {!isAuth ? (
-                  <Button className="w-full">
-                    <Link href="/dang-nhap">Đăng nhập</Link>
-                  </Button>
-                ) : (
-                  <DropdownAvatar />
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
+          {/* Mobile burger menu */}
+          <div className="block md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <SheetTitle>Menu</SheetTitle>
+                </div>
+                <nav className="flex flex-col gap-4">
+                  {links.map((link) => {
+                    const isActive =
+                      normalizedPathname === normalizePath(link.href);
+                    return (
+                      <Link
+                        key={link.name}
+                        href={link.href}
+                        className={`font-medium transition-colors ${
+                          isActive
+                            ? "font-bold text-muted-foreground"
+                            : "text-gray-800 hover:text-primary"
+                        }`}
+                      >
+                        {link.name}
+                      </Link>
+                    );
+                  })}
+                </nav>
+                {/* Mobile search */}
+                <div className="mt-6">
+                  <Input
+                    type="text"
+                    placeholder="Tìm kiếm..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full"
+                  />
+                  <Button className="mt-3 w-full">Tìm kiếm</Button>
+                </div>
+                {/* Mobile login button */}
+                <div className="mt-6">
+                  {!isAuth ? (
+                    <Button className="w-full">
+                      <Link href="/dang-nhap">Đăng nhập</Link>
+                    </Button>
+                  ) : (
+                    <DropdownAvatar />
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>

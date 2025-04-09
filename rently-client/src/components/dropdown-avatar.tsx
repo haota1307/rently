@@ -18,10 +18,11 @@ import { getRefreshTokenFromLocalStorage, handleErrorApi } from "@/lib/utils";
 import { useAppStore } from "@/components/app-provider";
 import { useLogoutMutation } from "@/features/auth/useAuth";
 import { useAccountMe } from "@/features/profile/useProfile";
+import { Role } from "@/constants/type";
 
 export default function DropdownAvatar() {
   const router = useRouter();
-  const setRole = useAppStore((state) => state.setRole);
+  const { role, setRole } = useAppStore();
 
   const { data } = useAccountMe();
 
@@ -63,16 +64,45 @@ export default function DropdownAvatar() {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{user?.name}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+
+        {/* Các đường dẫn tùy thuộc vào vai trò */}
+        {role === Role.Admin && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/quan-ly" className="cursor-pointer">
+                Quản lý trang web
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/cho-thue" className="cursor-pointer">
+                Quản lý cho thuê
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
+
+        {role === Role.Landlord && (
+          <DropdownMenuItem asChild>
+            <Link href="/cho-thue" className="cursor-pointer">
+              Quản lý cho thuê
+            </Link>
+          </DropdownMenuItem>
+        )}
+
+        {/* Đường dẫn thông tin tài khoản - cho tất cả các role */}
         <DropdownMenuItem asChild>
           <Link href="/tai-khoan" className="cursor-pointer">
             Thông tin cá nhân
           </Link>
         </DropdownMenuItem>
+
+        {/* Các đường dẫn khác */}
         <DropdownMenuItem asChild>
-          <Link href="/tai-khoan/quen-mat-khau" className="cursor-pointer">
-            Quên mật khẩu
+          <Link href="/tin-da-luu" className="cursor-pointer">
+            Tin đã lưu
           </Link>
         </DropdownMenuItem>
+
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" onClick={logout}>
           Đăng xuất

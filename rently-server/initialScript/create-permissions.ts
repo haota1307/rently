@@ -88,6 +88,7 @@ async function bootstrap() {
       deletedAt: null,
     },
   })
+
   // Cập nhật lại các permissions trong Admin Role
   const adminRole = await prisma.role.findFirstOrThrow({
     where: {
@@ -106,6 +107,78 @@ async function bootstrap() {
     },
   })
 
+  // Cập nhật permissions cho Client Role
+  const clientRole = await prisma.role.findFirstOrThrow({
+    where: {
+      name: RoleName.Client,
+      deletedAt: null,
+    },
+  })
+
+  // Client có tất cả quyền trừ quản lý trang web và quản lý cho thuê
+  const clientPermissions = updatedPermissionsInDb.filter(permission => {
+    // Loại bỏ tất cả quyền quản trị trang web
+    const isAdminRoute =
+      permission.path.includes('/admin') ||
+      permission.module === 'STATISTICS' ||
+      permission.path.includes('/dashboard') ||
+      permission.path.includes('/role')
+
+    // Loại bỏ quyền quản lý cho thuê (rental management)
+    const isRentalManagement =
+      (permission.path.includes('/rental') && permission.method !== 'GET') ||
+      (permission.path.includes('/room') && permission.method !== 'GET') ||
+      (permission.path.includes('/post') &&
+        (permission.method === 'PUT' ||
+          permission.method === 'DELETE' ||
+          permission.method === 'PATCH'))
+
+    return !isAdminRoute && !isRentalManagement
+  })
+
+  await prisma.role.update({
+    where: {
+      id: clientRole.id,
+    },
+    data: {
+      permissions: {
+        set: clientPermissions.map(item => ({ id: item.id })),
+      },
+    },
+  })
+
+  // Cập nhật permissions cho Landlord Role
+  const landlordRole = await prisma.role.findFirstOrThrow({
+    where: {
+      name: RoleName.Landlord,
+      deletedAt: null,
+    },
+  })
+
+  // Landlord có toàn quyền giống admin ngoại trừ quyền quản lý trang web
+  const landlordPermissions = updatedPermissionsInDb.filter(permission => {
+    // Loại bỏ tất cả quyền quản trị trang web
+    const isAdminRoute =
+      permission.path.includes('/admin') ||
+      permission.module === 'STATISTICS' ||
+      permission.path.includes('/dashboard') ||
+      permission.path.includes('/role')
+
+    return !isAdminRoute
+  })
+
+  await prisma.role.update({
+    where: {
+      id: landlordRole.id,
+    },
+    data: {
+      permissions: {
+        set: landlordPermissions.map(item => ({ id: item.id })),
+      },
+    },
+  })
+
+  console.log('Updated permissions for Admin, Client, and Landlord roles')
   process.exit(0)
 }
 bootstrap()
