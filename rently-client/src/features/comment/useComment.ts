@@ -17,6 +17,7 @@ export function useComments(postId: number) {
   const [loadedCommentIds, setLoadedCommentIds] = useState<Set<number>>(
     new Set()
   );
+  const [totalComments, setTotalComments] = useState(0);
 
   // Fetch comments
   const fetchComments = async (reset = false) => {
@@ -30,6 +31,7 @@ export function useComments(postId: number) {
       });
 
       const newComments = response.payload.data;
+      setTotalComments(response.payload.totalItems);
 
       // Lọc ra comments chưa được tải
       const uniqueNewComments = newComments.filter(
@@ -265,5 +267,6 @@ export function useComments(postId: number) {
     loadMore,
     isAuth,
     page,
+    totalComments,
   };
 }

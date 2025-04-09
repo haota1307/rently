@@ -20,17 +20,15 @@ import { useInView } from "react-intersection-observer";
 import { useEffect } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 
-interface User {
-  id: number;
-  name: string;
-  avatar: string | null;
-}
-
 interface CommentSectionProps {
   postId: number;
+  hideCommentForm?: boolean;
 }
 
-export function CommentSection({ postId }: CommentSectionProps) {
+export function CommentSection({
+  postId,
+  hideCommentForm = false,
+}: CommentSectionProps) {
   const { showConfirm } = useConfirm();
   const {
     comments,
@@ -93,28 +91,35 @@ export function CommentSection({ postId }: CommentSectionProps) {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold">Bình luận</h3>
+      {!hideCommentForm && (
+        <>
+          <h3 className="text-xl font-semibold">Bình luận</h3>
 
-      {/* Comment form */}
-      <div className="space-y-4">
-        <Textarea
-          placeholder="Viết bình luận của bạn..."
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          className="min-h-[100px]"
-          disabled={!isAuth}
-        />
-        <div className="flex justify-end">
-          <Button onClick={addComment} disabled={!isAuth || !newComment.trim()}>
-            Gửi bình luận
-          </Button>
-        </div>
-        {!isAuth && (
-          <p className="text-sm text-muted-foreground text-center">
-            Vui lòng đăng nhập để bình luận
-          </p>
-        )}
-      </div>
+          {/* Comment form */}
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Viết bình luận của bạn..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="min-h-[100px]"
+              disabled={!isAuth}
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={addComment}
+                disabled={!isAuth || !newComment.trim()}
+              >
+                Gửi bình luận
+              </Button>
+            </div>
+            {!isAuth && (
+              <p className="text-sm text-muted-foreground text-center">
+                Vui lòng đăng nhập để bình luận
+              </p>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Comments list */}
       <div className="space-y-4">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useGetPostDetail } from "@/features/post/usePost";
-import { Suspense, use, useState } from "react";
+import { Suspense, use, useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
@@ -17,11 +17,16 @@ import {
   Phone,
   Building,
   ImageIcon,
+  ArrowLeft,
+  RefreshCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { ShareButton } from "@/components/ui/share-button";
 import { CommentSection } from "@/components/comment-section";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useComments } from "@/features/comment/useComment";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -35,6 +40,18 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const { data: post, isLoading, error } = useGetPostDetail(postId);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showMap, setShowMap] = useState(false);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  const {
+    comments,
+    loading,
+    newComment,
+    setNewComment,
+    addComment,
+    isAuth,
+    totalComments,
+  } = useComments(postId);
+
+  console.log(comments);
 
   if (isLoading) {
     return <PostDetailSkeleton />;
@@ -113,87 +130,93 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       : null;
 
   const handleContactLandlord = () => {
-    // Implementation of handleContactLandlord function
+    window.open(`tel:${post.landlord?.phoneNumber}`);
   };
 
   return (
-    <div className="container mx-auto px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Cột chính với thông tin bài đăng */}
-        <div className="lg:col-span-2 space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
-            <div className="flex items-center text-gray-600 mb-1">
-              <MapPin className="h-4 w-4 mr-1" />
-              <span>{rental?.address || "Không có địa chỉ"}</span>
-            </div>
-            <div className="flex items-center text-gray-600">
-              <Home className="h-4 w-4 mr-1" />
-              <span>
-                Thuộc nhà trọ: {rental?.title || "Không có thông tin"}
-              </span>
-            </div>
-          </div>
+    <div className="bg-background min-h-screen">
+      <div className="container mx-auto px-8 py-6">
+        {/* Back link */}
+        <div className="mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground -ml-2"
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Quay lại kết quả
+          </Button>
+        </div>
 
-          {/* Slider hình ảnh */}
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="relative">
-                <div className="relative aspect-video w-full overflow-hidden">
-                  <Image
-                    src={images[activeImageIndex].url}
-                    alt={`Hình ảnh ${activeImageIndex + 1}`}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover"
-                  />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cột chính với thông tin bài đăng */}
+          <div className="lg:col-span-2">
+            {/* Thông tin chính */}
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {post.title}
+              </h1>
+              <div className="flex items-center text-muted-foreground text-sm space-x-1">
+                <MapPin className="h-3.5 w-3.5" />
+                <span>{rental?.address || "Không có địa chỉ"}</span>
+              </div>
+            </div>
+
+            {/* Slider hình ảnh */}
+            <div className="relative mb-6 rounded-xl overflow-hidden border bg-muted/20">
+              <div className="relative aspect-[4/3] w-full">
+                <Image
+                  src={images[activeImageIndex].url}
+                  alt={`Hình ảnh ${activeImageIndex + 1}`}
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 800px"
+                  className="object-cover"
+                />
+
+                {images.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 rounded-full w-9 h-9 shadow-sm"
+                      onClick={prevImage}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 rounded-full w-9 h-9 shadow-sm"
+                      onClick={nextImage}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </>
+                )}
+
+                <div className="absolute bottom-2 right-2">
                   <Badge
-                    className="absolute top-2 right-2 bg-opacity-70"
                     variant="secondary"
+                    className="bg-black/50 text-white font-normal"
                   >
-                    {images[activeImageIndex].source}
+                    {activeImageIndex + 1}/{images.length}
                   </Badge>
-
-                  {images.length > 1 && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
-                        onClick={prevImage}
-                      >
-                        <ChevronLeft className="h-6 w-6" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
-                        onClick={nextImage}
-                      >
-                        <ChevronRight className="h-6 w-6" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-
-                <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-                  <div className="bg-black bg-opacity-50 rounded-full px-3 py-1 text-xs text-white">
-                    {activeImageIndex + 1} / {images.length}
-                  </div>
                 </div>
               </div>
 
               {/* Thanh thumbnail */}
               {images.length > 1 && (
-                <div className="flex overflow-x-auto gap-2 p-2 bg-gray-50">
+                <div className="flex overflow-x-auto py-2 px-2 gap-2">
                   {images.map((image, index) => (
-                    <div
+                    <button
                       key={index}
                       onClick={() => setActiveImageIndex(index)}
                       className={`relative h-16 w-24 flex-shrink-0 cursor-pointer rounded-md overflow-hidden transition ${
                         activeImageIndex === index
-                          ? "ring-2 ring-primary"
-                          : "opacity-70"
+                          ? "ring-2 ring-primary ring-offset-1"
+                          : "opacity-60 hover:opacity-100"
                       }`}
                     >
                       <Image
@@ -203,82 +226,119 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         sizes="96px"
                         className="object-cover"
                       />
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Thông tin giá và đặc điểm */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-wrap justify-between items-center mb-4">
-                <div>
-                  <span className="text-2xl font-bold text-blue-600">
-                    {room ? formatPrice(room.price) : "Liên hệ"}/tháng
+            {/* Thông tin giá, trạng thái và các action */}
+            <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-primary">
+                    {room ? formatPrice(room.price) : "Liên hệ"}
                   </span>
-                  <span className="text-gray-500 ml-2">
-                    ({room?.area || "N/A"} m²)
-                  </span>
+                  <span className="text-muted-foreground">/tháng</span>
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <Badge
-                    variant={room?.isAvailable ? "default" : "destructive"}
-                  >
-                    {room?.isAvailable ? "Còn trống" : "Đã cho thuê"}
-                  </Badge>
-                  <Badge variant="outline">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {new Date(post.createdAt).toLocaleDateString("vi-VN")}
-                  </Badge>
+                <div className="flex items-center mt-1 text-sm">
+                  <span className="text-muted-foreground">
+                    {room?.area || "N/A"} m²
+                  </span>
+                  {room?.area && room?.price && (
+                    <>
+                      <span className="mx-1 text-muted-foreground">•</span>
+                      <span className="text-muted-foreground">
+                        {formatPrice(Math.round(room.price / room.area))}/m²
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Tiện ích */}
-              {amenities.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="font-medium mb-2">Tiện ích</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {amenities.map((amenity, index) => (
-                      <Badge key={index} variant="outline">
-                        {amenity}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <Badge variant={room?.isAvailable ? "default" : "destructive"}>
+                  {room?.isAvailable ? "Còn trống" : "Đã cho thuê"}
+                </Badge>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(post.createdAt).toLocaleDateString("vi-VN")}
+                </Badge>
+              </div>
+            </div>
 
-              {/* Thông tin nhà trọ */}
-              <div className="mb-4">
-                <h3 className="font-medium mb-2">Thông tin nhà trọ</h3>
-                <div className="prose prose-sm max-w-none text-gray-700 mb-3">
-                  <p>{rental?.description || "Không có thông tin chi tiết"}</p>
+            {/* Liên hệ */}
+            <div className="flex items-center gap-2 mb-6">
+              <Button
+                onClick={handleContactLandlord}
+                className="flex gap-2 items-center"
+              >
+                <Phone size={16} />
+                Liên hệ chủ nhà
+              </Button>
+              <FavoriteButton rentalId={rental?.id || 0} size="default" />
+              <ShareButton rentalDetail={rental} />
+            </div>
+
+            {/* Tiện ích */}
+            {amenities.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Tiện ích</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {amenities.map((amenity, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center p-2 border rounded-md bg-background"
+                    >
+                      <span className="text-sm">{amenity}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {/* Mô tả chi tiết */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-3">Mô tả chi tiết</h3>
+              <div className="prose prose-sm max-w-none text-gray-700">
+                <p className="whitespace-pre-line">
+                  {post.description || "Không có mô tả chi tiết"}
+                </p>
+              </div>
+            </div>
+
+            {/* Thông tin nhà trọ */}
+            <div className="p-4 border rounded-lg bg-muted/10 mb-6">
+              <div className="flex items-start gap-2 mb-2">
+                <Home className="h-5 w-5 text-muted-foreground mt-1" />
+                <div>
+                  <h3 className="font-medium text-base">
+                    Thuộc nhà trọ: {rental?.title || "Không có thông tin"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {rental?.address}
+                  </p>
+                </div>
+              </div>
+              {rental?.description && (
+                <p className="text-sm text-muted-foreground mt-2 ml-7">
+                  {rental.description}
+                </p>
+              )}
+              <div className="mt-3 ml-7">
                 <Link href={`/nha-tro/${rental?.id}`} passHref>
                   <Button variant="outline" size="sm">
                     Xem thông tin nhà trọ
                   </Button>
                 </Link>
               </div>
+            </div>
 
-              {/* Mô tả bài đăng */}
-              <div>
-                <h3 className="font-medium mb-2">Mô tả chi tiết</h3>
-                <div className="prose prose-sm max-w-none text-gray-700">
-                  <p>{post.description || "Không có mô tả chi tiết"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Google Maps location */}
-          {googleMapsUrl && (
-            <Card>
-              <CardContent className="p-6">
+            {/* Google Maps location */}
+            {googleMapsUrl && (
+              <div className="mb-6">
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-medium">Vị trí trên bản đồ</h3>
+                  <h3 className="text-lg font-medium">Vị trí trên bản đồ</h3>
                   <Button
                     variant="outline"
                     size="sm"
@@ -289,7 +349,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 </div>
 
                 {showMap && (
-                  <div className="aspect-video w-full mt-2 rounded-md overflow-hidden">
+                  <div className="aspect-video w-full rounded-md overflow-hidden border mb-2">
                     <iframe
                       width="100%"
                       height="100%"
@@ -300,174 +360,242 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     ></iframe>
                   </div>
                 )}
-                <p className="text-sm text-gray-500 mt-2">
-                  Địa chỉ: {rental?.address || "Chưa có thông tin địa chỉ"}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            )}
 
-          {/* Phần bình luận */}
-          <Card>
-            <CardContent className="p-6">
-              <CommentSection postId={postId} />
-            </CardContent>
-          </Card>
-
-          <div className="flex gap-2 mt-4">
-            <Button
-              onClick={handleContactLandlord}
-              className="flex gap-2 items-center"
-            >
-              <Phone size={16} />
-              Liên hệ
-            </Button>
-
-            <FavoriteButton rentalId={rental?.id || 0} size="default" />
-
-            <ShareButton rentalDetail={rental} />
-          </div>
-        </div>
-
-        {/* Sidebar với thông tin chủ nhà và nhà trọ */}
-        <div className="space-y-4">
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-medium mb-4">Thông tin người cho thuê</h3>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-gray-200">
-                  <Image
-                    src={
-                      post.landlord?.avatar ||
-                      "/placeholder.svg?height=56&width=56"
-                    }
-                    alt={post.landlord?.name || "Chủ nhà"}
-                    fill
-                    sizes="56px"
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <p className="font-medium">
-                    {post.landlord?.name || "Không có thông tin"}
-                  </p>
-                  <p className="text-sm text-gray-500">Chủ nhà trọ</p>
-                </div>
+            {/* Phần bình luận */}
+            <div className="mt-8">
+              <Separator className="mb-6" />
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Đánh giá & Bình luận</h3>
               </div>
 
-              {post.landlord?.phoneNumber && (
-                <Button className="w-full mb-2" variant="default">
-                  <Phone className="h-4 w-4 mr-2" />
-                  {post.landlord.phoneNumber}
-                </Button>
-              )}
-
-              <Button
-                className="w-full mb-2"
-                variant={post.landlord?.phoneNumber ? "outline" : "default"}
-              >
-                Nhắn tin
-              </Button>
-
-              <p className="text-xs text-center text-gray-500 mt-2">
-                {post.landlord?.email || "Không có thông tin liên hệ"}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Thông tin chi tiết nhà trọ */}
-          {rental && (
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-medium mb-4">Thông tin nhà trọ</h3>
-                <ul className="space-y-3">
-                  <li className="flex items-start space-x-2">
-                    <Building className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="font-medium">{rental.title}</p>
-                      <p className="text-sm text-gray-500">Tên nhà trọ</p>
+              <Card className="overflow-hidden shadow-sm">
+                <CardContent className="p-0">
+                  {/* Header phần bình luận */}
+                  <div className="p-4 border-b bg-card flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        variant="outline"
+                        className="bg-primary/5 text-primary hover:bg-primary/10 py-1.5 h-auto"
+                      >
+                        <span className="font-semibold">
+                          {totalComments || 0}
+                        </span>
+                        <span className="ml-1">bình luận</span>
+                      </Badge>
                     </div>
-                  </li>
 
-                  <li className="flex items-start space-x-2">
-                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="font-medium">{rental.address}</p>
-                      <p className="text-sm text-gray-500">Địa chỉ</p>
-                    </div>
-                  </li>
-
-                  {rental.rentalImages && rental.rentalImages.length > 0 && (
-                    <li className="flex items-start space-x-2">
-                      <ImageIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="font-medium">
-                          {rental.rentalImages.length} hình ảnh
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Tổng số hình ảnh của nhà trọ
-                        </p>
-                      </div>
-                    </li>
-                  )}
-                </ul>
-
-                <div className="mt-4">
-                  <Link href={`/nha-tro/${rental.id}`} passHref>
-                    <Button variant="default" size="sm" className="w-full">
-                      Xem tất cả phòng tại nhà trọ này
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-8 px-3 border-dashed"
+                      onClick={() => {
+                        window.location.reload();
+                      }}
+                    >
+                      <RefreshCcw className="h-3.5 w-3.5 mr-2" />
+                      Làm mới
                     </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </div>
 
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-medium mb-4">Thông tin chi tiết</h3>
-              <ul className="space-y-2">
-                <li className="flex justify-between">
-                  <span className="text-gray-600">ID bài đăng:</span>
-                  <span className="font-medium">{post.id}</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Ngày đăng:</span>
-                  <span className="font-medium">
-                    {new Date(post.createdAt).toLocaleDateString("vi-VN")}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Ngày bắt đầu:</span>
-                  <span className="font-medium">
-                    {post.startDate
-                      ? new Date(post.startDate).toLocaleDateString("vi-VN")
-                      : "Không có"}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Ngày kết thúc:</span>
-                  <span className="font-medium">
-                    {post.endDate
-                      ? new Date(post.endDate).toLocaleDateString("vi-VN")
-                      : "Không có"}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Trạng thái:</span>
-                  <Badge
-                    variant={post.status === "ACTIVE" ? "default" : "outline"}
-                  >
-                    {post.status === "ACTIVE"
-                      ? "Đang hoạt động"
-                      : post.status === "INACTIVE"
-                      ? "Tạm ngưng"
-                      : "Đã xóa"}
-                  </Badge>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
+                  {/* Phần hiển thị bình luận */}
+                  <div className="flex flex-col" style={{ height: "450px" }}>
+                    {/* Phần cuộn bình luận */}
+                    <ScrollArea className="flex-1 bg-muted/5">
+                      <div className="p-5">
+                        <CommentSection
+                          postId={postId}
+                          hideCommentForm={true}
+                        />
+                      </div>
+                      <ScrollBar />
+                    </ScrollArea>
+
+                    {/* Form nhập bình luận */}
+                    <div className="border-t bg-card p-4">
+                      <div className="flex gap-3">
+                        <div className="relative h-10 w-10 rounded-full overflow-hidden border bg-muted flex-shrink-0">
+                          <Image
+                            src="/placeholder.svg?height=40&width=40"
+                            alt="Avatar"
+                            fill
+                            sizes="40px"
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          <div className="relative">
+                            <textarea
+                              ref={commentInputRef}
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              className="min-h-[100px] w-full rounded-lg border border-input bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                              placeholder={
+                                isAuth
+                                  ? "Chia sẻ ý kiến của bạn về bài đăng này..."
+                                  : "Vui lòng đăng nhập để bình luận"
+                              }
+                              disabled={!isAuth}
+                            />
+                            {!isAuth && (
+                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-4 rounded-lg text-center">
+                                <p className="text-sm font-medium mb-2">
+                                  Bạn cần đăng nhập để bình luận
+                                </p>
+                                <Link href="/dang-nhap">
+                                  <Button size="sm">Đăng nhập</Button>
+                                </Link>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="text-xs text-muted-foreground">
+                              Hãy chia sẻ đánh giá chân thực để giúp người khác
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                addComment();
+                                if (commentInputRef.current) {
+                                  commentInputRef.current.focus();
+                                }
+                              }}
+                              disabled={!isAuth || !newComment.trim()}
+                              className="px-4"
+                            >
+                              Gửi bình luận
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Sidebar với thông tin chủ nhà và nhà trọ */}
+          <div>
+            <div className="lg:sticky lg:top-20">
+              {/* Thông tin người cho thuê */}
+              <Card className="mb-4">
+                <CardContent className="p-5">
+                  <h3 className="font-medium mb-4">Thông tin người cho thuê</h3>
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="relative h-12 w-12 rounded-full overflow-hidden bg-gray-200">
+                      <Image
+                        src={
+                          post.landlord?.avatar ||
+                          "/placeholder.svg?height=48&width=48"
+                        }
+                        alt={post.landlord?.name || "Chủ nhà"}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {post.landlord?.name || "Không có thông tin"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Chủ nhà trọ
+                      </p>
+                    </div>
+                  </div>
+
+                  {post.landlord?.phoneNumber && (
+                    <Button className="w-full mb-2" variant="default">
+                      <Phone className="h-4 w-4 mr-2" />
+                      {post.landlord.phoneNumber}
+                    </Button>
+                  )}
+
+                  <Button className="w-full" variant="outline">
+                    Nhắn tin
+                  </Button>
+
+                  {post.landlord?.email && (
+                    <p className="text-xs text-center text-muted-foreground mt-2">
+                      {post.landlord.email}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Thông tin chi tiết */}
+              <Card className="mb-4">
+                <CardContent className="p-5">
+                  <h3 className="font-medium mb-3">Thông tin chi tiết</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex justify-between py-1 border-b">
+                      <span className="text-muted-foreground">
+                        ID bài đăng:
+                      </span>
+                      <span>{post.id}</span>
+                    </li>
+                    <li className="flex justify-between py-1 border-b">
+                      <span className="text-muted-foreground">Diện tích:</span>
+                      <span>{room?.area || "N/A"} m²</span>
+                    </li>
+                    <li className="flex justify-between py-1 border-b">
+                      <span className="text-muted-foreground">Ngày đăng:</span>
+                      <span>
+                        {new Date(post.createdAt).toLocaleDateString("vi-VN")}
+                      </span>
+                    </li>
+                    {post.startDate && (
+                      <li className="flex justify-between py-1 border-b">
+                        <span className="text-muted-foreground">
+                          Ngày bắt đầu:
+                        </span>
+                        <span>
+                          {new Date(post.startDate).toLocaleDateString("vi-VN")}
+                        </span>
+                      </li>
+                    )}
+                    {post.endDate && (
+                      <li className="flex justify-between py-1 border-b">
+                        <span className="text-muted-foreground">
+                          Ngày kết thúc:
+                        </span>
+                        <span>
+                          {new Date(post.endDate).toLocaleDateString("vi-VN")}
+                        </span>
+                      </li>
+                    )}
+                    <li className="flex justify-between py-1">
+                      <span className="text-muted-foreground">Trạng thái:</span>
+                      <Badge
+                        variant={
+                          post.status === "ACTIVE" ? "default" : "outline"
+                        }
+                        className="font-normal"
+                      >
+                        {post.status === "ACTIVE"
+                          ? "Đang hoạt động"
+                          : post.status === "INACTIVE"
+                          ? "Tạm ngưng"
+                          : "Đã xóa"}
+                      </Badge>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* CTA cuối trang */}
+              <div className="text-center p-4 bg-muted/20 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Bạn có phòng trọ cần cho thuê?
+                </p>
+                <Link href="/dang-tin">
+                  <Button className="w-full">Đăng tin ngay</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -482,97 +610,40 @@ function PostDetailSkeleton() {
           <div>
             <Skeleton className="h-8 w-2/3" />
             <Skeleton className="h-4 w-1/2 mt-2" />
-            <Skeleton className="h-4 w-1/3 mt-2" />
           </div>
 
           <Skeleton className="aspect-video w-full rounded-lg" />
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <Skeleton className="h-8 w-1/3" />
-                <div className="flex space-x-2">
-                  <Skeleton className="h-6 w-20" />
-                  <Skeleton className="h-6 w-20" />
-                </div>
-              </div>
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-8 w-1/3" />
+            <div className="flex space-x-2">
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+          </div>
 
-              <Skeleton className="h-4 w-1/4 mb-2" />
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Skeleton className="h-6 w-16" />
-                <Skeleton className="h-6 w-20" />
-                <Skeleton className="h-6 w-24" />
-              </div>
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-1/4" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
 
-              <Skeleton className="h-4 w-1/4 mb-2" />
-              <Skeleton className="h-20 w-full" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-3">
-                <Skeleton className="h-5 w-1/3" />
-                <Skeleton className="h-9 w-28" />
-              </div>
-              <Skeleton className="aspect-video w-full mt-2 rounded-md" />
-            </CardContent>
-          </Card>
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-20 w-full" />
+          </div>
         </div>
 
         <div className="space-y-4">
-          <Card>
-            <CardContent className="p-6">
-              <Skeleton className="h-5 w-1/2 mb-4" />
-              <div className="flex items-center space-x-3 mb-4">
-                <Skeleton className="h-14 w-14 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
-              </div>
-
-              <Skeleton className="h-10 w-full mb-2" />
-              <Skeleton className="h-10 w-full mb-2" />
-              <Skeleton className="h-3 w-full" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <Skeleton className="h-5 w-1/2 mb-4" />
-              <div className="space-y-3">
-                {Array(3)
-                  .fill(0)
-                  .map((_, i) => (
-                    <div key={i} className="flex space-x-2">
-                      <Skeleton className="h-5 w-5" />
-                      <div className="space-y-1 flex-1">
-                        <Skeleton className="h-5 w-full" />
-                        <Skeleton className="h-4 w-2/3" />
-                      </div>
-                    </div>
-                  ))}
-              </div>
-              <Skeleton className="h-9 w-full mt-4" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <Skeleton className="h-5 w-1/2 mb-4" />
-              <div className="space-y-3">
-                {Array(5)
-                  .fill(0)
-                  .map((_, i) => (
-                    <div key={i} className="flex justify-between">
-                      <Skeleton className="h-4 w-1/3" />
-                      <Skeleton className="h-4 w-1/3" />
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div>
+            <Skeleton className="h-[150px] w-full rounded-xl" />
+          </div>
+          <div>
+            <Skeleton className="h-[200px] w-full rounded-xl" />
+          </div>
         </div>
       </div>
     </div>
