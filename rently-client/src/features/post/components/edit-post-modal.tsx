@@ -6,6 +6,7 @@ import { useUpdatePost } from "@/features/post/usePost";
 import { useGetRooms } from "@/features/rooms/useRoom";
 import { toast } from "sonner";
 import { RentalPostStatus } from "@/schemas/post.schema";
+import { Input } from "@/components/ui/input";
 
 import {
   Dialog,
@@ -230,14 +231,27 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
             {/* Giá đăng bài */}
             <div className="grid w-full items-center gap-1.5">
               <label htmlFor="pricePaid" className="text-sm font-medium">
-                Giá đăng bài (VNĐ)
+                Giá đăng bài <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
+              <Input
+                type="text"
+                pattern="[0-9]*"
                 id="pricePaid"
                 name="pricePaid"
                 value={formData.pricePaid}
-                onChange={handleInputChange}
+                placeholder="Nhập giá đăng bài"
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "");
+                  setFormData({
+                    ...formData,
+                    pricePaid: value,
+                  });
+                }}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 required
               />

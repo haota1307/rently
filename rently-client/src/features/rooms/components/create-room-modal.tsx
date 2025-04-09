@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCreateRoom } from "@/features/rooms/useRoom";
-import { useGetRentals } from "@/features/rental/useRental";
+import { useGetRentalsById } from "@/features/rental/useRental";
 import { AmenitySelector } from "@/features/dashboard/components/amenity-selector";
 import { AmenityType } from "@/schemas/amenity.schema";
 import { useForm } from "react-hook-form";
@@ -42,6 +42,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ImageUploadSlots } from "@/features/rental/component/image-upload-slots";
+import { Switch } from "@/components/ui/switch";
+import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 
 type CreateRoomModalProps = {
   open: boolean;
@@ -61,11 +63,18 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
   const { mutateAsync: imageUpload, isPending: imageUploading } =
     useUploadImages();
 
-  // Lấy danh sách nhà trọ
-  const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentals({
-    limit: 100,
-    page: 1,
-  });
+  // Lấy userId từ token
+  const accessToken = getAccessTokenFromLocalStorage();
+  const userId = accessToken ? decodeAccessToken(accessToken).userId : null;
+
+  // Lấy danh sách nhà trọ của chủ trọ đang đăng nhập
+  const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentalsById(
+    userId!,
+    {
+      limit: 100,
+      page: 1,
+    }
+  );
   const rentalOptions = rentalsData?.data ?? [];
 
   // Form validation
@@ -225,10 +234,19 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
                     <FormLabel>Giá (VNĐ)</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        pattern="[0-9]*"
                         placeholder="Nhập giá phòng"
                         {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          field.onChange(value ? Number(value) : 0);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -245,10 +263,19 @@ export function CreateRoomModal({ open, onOpenChange }: CreateRoomModalProps) {
                     <FormLabel>Diện tích (m²)</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        pattern="[0-9]*"
                         placeholder="Nhập diện tích phòng"
                         {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          field.onChange(value ? Number(value) : 0);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />

@@ -57,17 +57,45 @@ const CreatePostPage = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="price">Giá thuê (VNĐ/tháng)</Label>
+                    <div className="grid w-full items-center gap-1.5">
+                      <label htmlFor="price" className="text-sm font-medium">
+                        Giá phòng (VNĐ) <span className="text-red-500">*</span>
+                      </label>
                       <Input
+                        type="text"
+                        pattern="[0-9]*"
                         id="price"
-                        type="number"
-                        placeholder="Ví dụ: 3000000"
+                        placeholder="Nhập giá phòng"
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          // Xử lý onChange tùy theo logic của bạn
+                        }}
                       />
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="area">Diện tích (m²)</Label>
-                      <Input id="area" type="number" placeholder="Ví dụ: 25" />
+                    <div className="grid w-full items-center gap-1.5">
+                      <label htmlFor="area" className="text-sm font-medium">
+                        Diện tích (m²) <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="text"
+                        pattern="[0-9]*"
+                        id="area"
+                        placeholder="Ví dụ: 25"
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          // Xử lý onChange tùy theo logic của bạn
+                        }}
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="deposit">Tiền đặt cọc</Label>

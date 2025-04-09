@@ -314,12 +314,19 @@ export function EditRoomModal({
                       <FormLabel>Giá (VNĐ)</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
+                          type="text"
+                          pattern="[0-9]*"
                           placeholder="Nhập giá phòng"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
+                          onKeyPress={(e) => {
+                            if (!/[0-9]/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "");
+                            field.onChange(value ? Number(value) : 0);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -336,12 +343,19 @@ export function EditRoomModal({
                       <FormLabel>Diện tích (m²)</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
+                          type="text"
+                          pattern="[0-9]*"
                           placeholder="Nhập diện tích phòng"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
+                          onKeyPress={(e) => {
+                            if (!/[0-9]/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "");
+                            field.onChange(value ? Number(value) : 0);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
