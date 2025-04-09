@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,9 +42,21 @@ const landlordLinks = [
 export function Header() {
   const { isAuth, role } = useAppStore();
   const [search, setSearch] = useState("");
-
   const pathname = usePathname();
   const normalizedPathname = normalizePath(pathname || "");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Đánh dấu hydration đã hoàn tất
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Đặt giá trị search từ URL
+  useEffect(() => {
+    setSearch(searchParams.get("search") || "");
+  }, [searchParams]);
 
   // Tạo danh sách link dựa vào vai trò người dùng
   const getLinksForRole = () => {
@@ -63,6 +75,12 @@ export function Header() {
   };
 
   const links = getLinksForRole();
+
+  // Xử lý khi người dùng tìm kiếm
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`/phong-tro?search=${encodeURIComponent(search)}`);
+  };
 
   return (
     <header className="sticky top-0 z-[999] border-b border-gray-200 bg-white py-4 shadow-sm">
@@ -101,7 +119,10 @@ export function Header() {
         {/* Right section: Search and actions */}
         <div className="flex items-center">
           {/* Desktop search */}
-          <form className="relative mr-3 hidden md:block">
+          <form
+            className="relative mr-3 hidden md:block"
+            onSubmit={handleSearch}
+          >
             <Input
               type="text"
               placeholder="Tìm kiếm..."
@@ -114,12 +135,16 @@ export function Header() {
 
           {/* Desktop actions */}
           <div className="hidden md:flex items-center space-x-3">
-            {isAuth ? (
-              <DropdownAvatar />
+            {isHydrated ? (
+              isAuth ? (
+                <DropdownAvatar />
+              ) : (
+                <Button asChild>
+                  <Link href="/dang-nhap">Đăng nhập</Link>
+                </Button>
+              )
             ) : (
-              <Button asChild>
-                <Link href="/dang-nhap">Đăng nhập</Link>
-              </Button>
+              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
             )}
           </div>
 
@@ -163,16 +188,22 @@ export function Header() {
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full"
                   />
-                  <Button className="mt-3 w-full">Tìm kiếm</Button>
+                  <Button className="mt-3 w-full" onClick={handleSearch}>
+                    Tìm kiếm
+                  </Button>
                 </div>
                 {/* Mobile login button */}
                 <div className="mt-6">
-                  {!isAuth ? (
-                    <Button className="w-full">
-                      <Link href="/dang-nhap">Đăng nhập</Link>
-                    </Button>
+                  {isHydrated ? (
+                    !isAuth ? (
+                      <Button className="w-full" asChild>
+                        <Link href="/dang-nhap">Đăng nhập</Link>
+                      </Button>
+                    ) : (
+                      <DropdownAvatar />
+                    )
                   ) : (
-                    <DropdownAvatar />
+                    <div className="w-full h-10 bg-gray-200 rounded animate-pulse"></div>
                   )}
                 </div>
               </SheetContent>

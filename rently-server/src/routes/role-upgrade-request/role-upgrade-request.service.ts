@@ -7,12 +7,14 @@ import {
   UpdateRoleUpgradeRequestBodyType,
 } from './role-upgrade-request.dto'
 import { PrismaService } from 'src/shared/services/prisma.service'
+import { EventsGateway } from 'src/events/events.gateway'
 
 @Injectable()
 export class RoleUpgradeRequestService {
   constructor(
     private readonly roleUpgradeRequestRepo: RoleUpgradeRequestRepo,
-    private readonly prismaService: PrismaService
+    private readonly prismaService: PrismaService,
+    private readonly eventsGateway: EventsGateway
   ) {}
 
   async list(query: GetRoleUpgradeRequestsQueryType) {
@@ -83,6 +85,9 @@ export class RoleUpgradeRequestService {
         },
       })
     }
+
+    // Gửi thông báo qua socket
+    this.eventsGateway.notifyRoleUpdated(request.userId, data.status, data.note)
 
     // Trả về message theo định dạng MessageResDTO
     return {

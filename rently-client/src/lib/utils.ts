@@ -5,6 +5,10 @@ import { AccessTokenPayload, RefreshTokenPayload } from "@/types/jwt.types";
 import { toast } from "sonner";
 import { UseFormSetError } from "react-hook-form";
 import authApiRequest from "@/features/auth/auth.api";
+import { io, Socket } from "socket.io-client";
+import { formatDistance } from "date-fns";
+import { vi } from "date-fns/locale";
+import { Role, RoleType } from "@/constants/type";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -78,12 +82,19 @@ export const removeTokensFromLocalStorage = () => {
   isBrowser && localStorage.removeItem("refreshToken");
 };
 
-export function formatPrice(price: number) {
+export function formatDistanceToNowVi(date: Date) {
+  return formatDistance(date, new Date(), {
+    addSuffix: true,
+    locale: vi,
+  });
+}
+
+export const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
   }).format(price);
-}
+};
 
 export const checkAndRefreshToken = async (param?: {
   onError?: () => void;
@@ -135,3 +146,21 @@ export const preprocessDecimal = (arg: unknown) =>
   typeof arg === "object" && arg !== null && "toNumber" in arg
     ? (arg as any).toNumber()
     : arg;
+
+export function generateSocketInstance(accessToken: string): Socket | null {
+  // Kiểm tra nếu đang chạy trên server, return null
+  if (typeof window === "undefined") return null;
+
+  try {
+    const socket = io("http://localhost:4000", {
+      auth: {
+        token: accessToken,
+      },
+    });
+
+    return socket;
+  } catch (error) {
+    console.error("Không thể tạo kết nối socket:", error);
+    return null;
+  }
+}
