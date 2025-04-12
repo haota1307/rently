@@ -25,6 +25,7 @@ import {
 import Link from "next/link";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { ShareButton } from "@/components/ui/share-button";
+import { ComparisonButton } from "@/components/ui/comparison-button";
 import { CommentSection } from "@/components/comment-section";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -162,6 +163,23 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const handleContactLandlord = () => {
     window.open(`tel:${post.landlord?.phoneNumber}`);
   };
+
+  const postActions = (
+    <div className="flex gap-2">
+      {post && (
+        <>
+          <FavoriteButton rentalId={post.rental.id} size="default" />
+          <ShareButton rentalDetail={post} />
+          <ComparisonButton
+            post={post}
+            size="default"
+            variant="outline"
+            showText={true}
+          />
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div className="bg-background min-h-screen">
@@ -306,8 +324,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 <Phone size={16} />
                 Liên hệ chủ nhà
               </Button>
-              <FavoriteButton rentalId={rental?.id || 0} size="default" />
-              <ShareButton rentalDetail={rental} />
+              {postActions}
             </div>
 
             {/* Tiện ích */}

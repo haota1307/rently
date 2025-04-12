@@ -22,6 +22,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn, formatPrice } from "@/lib/utils";
 import { RentalType } from "@/schemas/rental.schema";
 import { FavoriteButton } from "@/features/favorite/components/favorite-button";
+import { ComparisonButton } from "@/components/ui/comparison-button";
+import { PostType, RentalPostStatus } from "@/schemas/post.schema";
 
 interface Listing {
   id: string;
@@ -210,11 +212,22 @@ export const RentalCard = ({
                 </Button>
               )}
 
-              <Button size="sm" asChild className="text-xs px-2">
-                <Link href={`/bai-dang/${processedListing.id}`}>
-                  Xem chi tiết
-                </Link>
-              </Button>
+              <div className="flex gap-1">
+                {rental && (
+                  <ComparisonButton
+                    rental={rental}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs px-2"
+                    showText={true}
+                  />
+                )}
+                <Button size="sm" asChild className="text-xs px-2">
+                  <Link href={`/bai-dang/${processedListing.id}`}>
+                    Xem chi tiết
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -335,11 +348,21 @@ export const RentalCard = ({
                 </Button>
               )}
 
-              <Button size="sm" asChild>
-                <Link href={`/bai-dang/${processedListing.id}`}>
-                  Xem chi tiết
-                </Link>
-              </Button>
+              <div className="flex gap-1">
+                {rental && (
+                  <ComparisonButton
+                    rental={rental}
+                    variant="outline"
+                    size="sm"
+                    showText={true}
+                  />
+                )}
+                <Button size="sm" asChild>
+                  <Link href={`/bai-dang/${processedListing.id}`}>
+                    Xem chi tiết
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

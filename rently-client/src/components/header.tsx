@@ -21,6 +21,7 @@ import {
   Settings,
   UserIcon,
   CalendarIcon,
+  BarChart2,
 } from "lucide-react";
 import { useAppStore } from "@/components/app-provider";
 import DropdownAvatar from "@/components/dropdown-avatar";
@@ -36,6 +37,7 @@ import {
 // Link cơ bản cho tất cả người dùng
 const baseLinks = [
   { name: "Trang chủ", href: "/", icon: Home },
+  { name: "So sánh phòng trọ", href: "/so-sanh", icon: BarChart2 },
   { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
 ];
 
