@@ -1,6 +1,6 @@
 "use client";
 
-import { ViewingScheduleList } from "@/components/viewing-schedule/viewing-schedule-list";
+import { ViewingScheduleList } from "@/features/viewing-schedule/components/viewing-schedule-list";
 
 export default function ViewingSchedulePage() {
   return (

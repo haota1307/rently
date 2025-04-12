@@ -29,7 +29,7 @@ import { CommentSection } from "@/components/comment-section";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useComments } from "@/features/comment/useComment";
-import { ViewingScheduleForm } from "@/components/viewing-schedule/viewing-schedule-form";
+import { ViewingScheduleForm } from "@/features/viewing-schedule/components/viewing-schedule-form";
 import { useViewingSchedule } from "@/features/viewing-schedule/useViewingSchedule";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
