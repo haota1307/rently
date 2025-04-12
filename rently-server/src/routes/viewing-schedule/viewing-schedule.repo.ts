@@ -48,6 +48,7 @@ export class ViewingScheduleRepo {
               id: true,
               name: true,
               phoneNumber: true,
+              email: true,
             },
           },
         },
@@ -69,6 +70,7 @@ export class ViewingScheduleRepo {
             ? new Date(body.rescheduledDate)
             : null,
           note: body.note,
+          requireTenantConfirmation: body.requireTenantConfirmation,
         },
         include: {
           post: {
@@ -82,6 +84,7 @@ export class ViewingScheduleRepo {
               id: true,
               name: true,
               phoneNumber: true,
+              email: true,
             },
           },
         },
@@ -129,6 +132,7 @@ export class ViewingScheduleRepo {
                 id: true,
                 name: true,
                 phoneNumber: true,
+                email: true,
               },
             },
           },
@@ -168,6 +172,7 @@ export class ViewingScheduleRepo {
                 id: true,
                 name: true,
                 phoneNumber: true,
+                email: true,
               },
             },
           },
@@ -206,6 +211,7 @@ export class ViewingScheduleRepo {
                 id: true,
                 name: true,
                 phoneNumber: true,
+                email: true,
               },
             },
           },
@@ -234,6 +240,8 @@ export class ViewingScheduleRepo {
         ? viewingSchedule.rescheduledDate.toISOString()
         : null,
       note: viewingSchedule.note,
+      requireTenantConfirmation:
+        viewingSchedule.requireTenantConfirmation || false,
       createdAt: viewingSchedule.createdAt.toISOString(),
       updatedAt: viewingSchedule.updatedAt.toISOString(),
       post: {
@@ -244,6 +252,7 @@ export class ViewingScheduleRepo {
         id: viewingSchedule.tenant.id,
         name: viewingSchedule.tenant.name,
         phoneNumber: viewingSchedule.tenant.phoneNumber,
+        email: viewingSchedule.tenant.email,
       },
     }
   }

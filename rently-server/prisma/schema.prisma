@@ -448,16 +448,17 @@ model RoleUpgradeRequest {
 }
 
 model ViewingSchedule {
-  id              Int       @id @default(autoincrement())
-  postId          Int
-  tenantId        Int
-  landlordId      Int
-  viewingDate     DateTime
-  status          String    @default("PENDING")
-  rescheduledDate DateTime?
-  note            String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                        Int       @id @default(autoincrement())
+  postId                    Int
+  tenantId                  Int
+  landlordId                Int
+  viewingDate               DateTime
+  status                    String    @default("PENDING")
+  rescheduledDate           DateTime?
+  note                      String?
+  requireTenantConfirmation Boolean   @default(false)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 
   post     RentalPost @relation(fields: [postId], references: [id])
   tenant   User       @relation("TenantViewingSchedules", fields: [tenantId], references: [id])

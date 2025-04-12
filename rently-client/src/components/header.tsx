@@ -39,6 +39,11 @@ const baseLinks = [
   { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
 ];
 
+// Link cho client (người dùng bình thường)
+const clientLinks = [
+  { name: "Lịch xem phòng", href: "/lich-xem-phong", icon: CalendarIcon },
+];
+
 // Link cho admin
 const adminLinks = [{ name: "Quản lý", href: "/quan-ly", icon: Settings }];
 
@@ -72,10 +77,13 @@ export function Header() {
 
     if (isAuth) {
       if (role === Role.Admin) {
-        // Admin thấy cả hai liên kết
+        // Admin thấy cả hai liên kết quản lý
         links = [...links, ...adminLinks, ...landlordLinks];
       } else if (role === Role.Landlord) {
         links = [...links, ...landlordLinks];
+      } else if (role === Role.Client) {
+        // Client thấy lịch xem phòng
+        links = [...links, ...clientLinks];
       }
     }
 

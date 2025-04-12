@@ -106,25 +106,6 @@ export default function DropdownAvatar() {
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuGroup>
-          <Link href="/trang-ca-nhan" className="w-full">
-            <DropdownMenuItem>
-              Trang cá nhân
-              <DropdownMenuShortcut>
-                <UserIcon className="w-4 h-4" />
-              </DropdownMenuShortcut>
-            </DropdownMenuItem>
-          </Link>
-          <Link href="/lich-xem-phong" className="w-full">
-            <DropdownMenuItem>
-              Lịch xem phòng
-              <DropdownMenuShortcut>
-                <CalendarIcon className="w-4 h-4" />
-              </DropdownMenuShortcut>
-            </DropdownMenuItem>
-          </Link>
-        </DropdownMenuGroup>
-
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" onClick={logout}>
           Đăng xuất

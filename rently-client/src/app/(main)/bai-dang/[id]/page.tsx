@@ -19,6 +19,8 @@ import {
   ImageIcon,
   ArrowLeft,
   RefreshCcw,
+  AlertCircle,
+  CalendarX,
 } from "lucide-react";
 import Link from "next/link";
 import { FavoriteButton } from "@/components/ui/favorite-button";
@@ -28,6 +30,12 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useComments } from "@/features/comment/useComment";
 import { ViewingScheduleForm } from "@/components/viewing-schedule/viewing-schedule-form";
+import { useViewingSchedule } from "@/features/viewing-schedule/useViewingSchedule";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
+import { useAppStore } from "@/components/app-provider";
+import { Role } from "@/constants/type";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -51,6 +59,27 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     isAuth,
     totalComments,
   } = useComments(postId);
+
+  // Lấy thông tin về lịch hẹn xem phòng hiện tại của người dùng
+  const { getViewingSchedules } = useViewingSchedule();
+  const { data: schedules } = getViewingSchedules({
+    page: 1,
+    limit: 10,
+  });
+
+  const role = useAppStore((state) => state.role);
+
+  // Kiểm tra nếu người dùng là landlord hoặc admin thì không hiển thị form đặt lịch
+  const isLandlordOrAdmin = role === Role.Landlord || role === Role.Admin;
+
+  // Kiểm tra xem người dùng đã có lịch hẹn chưa bị từ chối
+  const existingSchedule = schedules?.data?.find(
+    (schedule) => schedule.post.id === postId && schedule.status !== "REJECTED"
+  );
+
+  // Kiểm tra xem người dùng có thể đặt lịch không
+  const canScheduleViewing =
+    !isLandlordOrAdmin && (!existingSchedule || !isAuth);
 
   console.log(comments);
 
@@ -530,7 +559,85 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               <Card>
                 <CardContent className="p-5">
                   <h3 className="font-medium mb-4">Đặt lịch xem phòng</h3>
-                  <ViewingScheduleForm postId={post.id} />
+
+                  {!isAuth && (
+                    <Alert variant="default" className="bg-muted">
+                      <CalendarX className="h-4 w-4" />
+                      <AlertTitle>Cần đăng nhập</AlertTitle>
+                      <AlertDescription className="mb-2">
+                        Bạn cần đăng nhập để đặt lịch xem phòng
+                      </AlertDescription>
+                      <Link href="/dang-nhap">
+                        <Button size="sm" className="mt-2">
+                          Đăng nhập
+                        </Button>
+                      </Link>
+                    </Alert>
+                  )}
+
+                  {isAuth && isLandlordOrAdmin && (
+                    <Alert variant="default" className="bg-muted">
+                      <CalendarX className="h-4 w-4" />
+                      <AlertTitle>Không thể đặt lịch</AlertTitle>
+                      <AlertDescription>
+                        Chủ nhà và quản trị viên không thể đặt lịch xem phòng
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {isAuth && !isLandlordOrAdmin && existingSchedule && (
+                    <Alert
+                      variant={
+                        existingSchedule.status === "PENDING"
+                          ? "default"
+                          : existingSchedule.status === "APPROVED"
+                          ? "default"
+                          : "default"
+                      }
+                      className={
+                        existingSchedule.status === "PENDING"
+                          ? "bg-yellow-50"
+                          : existingSchedule.status === "APPROVED"
+                          ? "bg-green-50"
+                          : "bg-blue-50"
+                      }
+                    >
+                      <Calendar className="h-4 w-4" />
+                      <AlertTitle>
+                        {existingSchedule.status === "PENDING"
+                          ? "Đang chờ xác nhận"
+                          : existingSchedule.status === "APPROVED"
+                          ? "Đã xác nhận lịch hẹn"
+                          : "Đã đổi lịch"}
+                      </AlertTitle>
+                      <AlertDescription>
+                        Bạn đã đặt lịch xem phòng này vào ngày{" "}
+                        {format(new Date(existingSchedule.viewingDate), "PPP", {
+                          locale: vi,
+                        })}{" "}
+                        lúc{" "}
+                        {format(
+                          new Date(existingSchedule.viewingDate),
+                          "HH:mm",
+                          { locale: vi }
+                        )}
+                        .
+                        <br />
+                        Vui lòng kiểm tra trong{" "}
+                        <Link
+                          href="/lich-xem-phong"
+                          className="text-primary underline"
+                        >
+                          danh sách lịch hẹn
+                        </Link>{" "}
+                        của bạn.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {isAuth && !isLandlordOrAdmin && !existingSchedule && (
+                    <ViewingScheduleForm postId={post.id} />
+                  )}
                 </CardContent>
               </Card>
 

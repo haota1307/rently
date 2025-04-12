@@ -12,6 +12,7 @@ export const UpdateViewingScheduleBodySchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'RESCHEDULED']),
   rescheduledDate: z.string().datetime().optional(),
   note: z.string().optional(),
+  requireTenantConfirmation: z.boolean().optional(),
 })
 
 // Schema cho lịch xem phòng
@@ -24,6 +25,7 @@ export const ViewingScheduleSchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'RESCHEDULED']),
   rescheduledDate: z.string().datetime().nullable(),
   note: z.string().nullable(),
+  requireTenantConfirmation: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   post: z.object({
@@ -34,6 +36,7 @@ export const ViewingScheduleSchema = z.object({
     id: z.number(),
     name: z.string(),
     phoneNumber: z.string().nullable(),
+    email: z.string(),
   }),
 })
 

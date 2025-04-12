@@ -1,23 +1,29 @@
 import {
+  Body,
   Controller,
+  Get,
+  Param,
+  ParseIntPipe,
   Post,
   Put,
-  Get,
-  Body,
-  Param,
   Query,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common'
+import { ZodSerializerDto } from 'nestjs-zod'
 import { ViewingScheduleService } from './viewing-schedule.service'
-import {
-  CreateViewingScheduleBodyType,
-  UpdateViewingScheduleBodyType,
-  GetViewingSchedulesQueryType,
-} from './viewing-schedule.model'
-import { User } from '@prisma/client'
-import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { AccessTokenGuard } from 'src/shared/guards/access-token.guard'
+import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
+import {
+  ViewingScheduleType,
+  GetViewingSchedulesResType,
+} from './viewing-schedule.model'
+import {
+  CreateViewingScheduleBodyDTO,
+  UpdateViewingScheduleBodyDTO,
+  GetViewingSchedulesQueryDTO,
+  ViewingScheduleDTO,
+  GetViewingSchedulesResDTO,
+} from './viewing-schedule.dto'
 
 @Controller('viewing-schedules')
 @UseGuards(AccessTokenGuard)
@@ -25,37 +31,39 @@ export class ViewingScheduleController {
   constructor(private viewingScheduleService: ViewingScheduleService) {}
 
   @Post()
-  create(
-    @Body() body: CreateViewingScheduleBodyType,
+  @ZodSerializerDto(ViewingScheduleDTO)
+  async create(
+    @Body() body: CreateViewingScheduleBodyDTO,
     @ActiveUser('userId') userId: number
-  ) {
-    console.log('userId', userId)
-
+  ): Promise<ViewingScheduleType> {
     return this.viewingScheduleService.create(body, userId)
   }
 
   @Put(':id')
-  update(
+  @ZodSerializerDto(ViewingScheduleDTO)
+  async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: UpdateViewingScheduleBodyType,
+    @Body() body: UpdateViewingScheduleBodyDTO,
     @ActiveUser('userId') userId: number
-  ) {
+  ): Promise<ViewingScheduleType> {
     return this.viewingScheduleService.update(id, body, userId)
   }
 
   @Get()
-  getList(
-    @Query() query: GetViewingSchedulesQueryType,
+  @ZodSerializerDto(GetViewingSchedulesResDTO)
+  async list(
+    @Query() query: GetViewingSchedulesQueryDTO,
     @ActiveUser('userId') userId: number
-  ) {
+  ): Promise<GetViewingSchedulesResType> {
     return this.viewingScheduleService.list(query, userId)
   }
 
   @Get(':id')
-  findOne(
+  @ZodSerializerDto(ViewingScheduleDTO)
+  async findById(
     @Param('id', ParseIntPipe) id: number,
     @ActiveUser('userId') userId: number
-  ) {
+  ): Promise<ViewingScheduleType> {
     return this.viewingScheduleService.findById(id, userId)
   }
 }

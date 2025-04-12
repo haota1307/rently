@@ -58,6 +58,25 @@ export class ViewingScheduleService {
       )
     }
 
+    // Kiểm tra xem người dùng đã có lịch xem phòng nào chưa bị hủy cho phòng này chưa
+    const existingSchedule = await this.prismaService.viewingSchedule.findFirst(
+      {
+        where: {
+          postId: body.postId,
+          tenantId: userId,
+          status: {
+            notIn: ['REJECTED'], // Các trạng thái chưa bị hủy
+          },
+        },
+      }
+    )
+
+    if (existingSchedule) {
+      throw new BadRequestException(
+        'Bạn đã có lịch hẹn xem phòng này. Vui lòng không đặt lịch trùng lặp.'
+      )
+    }
+
     return this.viewingScheduleRepo.create(body, userId)
   }
 

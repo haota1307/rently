@@ -13,6 +13,7 @@ import {
   LogOutIcon,
   Building2Icon,
   NotebookPen,
+  CalendarIcon as Calendar,
 } from "lucide-react";
 
 import {
@@ -93,6 +94,11 @@ const landloardData = {
       title: "Danh sách bài đăng",
       url: "/cho-thue/quan-ly-bai-dang",
       icon: NotebookPen,
+    },
+    {
+      title: "Lịch xem phòng",
+      url: "/cho-thue/dat-lich",
+      icon: Calendar,
     },
   ],
 };

@@ -2,7 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { viewingScheduleApi } from "./viewing-schedule.api";
+import {
+  viewingScheduleApi,
+  UpdateViewingScheduleData,
+} from "./viewing-schedule.api";
 
 export const useViewingSchedule = () => {
   const queryClient = useQueryClient();
@@ -33,11 +36,7 @@ export const useViewingSchedule = () => {
       data,
     }: {
       id: number;
-      data: {
-        status: "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED";
-        rescheduledDate?: string;
-        note?: string;
-      };
+      data: UpdateViewingScheduleData;
     }) => {
       const res = await viewingScheduleApi.update(id, data);
       return res.payload;

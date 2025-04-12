@@ -11,8 +11,17 @@ interface ViewingScheduleResponse {
     viewingDate: string;
     status: "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED";
     note: string | null;
+    requireTenantConfirmation: boolean;
   }[];
   total: number;
+}
+
+// Định nghĩa kiểu dữ liệu cho tham số update
+export interface UpdateViewingScheduleData {
+  status: "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED";
+  rescheduledDate?: string;
+  note?: string;
+  requireTenantConfirmation?: boolean;
 }
 
 export const viewingScheduleApi = {
@@ -20,14 +29,7 @@ export const viewingScheduleApi = {
     return http.post<ViewingScheduleResponse>("/viewing-schedules", data);
   },
 
-  update: (
-    id: number,
-    data: {
-      status: "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED";
-      rescheduledDate?: string;
-      note?: string;
-    }
-  ) => {
+  update: (id: number, data: UpdateViewingScheduleData) => {
     return http.put<ViewingScheduleResponse>(`/viewing-schedules/${id}`, data);
   },
 
