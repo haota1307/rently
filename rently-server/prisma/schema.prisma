@@ -90,6 +90,9 @@ model User {
   roleUpgradeRequests  RoleUpgradeRequest[]
   processedRequests    RoleUpgradeRequest[]  @relation("ProcessedRequests")
 
+  tenantViewingSchedules   ViewingSchedule[] @relation("TenantViewingSchedules")
+  landlordViewingSchedules ViewingSchedule[] @relation("LandlordViewingSchedules")
+
   @@index([name])
   @@index([status])
   @@index([phoneNumber])
@@ -294,6 +297,8 @@ model RentalPost {
 
   comments Comment[]
 
+  viewingSchedules ViewingSchedule[]
+
   @@index([rentalId])
   @@index([landlordId])
   @@index([startDate])
@@ -440,4 +445,25 @@ model RoleUpgradeRequest {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+}
+
+model ViewingSchedule {
+  id              Int       @id @default(autoincrement())
+  postId          Int
+  tenantId        Int
+  landlordId      Int
+  viewingDate     DateTime
+  status          String    @default("PENDING")
+  rescheduledDate DateTime?
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  post     RentalPost @relation(fields: [postId], references: [id])
+  tenant   User       @relation("TenantViewingSchedules", fields: [tenantId], references: [id])
+  landlord User       @relation("LandlordViewingSchedules", fields: [landlordId], references: [id])
+
+  @@index([postId])
+  @@index([tenantId])
+  @@index([landlordId])
 }

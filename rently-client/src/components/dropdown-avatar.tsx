@@ -7,12 +7,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { UserIcon, CalendarIcon } from "lucide-react";
 
 import { getRefreshTokenFromLocalStorage, handleErrorApi } from "@/lib/utils";
 import { useAppStore } from "@/components/app-provider";
@@ -102,6 +105,25 @@ export default function DropdownAvatar() {
             Tin đã lưu
           </Link>
         </DropdownMenuItem>
+
+        <DropdownMenuGroup>
+          <Link href="/trang-ca-nhan" className="w-full">
+            <DropdownMenuItem>
+              Trang cá nhân
+              <DropdownMenuShortcut>
+                <UserIcon className="w-4 h-4" />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/lich-xem-phong" className="w-full">
+            <DropdownMenuItem>
+              Lịch xem phòng
+              <DropdownMenuShortcut>
+                <CalendarIcon className="w-4 h-4" />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          </Link>
+        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" onClick={logout}>

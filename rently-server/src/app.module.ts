@@ -23,7 +23,7 @@ import { RoleUpgradeRequestModule } from 'src/routes/role-upgrade-request/role-u
 import { FavoriteModule } from 'src/routes/favorite/favorite.module'
 import { CommentModule } from 'src/routes/comment/comment.module'
 import { EventsModule } from './events/events.module'
-
+import { ViewingScheduleModule } from 'src/routes/viewing-schedule/viewing-schedule.module'
 @Module({
   imports: [
     SharedModule,
@@ -44,6 +44,7 @@ import { EventsModule } from './events/events.module'
     FavoriteModule,
     CommentModule,
     EventsModule,
+    ViewingScheduleModule,
   ],
   controllers: [AppController],
   providers: [

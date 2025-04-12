@@ -19,11 +19,19 @@ import {
   Home,
   Plus,
   Settings,
+  UserIcon,
+  CalendarIcon,
 } from "lucide-react";
 import { useAppStore } from "@/components/app-provider";
 import DropdownAvatar from "@/components/dropdown-avatar";
 import { normalizePath } from "@/lib/utils";
 import { Role } from "@/constants/type";
+import {
+  DropdownMenu,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuShortcut,
+} from "@/components/ui/dropdown-menu";
 
 // Link cơ bản cho tất cả người dùng
 const baseLinks = [

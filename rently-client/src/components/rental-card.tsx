@@ -66,9 +66,12 @@ export const RentalCard = ({
         images: rental.rentalImages
           ? rental.rentalImages.map((img) => img.imageUrl)
           : [],
-        amenities: [], // Dữ liệu amenities sẽ được thêm sau
+        amenities:
+          rental.rooms && rental.rooms.length > 0 && rental.rooms[0].amenities
+            ? rental.rooms[0].amenities.map((amenity) => amenity.name)
+            : [],
         distance: rental.distance || 0,
-        isNew: false, // Có thể tính dựa trên createdAt
+        isNew: false,
         isRental: true,
       }
     : listing;

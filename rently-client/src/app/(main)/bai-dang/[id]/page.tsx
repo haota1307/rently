@@ -27,6 +27,7 @@ import { CommentSection } from "@/components/comment-section";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useComments } from "@/features/comment/useComment";
+import { ViewingScheduleForm } from "@/components/viewing-schedule/viewing-schedule-form";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -522,6 +523,14 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                       {post.landlord.email}
                     </p>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Form đặt lịch xem phòng */}
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="font-medium mb-4">Đặt lịch xem phòng</h3>
+                  <ViewingScheduleForm postId={post.id} />
                 </CardContent>
               </Card>
 
