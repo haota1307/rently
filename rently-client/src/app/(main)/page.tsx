@@ -5,25 +5,34 @@ import { MobileFilters } from "@/components/moblie-filters";
 import { PageHeader } from "@/components/page-header";
 import RentalListings from "@/components/rental-listings";
 import SearchFilters, { FilterValues } from "@/components/search-filters";
-import { ListingSkeleton } from "@/components/skeletons";
 import { useState } from "react";
-
-// export const metadata: Metadata = {
-//   title: "Thuê Trọ - Tìm phòng trọ dễ dàng",
-//   description:
-//     "Nền tảng kết nối người thuê và chủ trọ, giúp bạn tìm phòng trọ phù hợp nhanh chóng và tiện lợi.",
-// };
 
 export default function Home() {
   const [activeFilters, setActiveFilters] = useState<FilterValues>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleFiltersChange = (newFilters: FilterValues) => {
+    console.log("Filters changed:", newFilters);
     setActiveFilters(newFilters);
+  };
+
+  const handleSearch = (query: string) => {
+    console.log("Search query:", query);
+    setSearchQuery(query);
+    // Cập nhật filters với từ khóa tìm kiếm
+    setActiveFilters((prev) => {
+      const newFilters = {
+        ...prev,
+        title: query, // Thay đổi từ search thành title
+      };
+      console.log("New filters:", newFilters);
+      return newFilters;
+    });
   };
 
   return (
     <div className="w-full">
-      <HeroSection />
+      <HeroSection onSearch={handleSearch} />
       <div className="container mx-auto px-8 py-12">
         <PageHeader
           title="Khám phá phòng trọ phù hợp"

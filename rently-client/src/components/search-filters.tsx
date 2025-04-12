@@ -22,6 +22,7 @@ export interface FilterValues {
   area?: string;
   price?: string;
   amenities?: number[];
+  title?: string;
 }
 
 interface SearchFiltersProps {

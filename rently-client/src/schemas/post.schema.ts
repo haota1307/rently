@@ -80,6 +80,10 @@ export const GetPostsQuerySchema = z
     status: z.string().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
+    distance: z.string().optional(),
+    area: z.string().optional(),
+    price: z.string().optional(),
+    amenityIds: z.array(z.number()).optional(),
   })
   .strict();
 

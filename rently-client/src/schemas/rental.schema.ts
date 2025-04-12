@@ -53,18 +53,14 @@ export const GetRentalsResSchema = z.object({
 
 export const GetRentalsQuerySchema = z
   .object({
-    page: z.coerce
-      .number()
-      .int()
-      .positive({ message: "Số trang phải là số nguyên dương" })
-      .default(1),
-    limit: z.coerce
-      .number()
-      .int()
-      .positive({ message: "Giới hạn phải là số nguyên dương" })
-      .default(10),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().default(10),
     title: z.string().optional(),
-    landlordId: z.coerce.number().int().positive().optional(),
+    distance: z.string().optional(),
+    area: z.string().optional(),
+    price: z.string().optional(),
+    amenityIds: z.array(z.number()).optional(),
+    landlordId: z.number().optional(),
   })
   .strict();
 

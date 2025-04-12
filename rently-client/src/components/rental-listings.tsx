@@ -52,31 +52,23 @@ export default function RentalListings({
   onFiltersChange,
 }: RentalListingsProps) {
   const searchParams = useSearchParams();
+  const [currentPage, setCurrentPage] = useState(1);
   const [sortOption, setSortOption] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [page, setPage] = useState(1);
-  const limit = 10;
 
-  // Lấy thông tin tìm kiếm từ URL (chỉ phần tìm kiếm, không phải filter)
-  const title = searchParams.get("title") || undefined;
-
-  // Lấy thông tin từ filters prop thay vì URL
-  const {
-    distance,
-    area: areaFilter,
-    price,
-    amenities: amenityIds = [],
-  } = filters;
-
-  // Đếm số lượng bộ lọc đang được áp dụng
-  const activeFilterCount = Object.keys(filters).length;
-
-  const { data, isLoading } = useGetPosts({
-    page,
-    limit,
-    title,
+  // Gọi API với các filter
+  const { data: postsData, isLoading } = useGetPosts({
+    page: currentPage,
+    limit: 10,
+    title: filters.title || undefined,
+    distance: filters.distance,
+    area: filters.area,
+    price: filters.price,
+    amenityIds: filters.amenities,
   });
-  const postsData = data;
+
+  console.log("RentalListings - Filters:", filters);
+  console.log("RentalListings - Posts data:", postsData);
 
   const posts = postsData?.data || [];
   const totalPages = postsData?.totalPages || 1;
@@ -136,45 +128,43 @@ export default function RentalListings({
   // Lọc danh sách dựa trên các bộ lọc
   const filteredListings = listings.filter((listing) => {
     // Lọc theo khoảng cách
-    if (distance) {
-      const [min, max] = distance.includes(">")
-        ? [parseFloat(distance.replace(">", "")), Infinity]
-        : distance.split("-").map(Number);
+    if (filters.distance) {
+      const [min, max] = filters.distance.includes(">")
+        ? [parseFloat(filters.distance.replace(">", "")), Infinity]
+        : filters.distance.split("-").map(Number);
 
       if (listing.distance < min || listing.distance > max) return false;
     }
 
     // Lọc theo diện tích
-    if (areaFilter) {
-      const [min, max] = areaFilter.includes(">")
-        ? [parseFloat(areaFilter.replace(">", "")), Infinity]
-        : areaFilter.split("-").map(Number);
+    if (filters.area) {
+      const [min, max] = filters.area.includes(">")
+        ? [parseFloat(filters.area.replace(">", "")), Infinity]
+        : filters.area.split("-").map(Number);
 
       if (listing.area < min || listing.area > max) return false;
     }
 
     // Lọc theo giá
-    if (price) {
-      const [min, max] = price.includes(">")
-        ? [parseFloat(price.replace(">", "")), Infinity]
-        : price.split("-").map(Number);
+    if (filters.price) {
+      const [min, max] = filters.price.includes(">")
+        ? [parseFloat(filters.price.replace(">", "")), Infinity]
+        : filters.price.split("-").map(Number);
 
       if (listing.price < min || listing.price > max) return false;
     }
 
     // Lọc theo tiện ích
-    if (amenityIds.length > 0) {
+    if (filters.amenities && filters.amenities.length > 0) {
       // Chuyển đổi amenityIds sang kiểu số để so sánh đúng với listing.amenityIds
-      const numericAmenityIds = amenityIds.map((id) =>
+      const numericAmenityIds = filters.amenities.map((id) =>
         typeof id === "string" ? parseInt(id, 10) : id
       );
 
-      // Kiểm tra xem tất cả các amenityIds được chọn có nằm trong listing.amenityIds không
-      const hasAllAmenities = numericAmenityIds.every((id) =>
-        listing.amenityIds.includes(id)
-      );
-
-      if (!hasAllAmenities) return false;
+      // Kiểm tra xem listing có chứa tất cả các tiện ích được chọn không
+      if (!numericAmenityIds.every((id) => listing.amenityIds.includes(id))) {
+        return false;
+      }
     }
 
     return true;
@@ -202,7 +192,7 @@ export default function RentalListings({
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
-      setPage(newPage);
+      setCurrentPage(newPage);
     }
   };
 
@@ -272,12 +262,12 @@ export default function RentalListings({
         <div className="flex flex-col gap-2">
           <p className="text-muted-foreground">
             Hiển thị {sortedListings.length} kết quả
-            {activeFilterCount > 0 && (
-              <span> với {activeFilterCount} bộ lọc</span>
+            {Object.keys(filters).length > 0 && (
+              <span> với {Object.keys(filters).length} bộ lọc</span>
             )}
           </p>
 
-          {activeFilterCount > 0 && onFiltersChange && (
+          {Object.keys(filters).length > 0 && onFiltersChange && (
             <div className="flex flex-wrap gap-2 mt-2">
               {Object.entries(filters).map(([key, value]) => {
                 if (key === "amenities") {
@@ -385,9 +375,9 @@ export default function RentalListings({
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    onClick={() => handlePageChange(page - 1)}
+                    onClick={() => handlePageChange(currentPage - 1)}
                     className={
-                      page <= 1
+                      currentPage <= 1
                         ? "pointer-events-none opacity-50"
                         : "cursor-pointer"
                     }
@@ -399,20 +389,23 @@ export default function RentalListings({
                     <PaginationItem key={index}>
                       <PaginationLink
                         onClick={() => handlePageChange(index + 1)}
-                        isActive={page === index + 1}
+                        isActive={currentPage === index + 1}
                         className="cursor-pointer"
                       >
                         {index + 1}
                       </PaginationLink>
                     </PaginationItem>
                   ))
-                  .slice(Math.max(0, page - 3), Math.min(totalPages, page + 2))}
+                  .slice(
+                    Math.max(0, currentPage - 3),
+                    Math.min(totalPages, currentPage + 2)
+                  )}
 
                 <PaginationItem>
                   <PaginationNext
-                    onClick={() => handlePageChange(page + 1)}
+                    onClick={() => handlePageChange(currentPage + 1)}
                     className={
-                      page >= totalPages
+                      currentPage >= totalPages
                         ? "pointer-events-none opacity-50"
                         : "cursor-pointer"
                     }

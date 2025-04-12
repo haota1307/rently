@@ -14,12 +14,19 @@ const rentalApiRequest = {
   list: (params: GetRentalsQueryType) =>
     http.get<GetRentalsResType>(
       `${prefix}?` +
-        queryString.stringify({
-          limit: params.limit,
-          page: params.page,
-          title: params.title,
-          landlordId: params.landlordId,
-        })
+        queryString.stringify(
+          {
+            limit: params.limit,
+            page: params.page,
+            title: params.title,
+            distance: params.distance,
+            area: params.area,
+            price: params.price,
+            amenityIds: params.amenityIds,
+            landlordId: params.landlordId,
+          },
+          { arrayFormat: "comma" }
+        )
     ),
 
   detail: (rentalId: number) => http.get<RentalType>(`${prefix}/${rentalId}`),

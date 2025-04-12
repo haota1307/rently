@@ -40,8 +40,9 @@ export class PostRepo {
       const whereClause: any = {}
 
       if (pagination.title) {
-        whereClause.rental = {
-          title: { contains: pagination.title, mode: 'insensitive' },
+        whereClause.title = {
+          contains: pagination.title,
+          mode: 'insensitive',
         }
       }
 

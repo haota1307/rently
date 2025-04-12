@@ -1,8 +1,27 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useState } from "react";
 
-export function HeroSection() {
+interface HeroSectionProps {
+  onSearch: (query: string) => void;
+}
+
+export function HeroSection({ onSearch }: HeroSectionProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
   return (
     <div className="relative overflow-hidden bg-black text-white">
       <div className="absolute inset-0 bg-gradient-to-r from-black to-transparent z-10" />
@@ -28,9 +47,12 @@ export function HeroSection() {
                   <Input
                     placeholder="Nhập khu vực cụ thể..."
                     className="h-12"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
                   />
                 </div>
-                <Button size="lg" className="h-12">
+                <Button size="lg" className="h-12" onClick={handleSearch}>
                   <Search className="mr-2 h-5 w-5" />
                   Tìm kiếm
                 </Button>
