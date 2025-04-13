@@ -105,27 +105,50 @@ export class EventsGateway
 
   @SubscribeMessage('registerUser')
   handleRegisterUser(
-    @MessageBody() data: { userId: number },
-    @ConnectedSocket() client: Socket
+    @MessageBody() userId: number | string | { userId: number },
+    @ConnectedSocket() client: SocketWithUser
   ) {
-    const { userId } = data
-    if (!userId) return
+    // Xử lý các trường hợp khác nhau của tham số
+    let userIdValue: number
 
-    this.logger.log(`Register user: ${userId} with socket: ${client.id}`)
+    if (typeof userId === 'object' && userId !== null && 'userId' in userId) {
+      userIdValue = userId.userId
+    } else if (typeof userId === 'string') {
+      userIdValue = parseInt(userId, 10)
+    } else if (typeof userId === 'number') {
+      userIdValue = userId
+    } else {
+      this.logger.warn(`Invalid userId format: ${JSON.stringify(userId)}`)
+      return { status: 'error', message: 'UserId không hợp lệ' }
+    }
+
+    if (isNaN(userIdValue) || userIdValue <= 0) {
+      this.logger.warn(`Invalid userId value: ${userIdValue}`)
+      return { status: 'error', message: 'UserId không hợp lệ' }
+    }
+
+    this.logger.log(`Đăng ký user: ${userIdValue} với socket: ${client.id}`)
 
     // Thêm socket ID vào danh sách socket của user
-    if (!this.userSocketMap.has(userId)) {
-      this.userSocketMap.set(userId, [])
+    if (!this.userSocketMap.has(userIdValue)) {
+      this.userSocketMap.set(userIdValue, [])
     }
 
     // Đảm bảo userSockets không undefined
-    const userSockets = this.userSocketMap.get(userId) || []
+    const userSockets = this.userSocketMap.get(userIdValue) || []
     if (!userSockets.includes(client.id)) {
       userSockets.push(client.id)
-      this.userSocketMap.set(userId, userSockets)
+      this.userSocketMap.set(userIdValue, userSockets)
     }
 
-    return { status: 'ok', userId }
+    // Gửi xác nhận đăng ký thành công
+    client.emit('registerUserResponse', {
+      status: 'ok',
+      userId: userIdValue,
+      socketId: client.id,
+    })
+
+    return { status: 'ok', userId: userIdValue }
   }
 
   notifyRoleUpdated(
@@ -182,6 +205,99 @@ export class EventsGateway
     return { event: 'leave', data: roomId }
   }
 
+  @SubscribeMessage('joinChat')
+  handleJoinChat(
+    @MessageBody() conversationId: number,
+    @ConnectedSocket() client: SocketWithUser
+  ) {
+    if (!client.user) {
+      throw new WsException('Unauthorized')
+    }
+
+    const room = `chat:${conversationId}`
+    client.join(room)
+    this.logger.log(`User ${client.user.id} joined chat room: ${room}`)
+    return { event: 'joinChat', data: conversationId }
+  }
+
+  @SubscribeMessage('leaveChat')
+  handleLeaveChat(
+    @MessageBody() conversationId: number,
+    @ConnectedSocket() client: SocketWithUser
+  ) {
+    if (!client.user) {
+      throw new WsException('Unauthorized')
+    }
+
+    const room = `chat:${conversationId}`
+    client.leave(room)
+    this.logger.log(`User ${client.user.id} left chat room: ${room}`)
+    return { event: 'leaveChat', data: conversationId }
+  }
+
+  @SubscribeMessage('chatTyping')
+  handleChatTyping(
+    @MessageBody() data: { conversationId: number; isTyping: boolean },
+    @ConnectedSocket() client: SocketWithUser
+  ) {
+    if (!client.user) {
+      throw new WsException('Unauthorized')
+    }
+
+    const room = `chat:${data.conversationId}`
+
+    // Phát sự kiện đến tất cả người dùng trong phòng chat, ngoại trừ người gửi
+    client.broadcast.to(room).emit('chatTyping', {
+      userId: client.user.id,
+      conversationId: data.conversationId,
+      isTyping: data.isTyping,
+    })
+
+    return { event: 'chatTyping', data }
+  }
+
+  notifyNewMessage(conversationId: number, message: any, receiverId: number) {
+    const userSockets = this.userSocketMap.get(receiverId) || []
+    const room = `chat:${conversationId}`
+
+    this.logger.log(
+      `Gửi tin nhắn mới đến phòng ${room} và receiverId ${receiverId}`
+    )
+
+    // Gửi tin nhắn đến tất cả người dùng trong phòng chat
+    this.server.to(room).emit('newMessage', message)
+
+    // Log danh sách các socket trong phòng
+    const roomSockets = this.server.sockets.adapter.rooms.get(room)
+    this.logger.log(
+      `Sockets trong phòng ${room}: ${roomSockets ? [...roomSockets].join(', ') : 'không có'}`
+    )
+
+    // Đảm bảo người nhận nhận được thông báo ngay cả khi họ không trong phòng chat
+    if (userSockets.length > 0) {
+      this.logger.log(
+        `Gửi thông báo riêng đến ${userSockets.length} socket của user ${receiverId}`
+      )
+
+      userSockets.forEach(socketId => {
+        this.server.to(socketId).emit('messageNotification', {
+          conversationId,
+          message,
+        })
+
+        // Đảm bảo người nhận nhận được tin nhắn mới ngay cả khi không trong phòng chat
+        this.server.to(socketId).emit('newMessage', message)
+      })
+
+      return true
+    } else {
+      this.logger.warn(
+        `Không có socket nào của user ${receiverId} để gửi tin nhắn`
+      )
+      return false
+    }
+  }
+
   notifyRoleUpdate(userId: number, newRole: string) {
     const socketIds = this.userSocketMap.get(userId) || []
 
@@ -203,5 +319,25 @@ export class EventsGateway
     }
 
     return false
+  }
+
+  // Thêm sự kiện echo để kiểm tra kết nối
+  @SubscribeMessage('echo')
+  handleEcho(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: SocketWithUser
+  ) {
+    this.logger.log(`Received echo request: ${JSON.stringify(data)}`)
+
+    // Gửi phản hồi trực tiếp cho client
+    client.emit('echoResponse', {
+      received: data,
+      timestamp: new Date().toISOString(),
+      message: 'Echo từ server',
+      socketId: client.id,
+      userId: client.user?.id || 'unknown',
+    })
+
+    return { event: 'echo', data: 'Đã nhận echo' }
   }
 }

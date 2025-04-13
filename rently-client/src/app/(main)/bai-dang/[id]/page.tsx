@@ -37,6 +37,9 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { useAppStore } from "@/components/app-provider";
 import { Role } from "@/constants/type";
+import { useConversation } from "@/features/conversation/useConversation";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -69,6 +72,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   });
 
   const role = useAppStore((state) => state.role);
+  const { userId } = useAuth();
 
   // Kiểm tra nếu người dùng là landlord hoặc admin thì không hiển thị form đặt lịch
   const isLandlordOrAdmin = role === Role.Landlord || role === Role.Admin;
@@ -81,6 +85,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   // Kiểm tra xem người dùng có thể đặt lịch không
   const canScheduleViewing =
     !isLandlordOrAdmin && (!existingSchedule || !isAuth);
+
+  // Kiểm tra xem người dùng có phải là chủ nhà hay không
+  const isLandlord = post?.landlord?.id === userId;
+
+  const { startConversation, loading: loadingConversation } = useConversation();
 
   console.log(comments);
 
@@ -162,6 +171,17 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   const handleContactLandlord = () => {
     window.open(`tel:${post.landlord?.phoneNumber}`);
+  };
+
+  const handleSendMessage = () => {
+    if (!isAuth) {
+      toast.error("Bạn cần đăng nhập để nhắn tin");
+      return;
+    }
+
+    if (post?.landlord?.id) {
+      startConversation(post.landlord.id);
+    }
   };
 
   const postActions = (
@@ -560,9 +580,34 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     </Button>
                   )}
 
-                  <Button className="w-full" variant="outline">
-                    Nhắn tin
-                  </Button>
+                  {/* Hiển thị nút nhắn tin chỉ khi người dùng đã đăng nhập và không phải là chủ nhà */}
+                  {isAuth && !isLandlord && (
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={handleSendMessage}
+                      disabled={loadingConversation}
+                    >
+                      {loadingConversation ? "Đang xử lý..." : "Nhắn tin"}
+                    </Button>
+                  )}
+
+                  {/* Hiển thị thông báo khi người dùng là chủ nhà */}
+                  {isAuth && isLandlord && (
+                    <div className="text-xs text-center text-muted-foreground mt-2">
+                      Bạn là chủ nhà trọ này
+                    </div>
+                  )}
+
+                  {!isAuth && (
+                    <div className="mt-2">
+                      <Link href="/dang-nhap">
+                        <Button className="w-full" variant="outline">
+                          Đăng nhập để nhắn tin
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
 
                   {post.landlord?.email && (
                     <p className="text-xs text-center text-muted-foreground mt-2">

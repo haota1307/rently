@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAppStore } from "@/components/app-provider";
-import { useCreateRoleUpgradeRequest } from "./role-upgrade-request.hook";
+import { useCreateRoleUpgradeRequest } from "../role-upgrade-request.hook";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -17,13 +17,15 @@ import { RentalModule } from 'src/routes/rental/rental.module'
 import { AddressModule } from 'src/routes/address/address.module'
 import { RoomModule } from 'src/routes/room/room.module'
 import { ChatbotModule } from 'src/routes/chatbot/chatbot.module'
-import { AmenityModule } from 'src/routes/amenity/amenity.module'
 import { StatisticsModule } from 'src/routes/statistics/statistics.module'
 import { RoleUpgradeRequestModule } from 'src/routes/role-upgrade-request/role-upgrade-request.module'
 import { FavoriteModule } from 'src/routes/favorite/favorite.module'
 import { CommentModule } from 'src/routes/comment/comment.module'
 import { EventsModule } from './events/events.module'
 import { ViewingScheduleModule } from 'src/routes/viewing-schedule/viewing-schedule.module'
+import { MessagesModule } from './routes/messages/messages.module'
+
+import { AmenityModule } from 'src/routes/amenity/amenity.module'
 @Module({
   imports: [
     SharedModule,
@@ -45,6 +47,7 @@ import { ViewingScheduleModule } from 'src/routes/viewing-schedule/viewing-sched
     CommentModule,
     EventsModule,
     ViewingScheduleModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [

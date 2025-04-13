@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   useRoleUpgradeRequests,
   useUpdateRoleUpgradeRequest,
-} from "./role-upgrade-request.hook";
+} from "../role-upgrade-request.hook";
 import {
   Table,
   TableBody,

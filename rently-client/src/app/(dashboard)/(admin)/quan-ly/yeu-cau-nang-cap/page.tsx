@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RoleUpgradeRequestList } from "@/features/role-upgrade-request/role-upgrade-request-list";
+import { RoleUpgradeRequestList } from "@/features/role-upgrade-request/components/role-upgrade-request-list";
 import { RoleUpgradeRequestStatus } from "@/constants/type";
 
 export default function RoleUpgradeRequestPage() {
