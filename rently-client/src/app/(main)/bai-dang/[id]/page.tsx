@@ -573,7 +573,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </Card>
 
               {/* Form đặt lịch xem phòng */}
-              <Card>
+              <Card className="mb-4">
                 <CardContent className="p-5">
                   <h3 className="font-medium mb-4">Đặt lịch xem phòng</h3>
 
