@@ -1,6 +1,16 @@
 import { createZodDto } from 'nestjs-zod'
 import { z } from 'zod'
 
+// Định nghĩa các loại tin nhắn
+export enum MessageType {
+  TEXT = 'TEXT',
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  DOCUMENT = 'DOCUMENT',
+  AUDIO = 'AUDIO',
+  FILE = 'FILE',
+}
+
 // Tạo tin nhắn mới
 export const CreateMessageBodySchema = z
   .object({
@@ -10,6 +20,23 @@ export const CreateMessageBodySchema = z
     content: z
       .string({ required_error: 'Vui lòng nhập nội dung tin nhắn' })
       .min(1, 'Nội dung tin nhắn không được để trống'),
+    // Thêm các trường cho tin nhắn đa phương tiện
+    type: z
+      .enum([
+        MessageType.TEXT,
+        MessageType.IMAGE,
+        MessageType.VIDEO,
+        MessageType.DOCUMENT,
+        MessageType.AUDIO,
+        MessageType.FILE,
+      ])
+      .optional()
+      .default(MessageType.TEXT),
+    fileUrl: z.string().optional(),
+    fileName: z.string().optional(),
+    fileSize: z.number().optional(),
+    fileType: z.string().optional(),
+    thumbnailUrl: z.string().optional(),
   })
   .strict()
 
@@ -92,6 +119,13 @@ export const ConversationMessageSchema = z.object({
   createdAt: z.date(),
   conversationId: z.number(),
   senderId: z.number(),
+  // Thêm các trường cho tin nhắn đa phương tiện
+  type: z.string().optional().nullable(),
+  fileUrl: z.string().optional().nullable(),
+  fileName: z.string().optional().nullable(),
+  fileSize: z.number().optional().nullable(),
+  fileType: z.string().optional().nullable(),
+  thumbnailUrl: z.string().optional().nullable(),
   sender: z.object({
     id: z.number(),
     name: z.string(),
@@ -144,3 +178,14 @@ export const GetMessagesResSchema = z.object({
 })
 
 export type GetMessagesResType = z.infer<typeof GetMessagesResSchema>
+
+// Schema cho upload file
+export const FileUploadResponseSchema = z.object({
+  url: z.string(),
+  fileName: z.string(),
+  fileSize: z.number(),
+  fileType: z.string(),
+  thumbnailUrl: z.string().optional(),
+})
+
+export type FileUploadResponseType = z.infer<typeof FileUploadResponseSchema>

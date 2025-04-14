@@ -1,20 +1,37 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
 import { ZodSerializerDto } from 'nestjs-zod'
 import {
   CreateConversationBodyDTO,
   CreateMessageBodyDTO,
+  FileUploadResponseSchema,
   GetConversationsQueryDTO,
   GetConversationsResSchema,
   GetMessagesParamsDTO,
   GetMessagesQueryDTO,
   GetMessagesResSchema,
+  MessageType,
 } from './messages.dto'
 import { MessagesService } from './messages.service'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
+import { UploadService } from '../upload/cloudinary.service'
 
 @Controller('messages')
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly uploadService: UploadService
+  ) {}
 
   /**
    * Lấy danh sách cuộc trò chuyện của người dùng
@@ -61,6 +78,75 @@ export class MessagesController {
     @Body() body: CreateMessageBodyDTO
   ) {
     return this.messagesService.createMessage(userId, body)
+  }
+
+  /**
+   * Upload file cho tin nhắn
+   */
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  @ZodSerializerDto(FileUploadResponseSchema)
+  async uploadFile(
+    @ActiveUser('userId') userId: number,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('conversationId') conversationId: string
+  ) {
+    // Kiểm tra quyền truy cập cuộc trò chuyện
+    await this.messagesService.checkConversationAccess(
+      userId,
+      parseInt(conversationId)
+    )
+
+    // Upload file lên Cloudinary
+    const result = await this.uploadService.uploadMessageFile(
+      file,
+      `messages/${conversationId}`
+    )
+
+    // Xác định loại file dựa trên MIME type
+    const fileType = this.getFileType(file.mimetype)
+
+    // Xác định thumbnail URL nếu là hình ảnh hoặc video
+    let thumbnailUrl: string | undefined = undefined
+    if (fileType === MessageType.IMAGE) {
+      thumbnailUrl = result.secure_url
+    } else if (fileType === MessageType.VIDEO) {
+      // Cloudinary tự động tạo thumbnail cho video
+      thumbnailUrl = result.secure_url
+        .replace('/video/', '/image/')
+        .replace(/\.[^/.]+$/, '.jpg')
+    }
+
+    return {
+      url: result.secure_url,
+      fileName: file.originalname,
+      fileSize: result.bytes,
+      fileType: file.mimetype,
+      thumbnailUrl,
+    }
+  }
+
+  /**
+   * Xác định loại file dựa trên MIME type
+   */
+  private getFileType(mimeType: string): MessageType {
+    if (mimeType.startsWith('image/')) {
+      return MessageType.IMAGE
+    } else if (mimeType.startsWith('video/')) {
+      return MessageType.VIDEO
+    } else if (mimeType.startsWith('audio/')) {
+      return MessageType.AUDIO
+    } else if (
+      mimeType === 'application/pdf' ||
+      mimeType.includes('word') ||
+      mimeType.includes('excel') ||
+      mimeType.includes('powerpoint') ||
+      mimeType.includes('openxmlformats')
+    ) {
+      return MessageType.DOCUMENT
+    } else {
+      return MessageType.FILE
+    }
   }
 
   /**

@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { UserIcon, CalendarIcon } from "lucide-react";
+import { UserIcon, CalendarIcon, MessageCircle } from "lucide-react";
 
 import { getRefreshTokenFromLocalStorage, handleErrorApi } from "@/lib/utils";
 import { useAppStore } from "@/components/app-provider";
@@ -103,6 +103,13 @@ export default function DropdownAvatar() {
         <DropdownMenuItem asChild>
           <Link href="/tin-da-luu" className="cursor-pointer">
             Tin đã lưu
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild>
+          <Link href="/tin-nhan" className="cursor-pointer flex items-center">
+            <MessageCircle className="mr-2 h-4 w-4" />
+            Tin nhắn
           </Link>
         </DropdownMenuItem>
 

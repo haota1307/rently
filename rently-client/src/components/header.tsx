@@ -22,6 +22,7 @@ import {
   UserIcon,
   CalendarIcon,
   BarChart2,
+  MessageCircle,
 } from "lucide-react";
 import { useAppStore } from "@/components/app-provider";
 import DropdownAvatar from "@/components/dropdown-avatar";
@@ -39,6 +40,11 @@ const baseLinks = [
   { name: "Trang chủ", href: "/", icon: Home },
   { name: "So sánh phòng trọ", href: "/so-sanh", icon: BarChart2 },
   { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
+];
+
+// Link cho người dùng đã đăng nhập
+const authLinks = [
+  { name: "Tin nhắn", href: "/tin-nhan", icon: MessageCircle },
 ];
 
 // Link cho client (người dùng bình thường)
@@ -78,6 +84,9 @@ export function Header() {
     let links = [...baseLinks];
 
     if (isAuth) {
+      // Thêm link tin nhắn cho tất cả người dùng đã đăng nhập
+      links = [...links, ...authLinks];
+
       if (role === Role.Admin) {
         // Admin thấy cả hai liên kết quản lý
         links = [...links, ...adminLinks, ...landlordLinks];

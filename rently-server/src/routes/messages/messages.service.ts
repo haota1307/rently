@@ -8,6 +8,7 @@ import {
   GetMessagesQueryType,
 } from './messages.dto'
 import { EventsGateway } from 'src/events/events.gateway'
+import { MessageType } from './messages.dto'
 
 @Injectable()
 export class MessagesService {
@@ -122,6 +123,7 @@ export class MessagesService {
       await this.messagesRepo.createMessage(userId, {
         conversationId: conversation.id,
         content: data.initialMessage,
+        type: MessageType.TEXT,
       })
 
       // Gửi sự kiện thông báo cuộc trò chuyện mới thông qua WebSocket
@@ -153,5 +155,24 @@ export class MessagesService {
     }
 
     return this.messagesRepo.markMessagesAsRead(conversationId, userId)
+  }
+
+  /**
+   * Kiểm tra quyền truy cập cuộc trò chuyện
+   */
+  async checkConversationAccess(userId: number, conversationId: number) {
+    // Kiểm tra xem người dùng có phải là thành viên của cuộc trò chuyện không
+    const isMember = await this.messagesRepo.isConversationMember(
+      conversationId,
+      userId
+    )
+
+    if (!isMember) {
+      throw new UnauthorizedException(
+        'Bạn không có quyền truy cập cuộc trò chuyện này'
+      )
+    }
+
+    return true
   }
 }

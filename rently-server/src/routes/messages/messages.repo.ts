@@ -119,7 +119,24 @@ export class MessagesRepo {
           userTwoId: conversation.userTwoId,
           userOne: conversation.userOne,
           userTwo: conversation.userTwo,
-          latestMessage,
+          latestMessage: latestMessage
+            ? {
+                id: latestMessage.id,
+                content: latestMessage.content,
+                createdAt: latestMessage.createdAt,
+                senderId: latestMessage.senderId,
+                conversationId: conversation.id,
+                // Sử dụng as any để tránh lỗi TypeScript
+                type: (latestMessage as any).type || null,
+                fileUrl: (latestMessage as any).fileUrl || null,
+                fileName: (latestMessage as any).fileName || null,
+                fileSize: (latestMessage as any).fileSize || null,
+                fileType: (latestMessage as any).fileType || null,
+                thumbnailUrl: (latestMessage as any).thumbnailUrl || null,
+                isRead: latestMessage.isRead,
+                sender: latestMessage.sender,
+              }
+            : null,
           unreadCount,
         }
       })
@@ -227,7 +244,7 @@ export class MessagesRepo {
   }
 
   /**
-   * Lấy tin nhắn của một cuộc trò chuyện
+   * Lấy tin nhắn trong cuộc trò chuyện
    */
   async getMessages(
     conversationId: number,
@@ -239,16 +256,23 @@ export class MessagesRepo {
 
     // Đếm tổng số tin nhắn
     const totalItems = await this.prismaService.conversationMessage.count({
-      where: { conversationId },
+      where: {
+        conversationId,
+      },
     })
+
+    // Tính tổng số trang
+    const totalPages = Math.ceil(totalItems / limit)
 
     // Lấy danh sách tin nhắn
     const messages = await this.prismaService.conversationMessage.findMany({
-      where: { conversationId },
+      where: {
+        conversationId,
+      },
       skip,
       take: limit,
       orderBy: {
-        createdAt: 'desc', // Lấy tin nhắn mới nhất trước
+        createdAt: 'desc',
       },
       include: {
         sender: {
@@ -261,22 +285,8 @@ export class MessagesRepo {
       },
     })
 
-    // Đánh dấu các tin nhắn chưa đọc của người dùng khác là đã đọc
-    await this.prismaService.conversationMessage.updateMany({
-      where: {
-        conversationId,
-        senderId: {
-          not: userId, // Chỉ đánh dấu tin nhắn từ người khác
-        },
-        isRead: false,
-      },
-      data: {
-        isRead: true,
-      },
-    })
-
-    // Tính số trang
-    const totalPages = Math.ceil(totalItems / limit)
+    // Đánh dấu tin nhắn đã đọc nếu người gửi khác với người đang xem
+    await this.markMessagesAsRead(conversationId, userId)
 
     return {
       data: messages,
@@ -291,12 +301,22 @@ export class MessagesRepo {
    * Tạo tin nhắn mới
    */
   async createMessage(senderId: number, data: CreateMessageBodyType) {
-    return this.prismaService.conversationMessage.create({
-      data: {
-        content: data.content,
-        conversationId: data.conversationId,
-        senderId,
-      },
+    // Tạo object data để truyền vào Prisma create
+    const messageData: any = {
+      content: data.content,
+      conversationId: data.conversationId,
+      senderId,
+    }
+
+    if (data.type) messageData.type = data.type
+    if (data.fileUrl) messageData.fileUrl = data.fileUrl
+    if (data.fileName) messageData.fileName = data.fileName
+    if (data.fileSize) messageData.fileSize = data.fileSize
+    if (data.fileType) messageData.fileType = data.fileType
+    if (data.thumbnailUrl) messageData.thumbnailUrl = data.thumbnailUrl
+
+    const message = await this.prismaService.conversationMessage.create({
+      data: messageData,
       include: {
         sender: {
           select: {
@@ -307,6 +327,8 @@ export class MessagesRepo {
         },
       },
     })
+
+    return message
   }
 
   /**

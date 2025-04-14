@@ -362,6 +362,14 @@ model ConversationMessage {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  // Thêm các trường cho tin nhắn đa phương tiện
+  type         String? @default("TEXT") // TEXT, IMAGE, VIDEO, DOCUMENT, AUDIO, FILE
+  fileUrl      String?
+  fileName     String?
+  fileSize     Int?
+  fileType     String?
+  thumbnailUrl String?
+
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   conversationId Int
 
