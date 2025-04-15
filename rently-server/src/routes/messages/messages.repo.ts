@@ -365,4 +365,68 @@ export class MessagesRepo {
       conversation.userOneId === userId || conversation.userTwoId === userId
     )
   }
+
+  async markMessageAsRead(messageId: number, userId: number) {
+    await this.prismaService.conversationMessage.update({
+      where: { id: messageId },
+      data: {
+        isRead: true,
+      },
+    })
+
+    return { success: true }
+  }
+
+  /**
+   * Lấy thông tin tin nhắn theo ID
+   */
+  async getMessageById(messageId: number) {
+    return this.prismaService.conversationMessage.findUnique({
+      where: { id: messageId },
+      include: {
+        sender: true,
+      },
+    })
+  }
+
+  /**
+   * Cập nhật nội dung tin nhắn
+   */
+  async updateMessage(messageId: number, content: string) {
+    // Lấy tin nhắn hiện tại
+    const message = await this.prismaService.conversationMessage.findUnique({
+      where: { id: messageId },
+    })
+
+    const updatedContent = `${content}`
+
+    return this.prismaService.conversationMessage.update({
+      where: { id: messageId },
+      data: {
+        content: updatedContent,
+        isEdited: true,
+      },
+      include: {
+        sender: true,
+      },
+    })
+  }
+
+  /**
+   * Xóa tin nhắn
+   */
+  async deleteMessage(messageId: number) {
+    const message = await this.prismaService.conversationMessage.update({
+      where: { id: messageId },
+      data: {
+        content: 'Tin nhắn đã bị xóa',
+        isDeleted: true,
+      },
+      include: {
+        sender: true,
+      },
+    })
+
+    return { success: true, message }
+  }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,9 @@ import {
   X,
   Mic,
   Music,
-  AlertTriangle,
+  Trash2,
+  Pencil,
+  MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -32,7 +34,7 @@ import { Badge } from "@/components/ui/badge";
 
 // Định nghĩa kiểu dữ liệu cho tin nhắn
 interface Message {
-  id: number | string; // Cho phép id có thể là string (cho tin nhắn tạm thời) hoặc number (từ server)
+  id: number | string;
   content: string;
   createdAt: string;
   senderId: number;
@@ -43,16 +45,27 @@ interface Message {
     name: string;
     avatar: string | null;
   };
-  // Thêm các trường cho các loại tin nhắn đa phương tiện
+
   type?: MessageType;
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
   fileType?: string;
   thumbnailUrl?: string;
+  isDeleted?: boolean;
+  isEdited?: boolean;
+
+  // Thêm trạng thái cho tin nhắn
+  status?: MessageStatus;
 }
 
-// Định nghĩa các loại tin nhắn
+enum MessageStatus {
+  SENDING = "SENDING", // Đang gửi
+  SENT = "SENT", // Đã gửi (đến server)
+  DELIVERED = "DELIVERED", // Đã nhận (đến người nhận)
+  READ = "READ", // Đã đọc
+}
+
 enum MessageType {
   TEXT = "TEXT",
   IMAGE = "IMAGE",
@@ -71,18 +84,8 @@ interface UploadedFile {
   thumbnailUrl?: string;
 }
 
-// Định nghĩa kiểu dữ liệu cho ảnh đính kèm
-interface AttachedImage {
-  file: File;
-  url?: string; // URL từ Cloudinary (có thể không có khi chỉ preview)
-  previewUrl: string; // URL preview local
-  thumbnailUrl?: string;
-  isUploaded?: boolean; // Đánh dấu xem ảnh đã được upload lên Cloudinary chưa
-}
-
-// Component hiển thị ảnh sẽ gửi kèm tin nhắn
 interface MessageImagePreviewProps {
-  images: Array<{ previewUrl: string; file: File }>;
+  images: Array<{ url: string; file: File }>;
   removeImage: (index: number) => void;
 }
 
@@ -109,7 +112,7 @@ function MessageImagePreview({
         {images.map((image, index) => (
           <div key={index} className="relative min-w-[80px] h-[80px]">
             <img
-              src={image.previewUrl}
+              src={image.url}
               alt={`Ảnh đính kèm ${index + 1}`}
               className="w-[80px] h-[80px] object-cover rounded-md"
             />
@@ -127,8 +130,13 @@ function MessageImagePreview({
   );
 }
 
-// Thêm hàm kiểm tra kết nối mạng
-const isOnline = () => typeof window !== "undefined" && navigator.onLine;
+// Định nghĩa kiểu dữ liệu cho ảnh đính kèm
+interface AttachedImage {
+  file: File;
+  url: string; // URL tạm thời cho preview (từ URL.createObjectURL)
+  isUploaded?: boolean; // Đánh dấu ảnh đã được upload hay chưa
+  thumbnailUrl?: string;
+}
 
 export default function MessagesPage() {
   const searchParams = useSearchParams();
@@ -184,145 +192,572 @@ export default function MessagesPage() {
   // Tạo thêm ref cho phần tử kích hoạt tải thêm
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
 
-  // Thêm state cho trạng thái kết nối
-  const [online, setOnline] = useState(isOnline());
-  // Thêm ref để lưu tin nhắn offline
-  const offlineMessagesRef = useRef<{ [key: string]: any[] }>({});
+  // Thêm biến để theo dõi tin nhắn đã xử lý
+  const processedMessageIds = useRef<Set<string>>(new Set());
 
-  // Thêm useEffect để theo dõi trạng thái kết nối mạng
+  // Thêm state cho sửa tin nhắn
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editMessageContent, setEditMessageContent] = useState("");
+
+  // Thiết lập lắng nghe sự kiện socket
   useEffect(() => {
-    const handleOnline = () => {
-      setOnline(true);
-      // Gửi các tin nhắn đã lưu trong localStorage khi có kết nối trở lại
-      sendOfflineMessages();
-    };
+    if (!socket || !userId) return;
 
-    const handleOffline = () => {
-      setOnline(false);
-    };
+    // Lắng nghe sự kiện nhận tin nhắn mới
+    const onNewMessage = (newMessage: Message) => {
+      console.log("Nhận tin nhắn mới từ socket:", newMessage);
 
-    // Theo dõi sự kiện kết nối
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+      // Tạo ID duy nhất cho tin nhắn để kiểm tra trùng lặp - tạo nhiều dạng ID khác nhau để so sánh
+      const msgUniqueId1 = `${newMessage.id}-${newMessage.senderId}-${newMessage.content}`;
+      const msgUniqueId2 = `${newMessage.senderId}-${
+        newMessage.content
+      }-${new Date(newMessage.createdAt).getTime()}`;
 
-    // Khởi tạo trạng thái kết nối ban đầu
-    setOnline(isOnline());
+      // Nếu tin nhắn đã được xử lý trước đó, bỏ qua
+      if (
+        processedMessageIds.current.has(msgUniqueId1) ||
+        processedMessageIds.current.has(msgUniqueId2)
+      ) {
+        console.log("Bỏ qua tin nhắn đã xử lý:", msgUniqueId1);
+        return;
+      }
 
-    // Kiểm tra xem có tin nhắn đang chờ gửi không
-    sendOfflineMessages();
+      // Đánh dấu tin nhắn đã được xử lý (cả hai ID)
+      processedMessageIds.current.add(msgUniqueId1);
+      processedMessageIds.current.add(msgUniqueId2);
 
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  // Hàm để gửi tin nhắn đã lưu trong localStorage
-  const sendOfflineMessages = useCallback(async () => {
-    if (!isOnline() || !socket?.connected) return;
-
-    try {
-      // Lấy tin nhắn từ localStorage
-      const storedMessages = localStorage.getItem("offlineMessages");
-      if (!storedMessages) return;
-
-      const messages = JSON.parse(storedMessages);
-      const conversationIds = Object.keys(messages);
-
-      // Không có tin nhắn để gửi
-      if (conversationIds.length === 0) return;
-
-      for (const conversationId of conversationIds) {
-        const convMessages = messages[conversationId];
-
-        if (convMessages && convMessages.length > 0) {
-          // Tạo một bản sao để không ảnh hưởng đến mảng gốc khi xử lý
-          const pendingMessages = [...convMessages];
-
-          // Cập nhật lại localStorage tạm thời với mảng rỗng
-          const updatedMessages = { ...messages };
-          updatedMessages[conversationId] = [];
-          localStorage.setItem(
-            "offlineMessages",
-            JSON.stringify(updatedMessages)
-          );
-
-          // Gửi từng tin nhắn một
-          for (const messageData of pendingMessages) {
-            try {
-              const response = await conversationApiRequest.sendMessage(
-                messageData
-              );
-
-              // Nếu là conversation đang active, cập nhật UI
-              if (activeConversation?.id === Number(conversationId)) {
-                if (response.payload && response.payload.id) {
-                  const serverId = response.payload.id;
-
-                  // Cập nhật tin nhắn trong UI nếu còn tồn tại
-                  setMessages((prev) =>
-                    prev.map((msg) =>
-                      msg.id === messageData.tempId
-                        ? { ...msg, id: serverId }
-                        : msg
-                    )
-                  );
-                }
-              }
-            } catch (error) {
-              console.error("Lỗi gửi tin nhắn offline:", error);
-
-              // Lưu lại tin nhắn không gửi được
-              const currentMessages = JSON.parse(
-                localStorage.getItem("offlineMessages") || "{}"
-              );
-
-              if (!currentMessages[conversationId]) {
-                currentMessages[conversationId] = [];
-              }
-
-              currentMessages[conversationId].push(messageData);
-              localStorage.setItem(
-                "offlineMessages",
-                JSON.stringify(currentMessages)
-              );
-            }
+      // Kiểm tra xem tin nhắn đã tồn tại trong danh sách hiển thị chưa
+      setMessages((prev) => {
+        // Kiểm tra xem tin nhắn có bị trùng không
+        const isDuplicate = prev.some((existingMsg) => {
+          // So sánh ID (nếu ID là số)
+          if (
+            typeof existingMsg.id === "number" &&
+            typeof newMessage.id === "number" &&
+            existingMsg.id === newMessage.id
+          ) {
+            return true;
           }
 
-          // Hiển thị thông báo nếu đã gửi tin nhắn thành công
-          toast.success("Đã gửi tin nhắn khi bạn offline", {
-            id: "offline-message-sent",
+          // So sánh nội dung, người gửi và thời gian gần giống nhau
+          if (
+            existingMsg.content === newMessage.content &&
+            existingMsg.senderId === newMessage.senderId &&
+            Math.abs(
+              new Date(existingMsg.createdAt).getTime() -
+                new Date(newMessage.createdAt).getTime()
+            ) < 10000
+          ) {
+            return true;
+          }
+
+          // So sánh ID tạm thời với ID thực từ server (trường hợp đã thêm tin nhắn tạm)
+          if (
+            typeof existingMsg.id === "string" &&
+            existingMsg.id.startsWith("temp-") &&
+            existingMsg.content === newMessage.content &&
+            existingMsg.senderId === newMessage.senderId
+          ) {
+            return true;
+          }
+
+          return false;
+        });
+
+        // Nếu đã có tin nhắn này, cập nhật ID nếu cần và trả về mảng không đổi
+        if (isDuplicate) {
+          // Cập nhật ID từ temp sang ID thực nếu cần
+          if (typeof newMessage.id === "number") {
+            return prev.map((msg) =>
+              typeof msg.id === "string" &&
+              msg.id.startsWith("temp-") &&
+              msg.content === newMessage.content &&
+              msg.senderId === newMessage.senderId
+                ? { ...msg, id: newMessage.id, status: MessageStatus.DELIVERED }
+                : msg
+            );
+          }
+          return prev;
+        }
+
+        // Thêm tin nhắn mới vào đầu mảng (tin nhắn mới nhất lên trên)
+        return [newMessage, ...prev];
+      });
+
+      // Cập nhật danh sách cuộc trò chuyện với tin nhắn mới nhất
+      setConversations((prevConversations) => {
+        const typedConversations: Conversation[] = prevConversations;
+
+        return typedConversations.map((conv) => {
+          if (conv.id === newMessage.conversationId) {
+            // Đảm bảo id luôn là số
+            const messageId =
+              typeof newMessage.id === "string"
+                ? parseInt(newMessage.id.replace(/\D/g, "")) || Date.now()
+                : newMessage.id;
+
+            // Kiểm tra nếu đây là tin nhắn của người khác và người dùng đang ở trong cuộc trò chuyện này
+            // thì không tăng unreadCount
+            const shouldIncrementUnread =
+              userId !== newMessage.senderId &&
+              (!activeConversation ||
+                activeConversation.id !== newMessage.conversationId);
+
+            return {
+              ...conv,
+              latestMessage: {
+                id: messageId,
+                content: newMessage.content,
+                createdAt: newMessage.createdAt,
+                senderId: newMessage.senderId,
+              },
+              unreadCount: shouldIncrementUnread
+                ? (conv.unreadCount || 0) + 1
+                : conv.unreadCount,
+            };
+          }
+          return conv;
+        }) as Conversation[];
+      });
+
+      // Nếu tin nhắn mới thuộc cuộc trò chuyện đang active, đánh dấu đã đọc ngay
+      if (
+        newMessage.senderId !== userId &&
+        activeConversation &&
+        newMessage.conversationId === activeConversation.id
+      ) {
+        // Tự động đánh dấu đã đọc khi đang trong cuộc trò chuyện
+        try {
+          socket?.emit("markMessageAsRead", {
+            messageId: newMessage.id,
+            conversationId: newMessage.conversationId,
+            readerId: userId,
           });
+
+          // Cập nhật local để hiển thị đã đọc
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === newMessage.id && msg.senderId !== userId
+                ? { ...msg, isRead: true }
+                : msg
+            )
+          );
+
+          // Đồng thời gọi API để cập nhật trạng thái đã đọc
+          conversationApiRequest
+            .markAsRead(newMessage.conversationId)
+            .catch((error) => {
+              console.error("Lỗi khi đánh dấu tin nhắn đã đọc:", error);
+            });
+        } catch (error) {
+          console.error("Lỗi khi đánh dấu tin nhắn đã đọc:", error);
         }
       }
-    } catch (error) {
-      console.error("Lỗi khi gửi tin nhắn offline:", error);
+
+      // Cuộn xuống dưới cùng khi nhận tin nhắn mới từ người khác
+      if (
+        newMessage.senderId !== userId &&
+        activeConversation &&
+        activeConversation.id === newMessage.conversationId
+      ) {
+        setTimeout(() => {
+          scrollToBottom();
+        }, 100);
+      }
+
+      // Cập nhật danh sách sự kiện socket (chỉ dùng cho debug, không hiển thị cho người dùng)
+      setSocketEvents((prev) => [
+        ...prev,
+        `Tin nhắn mới: ${newMessage.content} (ID: ${newMessage.id})`,
+      ]);
+    };
+
+    // Lắng nghe sự kiện tin nhắn đã nhận
+    const onMessageDelivered = (data: {
+      messageId: number;
+      conversationId: number;
+    }) => {
+      console.log("Tin nhắn đã được nhận:", data);
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          (typeof msg.id === "number" && msg.id === data.messageId) ||
+          (typeof msg.id === "string" &&
+            msg.content &&
+            msg.conversationId === data.conversationId)
+            ? { ...msg, status: MessageStatus.DELIVERED }
+            : msg
+        )
+      );
+    };
+
+    // Lắng nghe sự kiện tin nhắn đã đọc
+    const onMessageRead = (data: {
+      messageId: number;
+      conversationId: number;
+      senderId?: number;
+    }) => {
+      console.log("Tin nhắn đã được đọc:", data);
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          // Cập nhật tin nhắn dựa trên ID nếu có
+          if (typeof msg.id === "number" && msg.id === data.messageId) {
+            return { ...msg, status: MessageStatus.READ, isRead: true };
+          }
+
+          // Nếu không có ID cụ thể, cập nhật theo cuộc trò chuyện và người gửi
+          if (
+            data.senderId &&
+            msg.conversationId === data.conversationId &&
+            msg.senderId === data.senderId
+          ) {
+            return { ...msg, status: MessageStatus.READ, isRead: true };
+          }
+
+          // Nếu tin nhắn trong cuộc trò chuyện và là tin nhắn tạm thời
+          if (
+            typeof msg.id === "string" &&
+            msg.id.startsWith("temp-") &&
+            msg.conversationId === data.conversationId &&
+            msg.senderId === userId
+          ) {
+            return { ...msg, status: MessageStatus.READ, isRead: true };
+          }
+
+          return msg;
+        })
+      );
+    };
+
+    // Lắng nghe sự kiện đánh dấu đã đọc tất cả tin nhắn trong cuộc trò chuyện
+    const onConversationRead = (data: {
+      conversationId: number;
+      readerId: number;
+    }) => {
+      console.log("Cuộc trò chuyện đã được đọc:", data);
+
+      // Chỉ cập nhật trạng thái nếu người đọc không phải là người dùng hiện tại
+      if (data.readerId !== userId) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            // Chỉ cập nhật tin nhắn của người dùng hiện tại trong cuộc trò chuyện này
+            msg.conversationId === data.conversationId &&
+            msg.senderId === userId
+              ? { ...msg, status: MessageStatus.READ, isRead: true }
+              : msg
+          )
+        );
+
+        // Cập nhật số tin nhắn chưa đọc về 0 cho cuộc trò chuyện này
+        setConversations((prevConversations) => {
+          return prevConversations.map((conv) =>
+            conv.id === data.conversationId ? { ...conv, unreadCount: 0 } : conv
+          );
+        });
+      }
+    };
+
+    // Lắng nghe sự kiện cuộc trò chuyện mới
+    const onNewConversation = (conversation: Conversation) => {
+      setSocketEvents((prev) => [
+        ...prev,
+        `Cuộc trò chuyện mới: ${conversation.id}`,
+      ]);
+      setConversations((prev) => [conversation, ...prev]);
+    };
+
+    // Lắng nghe sự kiện tin nhắn đã bị sửa
+    const onMessageEdited = (
+      data:
+        | {
+            messageId: number;
+            content: string;
+            conversationId: number;
+            isEdited?: boolean;
+          }
+        | any
+    ) => {
+      console.log("DEBUG: Nhận sự kiện messageUpdated từ socket:", data);
+
+      // Nếu data là một đối tượng tin nhắn đầy đủ (từ server)
+      const messageId = data.id || data.messageId;
+      const content = data.content;
+      const isEdited = data.isEdited === undefined ? true : data.isEdited;
+      const conversationId = data.conversationId;
+
+      if (!messageId || !content) {
+        console.error("Dữ liệu tin nhắn đã sửa không hợp lệ:", data);
+        return;
+      }
+
+      console.log(
+        `DEBUG: Cập nhật tin nhắn ${messageId} thành: ${content} (isEdited: ${isEdited})`
+      );
+
+      // Cập nhật tin nhắn trong danh sách tin nhắn hiển thị
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (typeof msg.id === "number" && msg.id === messageId) {
+            console.log(
+              `DEBUG: Tìm thấy tin nhắn cần cập nhật trong UI, ID: ${msg.id}`
+            );
+            return { ...msg, content: content, isEdited: isEdited };
+          }
+          return msg;
+        })
+      );
+
+      // Cập nhật nội dung của tin nhắn gần nhất trong danh sách cuộc trò chuyện nếu cần
+      setConversations((prev) =>
+        prev.map((conv) => {
+          if (
+            conv.id === conversationId &&
+            conv.latestMessage &&
+            typeof conv.latestMessage.id === "number" &&
+            conv.latestMessage.id === messageId
+          ) {
+            console.log(
+              `DEBUG: Cập nhật tin nhắn trong danh sách hội thoại, ID: ${messageId}`
+            );
+            return {
+              ...conv,
+              latestMessage: {
+                ...conv.latestMessage,
+                content: content,
+                isEdited: isEdited,
+              },
+            };
+          }
+          return conv;
+        })
+      );
+    };
+
+    // Lắng nghe sự kiện tin nhắn đã bị xóa
+    const onMessageDeleted = (data: {
+      messageId: number;
+      conversationId: number;
+    }) => {
+      console.log("Tin nhắn đã bị xóa:", data);
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          typeof msg.id === "number" && msg.id === data.messageId
+            ? { ...msg, content: "Tin nhắn đã bị xóa", isDeleted: true }
+            : msg
+        )
+      );
+    };
+
+    socket.on("newMessage", onNewMessage);
+    socket.on("newConversation", onNewConversation);
+    socket.on("messageDelivered", onMessageDelivered);
+    socket.on("messageRead", onMessageRead);
+    socket.on("conversationRead", onConversationRead);
+    socket.on("messageEdited", onMessageEdited);
+    socket.on("messageUpdated", onMessageEdited);
+    socket.on("messageDeleted", onMessageDeleted);
+
+    // Debugging: Thử đăng ký một sự kiện test để xem socket có hoạt động không
+    socket.on("test", (data: any) => {
+      setSocketEvents((prev) => [
+        ...prev,
+        `Sự kiện test: ${JSON.stringify(data)}`,
+      ]);
+    });
+
+    // Ngay sau khi thiết lập sự kiện, gửi một sự kiện echo
+    socket.emit("echo", { message: "Kiểm tra socket echo", userId });
+
+    // Lắng nghe sự kiện echo phản hồi
+    socket.on("echoResponse", (data: any) => {
+      setSocketEvents((prev) => [...prev, `Echo: ${JSON.stringify(data)}`]);
+    });
+
+    // Tạo thêm sự kiện để lắng nghe khi có thay đổi trong active conversation
+    const handleVisibilityChange = () => {
+      // Khi tab đang hiển thị và đang trong cuộc trò chuyện
+      if (!document.hidden && activeConversation) {
+        // Đánh dấu đã đọc tất cả tin nhắn trong cuộc trò chuyện
+        socket.emit("markConversationAsRead", {
+          conversationId: activeConversation.id,
+          readerId: userId,
+        });
+
+        // Gọi API để cập nhật trạng thái đã đọc
+        try {
+          conversationApiRequest.markAsRead(activeConversation.id).then(() => {
+            // Cập nhật UI - giảm số lượng tin nhắn chưa đọc về 0
+            setConversations((prevConversations) => {
+              return prevConversations.map((conv) =>
+                conv.id === activeConversation.id
+                  ? { ...conv, unreadCount: 0 }
+                  : conv
+              );
+            });
+          });
+        } catch (error) {
+          console.error("Lỗi khi đánh dấu đã đọc:", error);
+        }
+      }
+    };
+
+    // Đăng ký sự kiện khi tab được focus lại
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Cleanup khi component unmount
+    return () => {
+      socket.off("newMessage", onNewMessage);
+      socket.off("newConversation", onNewConversation);
+      socket.off("messageDelivered", onMessageDelivered);
+      socket.off("messageRead", onMessageRead);
+      socket.off("conversationRead", onConversationRead);
+      socket.off("messageEdited", onMessageEdited);
+      socket.off("messageUpdated", onMessageEdited);
+      socket.off("messageDeleted", onMessageDeleted);
+      socket.off("test");
+      socket.off("echoResponse");
+
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [socket, activeConversation, userId]);
+
+  // Tải danh sách cuộc trò chuyện
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        setLoading(true);
+        const response = await conversationApiRequest.getConversations();
+        setConversations(response.payload.data);
+
+        // Nếu có id trong URL thì chọn cuộc trò chuyện đó
+        if (conversationId) {
+          const selectedConversation = response.payload.data.find(
+            (conv) => conv.id === Number(conversationId)
+          );
+          if (selectedConversation) {
+            setActiveConversation(selectedConversation);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Không thể tải danh sách trò chuyện");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchConversations();
     }
+  }, [isAuthenticated, conversationId]);
+
+  // Tải tin nhắn khi chọn cuộc trò chuyện
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!activeConversation) return;
+
+      try {
+        setLoadingMessages(true);
+        setCurrentPage(1); // Reset về trang đầu tiên
+        setHasScrolledToBottom(false);
+        setInitialScrollDone(false);
+
+        // Tham gia vào phòng chat qua socket
+        if (socket && socket.connected && activeConversation.id) {
+          socket.emit("joinChat", activeConversation.id);
+          setSocketEvents((prev) => [
+            ...prev,
+            `Tham gia phòng: chat:${activeConversation.id}`,
+          ]);
+
+          // Đánh dấu đã đọc khi tham gia phòng chat
+          socket.emit("markConversationAsRead", {
+            conversationId: activeConversation.id,
+            readerId: userId,
+          });
+
+          // Gọi API để cập nhật trạng thái đã đọc
+          try {
+            await conversationApiRequest.markAsRead(activeConversation.id);
+
+            // Cập nhật UI - giảm số lượng tin nhắn chưa đọc về 0
+            setConversations((prevConversations) => {
+              return prevConversations.map((conv) =>
+                conv.id === activeConversation.id
+                  ? { ...conv, unreadCount: 0 }
+                  : conv
+              );
+            });
+          } catch (error) {
+            console.error("Lỗi khi đánh dấu đã đọc:", error);
+          }
+        }
+
+        // Tải tin nhắn mới nhất (trang đầu tiên)
+        const response = await conversationApiRequest.getMessages(
+          activeConversation.id,
+          { page: 1, limit: 15 }
+        );
+
+        // Lưu tổng số trang
+        setTotalPages(response.payload.totalPages || 1);
+
+        console.log("Đã tải tin nhắn từ API cho hội thoại mới: ", {
+          count: response.payload.data.length,
+          totalPages: response.payload.totalPages,
+          thứTự: "Tin nhắn mới nhất ở trên đầu (DESC)",
+        });
+
+        // Đặt tin nhắn (tin nhắn mới nhất ở trên đầu mảng)
+        setMessages(response.payload.data);
+
+        // Đánh dấu là chưa cuộn xuống dưới cùng
+        setHasScrolledToBottom(false);
+
+        // Đảm bảo rằng sau khi tải tin nhắn sẽ cuộn xuống dưới cùng (tin nhắn mới nhất)
+        setTimeout(() => {
+          scrollToBottom();
+          setInitialScrollDone(true);
+          setHasScrolledToBottom(true);
+        }, 300);
+      } catch (error) {
+        toast.error("Không thể tải tin nhắn");
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+
+    if (activeConversation) {
+      fetchMessages();
+    }
+
+    // Cleanup: Rời phòng chat khi thay đổi cuộc trò chuyện
+    return () => {
+      if (socket && socket.connected && activeConversation?.id) {
+        socket.emit("leaveChat", activeConversation.id);
+        setSocketEvents((prev) => [
+          ...prev,
+          `Rời phòng: chat:${activeConversation.id}`,
+        ]);
+      }
+    };
   }, [activeConversation, socket]);
 
-  // Theo dõi kết nối socket
+  // Xử lý cuộn xuống dưới cùng khi tin nhắn thay đổi
   useEffect(() => {
-    if (!socket) return;
+    // Chỉ tự động cuộn xuống dưới trong các trường hợp:
+    // 1. Khi mới tải trang và chưa cuộn lần nào
+    // 2. Khi tin nhắn mới được thêm vào (do chính mình gửi hoặc nhận từ người khác)
+    if (!initialScrollDone || !hasScrolledToBottom) {
+      scrollToBottom();
+      setInitialScrollDone(true);
+      setHasScrolledToBottom(true);
+    }
+  }, [messages, initialScrollDone, hasScrolledToBottom]);
 
-    const handleConnect = () => {
-      console.log("Socket đã kết nối lại");
-      sendOfflineMessages();
-    };
-
-    const handleDisconnect = () => {
-      console.log("Socket đã ngắt kết nối");
-    };
-
-    socket.on("connect", handleConnect);
-    socket.on("disconnect", handleDisconnect);
-
-    return () => {
-      socket.off("connect", handleConnect);
-      socket.off("disconnect", handleDisconnect);
-    };
-  }, [socket, sendOfflineMessages]);
-
-  // Tham chiếu cho việc phát hiện cuộn lên đầu
+  // Thay đổi phương pháp phát hiện cuộn để sử dụng cách tiếp cận truyền thống
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollElement = e.currentTarget;
 
@@ -373,7 +808,7 @@ export default function MessagesPage() {
       }
     }
 
-    // Đánh dấu nếu đã cuộn xuống dưới cùng
+    // Đánh dấm nếu đã cuộn xuống dưới cùng
     const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 50;
     setHasScrolledToBottom(isAtBottom);
   };
@@ -518,44 +953,25 @@ export default function MessagesPage() {
           avatar: null,
         },
         type: MessageType.TEXT,
+        status: MessageStatus.SENDING, // Đánh dấu trạng thái đang gửi
       };
 
       // Thêm tin nhắn vào UI trước
       setMessages((prev) => [newMessage, ...prev]);
+
+      // Đánh dấu tin nhắn để không xử lý lại (khi nhận từ socket)
+      const msgUniqueId = `${tempId}-${userId}-${messageContent}`;
+      processedMessageIds.current.add(msgUniqueId);
+
+      // Đảm bảo cuộn xuống dưới cùng ngay lập tức
       scrollToBottom();
 
-      if (!isOnline() || !socket?.connected) {
-        // Lưu tin nhắn vào localStorage nếu đang offline
-        const messageData = {
-          content: message,
-          conversationId: activeConversation.id,
-          tempId: tempId,
-          createdAt: new Date().toISOString(),
-        };
+      // Đặt timeout để cuộn lại sau khi DOM đã cập nhật
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
 
-        // Lấy các tin nhắn hiện có từ localStorage
-        const storedMessages = localStorage.getItem("offlineMessages");
-        const messages = storedMessages ? JSON.parse(storedMessages) : {};
-
-        // Thêm tin nhắn mới vào danh sách
-        if (!messages[activeConversation.id]) {
-          messages[activeConversation.id] = [];
-        }
-
-        messages[activeConversation.id].push(messageData);
-
-        // Lưu lại vào localStorage
-        localStorage.setItem("offlineMessages", JSON.stringify(messages));
-
-        // Hiển thị thông báo
-        toast.warning("Tin nhắn sẽ được gửi khi bạn online", {
-          id: "offline-message",
-        });
-
-        return;
-      }
-
-      // Gửi tin nhắn lên server nếu có kết nối
+      // Gửi tin nhắn lên server
       const response = await conversationApiRequest.sendMessage({
         conversationId: activeConversation.id,
         content: messageContent,
@@ -569,7 +985,9 @@ export default function MessagesPage() {
         // Cập nhật trong messages
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === tempId ? { ...msg, id: serverId } : msg
+            msg.id === tempId
+              ? { ...msg, id: serverId, status: MessageStatus.SENT }
+              : msg
           )
         );
 
@@ -592,6 +1010,11 @@ export default function MessagesPage() {
             return conv;
           }) as Conversation[];
         });
+
+        // Cuộn xuống dưới cùng một lần nữa sau khi cập nhật từ server
+        setTimeout(() => {
+          scrollToBottom();
+        }, 300);
       }
 
       // Xóa khỏi danh sách đang xử lý sau 30 giây
@@ -603,36 +1026,6 @@ export default function MessagesPage() {
     } catch (error) {
       console.error("Lỗi gửi tin nhắn:", error);
       toast.error("Không thể gửi tin nhắn");
-
-      // Lưu tin nhắn vào localStorage nếu có lỗi (có thể do mạng không ổn định)
-      if (activeConversation) {
-        const messageToSave = {
-          conversationId: activeConversation.id,
-          content: message.trim(),
-          type: MessageType.TEXT,
-          tempId: `temp-retry-${Date.now()}`,
-          createdAt: new Date().toISOString(),
-        };
-
-        // Lấy dữ liệu hiện tại từ localStorage
-        const storedMessages = localStorage.getItem("offlineMessages");
-        const offlineData = storedMessages ? JSON.parse(storedMessages) : {};
-
-        // Thêm tin nhắn mới vào mảng tương ứng với cuộc trò chuyện
-        if (!offlineData[activeConversation.id]) {
-          offlineData[activeConversation.id] = [];
-        }
-
-        offlineData[activeConversation.id].push(messageToSave);
-
-        // Lưu lại vào localStorage
-        localStorage.setItem("offlineMessages", JSON.stringify(offlineData));
-
-        toast.info("Tin nhắn sẽ được gửi lại khi có kết nối mạng", {
-          id: "failed-message-saved",
-        });
-      }
-
       return Promise.reject(error);
     } finally {
       setIsSendingMessage(false);
@@ -826,6 +1219,7 @@ export default function MessagesPage() {
         fileSize: file.fileSize,
         fileType: file.fileType,
         thumbnailUrl: file.thumbnailUrl,
+        status: MessageStatus.SENDING, // Đánh dấu trạng thái đang gửi
       };
 
       // Thêm tin nhắn vào UI
@@ -852,7 +1246,9 @@ export default function MessagesPage() {
         // Cập nhật ID trong messages
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === tempId ? { ...msg, id: serverId } : msg
+            msg.id === tempId
+              ? { ...msg, id: serverId, status: MessageStatus.SENT }
+              : msg
           )
         );
       }
@@ -888,52 +1284,131 @@ export default function MessagesPage() {
 
   // Hiển thị tin nhắn dựa trên loại
   const renderMessageContent = (msg: Message) => {
+    // Nếu tin nhắn đã bị xóa
+    if (msg.isDeleted) {
+      return (
+        <p className="text-sm italic text-muted-foreground">
+          Tin nhắn đã bị xóa
+        </p>
+      );
+    }
+
+    // Nếu đang chỉnh sửa tin nhắn này
+    if (editingMessageId === msg.id) {
+      return (
+        <div className="flex flex-col gap-2 w-full">
+          <Input
+            value={editMessageContent}
+            onChange={(e) => setEditMessageContent(e.target.value)}
+            className="w-full"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleEditMessage(msg.id as number, editMessageContent);
+              } else if (e.key === "Escape") {
+                cancelEditMessage();
+              }
+            }}
+          />
+          <div className="flex gap-2 text-xs">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                handleEditMessage(msg.id as number, editMessageContent)
+              }
+              disabled={!editMessageContent.trim()}
+            >
+              Lưu
+            </Button>
+            <Button variant="ghost" size="sm" onClick={cancelEditMessage}>
+              Hủy
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     // Nếu là tin nhắn văn bản
     if (!msg.type || msg.type === MessageType.TEXT) {
-      return <p className="text-sm break-words">{msg.content}</p>;
+      return (
+        <div className="relative group">
+          <p className="text-sm break-words">
+            {msg.content}
+            {msg.isEdited && !msg.isDeleted && (
+              <span className="text-[10px] ml-1 opacity-70">
+                (đã chỉnh sửa)
+              </span>
+            )}
+          </p>
+
+          {/* Menu sửa/xóa tin nhắn (chỉ hiển thị cho tin nhắn của người dùng hiện tại) */}
+          {msg.senderId === userId && !msg.isDeleted && (
+            <div className="absolute top-0 right-0 hidden group-hover:flex gap-1 -mt-1 -mr-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-full bg-background/80 hover:bg-background"
+                onClick={() => startEditMessage(msg)}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-full bg-background/80 hover:bg-background"
+                onClick={() => handleDeleteMessage(msg.id as number)}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+      );
     }
 
     // Hiển thị tệp tin dựa trên loại
     switch (msg.type) {
       case MessageType.IMAGE:
         return (
-          <div className="flex flex-col gap-2 w-full">
-            {/* Tên người gửi (chỉ hiển thị nếu không phải người dùng hiện tại) */}
-            {msg.senderId !== userId && (
-              <p className="text-xs font-medium">{msg.sender.name}</p>
-            )}
-
-            {/* Hình ảnh */}
+          <div className="flex flex-col gap-2 relative group">
             <div className="relative rounded-md overflow-hidden">
               <img
                 src={msg.fileUrl}
                 alt={msg.fileName || "Hình ảnh"}
-                className="max-w-full max-h-[300px] rounded-md object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                className="max-w-[150px] max-h-[150px] rounded-md object-cover cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => window.open(msg.fileUrl, "_blank")}
               />
             </div>
-
-            {/* Chi tiết tin nhắn */}
-            <div className="mt-1 flex flex-col">
-              {/* Tin nhắn không phải "Đã gửi một hình ảnh" mặc định */}
-              {msg.content !== "Đã gửi một hình ảnh" && (
-                <p className="text-sm break-words">{msg.content}</p>
+            <p className="text-xs opacity-80">
+              {msg.fileName}
+              {msg.isEdited && !msg.isDeleted && (
+                <span className="text-[10px] ml-1 opacity-70">
+                  (đã chỉnh sửa)
+                </span>
               )}
+            </p>
 
-              <p className="text-xs opacity-70 mt-1">{msg.fileName}</p>
-            </div>
+            {/* Menu xóa ảnh (chỉ hiển thị cho tin nhắn của người dùng hiện tại) */}
+            {msg.senderId === userId && !msg.isDeleted && (
+              <div className="absolute top-0 right-0 hidden group-hover:flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full bg-background/80 hover:bg-background"
+                  onClick={() => handleDeleteMessage(msg.id as number)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
           </div>
         );
 
       case MessageType.VIDEO:
         return (
-          <div className="flex flex-col gap-2 w-full">
-            {/* Tên người gửi (chỉ hiển thị nếu không phải người dùng hiện tại) */}
-            {msg.senderId !== userId && (
-              <p className="text-xs font-medium">{msg.sender.name}</p>
-            )}
-
-            {/* Video */}
+          <div className="flex flex-col gap-2">
             <div className="relative rounded-md overflow-hidden">
               <video
                 src={msg.fileUrl}
@@ -941,16 +1416,7 @@ export default function MessagesPage() {
                 className="max-w-full max-h-[300px] rounded-md"
               />
             </div>
-
-            {/* Chi tiết tin nhắn */}
-            <div className="mt-1 flex flex-col">
-              {/* Tin nhắn không phải "Đã gửi một video" mặc định */}
-              {msg.content !== "Đã gửi một video" && (
-                <p className="text-sm break-words">{msg.content}</p>
-              )}
-
-              <p className="text-xs opacity-70 mt-1">{msg.fileName}</p>
-            </div>
+            <p className="text-xs opacity-80">{msg.fileName}</p>
           </div>
         );
 
@@ -1015,36 +1481,28 @@ export default function MessagesPage() {
     if (!files || files.length === 0 || !activeConversation) return;
 
     try {
-      const filesToPreview = Array.from(files).slice(0, 5); // Giới hạn 5 ảnh
+      const filesToAdd = Array.from(files).slice(0, 5); // Giới hạn 5 ảnh
 
-      // Tạo preview URL cho mỗi ảnh được chọn
-      const imageAttachments = filesToPreview.map((file) => {
-        // Tạo local preview URL
-        const previewUrl = URL.createObjectURL(file);
+      // Tạo URL preview cục bộ cho mỗi ảnh
+      const newImages = filesToAdd.map((file) => ({
+        file,
+        url: URL.createObjectURL(file),
+        isUploaded: false,
+      }));
 
-        return {
-          file,
-          previewUrl,
-          isUploaded: false,
-        } as AttachedImage;
-      });
-
-      // Thêm ảnh mới vào danh sách preview
-      setAttachedImages((prevImages) => {
-        const updatedImages = [...prevImages, ...imageAttachments];
-        // Nếu có quá nhiều ảnh, chỉ giữ lại 5 ảnh mới nhất
-        return updatedImages.slice(0, 5);
-      });
-
-      // Reset input để có thể chọn lại cùng một file
-      if (imageInputRef.current) {
-        imageInputRef.current.value = "";
+      // Thêm ảnh mới vào danh sách (giới hạn tối đa 5 ảnh)
+      if (newImages.length > 0) {
+        setAttachedImages((prevImages) => {
+          const updatedImages = [...prevImages, ...newImages];
+          // Nếu có quá nhiều ảnh, chỉ giữ lại 5 ảnh mới nhất
+          return updatedImages.slice(0, 5);
+        });
       }
     } catch (error) {
-      console.error("Lỗi khi tạo preview ảnh:", error);
-      toast.error("Không thể hiển thị ảnh đính kèm");
-
-      // Reset input nếu có lỗi
+      console.error("Lỗi khi xử lý ảnh:", error);
+      toast.error("Không thể xử lý ảnh đính kèm");
+    } finally {
+      // Reset input để có thể chọn lại cùng một file
       if (imageInputRef.current) {
         imageInputRef.current.value = "";
       }
@@ -1055,27 +1513,14 @@ export default function MessagesPage() {
   const removeAttachedImage = (index: number) => {
     setAttachedImages((prevImages) => {
       const newImages = [...prevImages];
-
-      // Giải phóng object URL trước khi xóa
-      if (newImages[index]?.previewUrl) {
-        URL.revokeObjectURL(newImages[index].previewUrl);
-      }
-
       // Xóa ảnh khỏi mảng
       newImages.splice(index, 1);
       return newImages;
     });
   };
 
-  // Xóa tất cả ảnh đính kèm và giải phóng object URL
+  // Xóa tất cả ảnh đính kèm
   const clearAttachedImages = () => {
-    // Giải phóng tất cả object URLs
-    attachedImages.forEach((img) => {
-      if (img.previewUrl) {
-        URL.revokeObjectURL(img.previewUrl);
-      }
-    });
-
     // Xóa tất cả ảnh
     setAttachedImages([]);
   };
@@ -1093,8 +1538,10 @@ export default function MessagesPage() {
       setUploadProgress(0);
       setIsSendingMessage(true);
 
-      // Lưu lại nội dung tin nhắn trước khi xóa khỏi input
+      // Lưu lại content trước khi xóa
       const messageContent = message.trim();
+      // Xóa tin nhắn khỏi input trước
+      setMessage("");
 
       // Thiết lập progress update
       const progressInterval = setInterval(() => {
@@ -1105,94 +1552,119 @@ export default function MessagesPage() {
       }, 200);
 
       try {
-        // Bắt đầu upload ảnh lên Cloudinary
-        const uploadPromises = attachedImages.map(async (image) => {
-          const formData = new FormData();
-          formData.append("file", image.file);
-          formData.append("conversationId", activeConversation.id.toString());
+        // Hiển thị tin nhắn tạm thời trên giao diện trước khi gửi
+        const tempMessages: Message[] = [];
 
-          // Upload ảnh lên server
-          const response = await conversationApiRequest.uploadMessageFile(
-            formData
-          );
+        // Tạo ID tạm thời cho nhóm tin nhắn này
+        const tempGroupId = `temp-group-${Date.now()}`;
 
-          return {
-            file: image.file,
-            url: response.payload.url,
-            fileSize: response.payload.fileSize,
-            fileType: response.payload.fileType,
-            fileName: response.payload.fileName,
+        // Nếu có nội dung tin nhắn, thêm tin nhắn văn bản
+        if (messageContent) {
+          const tempTextId = `temp-text-${Date.now()}`;
+          const tempTextMessage: Message = {
+            id: tempTextId,
+            content: messageContent,
+            createdAt: new Date().toISOString(),
+            senderId: userId || 0,
+            isRead: false,
+            conversationId: activeConversation.id,
+            sender: {
+              id: userId || 0,
+              name: "Bạn",
+              avatar: null,
+            },
+            type: MessageType.TEXT,
+            status: MessageStatus.SENDING, // Đánh dấu trạng thái đang gửi
           };
+          tempMessages.push(tempTextMessage);
+
+          // Đánh dấu tin nhắn này để không xử lý lại
+          processedMessageIds.current.add(
+            `${tempTextId}-${userId}-${messageContent}`
+          );
+        }
+
+        // Thêm tin nhắn tạm thời cho mỗi ảnh
+        attachedImages.forEach((img, index) => {
+          const tempImageId = `temp-image-${Date.now()}-${index}`;
+          const tempImageContent = `Đã gửi một hình ảnh (${img.file.name})`;
+
+          const tempImageMessage: Message = {
+            id: tempImageId,
+            content: tempImageContent,
+            createdAt: new Date(Date.now() + index).toISOString(),
+            senderId: userId || 0,
+            isRead: false,
+            conversationId: activeConversation.id,
+            sender: {
+              id: userId || 0,
+              name: "Bạn",
+              avatar: null,
+            },
+            type: MessageType.IMAGE,
+            fileUrl: img.url,
+            fileName: img.file.name,
+            fileSize: img.file.size,
+            fileType: img.file.type,
+            status: MessageStatus.SENDING, // Đánh dấu trạng thái đang gửi
+          };
+          tempMessages.push(tempImageMessage);
+
+          // Đánh dấu tin nhắn này để không xử lý lại
+          processedMessageIds.current.add(
+            `${tempImageId}-${userId}-${tempImageContent}`
+          );
         });
 
-        // Chờ tất cả các ảnh được upload xong
-        const uploadedFiles = await Promise.all(uploadPromises);
+        // Thêm tin nhắn tạm thời vào UI
+        setMessages((prev) => [...tempMessages, ...prev]);
+        scrollToBottom();
 
-        // Gửi tin nhắn với các ảnh đã upload
+        // Đặt timeout để cuộn lại sau khi DOM đã cập nhật
+        setTimeout(() => {
+          scrollToBottom();
+        }, 100);
+
+        // Bước 1: Upload tất cả các ảnh chưa được upload
+        const imagesToUpload = attachedImages.filter((img) => !img.isUploaded);
+
+        // Bước 2: Chuẩn bị danh sách file để gửi kèm tin nhắn
+        const files: File[] = attachedImages.map((img) => img.file);
+
+        // Bước 3: Gửi tin nhắn kèm ảnh đã upload
         const result = await conversationApiRequest.sendMessageWithFiles(
           messageContent,
-          uploadedFiles.map((file) => file.file),
+          files,
           activeConversation.id
         );
 
-        // Cập nhật UI dựa trên kết quả trả về
+        // Đánh dấu tất cả tin nhắn từ server để không xử lý duplicate
+        // KHI nhận lại từ socket
         if (result.messages && result.messages.length > 0) {
-          // Hiển thị tin nhắn từ server
-          for (const newMsg of result.messages) {
-            // Đảm bảo giữ nguyên nội dung tin nhắn người dùng nhập
-            let msgContent = newMsg.content;
+          for (const serverMsg of result.messages) {
+            // Tạo nhiều ID khác nhau để đảm bảo không bỏ sót
+            const msgIdWithContent = `${serverMsg.id}-${serverMsg.senderId}-${serverMsg.content}`;
+            const msgIdWithTime = `${serverMsg.senderId}-${
+              serverMsg.content
+            }-${new Date(serverMsg.createdAt).getTime()}`;
 
-            // Nếu là ảnh và có nội dung tin nhắn, sửa lại nội dung để giữ nguyên tin nhắn
-            if (newMsg.type === MessageType.IMAGE && messageContent) {
-              // Nếu nội dung bắt đầu với "[Hình ảnh]" hoặc "Đã gửi", thay đổi nội dung thành tin nhắn thực tế
-              if (
-                msgContent.startsWith("[Hình ảnh]") ||
-                msgContent.startsWith("Đã gửi")
-              ) {
-                msgContent = messageContent;
-              }
-            }
-
-            const serverMessage = {
-              ...newMsg,
-              content: msgContent,
-              sender: {
-                id: userId || 0,
-                name: "Bạn",
-                avatar: null,
-              },
-            };
-            setMessages((prev) => [serverMessage, ...prev]);
+            processedMessageIds.current.add(msgIdWithContent);
+            processedMessageIds.current.add(msgIdWithTime);
           }
 
-          // Cập nhật conversation với tin nhắn mới nhất
-          const lastMessage = result.messages[result.messages.length - 1];
-          setConversations((prevConversations) => {
-            const typedConversations: Conversation[] = prevConversations;
-
-            return typedConversations.map((conv) => {
-              if (conv.id === activeConversation.id) {
-                return {
-                  ...conv,
-                  latestMessage: {
-                    id: lastMessage.id,
-                    content: messageContent || lastMessage.content,
-                    createdAt: lastMessage.createdAt,
-                    senderId: userId || 0,
-                  },
-                };
-              }
-              return conv;
-            }) as Conversation[];
-          });
+          // Xóa bỏ tin nhắn tạm thời khỏi UI và để socket thêm tin nhắn thực
+          setMessages((prev) =>
+            prev.filter(
+              (msg) =>
+                !(
+                  typeof msg.id === "string" &&
+                  (msg.id.startsWith("temp-text-") ||
+                    msg.id.startsWith("temp-image-")) &&
+                  tempMessages.some((tempMsg) => tempMsg.id === msg.id)
+                )
+            )
+          );
         }
-
-        // Giải phóng tất cả object URL
-        attachedImages.forEach((img) => {
-          if (img.previewUrl) {
-            URL.revokeObjectURL(img.previewUrl);
-          }
-        });
       } finally {
         // Dừng interval progress update
         clearInterval(progressInterval);
@@ -1201,10 +1673,21 @@ export default function MessagesPage() {
       // Đánh dấu tiến trình 100% khi hoàn thành
       setUploadProgress(100);
 
+      // Xóa bỏ các URL Object đã tạo để tránh memory leak
+      attachedImages.forEach((img) => {
+        if (!img.isUploaded && img.url.startsWith("blob:")) {
+          URL.revokeObjectURL(img.url);
+        }
+      });
+
       // Xóa tất cả ảnh đã đính kèm
       clearAttachedImages();
-      setMessage("");
       scrollToBottom();
+
+      // Cuộn xuống dưới cùng lần nữa sau khi xóa ảnh
+      setTimeout(() => {
+        scrollToBottom();
+      }, 200);
 
       toast.success("Đã gửi tin nhắn và ảnh thành công!");
 
@@ -1216,19 +1699,24 @@ export default function MessagesPage() {
     } catch (error) {
       console.error("Lỗi khi gửi tin nhắn kèm ảnh:", error);
       toast.error("Không thể gửi tin nhắn kèm ảnh");
-
-      // Giải phóng object URL nếu có lỗi
-      attachedImages.forEach((img) => {
-        if (img.previewUrl) {
-          URL.revokeObjectURL(img.previewUrl);
-        }
-      });
     } finally {
       setSendingImages(false);
       setIsSendingMessage(false);
       setUploadProgress(0);
     }
   };
+
+  // Cần clean up các URL preview khi component unmount
+  useEffect(() => {
+    return () => {
+      // Xóa bỏ các URL Object đã tạo để tránh memory leak
+      attachedImages.forEach((img) => {
+        if (!img.isUploaded && img.url.startsWith("blob:")) {
+          URL.revokeObjectURL(img.url);
+        }
+      });
+    };
+  }, [attachedImages]);
 
   // Thêm useEffect để thiết lập IntersectionObserver
   useEffect(() => {
@@ -1278,20 +1766,81 @@ export default function MessagesPage() {
     };
   }, [isLoadingMore, currentPage, totalPages, activeConversation]);
 
-  // Thêm hiển thị trạng thái kết nối cho người dùng
-  const ConnectionStatus = () => {
-    if (online && socket?.connected) return null;
+  // Hàm xử lý sửa tin nhắn
+  const handleEditMessage = async (messageId: number, content: string) => {
+    try {
+      console.log(
+        `DEBUG handleEditMessage: Bắt đầu sửa tin nhắn ${messageId} thành "${content}"`
+      );
 
-    return (
-      <div className="flex items-center justify-center py-2 px-4 bg-yellow-100 text-yellow-800 rounded-md mb-2">
-        <AlertTriangle className="h-4 w-4 mr-2" />
-        <span className="text-sm">
-          {!online
-            ? "Bạn đang offline. Tin nhắn sẽ được gửi khi có kết nối."
-            : "Đang kết nối lại..."}
-        </span>
-      </div>
-    );
+      // Cập nhật UI ngay lập tức
+      setMessages((prev) =>
+        prev.map((msg) =>
+          typeof msg.id === "number" && msg.id === messageId
+            ? { ...msg, content, isEdited: true }
+            : msg
+        )
+      );
+
+      // Gọi API sửa tin nhắn
+      const response = await conversationApiRequest.editMessage(
+        messageId,
+        content
+      );
+      console.log(`DEBUG handleEditMessage: API đã trả về:`, response);
+
+      // Báo thành công
+      toast.success("Đã sửa tin nhắn");
+
+      // Reset trạng thái chỉnh sửa
+      setEditingMessageId(null);
+      setEditMessageContent("");
+    } catch (error) {
+      console.error("Lỗi khi sửa tin nhắn:", error);
+      toast.error("Không thể sửa tin nhắn");
+    }
+  };
+
+  // Hàm xử lý xóa tin nhắn
+  const handleDeleteMessage = async (messageId: number) => {
+    try {
+      // Xác nhận xóa
+      if (!window.confirm("Bạn có chắc chắn muốn xóa tin nhắn này?")) {
+        return;
+      }
+
+      // Cập nhật UI ngay lập tức
+      setMessages((prev) =>
+        prev.map((msg) =>
+          typeof msg.id === "number" && msg.id === messageId
+            ? { ...msg, content: "Tin nhắn đã bị xóa", isDeleted: true }
+            : msg
+        )
+      );
+
+      // Gọi API xóa tin nhắn
+      await conversationApiRequest.deleteMessage(messageId);
+
+      // Báo thành công
+      toast.success("Đã xóa tin nhắn");
+    } catch (error) {
+      console.error("Lỗi khi xóa tin nhắn:", error);
+      toast.error("Không thể xóa tin nhắn");
+    }
+  };
+
+  // Hàm bắt đầu chỉnh sửa tin nhắn
+  const startEditMessage = (message: Message) => {
+    if (typeof message.id !== "number" || message.isDeleted) return;
+
+    setEditingMessageId(message.id);
+    setEditMessageContent(message.content);
+  };
+
+  // Hàm hủy chỉnh sửa tin nhắn
+  const cancelEditMessage = () => {
+    setEditingMessageId(null);
+    setEditMessageContent("");
   };
 
   return (
@@ -1415,7 +1964,7 @@ export default function MessagesPage() {
                   ref={scrollAreaComponentRef}
                 >
                   <div ref={scrollAreaRef}>
-                    {/* Phần tử kích hoạt tải thêm */}
+                    {/* Phần tử kích hoạt tải thêm tin nhắn - đặt ở đầu để kích hoạt khi cuộn lên */}
                     <div
                       ref={loadMoreTriggerRef}
                       className="h-10 w-full my-2 flex items-center justify-center -mt-2"
@@ -1439,7 +1988,7 @@ export default function MessagesPage() {
                       )}
                     </div>
 
-                    {/* Thông tin debug */}
+                    {/* Khu vực thông tin debug - để người dùng biết trạng thái hiện tại */}
                     <div className="text-xs text-muted-foreground mb-4 p-2 bg-muted/30 rounded-md">
                       Đã tải: {messages.length} tin nhắn | Trang: {currentPage}/
                       {totalPages}
@@ -1468,129 +2017,40 @@ export default function MessagesPage() {
                         <p>Hãy bắt đầu cuộc trò chuyện...</p>
                       </div>
                     ) : (
-                      <div className="space-y-4 w-full pb-1">
+                      <div className="space-y-3 w-full pb-1">
                         {messages.length > 0 &&
-                          [...messages].reverse().map((msg, index) => {
-                            // Kiểm tra nếu là tin nhắn kiểu ảnh và có văn bản
-                            const isTikTokStyleMessage =
-                              (msg.type === MessageType.IMAGE ||
-                                msg.type === MessageType.VIDEO) &&
-                              msg.content !== "Đã gửi một hình ảnh" &&
-                              msg.content !== "Đã gửi một video";
-
-                            // Nếu là tin nhắn kiểu TikTok, hiển thị theo kiểu TikTok
-                            if (isTikTokStyleMessage) {
-                              return (
-                                <div
-                                  key={`msg-${msg.id}-${index}`}
-                                  className={`flex ${
-                                    msg.senderId === userId
-                                      ? "justify-end"
-                                      : "justify-start"
-                                  }`}
-                                >
-                                  <div
-                                    className={`max-w-[85%] sm:max-w-[75%] rounded-lg overflow-hidden ${
-                                      msg.senderId === userId
-                                        ? "bg-primary/5 rounded-tr-none"
-                                        : "bg-muted rounded-tl-none"
-                                    }`}
-                                  >
-                                    {/* Header với tên người gửi */}
-                                    <div className="p-2 flex items-center gap-2 border-b">
-                                      <Avatar className="h-6 w-6">
-                                        <AvatarImage
-                                          src={msg.sender.avatar || undefined}
-                                        />
-                                        <AvatarFallback>
-                                          <UserCircle className="h-4 w-4" />
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="text-sm font-medium">
-                                        {msg.sender.name}
-                                      </span>
-                                    </div>
-
-                                    {/* Nội dung media */}
-                                    <div className="relative">
-                                      {msg.type === MessageType.IMAGE ? (
-                                        <img
-                                          src={msg.fileUrl}
-                                          alt={msg.fileName || "Hình ảnh"}
-                                          className="w-full max-h-[300px] object-cover"
-                                        />
-                                      ) : (
-                                        <video
-                                          src={msg.fileUrl}
-                                          controls
-                                          className="w-full max-h-[300px]"
-                                        />
-                                      )}
-                                    </div>
-
-                                    {/* Caption và nút tương tác */}
-                                    <div className="p-3">
-                                      <p className="text-sm break-words mb-2">
-                                        {msg.content}
-                                      </p>
-                                      <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-                                        <span>
-                                          {new Date(
-                                            msg.createdAt
-                                          ).toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                          })}
-                                        </span>
-
-                                        {/* Nút tương tác */}
-                                        <div className="flex gap-3 items-center">
-                                          <button className="flex items-center gap-1">
-                                            <span className="text-xs">❤️</span>
-                                          </button>
-                                          <button className="flex items-center gap-1">
-                                            <span className="text-xs">💬</span>
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            // Nếu không, sử dụng kiểu hiển thị tin nhắn thông thường
-                            return (
+                          /* Messages được lưu theo thứ tự DESC (mới ở đầu) dựa trên API trả về 
+                             Để hiển thị theo thứ tự đúng (cũ ở trên, mới ở dưới), chúng ta đảo ngược mảng */
+                          [...messages].reverse().map((msg, index) => (
+                            <div
+                              key={`msg-${msg.id}-${index}`}
+                              className={`flex ${
+                                msg.senderId === userId
+                                  ? "justify-end"
+                                  : "justify-start"
+                              }`}
+                            >
+                              {msg.senderId !== userId && (
+                                <Avatar className="h-8 w-8 mr-2 mt-1 hidden sm:block">
+                                  <AvatarImage
+                                    src={msg.sender.avatar || undefined}
+                                  />
+                                  <AvatarFallback>
+                                    <UserCircle className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
                               <div
-                                key={`msg-${msg.id}-${index}`}
-                                className={`flex ${
+                                className={`max-w-[85%] sm:max-w-[75%] rounded-lg p-3 ${
                                   msg.senderId === userId
-                                    ? "justify-end"
-                                    : "justify-start"
+                                    ? "bg-primary text-primary-foreground rounded-tr-none"
+                                    : "bg-muted rounded-tl-none"
                                 }`}
                               >
-                                {msg.senderId !== userId && (
-                                  <Avatar className="h-8 w-8 mr-2 mt-1 hidden sm:block">
-                                    <AvatarImage
-                                      src={msg.sender.avatar || undefined}
-                                    />
-                                    <AvatarFallback>
-                                      <UserCircle className="h-4 w-4" />
-                                    </AvatarFallback>
-                                  </Avatar>
-                                )}
-                                <div
-                                  className={`max-w-[85%] sm:max-w-[75%] rounded-lg p-3 ${
-                                    msg.senderId === userId
-                                      ? "bg-primary text-primary-foreground rounded-tr-none"
-                                      : "bg-muted rounded-tl-none"
-                                  }`}
-                                >
-                                  {renderMessageContent(msg)}
-                                </div>
+                                {renderMessageContent(msg)}
                               </div>
-                            );
-                          })}
+                            </div>
+                          ))}
                         <div ref={messagesEndRef} />
                       </div>
                     )}
@@ -1603,7 +2063,7 @@ export default function MessagesPage() {
                   {attachedImages.length > 0 && (
                     <MessageImagePreview
                       images={attachedImages.map((img) => ({
-                        previewUrl: img.previewUrl,
+                        url: img.url,
                         file: img.file,
                       }))}
                       removeImage={removeAttachedImage}
@@ -1695,7 +2155,7 @@ export default function MessagesPage() {
                         }
                       }}
                     >
-                      {isSendingMessage ? (
+                      {isSendingMessage || sendingImages ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
                         <Send className="h-5 w-5" />
@@ -1714,6 +2174,18 @@ export default function MessagesPage() {
                       </span>
                     </div>
                   )}
+
+                  {/* Hiển thị thông tin ảnh đã đính kèm nhưng không kèm nút gửi riêng */}
+                  {attachedImages.length > 0 &&
+                    !uploading &&
+                    !sendingImages && (
+                      <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-muted/30">
+                        <ImageIcon className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">
+                          {attachedImages.length} ảnh đã sẵn sàng
+                        </span>
+                      </div>
+                    )}
                 </div>
               </>
             ) : (
@@ -1723,10 +2195,6 @@ export default function MessagesPage() {
             )}
           </Card>
         </div>
-      </div>
-      <div className="p-4 flex-1 overflow-hidden flex flex-col">
-        <ConnectionStatus />
-        {/* ... existing code ... */}
       </div>
     </div>
   );

@@ -175,4 +175,65 @@ export class MessagesService {
 
     return true
   }
+
+  /**
+   * Cập nhật nội dung tin nhắn
+   */
+  async editMessage(userId: number, messageId: number, content: string) {
+    // Lấy thông tin của tin nhắn
+    const message = await this.messagesRepo.getMessageById(messageId)
+
+    if (!message) {
+      throw new Error('Tin nhắn không tồn tại')
+    }
+
+    // Kiểm tra xem người dùng có phải là người gửi tin nhắn không
+    if (message.senderId !== userId) {
+      throw new UnauthorizedException(
+        'Bạn không có quyền chỉnh sửa tin nhắn này'
+      )
+    }
+
+    // Cập nhật nội dung tin nhắn
+    const updatedMessage = await this.messagesRepo.updateMessage(
+      messageId,
+      content
+    )
+
+    // Gửi sự kiện thông báo tin nhắn đã được cập nhật với thông tin đầy đủ
+    this.eventsGateway.notifyMessageUpdated(message.conversationId, {
+      id: messageId,
+      content,
+      conversationId: message.conversationId,
+      messageId: messageId, // Thêm trường này để đảm bảo tương thích
+      isEdited: true,
+    })
+
+    return updatedMessage
+  }
+
+  /**
+   * Xóa tin nhắn
+   */
+  async deleteMessage(userId: number, messageId: number) {
+    // Lấy thông tin của tin nhắn
+    const message = await this.messagesRepo.getMessageById(messageId)
+
+    if (!message) {
+      throw new Error('Tin nhắn không tồn tại')
+    }
+
+    // Kiểm tra xem người dùng có phải là người gửi tin nhắn không
+    if (message.senderId !== userId) {
+      throw new UnauthorizedException('Bạn không có quyền xóa tin nhắn này')
+    }
+
+    // Xóa tin nhắn (soft delete)
+    const result = await this.messagesRepo.deleteMessage(messageId)
+
+    // Gửi sự kiện thông báo tin nhắn đã bị xóa
+    this.eventsGateway.notifyMessageDeleted(message.conversationId, messageId)
+
+    return result
+  }
 }

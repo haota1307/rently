@@ -119,6 +119,8 @@ export const ConversationMessageSchema = z.object({
   createdAt: z.date(),
   conversationId: z.number(),
   senderId: z.number(),
+  isDeleted: z.boolean().optional().default(false),
+  isEdited: z.boolean().optional().default(false),
   // Thêm các trường cho tin nhắn đa phương tiện
   type: z.string().optional().nullable(),
   fileUrl: z.string().optional().nullable(),
@@ -189,3 +191,9 @@ export const FileUploadResponseSchema = z.object({
 })
 
 export type FileUploadResponseType = z.infer<typeof FileUploadResponseSchema>
+
+export const EditMessageSchema = z.object({
+  content: z.string(),
+})
+
+export class EditMessageDTO extends createZodDto(EditMessageSchema) {}

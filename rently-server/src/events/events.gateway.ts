@@ -340,4 +340,52 @@ export class EventsGateway
 
     return { event: 'echo', data: 'Đã nhận echo' }
   }
+
+  /**
+   * Thông báo tin nhắn đã được cập nhật
+   */
+  notifyMessageUpdated(conversationId: number, updatedMessage: any) {
+    const room = `chat:${conversationId}`
+    this.logger.log(`Gửi thông báo cập nhật tin nhắn đến phòng ${room}`)
+    this.logger.log(
+      `Chi tiết tin nhắn cập nhật: ${JSON.stringify(updatedMessage)}`
+    )
+
+    // Log danh sách các socket trong phòng
+    const roomSockets = this.server.sockets.adapter.rooms.get(room)
+    this.logger.log(
+      `Sockets trong phòng ${room}: ${roomSockets ? [...roomSockets].join(', ') : 'không có'}`
+    )
+
+    // Gửi thông báo đến tất cả người dùng trong phòng chat với cả hai tên sự kiện
+    this.logger.log(`Bắt đầu emit sự kiện 'messageUpdated' đến phòng ${room}`)
+    this.server.to(room).emit('messageUpdated', updatedMessage)
+
+    // Thêm emit sự kiện 'messageEdited' để đảm bảo khả năng tương thích
+    this.logger.log(`Bắt đầu emit sự kiện 'messageEdited' đến phòng ${room}`)
+    this.server.to(room).emit('messageEdited', updatedMessage)
+
+    this.logger.log(`Đã emit các sự kiện cập nhật tin nhắn đến phòng ${room}`)
+
+    return true
+  }
+
+  /**
+   * Thông báo tin nhắn đã bị xóa
+   */
+  notifyMessageDeleted(conversationId: number, messageId: number) {
+    const room = `chat:${conversationId}`
+    this.logger.log(`Gửi thông báo xóa tin nhắn ${messageId} đến phòng ${room}`)
+
+    // Log danh sách các socket trong phòng
+    const roomSockets = this.server.sockets.adapter.rooms.get(room)
+    this.logger.log(
+      `Sockets trong phòng ${room}: ${roomSockets ? [...roomSockets].join(', ') : 'không có'}`
+    )
+
+    // Gửi thông báo đến tất cả người dùng trong phòng chat
+    this.server.to(room).emit('messageDeleted', { conversationId, messageId })
+
+    return true
+  }
 }

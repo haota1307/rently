@@ -361,6 +361,8 @@ model ConversationMessage {
   content   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  isDeleted Boolean  @default(false)
+  isEdited  Boolean  @default(false)
 
   // Thêm các trường cho tin nhắn đa phương tiện
   type         String? @default("TEXT") // TEXT, IMAGE, VIDEO, DOCUMENT, AUDIO, FILE

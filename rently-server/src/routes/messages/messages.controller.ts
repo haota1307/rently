@@ -8,6 +8,7 @@ import {
   Query,
   UploadedFile,
   UseInterceptors,
+  ParseIntPipe,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ZodSerializerDto } from 'nestjs-zod'
@@ -21,6 +22,7 @@ import {
   GetMessagesQueryDTO,
   GetMessagesResSchema,
   MessageType,
+  EditMessageDTO,
 } from './messages.dto'
 import { MessagesService } from './messages.service'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
@@ -158,5 +160,28 @@ export class MessagesController {
     @Param() params: GetMessagesParamsDTO
   ) {
     return this.messagesService.markAsRead(userId, params.conversationId)
+  }
+
+  /**
+   * Sửa nội dung tin nhắn
+   */
+  @Put(':messageId/edit')
+  editMessage(
+    @ActiveUser('userId') userId: number,
+    @Param('messageId', ParseIntPipe) messageId: number,
+    @Body() body: EditMessageDTO
+  ) {
+    return this.messagesService.editMessage(userId, messageId, body.content)
+  }
+
+  /**
+   * Xóa tin nhắn (soft delete)
+   */
+  @Put(':messageId/delete')
+  deleteMessage(
+    @ActiveUser('userId') userId: number,
+    @Param('messageId', ParseIntPipe) messageId: number
+  ) {
+    return this.messagesService.deleteMessage(userId, messageId)
   }
 }

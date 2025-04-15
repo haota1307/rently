@@ -104,6 +104,18 @@ const conversationApiRequest = {
   // Gửi tin nhắn mới
   sendMessage: (data: MessageData) => http.post<any>(`${prefix}/send`, data),
 
+  // Sửa tin nhắn
+  editMessage: (messageId: number, content: string) =>
+    http.put<any>(`${prefix}/${messageId}/edit`, { content }),
+
+  // Xóa tin nhắn
+  deleteMessage: (messageId: number) =>
+    http.put<any>(`${prefix}/${messageId}/delete`, {}),
+
+  // Đánh dấu tin nhắn đã đọc
+  markAsRead: (conversationId: number) =>
+    http.put<any>(`${prefix}/conversations/${conversationId}/mark-as-read`, {}),
+
   uploadMessageFile: (formData: FormData) =>
     http.post<UploadedFile>(`${prefix}/upload`, formData),
 
