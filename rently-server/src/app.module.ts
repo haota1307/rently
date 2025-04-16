@@ -26,6 +26,7 @@ import { ViewingScheduleModule } from 'src/routes/viewing-schedule/viewing-sched
 import { MessagesModule } from './routes/messages/messages.module'
 
 import { AmenityModule } from 'src/routes/amenity/amenity.module'
+import { ScheduleModule } from '@nestjs/schedule'
 @Module({
   imports: [
     SharedModule,
@@ -48,6 +49,7 @@ import { AmenityModule } from 'src/routes/amenity/amenity.module'
     EventsModule,
     ViewingScheduleModule,
     MessagesModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [

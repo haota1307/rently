@@ -13,12 +13,50 @@ import {
 } from './viewing-schedule.model'
 import { ViewingScheduleRepo } from './viewing-schedule.repo'
 import { PrismaService } from 'src/shared/services/prisma.service'
+import { EmailService } from 'src/shared/services/email.service'
+import { addHours, isBefore } from 'date-fns'
+import { Cron } from '@nestjs/schedule'
+import { Prisma } from '@prisma/client'
+
+// Định nghĩa kiểu dữ liệu cho schedule với thông tin quan hệ
+interface ScheduleWithRelations {
+  id: number
+  postId: number
+  tenantId: number
+  landlordId: number
+  viewingDate: Date
+  status: string
+  rescheduledDate: Date | null
+  note: string | null
+  requireTenantConfirmation: boolean
+  createdAt: Date
+  updatedAt: Date
+  post: {
+    id: number
+    title: string
+    rental: {
+      address: string
+    } | null
+  }
+  tenant: {
+    id: number
+    name: string
+    email: string
+    phoneNumber: string | null
+  }
+  landlord: {
+    id: number
+    name: string
+    phoneNumber: string | null
+  }
+}
 
 @Injectable()
 export class ViewingScheduleService {
   constructor(
     private viewingScheduleRepo: ViewingScheduleRepo,
-    private prismaService: PrismaService
+    private prismaService: PrismaService,
+    private emailService: EmailService
   ) {}
 
   async create(
@@ -58,7 +96,6 @@ export class ViewingScheduleService {
       )
     }
 
-    // Kiểm tra xem người dùng đã có lịch xem phòng nào chưa bị hủy cho phòng này chưa
     const existingSchedule = await this.prismaService.viewingSchedule.findFirst(
       {
         where: {
@@ -77,7 +114,9 @@ export class ViewingScheduleService {
       )
     }
 
-    return this.viewingScheduleRepo.create(body, userId)
+    const createdSchedule = await this.viewingScheduleRepo.create(body, userId)
+
+    return createdSchedule
   }
 
   async update(
@@ -100,7 +139,14 @@ export class ViewingScheduleService {
       )
     }
 
-    return this.viewingScheduleRepo.update(id, body)
+    const updatedSchedule = await this.viewingScheduleRepo.update(id, body)
+
+    // Nếu lịch hẹn được phê duyệt, gửi email xác nhận
+    if (body.status === 'APPROVED') {
+      await this.sendReminderForSchedule(id)
+    }
+
+    return updatedSchedule
   }
 
   async list(
@@ -152,5 +198,190 @@ export class ViewingScheduleService {
     }
 
     return schedule
+  }
+
+  // Gửi nhắc nhở cho lịch hẹn cụ thể
+  async sendReminderForSchedule(
+    scheduleId: number
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Lấy thông tin lịch hẹn với các quan hệ cần thiết dùng select thay vì include
+      const scheduleData = await this.prismaService.viewingSchedule.findUnique({
+        where: { id: scheduleId },
+        include: {
+          post: {
+            select: {
+              title: true,
+              rental: {
+                select: {
+                  address: true,
+                },
+              },
+            },
+          },
+          tenant: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          landlord: {
+            select: {
+              name: true,
+              phoneNumber: true,
+            },
+          },
+        },
+      })
+
+      if (!scheduleData) {
+        return { success: false, message: 'Lịch hẹn không tồn tại' }
+      }
+
+      // Type casting để TypeScript hiểu đúng cấu trúc dữ liệu
+      const schedule = scheduleData as unknown as ScheduleWithRelations
+
+      // Chỉ gửi nhắc nhở cho lịch hẹn đã được duyệt
+      if (schedule.status !== 'APPROVED') {
+        return { success: false, message: 'Lịch hẹn chưa được duyệt' }
+      }
+
+      const viewingDate = new Date(schedule.viewingDate)
+      const now = new Date()
+
+      // Kiểm tra xem lịch hẹn có trong tương lai không
+      if (isBefore(viewingDate, now)) {
+        return { success: false, message: 'Lịch hẹn đã qua' }
+      }
+
+      // Gửi email nhắc lịch hẹn
+      const { error } = await this.emailService.sendViewingReminder({
+        email: schedule.tenant.email,
+        scheduledTime: viewingDate,
+        propertyName: schedule.post.title,
+        propertyAddress: schedule.post.rental?.address || '',
+        landlordName: schedule.landlord.name,
+        landlordPhone: schedule.landlord.phoneNumber || undefined,
+        tenantName: schedule.tenant.name,
+      })
+
+      if (error) {
+        return { success: false, message: 'Không thể gửi email nhắc lịch hẹn' }
+      }
+
+      return { success: true, message: 'Đã gửi email nhắc lịch hẹn thành công' }
+    } catch (error) {
+      console.error('Lỗi khi gửi nhắc lịch hẹn:', error)
+      return { success: false, message: 'Đã xảy ra lỗi khi gửi nhắc lịch hẹn' }
+    }
+  }
+
+  // API endpoint để gửi nhắc nhở thủ công
+  async sendReminder(
+    scheduleId: number,
+    userId: number
+  ): Promise<{ success: boolean; message: string }> {
+    // Kiểm tra quyền hạn
+    const schedule = await this.viewingScheduleRepo.findOneByIdAndUserId(
+      scheduleId,
+      userId
+    )
+
+    if (!schedule) {
+      throw new NotFoundException(
+        'Lịch xem phòng không tồn tại hoặc bạn không có quyền thực hiện hành động này'
+      )
+    }
+
+    return this.sendReminderForSchedule(scheduleId)
+  }
+
+  @Cron('0 21 * * *', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
+  async sendDailyReminders(): Promise<void> {
+    try {
+      const now = new Date()
+      const tomorrow = addHours(now, 24)
+
+      console.log(
+        `[${new Date().toISOString()}] Bắt đầu gửi nhắc lịch hẹn tự động...`
+      )
+
+      // Lấy tất cả lịch hẹn đã được phê duyệt, diễn ra trong vòng 24h tới
+      const schedulesData = await this.prismaService.viewingSchedule.findMany({
+        where: {
+          status: 'APPROVED',
+          viewingDate: {
+            gte: now,
+            lte: tomorrow,
+          },
+        },
+        include: {
+          post: {
+            select: {
+              title: true,
+              rental: {
+                select: {
+                  address: true,
+                },
+              },
+            },
+          },
+          tenant: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          landlord: {
+            select: {
+              name: true,
+              phoneNumber: true,
+            },
+          },
+        },
+      })
+
+      // Type casting để TypeScript hiểu đúng cấu trúc dữ liệu
+      const upcomingSchedules =
+        schedulesData as unknown as ScheduleWithRelations[]
+
+      console.log(
+        `Tìm thấy ${upcomingSchedules.length} lịch hẹn sắp diễn ra trong 24h tới`
+      )
+
+      // Gửi email cho từng lịch hẹn
+      for (const schedule of upcomingSchedules) {
+        try {
+          const viewingDate = new Date(schedule.viewingDate)
+
+          await this.emailService.sendViewingReminder({
+            email: schedule.tenant.email,
+            scheduledTime: viewingDate,
+            propertyName: schedule.post.title,
+            propertyAddress: schedule.post.rental?.address || '',
+            landlordName: schedule.landlord.name,
+            landlordPhone: schedule.landlord.phoneNumber || undefined,
+            tenantName: schedule.tenant.name,
+          })
+
+          console.log(
+            `Đã gửi nhắc lịch hẹn cho: ${schedule.tenant.email}, lịch hẹn ID: ${schedule.id}`
+          )
+        } catch (error) {
+          console.error(
+            `Lỗi khi gửi email cho lịch hẹn ID ${schedule.id}:`,
+            error
+          )
+        }
+      }
+
+      console.log(
+        `[${new Date().toISOString()}] Hoàn thành gửi nhắc lịch hẹn tự động.`
+      )
+    } catch (error) {
+      console.error('Lỗi khi gửi nhắc lịch hẹn hàng ngày:', error)
+    }
   }
 }

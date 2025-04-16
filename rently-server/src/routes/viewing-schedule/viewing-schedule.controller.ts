@@ -24,6 +24,7 @@ import {
   ViewingScheduleDTO,
   GetViewingSchedulesResDTO,
 } from './viewing-schedule.dto'
+import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('viewing-schedules')
 @UseGuards(AccessTokenGuard)
@@ -65,5 +66,14 @@ export class ViewingScheduleController {
     @ActiveUser('userId') userId: number
   ): Promise<ViewingScheduleType> {
     return this.viewingScheduleService.findById(id, userId)
+  }
+
+  @Post(':id/send-reminder')
+  @ZodSerializerDto(MessageResDTO)
+  async sendReminder(
+    @Param('id', ParseIntPipe) id: number,
+    @ActiveUser('userId') userId: number
+  ): Promise<{ success: boolean; message: string }> {
+    return this.viewingScheduleService.sendReminder(id, userId)
   }
 }
