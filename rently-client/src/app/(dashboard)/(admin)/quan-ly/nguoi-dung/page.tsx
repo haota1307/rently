@@ -60,7 +60,7 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const { data: usersData, isLoading } = useGetLandlords({
+  const { data: usersData, isLoading } = useGetUsers({
     page: currentPage,
     limit: 10,
     name: debouncedSearchQuery || undefined,

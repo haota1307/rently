@@ -31,6 +31,14 @@ import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppStore } from "@/components/app-provider";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Định nghĩa kiểu dữ liệu cho tin nhắn
 interface Message {
@@ -198,6 +206,13 @@ export default function MessagesPage() {
   // Thêm state cho sửa tin nhắn
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [editMessageContent, setEditMessageContent] = useState("");
+
+  // Thêm state quản lý dialog xác nhận xóa
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<number | null>(null);
+
+  // Thêm messageInputRef để tham chiếu tới input field
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   // Thiết lập lắng nghe sự kiện socket
   useEffect(() => {
@@ -1017,6 +1032,13 @@ export default function MessagesPage() {
         }, 300);
       }
 
+      // Đặt focus lại vào input sau khi gửi tin nhắn thành công
+      setTimeout(() => {
+        if (messageInputRef.current) {
+          messageInputRef.current.focus();
+        }
+      }, 100);
+
       // Xóa khỏi danh sách đang xử lý sau 30 giây
       setTimeout(() => {
         sentMessages.current.delete(messageKey);
@@ -1253,6 +1275,13 @@ export default function MessagesPage() {
         );
       }
 
+      // Đặt focus lại vào input sau khi gửi tin nhắn thành công
+      setTimeout(() => {
+        if (messageInputRef.current) {
+          messageInputRef.current.focus();
+        }
+      }, 100);
+
       // Cập nhật trong conversations
       setConversations((prevConversations) => {
         const typedConversations: Conversation[] = prevConversations;
@@ -1333,77 +1362,86 @@ export default function MessagesPage() {
     // Nếu là tin nhắn văn bản
     if (!msg.type || msg.type === MessageType.TEXT) {
       return (
-        <div className="relative group">
-          <p className="text-sm break-words">
-            {msg.content}
-            {msg.isEdited && !msg.isDeleted && (
-              <span className="text-[10px] ml-1 opacity-70">
-                (đã chỉnh sửa)
-              </span>
+        <>
+          <div className="relative group">
+            {/* Thanh công cụ sửa/xóa phía trên tin nhắn */}
+            {msg.senderId === userId && !msg.isDeleted && (
+              <div className="absolute top-0 right-0 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mb-1 py-1 px-1.5 rounded-full bg-background/95 backdrop-blur-sm shadow-sm border border-border/30">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full bg-transparent hover:bg-primary/10 text-blue-500 hover:text-blue-600"
+                  onClick={() => startEditMessage(msg)}
+                  title="Chỉnh sửa tin nhắn"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full bg-transparent hover:bg-rose-50 text-rose-500 hover:text-rose-600"
+                  onClick={() => confirmDelete(msg.id as number)}
+                  title="Xóa tin nhắn"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             )}
-          </p>
 
-          {/* Menu sửa/xóa tin nhắn (chỉ hiển thị cho tin nhắn của người dùng hiện tại) */}
-          {msg.senderId === userId && !msg.isDeleted && (
-            <div className="absolute top-0 right-0 hidden group-hover:flex gap-1 -mt-1 -mr-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 rounded-full bg-background/80 hover:bg-background"
-                onClick={() => startEditMessage(msg)}
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 rounded-full bg-background/80 hover:bg-background"
-                onClick={() => handleDeleteMessage(msg.id as number)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Hiển thị tệp tin dựa trên loại
-    switch (msg.type) {
-      case MessageType.IMAGE:
-        return (
-          <div className="flex flex-col gap-2 relative group">
-            <div className="relative rounded-md overflow-hidden">
-              <img
-                src={msg.fileUrl}
-                alt={msg.fileName || "Hình ảnh"}
-                className="max-w-[150px] max-h-[150px] rounded-md object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => window.open(msg.fileUrl, "_blank")}
-              />
-            </div>
-            <p className="text-xs opacity-80">
-              {msg.fileName}
+            <p className="text-sm break-words">
+              {msg.content}
               {msg.isEdited && !msg.isDeleted && (
                 <span className="text-[10px] ml-1 opacity-70">
                   (đã chỉnh sửa)
                 </span>
               )}
             </p>
-
-            {/* Menu xóa ảnh (chỉ hiển thị cho tin nhắn của người dùng hiện tại) */}
-            {msg.senderId === userId && !msg.isDeleted && (
-              <div className="absolute top-0 right-0 hidden group-hover:flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full bg-background/80 hover:bg-background"
-                  onClick={() => handleDeleteMessage(msg.id as number)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
           </div>
+          <DeleteConfirmDialog />
+        </>
+      );
+    }
+
+    // Hiển thị tin nhắn dựa trên loại
+    switch (msg.type) {
+      case MessageType.IMAGE:
+        return (
+          <>
+            <div className="flex flex-col gap-2 relative group">
+              {/* Thanh công cụ xóa phía trên ảnh */}
+              {msg.senderId === userId && !msg.isDeleted && (
+                <div className="absolute top-0 right-0 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mb-1 py-1 px-1.5 rounded-full bg-background/95 backdrop-blur-sm shadow-sm border border-border/30">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full bg-transparent hover:bg-rose-50 text-rose-500 hover:text-rose-600"
+                    onClick={() => confirmDelete(msg.id as number)}
+                    title="Xóa tin nhắn"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+
+              <div className="relative rounded-md overflow-hidden">
+                <img
+                  src={msg.fileUrl}
+                  alt={msg.fileName || "Hình ảnh"}
+                  className="max-w-[150px] max-h-[150px] rounded-md object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => window.open(msg.fileUrl, "_blank")}
+                />
+              </div>
+              <p className="text-xs opacity-80">
+                {msg.fileName}
+                {msg.isEdited && !msg.isDeleted && (
+                  <span className="text-[10px] ml-1 opacity-70">
+                    (đã chỉnh sửa)
+                  </span>
+                )}
+              </p>
+            </div>
+            <DeleteConfirmDialog />
+          </>
         );
 
       case MessageType.VIDEO:
@@ -1689,6 +1727,13 @@ export default function MessagesPage() {
         scrollToBottom();
       }, 200);
 
+      // Đặt focus lại vào input sau khi gửi tin nhắn thành công
+      setTimeout(() => {
+        if (messageInputRef.current) {
+          messageInputRef.current.focus();
+        }
+      }, 100);
+
       toast.success("Đã gửi tin nhắn và ảnh thành công!");
 
       // Đợi thêm chút thời gian để hiển thị 100%
@@ -1804,10 +1849,10 @@ export default function MessagesPage() {
   // Hàm xử lý xóa tin nhắn
   const handleDeleteMessage = async (messageId: number) => {
     try {
-      // Xác nhận xóa
-      if (!window.confirm("Bạn có chắc chắn muốn xóa tin nhắn này?")) {
-        return;
-      }
+      // Đã có Dialog xác nhận từ shadcn, nên bỏ phần này
+      // if (!window.confirm("Bạn có chắc chắn muốn xóa tin nhắn này?")) {
+      //   return;
+      // }
 
       // Cập nhật UI ngay lập tức
       setMessages((prev) =>
@@ -1842,6 +1887,44 @@ export default function MessagesPage() {
     setEditingMessageId(null);
     setEditMessageContent("");
   };
+
+  // Hàm mở dialog xác nhận xóa
+  const confirmDelete = (messageId: number) => {
+    setMessageToDelete(messageId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Hàm xử lý xóa tin nhắn sau khi xác nhận
+  const onConfirmDelete = () => {
+    if (messageToDelete !== null) {
+      handleDeleteMessage(messageToDelete);
+      setDeleteDialogOpen(false);
+      setMessageToDelete(null);
+    }
+  };
+
+  // Phần hiển thị modal xác nhận xóa
+  const DeleteConfirmDialog = () => (
+    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Xác nhận xóa tin nhắn</DialogTitle>
+          <DialogDescription>
+            Bạn có chắc chắn muốn xóa tin nhắn này không? Hành động này không
+            thể hoàn tác.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex flex-row justify-between sm:justify-between">
+          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            Hủy
+          </Button>
+          <Button variant="destructive" onClick={onConfirmDelete}>
+            Xóa tin nhắn
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <div className="max-w-full w-full py-4 mx-8">
@@ -2079,6 +2162,7 @@ export default function MessagesPage() {
                         onChange={(e) => setMessage(e.target.value)}
                         className="flex-1"
                         autoComplete="off"
+                        ref={messageInputRef}
                         disabled={
                           isSendingMessage || uploading || sendingImages
                         }
