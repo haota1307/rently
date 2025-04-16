@@ -28,23 +28,17 @@ import { useAppStore } from "@/components/app-provider";
 import DropdownAvatar from "@/components/dropdown-avatar";
 import { normalizePath } from "@/lib/utils";
 import { Role } from "@/constants/type";
-import {
-  DropdownMenu,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuShortcut,
-} from "@/components/ui/dropdown-menu";
 
 // Link cơ bản cho tất cả người dùng
 const baseLinks = [
   { name: "Trang chủ", href: "/", icon: Home },
   { name: "So sánh phòng trọ", href: "/so-sanh", icon: BarChart2 },
-  { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
 ];
 
 // Link cho người dùng đã đăng nhập
 const authLinks = [
   { name: "Tin nhắn", href: "/tin-nhan", icon: MessageCircle },
+  { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
 ];
 
 // Link cho client (người dùng bình thường)
@@ -52,12 +46,15 @@ const clientLinks = [
   { name: "Lịch xem phòng", href: "/lich-xem-phong", icon: CalendarIcon },
 ];
 
-// Link cho admin
-const adminLinks = [{ name: "Quản lý", href: "/quan-ly", icon: Settings }];
-
 // Link cho landlord
 const landlordLinks = [
   { name: "Quản lý cho thuê", href: "/cho-thue", icon: Settings },
+  { name: "Lịch hẹn xem nhà", href: "/lich-xem-phong", icon: CalendarIcon },
+];
+
+// Link cho admin
+const adminLinks = [
+  { name: "Quản lý hệ thống", href: "/quan-ly", icon: Settings },
 ];
 
 export function Header() {
@@ -145,21 +142,6 @@ export function Header() {
 
         {/* Right section: Search and actions */}
         <div className="flex items-center">
-          {/* Desktop search */}
-          <form
-            className="relative mr-3 hidden md:block"
-            onSubmit={handleSearch}
-          >
-            <Input
-              type="text"
-              placeholder="Tìm kiếm..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-[150px] md:w-[200px] lg:w-[300px]"
-            />
-            <Search className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-500" />
-          </form>
-
           {/* Desktop actions */}
           <div className="hidden md:flex items-center space-x-3">
             {isHydrated ? (
@@ -206,19 +188,7 @@ export function Header() {
                     );
                   })}
                 </nav>
-                {/* Mobile search */}
-                <div className="mt-6">
-                  <Input
-                    type="text"
-                    placeholder="Tìm kiếm..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full"
-                  />
-                  <Button className="mt-3 w-full" onClick={handleSearch}>
-                    Tìm kiếm
-                  </Button>
-                </div>
+
                 {/* Mobile login button */}
                 <div className="mt-6">
                   {isHydrated ? (

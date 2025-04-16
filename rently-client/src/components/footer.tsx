@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// Dữ liệu thông tin liên hệ
 const contactInfo = [
   { icon: MapPinned, title: "Địa chỉ", content: "Cần Thơ, Việt Nam" },
   { icon: Phone, title: "Liên hệ", content: "+84 947 055 644" },
@@ -27,11 +26,11 @@ const footerLinks = [
   {
     title: "Liên kết",
     links: [
-      { name: "Về chúng tôi", href: "/" },
-      { name: "Liên hệ", href: "/" },
-      { name: "Điều khoản và điều kiện", href: "/" },
-      { name: "Chính sách bảo mật", href: "/" },
-      { name: "Câu hỏi thường gặp", href: "/" },
+      { name: "Về chúng tôi", href: "/ve-chung-toi" },
+      { name: "Liên hệ", href: "/lien-he" },
+      { name: "Điều khoản và điều kiện", href: "/dieu-khoan-va-dieu-kien" },
+      { name: "Chính sách bảo mật", href: "/chinh-sach-bao-mat" },
+      { name: "Câu hỏi thường gặp", href: "/cau-hoi-thuong-gap" },
     ],
   },
   {
