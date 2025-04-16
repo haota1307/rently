@@ -18,6 +18,7 @@ export const GetAmenitiesQuerySchema = z.object({
   page: z.number().default(1),
   limit: z.number().default(100),
   name: z.string().optional(),
+  sort: z.string().optional(),
 });
 
 export const CreateAmenityBodySchema = z

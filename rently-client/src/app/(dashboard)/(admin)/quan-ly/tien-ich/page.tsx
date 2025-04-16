@@ -61,6 +61,7 @@ export default function AmenitiesPage() {
     page: currentPage,
     limit: 10,
     name: debouncedSearchQuery || undefined,
+    sort: sortOption,
   });
 
   const deleteAmenityMutation = useDeleteAmenity();

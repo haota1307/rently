@@ -1,13 +1,13 @@
 import { z } from 'zod'
 
+export const AmenitySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  createdAt: z.date(),
+})
+
 export const GetAmenitiesResSchema = z.object({
-  data: z.array(
-    z.object({
-      id: z.number(),
-      name: z.string(),
-      createdAt: z.date(),
-    })
-  ),
+  data: z.array(AmenitySchema),
   totalItems: z.number(),
   page: z.number(),
   limit: z.number(),
@@ -18,6 +18,7 @@ export const GetAmenitiesQuerySchema = z.object({
   page: z.coerce.number().default(1),
   limit: z.coerce.number().default(10),
   name: z.string().optional(),
+  sort: z.string().optional(),
 })
 
 export const CreateAmenityBodySchema = z.object({

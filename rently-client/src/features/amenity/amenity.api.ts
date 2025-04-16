@@ -11,13 +11,19 @@ import queryString from "query-string";
 const prefix = "/amenities";
 
 const amenityApiRequest = {
-  list: (params: { page?: number; limit?: number; name?: string }) =>
+  list: (params: {
+    page?: number;
+    limit?: number;
+    name?: string;
+    sort?: string;
+  }) =>
     http.get<GetAmenitiesResType>(
       `${prefix}?` +
         queryString.stringify({
           limit: params.limit || 100,
           page: params.page || 1,
           name: params.name,
+          sort: params.sort,
         })
     ),
 

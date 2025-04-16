@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common'
 import { ZodSerializerDto } from 'nestjs-zod'
 import {
+  AmenityDTO,
   CreateAmenityBodyDTO,
   GetAmenitiesQueryDTO,
   GetAmenitiesResDTO,
@@ -30,19 +31,19 @@ export class AmenityController {
   }
 
   @Get(':amenityId')
-  @ZodSerializerDto(GetAmenitiesResDTO)
+  @ZodSerializerDto(AmenityDTO)
   findById(@Param() params: GetAmenityParamsDTO) {
     return this.amenityService.findById(params.amenityId)
   }
 
   @Post()
-  @ZodSerializerDto(GetAmenitiesResDTO)
+  @ZodSerializerDto(AmenityDTO)
   create(@Body() body: CreateAmenityBodyDTO) {
     return this.amenityService.create({ data: body })
   }
 
   @Put(':amenityId')
-  @ZodSerializerDto(GetAmenitiesResDTO)
+  @ZodSerializerDto(AmenityDTO)
   update(
     @Param() params: GetAmenityParamsDTO,
     @Body() body: UpdateAmenityBodyDTO

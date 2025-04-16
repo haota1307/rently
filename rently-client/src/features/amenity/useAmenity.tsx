@@ -8,7 +8,7 @@ import {
 } from "@/schemas/amenity.schema";
 
 export const useGetAmenities = (
-  queryParams?: Partial<GetAmenitiesQueryType>
+  queryParams?: Partial<GetAmenitiesQueryType & { sort?: string }>
 ) => {
   return useQuery({
     queryKey: ["amenities", queryParams],
@@ -17,6 +17,7 @@ export const useGetAmenities = (
         page: queryParams?.page,
         limit: queryParams?.limit,
         name: queryParams?.name,
+        sort: queryParams?.sort,
       });
       return res.payload;
     },

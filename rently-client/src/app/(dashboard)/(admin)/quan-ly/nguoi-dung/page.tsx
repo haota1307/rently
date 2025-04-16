@@ -68,6 +68,7 @@ export default function UsersPage() {
       statusFilter === "ALL"
         ? undefined
         : (statusFilter as "ACTIVE" | "INACTIVE" | "BLOCKED"),
+    roleId: roleFilter === "ALL" ? undefined : Number(roleFilter),
   });
 
   const deleteUserMutation = useDeleteUser();
@@ -93,7 +94,6 @@ export default function UsersPage() {
   };
 
   const handleConfirmDelete = (userId: number) => {
-    // Tìm thông tin user để hiển thị tên trong dialog xác nhận
     const user = usersData?.data.find((u) => u.id === userId) || null;
     setSelectedUser(user);
     setIsDeleteDialogOpen(true);

@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod'
 import {
+  AmenitySchema,
   CreateAmenityBodySchema,
   GetAmenitiesQuerySchema,
   GetAmenitiesResSchema,
@@ -21,3 +22,5 @@ export class UpdateAmenityBodyDTO extends createZodDto(
 ) {}
 
 export class GetAmenitiesResDTO extends createZodDto(GetAmenitiesResSchema) {}
+
+export class AmenityDTO extends createZodDto(AmenitySchema) {}

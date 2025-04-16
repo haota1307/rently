@@ -21,15 +21,35 @@ export class AmenityRepo {
         where.name = { contains: query.name, mode: 'insensitive' }
       }
 
+      // Xác định cách sắp xếp dựa trên tham số sort
+      let orderBy: any = { name: 'asc' } // Mặc định sắp xếp theo tên A-Z
+
+      if (query.sort) {
+        switch (query.sort) {
+          case 'newest':
+            orderBy = { createdAt: 'desc' }
+            break
+          case 'oldest':
+            orderBy = { createdAt: 'asc' }
+            break
+          case 'name-asc':
+            orderBy = { name: 'asc' }
+            break
+          case 'name-desc':
+            orderBy = { name: 'desc' }
+            break
+          default:
+            orderBy = { name: 'asc' }
+        }
+      }
+
       const [totalItems, data] = await Promise.all([
         this.prismaService.amenity.count({ where }),
         this.prismaService.amenity.findMany({
           where,
           skip,
           take,
-          orderBy: {
-            name: 'asc',
-          },
+          orderBy,
         }),
       ])
 
