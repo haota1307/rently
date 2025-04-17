@@ -12,14 +12,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  Search,
-  Heart,
   Bookmark,
   Menu,
   Home,
-  Plus,
   Settings,
-  UserIcon,
   CalendarIcon,
   BarChart2,
   MessageCircle,
@@ -28,6 +24,7 @@ import { useAppStore } from "@/components/app-provider";
 import DropdownAvatar from "@/components/dropdown-avatar";
 import { normalizePath } from "@/lib/utils";
 import { Role } from "@/constants/type";
+import { ModeToggle } from "@/components/mode-toggle";
 
 // Link cơ bản cho tất cả người dùng
 const baseLinks = [
@@ -107,33 +104,37 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-[999] border-b border-gray-200 bg-white py-4 shadow-sm">
+    <header className="sticky top-0 z-[999] border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 py-4 shadow-sm dark:shadow-gray-900/20">
       <div className="mx-auto flex w-full items-center justify-between px-4 md:px-8">
         {/* Left section: Logo */}
         <div className="flex items-center">
           {/* Logo */}
           <Link href="/">
-            <h2 className="text-2xl font-black uppercase tracking-wider text-primary">
+            <h2 className="text-2xl font-black uppercase tracking-wider text-primary dark:text-primary">
               Rently
             </h2>
           </Link>
         </div>
 
         {/* Center section: Desktop navigation */}
-        <nav className="hidden lg:flex items-center justify-center gap-6 text-sm">
+        <nav className="hidden lg:flex items-center justify-center gap-2 text-sm">
           {links.map((link) => {
             const isActive = normalizedPathname === normalizePath(link.href);
             return (
               <Link
                 key={link.name}
                 href={link.href}
-                className={`font-medium transition-colors flex items-center justify-center ${
+                className={`font-medium transition-colors flex items-center justify-center px-3 py-2 rounded-md ${
                   isActive
-                    ? "font-bold text-muted-foreground"
-                    : "text-gray-800 hover:text-primary"
+                    ? "font-bold text-primary dark:text-primary bg-primary/10 dark:bg-primary/20"
+                    : "text-gray-800 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
-                <link.icon className="h-5 w-5 mr-1" />
+                <link.icon
+                  className={`h-5 w-5 mr-1 ${
+                    isActive ? "text-primary dark:text-primary" : ""
+                  }`}
+                />
                 {link.name}
               </Link>
             );
@@ -143,7 +144,8 @@ export function Header() {
         {/* Right section: Search and actions */}
         <div className="flex items-center">
           {/* Desktop actions */}
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-2">
+            <ModeToggle />
             {isHydrated ? (
               isAuth ? (
                 <DropdownAvatar />
@@ -153,7 +155,7 @@ export function Header() {
                 </Button>
               )
             ) : (
-              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
             )}
           </div>
 
@@ -161,15 +163,19 @@ export function Header() {
           <div className="block md:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-800 dark:text-gray-200"
+                >
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent className="p-6">
+              <SheetContent className="p-6 dark:bg-gray-900 dark:text-gray-100">
                 <div className="mb-4 flex items-center justify-between">
-                  <SheetTitle>Menu</SheetTitle>
+                  <SheetTitle className="dark:text-gray-100">Menu</SheetTitle>
                 </div>
-                <nav className="flex flex-col gap-4">
+                <nav className="flex flex-col gap-2">
                   {links.map((link) => {
                     const isActive =
                       normalizedPathname === normalizePath(link.href);
@@ -177,20 +183,26 @@ export function Header() {
                       <Link
                         key={link.name}
                         href={link.href}
-                        className={`font-medium transition-colors ${
+                        className={`font-medium transition-colors flex items-center px-3 py-2 rounded-md ${
                           isActive
-                            ? "font-bold text-muted-foreground"
-                            : "text-gray-800 hover:text-primary"
+                            ? "font-bold text-primary dark:text-primary bg-primary/10 dark:bg-primary/20"
+                            : "text-gray-800 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800"
                         }`}
                       >
+                        <link.icon
+                          className={`h-5 w-5 mr-2 ${
+                            isActive ? "text-primary dark:text-primary" : ""
+                          }`}
+                        />
                         {link.name}
                       </Link>
                     );
                   })}
                 </nav>
 
-                {/* Mobile login button */}
-                <div className="mt-6">
+                <div className="mt-6 flex items-center justify-between gap-2">
+                  <ModeToggle />
+
                   {isHydrated ? (
                     !isAuth ? (
                       <Button className="w-full" asChild>
@@ -200,7 +212,7 @@ export function Header() {
                       <DropdownAvatar />
                     )
                   ) : (
-                    <div className="w-full h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="w-full h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                   )}
                 </div>
               </SheetContent>
