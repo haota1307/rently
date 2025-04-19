@@ -93,6 +93,9 @@ model User {
   tenantViewingSchedules   ViewingSchedule[] @relation("TenantViewingSchedules")
   landlordViewingSchedules ViewingSchedule[] @relation("LandlordViewingSchedules")
 
+  tenantRentalRequests   RentalRequest[] @relation("TenantRentalRequests")
+  landlordRentalRequests RentalRequest[] @relation("LandlordRentalRequests")
+
   @@index([name])
   @@index([status])
   @@index([phoneNumber])
@@ -298,6 +301,7 @@ model RentalPost {
   comments Comment[]
 
   viewingSchedules ViewingSchedule[]
+  rentalRequests   RentalRequest[]
 
   @@index([rentalId])
   @@index([landlordId])
@@ -477,4 +481,37 @@ model ViewingSchedule {
   @@index([postId])
   @@index([tenantId])
   @@index([landlordId])
+}
+
+enum RentalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+model RentalRequest {
+  id               Int                 @id @default(autoincrement())
+  postId           Int
+  tenantId         Int
+  landlordId       Int
+  status           RentalRequestStatus @default(PENDING)
+  note             String?
+  expectedMoveDate DateTime
+  duration         Int // Số tháng thuê
+  depositAmount    Decimal?
+  contractSigned   Boolean             @default(false)
+  rejectionReason  String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  post     RentalPost @relation(fields: [postId], references: [id])
+  tenant   User       @relation("TenantRentalRequests", fields: [tenantId], references: [id])
+  landlord User       @relation("LandlordRentalRequests", fields: [landlordId], references: [id])
+
+  @@index([postId])
+  @@index([tenantId])
+  @@index([landlordId])
+  @@index([status])
+  @@index([createdAt])
 }

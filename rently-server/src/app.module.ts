@@ -24,6 +24,7 @@ import { CommentModule } from 'src/routes/comment/comment.module'
 import { EventsModule } from './events/events.module'
 import { ViewingScheduleModule } from 'src/routes/viewing-schedule/viewing-schedule.module'
 import { MessagesModule } from './routes/messages/messages.module'
+import { RentalRequestModule } from 'src/routes/rental-request/rental-request.module'
 
 import { AmenityModule } from 'src/routes/amenity/amenity.module'
 import { ScheduleModule } from '@nestjs/schedule'
@@ -49,6 +50,7 @@ import { ScheduleModule } from '@nestjs/schedule'
     EventsModule,
     ViewingScheduleModule,
     MessagesModule,
+    RentalRequestModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

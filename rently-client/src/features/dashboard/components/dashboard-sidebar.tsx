@@ -100,6 +100,11 @@ const landloardData = {
       url: "/cho-thue/dat-lich",
       icon: Calendar,
     },
+    {
+      title: "Yêu cầu thuê",
+      url: "/cho-thue/yeu-cau-thue",
+      icon: Users,
+    },
   ],
 };
 

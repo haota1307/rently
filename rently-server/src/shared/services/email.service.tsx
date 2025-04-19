@@ -52,4 +52,14 @@ export class EmailService {
       ),
     })
   }
+
+  // Phương thức gửi email dạng HTML thông thường
+  send(payload: { to: string; subject: string; html: string }) {
+    return this.resend.emails.send({
+      from: 'Rently <no-reply@rently.top>',
+      to: [payload.to],
+      subject: payload.subject,
+      html: payload.html,
+    })
+  }
 }

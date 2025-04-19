@@ -40,6 +40,7 @@ import { Role } from "@/constants/type";
 import { useConversation } from "@/features/conversation/useConversation";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { RentalRequestButton } from "@/features/rental-request/components/rental-request-button";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -90,6 +91,19 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const isLandlord = post?.landlord?.id === userId;
 
   const { startConversation, loading: loadingConversation } = useConversation();
+
+  // Add a check for existing rental request (if user already has a rental request for this post)
+  const [hasExistingRequest, setHasExistingRequest] = useState(false);
+
+  // Check for existing rental request
+  useEffect(() => {
+    // This is a placeholder for checking if user already has a rental request for this post
+    // In a real implementation, you would fetch this data from the API
+    // For now we'll use the existing viewing schedule logic as a placeholder
+    if (existingSchedule) {
+      setHasExistingRequest(true);
+    }
+  }, [existingSchedule]);
 
   console.log(comments);
 
@@ -344,6 +358,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 <Phone size={16} />
                 Liên hệ chủ nhà
               </Button>
+
+              {/* Rental Request Button */}
+              {!isLandlord && room?.isAvailable && (
+                <RentalRequestButton
+                  postId={postId}
+                  isAvailable={room?.isAvailable}
+                  existingRequest={hasExistingRequest}
+                />
+              )}
+
               {postActions}
             </div>
 

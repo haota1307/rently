@@ -32,6 +32,7 @@ interface DataTableProps<TData, TValue> {
   onPageChange: (page: number) => void;
   onSearchChange?: (value: string) => void;
   isLoading?: boolean;
+  emptyMessage?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -44,6 +45,7 @@ export function DataTable<TData, TValue>({
   onPageChange,
   onSearchChange,
   isLoading = false,
+  emptyMessage = "Không có dữ liệu",
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
@@ -130,7 +132,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center text-gray-500"
                 >
-                  Không có dữ liệu
+                  {emptyMessage}
                 </TableCell>
               </TableRow>
             )}
