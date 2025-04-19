@@ -36,6 +36,11 @@ const baseLinks = [
 const authLinks = [
   { name: "Tin nhắn", href: "/tin-nhan", icon: MessageCircle },
   { name: "Tin đã lưu", href: "/tin-da-luu", icon: Bookmark },
+  {
+    name: "Lịch sử thuê phòng",
+    href: "/thue-phong",
+    icon: CalendarIcon,
+  },
 ];
 
 // Link cho client (người dùng bình thường)

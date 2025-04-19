@@ -38,6 +38,7 @@ interface Listing {
   isRental?: boolean;
   rentalId?: string;
   rentalTitle?: string;
+  isAvailable?: boolean;
 }
 
 export interface RentalCardProps {
@@ -75,6 +76,12 @@ export const RentalCard = ({
         distance: rental.distance || 0,
         isNew: false,
         isRental: true,
+        isAvailable:
+          rental.rooms && rental.rooms.length > 0
+            ? rental.rooms[0].isAvailable
+            : true,
+        rentalId: rental.id.toString(),
+        rentalTitle: rental.title,
       }
     : listing;
 
@@ -90,7 +97,13 @@ export const RentalCard = ({
   // Card theo dạng lưới (grid)
   if (viewMode === "grid") {
     return (
-      <Card className="overflow-hidden group hover:shadow-lg transition-shadow">
+      <Card
+        className={cn(
+          "overflow-hidden group hover:shadow-lg transition-shadow",
+          processedListing.isAvailable === false &&
+            "opacity-75 grayscale-[40%] bg-gray-100"
+        )}
+      >
         <Link href={`/bai-dang/${processedListing.id}`}>
           <CardHeader className="p-0">
             <div className="relative aspect-[4/3] w-full">
@@ -119,6 +132,16 @@ export const RentalCard = ({
                 >
                   Phòng trọ
                 </Badge>
+              )}
+              {processedListing.isAvailable === false && (
+                <div className="absolute top-1/2 left-0 right-0 text-center z-20 transform -rotate-6">
+                  <Badge
+                    className="text-white bg-red-600 px-6 py-2 text-lg font-bold shadow-xl"
+                    variant="destructive"
+                  >
+                    Đã cho thuê
+                  </Badge>
+                </div>
               )}
             </div>
           </CardHeader>
@@ -237,7 +260,13 @@ export const RentalCard = ({
 
   // Card theo dạng danh sách (list)
   return (
-    <Card className="overflow-hidden group hover:shadow-lg transition-shadow">
+    <Card
+      className={cn(
+        "overflow-hidden group hover:shadow-lg transition-shadow",
+        processedListing.isAvailable === false &&
+          "opacity-75 grayscale-[40%] bg-gray-100"
+      )}
+    >
       <div className="flex flex-col sm:flex-row">
         <Link
           href={`/bai-dang/${processedListing.id}`}
@@ -266,6 +295,16 @@ export const RentalCard = ({
               <Badge className="absolute top-2 right-2 z-10" variant="outline">
                 Phòng trọ
               </Badge>
+            )}
+            {processedListing.isAvailable === false && (
+              <div className="absolute top-1/2 left-0 right-0 text-center z-20 transform -rotate-6">
+                <Badge
+                  className="text-white bg-red-600 px-6 py-2 text-lg font-bold shadow-xl"
+                  variant="destructive"
+                >
+                  Đã cho thuê
+                </Badge>
+              </div>
             )}
           </div>
         </Link>

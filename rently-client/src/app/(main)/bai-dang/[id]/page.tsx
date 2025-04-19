@@ -41,6 +41,11 @@ import { useConversation } from "@/features/conversation/useConversation";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { RentalRequestButton } from "@/features/rental-request/components/rental-request-button";
+import { useGetTenantRentalRequests } from "@/features/rental-request/useRentalRequest";
+import {
+  RentalRequestStatus,
+  RentalRequestType,
+} from "@/schemas/rental-request.schema";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -95,15 +100,28 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   // Add a check for existing rental request (if user already has a rental request for this post)
   const [hasExistingRequest, setHasExistingRequest] = useState(false);
 
+  // Lấy danh sách yêu cầu thuê của người dùng
+  const { data: rentalRequests } = useGetTenantRentalRequests({
+    limit: 50,
+    page: 1,
+  });
+
   // Check for existing rental request
   useEffect(() => {
-    // This is a placeholder for checking if user already has a rental request for this post
-    // In a real implementation, you would fetch this data from the API
-    // For now we'll use the existing viewing schedule logic as a placeholder
-    if (existingSchedule) {
+    if (!userId || !rentalRequests?.data) return;
+
+    // Kiểm tra xem người dùng đã có yêu cầu thuê cho bài đăng này chưa (đang xử lý hoặc đã được chấp nhận)
+    const existingRequest = rentalRequests.data.find(
+      (request: RentalRequestType) =>
+        request.postId === postId &&
+        (request.status === RentalRequestStatus.PENDING ||
+          request.status === RentalRequestStatus.APPROVED)
+    );
+
+    if (existingRequest) {
       setHasExistingRequest(true);
     }
-  }, [existingSchedule]);
+  }, [rentalRequests, postId, userId]);
 
   console.log(comments);
 

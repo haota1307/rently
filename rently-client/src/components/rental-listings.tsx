@@ -40,6 +40,7 @@ export interface Listing {
   isNew?: boolean;
   rentalId?: string;
   rentalTitle?: string;
+  isAvailable?: boolean;
 }
 
 interface RentalListingsProps {
@@ -66,9 +67,6 @@ export default function RentalListings({
     price: filters.price,
     amenityIds: filters.amenities,
   });
-
-  console.log("RentalListings - Filters:", filters);
-  console.log("RentalListings - Posts data:", postsData);
 
   const posts = postsData?.data || [];
   const totalPages = postsData?.totalPages || 1;
@@ -122,6 +120,7 @@ export default function RentalListings({
       isNew,
       rentalId: String(rental.id),
       rentalTitle: rental.title,
+      isAvailable: room.isAvailable,
     });
   });
 

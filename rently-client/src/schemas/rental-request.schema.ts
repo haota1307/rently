@@ -8,10 +8,36 @@ export enum RentalRequestStatus {
   CANCELED = "CANCELED",
 }
 
-// Schema cho thông tin post trong RentalRequest
-export const RentalRequestPostSchema = z.object({
+// Schema cho thông tin room trong RentalRequest
+export const RentalRequestRoomSchema = z.object({
   id: z.number(),
   title: z.string(),
+  area: z.number().nullable(),
+  price: z.number().nullable(),
+});
+
+// Schema cho thông tin rental trong RentalRequest
+export const RentalRequestRentalSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  address: z.string().nullable(),
+});
+
+// Schema cho thông tin post trong RentalRequest
+export const RentalRequestPostSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  buildingName: z.string(),
+  address: z.string(),
+  roomNumber: z.string(),
+  price: z.number(),
+  area: z.number(),
+  isAvailable: z.boolean(),
+  images: z.array(z.string()),
+  createdAt: z.string().datetime().optional(),
+  description: z.string().nullable(),
+  room: RentalRequestRoomSchema.nullable(),
+  rental: RentalRequestRentalSchema.nullable(),
 });
 
 // Schema cho thông tin người dùng trong RentalRequest

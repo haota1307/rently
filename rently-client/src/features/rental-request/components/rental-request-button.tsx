@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 import { useCreateRentalRequest } from "@/features/rental-request/useRentalRequest";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -40,6 +45,12 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type RentalRequestButtonProps = {
   postId: number;
@@ -105,24 +116,96 @@ export function RentalRequestButton({
         ...values,
         postId,
       });
+      toast.success("Yêu cầu thuê đã được gửi thành công!");
       setIsOpen(false);
       form.reset();
     } catch (error) {
       console.error("Error creating rental request:", error);
+      // Hiển thị thông báo lỗi từ server
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error(
+          "Có lỗi xảy ra khi gửi yêu cầu thuê. Vui lòng thử lại sau."
+        );
+      }
     }
   };
 
+  // Xác định trạng thái và thông báo của nút
+  const getButtonState = () => {
+    if (!isAuthenticated) {
+      return {
+        disabled: true,
+        message: "Vui lòng đăng nhập để gửi yêu cầu thuê",
+        icon: <AlertCircle className="h-4 w-4" />,
+        variant: "outline" as const,
+      };
+    }
+
+    if (isLandlordOrAdmin) {
+      return {
+        disabled: true,
+        message: "Chủ nhà không thể gửi yêu cầu thuê",
+        icon: <AlertCircle className="h-4 w-4" />,
+        variant: "outline" as const,
+      };
+    }
+
+    if (existingRequest) {
+      return {
+        disabled: true,
+        message: "Bạn đã có yêu cầu thuê cho bài đăng này",
+        icon: <CheckCircle className="h-4 w-4" />,
+        variant: "secondary" as const,
+        label: "Đã gửi yêu cầu thuê",
+      };
+    }
+
+    if (!isAvailable) {
+      return {
+        disabled: true,
+        message: "Phòng trọ này đã được thuê",
+        icon: <AlertCircle className="h-4 w-4" />,
+        variant: "outline" as const,
+      };
+    }
+
+    return {
+      disabled: false,
+      message: "Gửi yêu cầu thuê phòng này",
+      icon: <CalendarIcon className="h-4 w-4" />,
+      variant: "secondary" as const,
+      label: "Gửi yêu cầu thuê",
+    };
+  };
+
+  const buttonState = getButtonState();
+
   return (
-    <>
-      <Button
-        onClick={handleClick}
-        variant="secondary"
-        className={cn("flex items-center gap-2", className)}
-        disabled={!isAvailable || existingRequest}
-      >
-        <CalendarIcon className="h-4 w-4" />
-        Gửi yêu cầu thuê
-      </Button>
+    <div className="flex flex-col">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Button
+                onClick={handleClick}
+                variant={buttonState.variant}
+                className={cn("flex items-center gap-2", className)}
+                disabled={buttonState.disabled}
+              >
+                {buttonState.icon}
+                {buttonState.label || "Gửi yêu cầu thuê"}
+              </Button>
+            </div>
+          </TooltipTrigger>
+          {buttonState.disabled && (
+            <TooltipContent>
+              <p>{buttonState.message}</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -244,6 +327,6 @@ export function RentalRequestButton({
           </Form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

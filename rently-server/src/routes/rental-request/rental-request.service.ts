@@ -53,19 +53,46 @@ export class RentalRequestService {
 
   // Tạo yêu cầu thuê mới
   async create(data: CreateRentalRequestBodyType, userId: number) {
-    // Kiểm tra xem đã có yêu cầu thuê nào đang PENDING cho post này chưa
+    // Kiểm tra xem đã có yêu cầu thuê nào đang PENDING hoặc APPROVED cho post này chưa
     const existingRequest = await this.prismaService.rentalRequest.findFirst({
       where: {
         postId: data.postId,
         tenantId: userId,
-        status: RentalRequestStatus.PENDING,
+        OR: [
+          { status: RentalRequestStatus.PENDING },
+          { status: RentalRequestStatus.APPROVED },
+        ],
       },
     })
 
     if (existingRequest) {
+      const statusMessage =
+        existingRequest.status === RentalRequestStatus.PENDING
+          ? 'đang chờ xử lý'
+          : 'đã được chấp thuận'
       throw new BadRequestException(
-        'Bạn đã có một yêu cầu thuê đang chờ xử lý cho bài đăng này'
+        `Bạn đã có một yêu cầu thuê ${statusMessage} cho bài đăng này. Không thể tạo thêm yêu cầu mới.`
       )
+    }
+
+    // Kiểm tra xem bài đăng có sẵn sàng cho thuê hay không
+    const post = await this.prismaService.rentalPost.findUnique({
+      where: { id: data.postId },
+      include: {
+        room: {
+          select: {
+            isAvailable: true,
+          },
+        },
+      },
+    })
+
+    if (!post) {
+      throw new NotFoundException('Không tìm thấy bài đăng này')
+    }
+
+    if (post.room && !post.room.isAvailable) {
+      throw new BadRequestException('Phòng này hiện không có sẵn để cho thuê')
     }
 
     // Tạo yêu cầu mới
@@ -85,20 +112,20 @@ export class RentalRequestService {
       select: { name: true },
     })
 
-    const post = await this.prismaService.rentalPost.findUnique({
+    const postInfo = await this.prismaService.rentalPost.findUnique({
       where: { id: data.postId },
       select: { title: true },
     })
 
     // Gửi email thông báo cho chủ nhà
-    if (landlord && tenant && post) {
+    if (landlord && tenant && postInfo) {
       try {
         await this.emailService.send({
           to: landlord.email,
           subject: 'Yêu cầu thuê mới',
           html: `
             <p>Chào ${landlord.name},</p>
-            <p>Bạn vừa nhận được một yêu cầu thuê mới từ ${tenant.name} cho tin đăng "${post.title}".</p>
+            <p>Bạn vừa nhận được một yêu cầu thuê mới từ ${tenant.name} cho tin đăng "${postInfo.title}".</p>
             <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và phản hồi yêu cầu.</p>
             <p>Trân trọng,</p>
             <p>Đội ngũ Rently</p>
@@ -173,6 +200,66 @@ export class RentalRequestService {
       id,
       data,
     })
+
+    // Nếu yêu cầu được chấp nhận, cập nhật trạng thái phòng thành "đã cho thuê"
+    if (data.status === RentalRequestStatus.APPROVED) {
+      // Tìm thông tin postId và roomId
+      const post = await this.prismaService.rentalPost.findUnique({
+        where: { id: updatedRequest.postId },
+        select: { roomId: true },
+      })
+
+      if (post) {
+        // Cập nhật trạng thái phòng thành đã cho thuê (isAvailable = false)
+        await this.prismaService.room.update({
+          where: { id: post.roomId },
+          data: { isAvailable: false },
+        })
+
+        // Từ chối tất cả các yêu cầu PENDING khác cho phòng này
+        // Tìm tất cả các post liên quan đến room này
+        const relatedPosts = await this.prismaService.rentalPost.findMany({
+          where: { roomId: post.roomId },
+          select: { id: true },
+        })
+
+        if (relatedPosts.length > 0) {
+          const postIds = relatedPosts.map(p => p.id)
+
+          // Từ chối tất cả các yêu cầu PENDING cho các bài đăng liên quan đến phòng này
+          await this.prismaService.rentalRequest.updateMany({
+            where: {
+              postId: { in: postIds },
+              status: RentalRequestStatus.PENDING,
+              id: { not: updatedRequest.id }, // Không bao gồm yêu cầu hiện tại
+            },
+            data: {
+              status: RentalRequestStatus.REJECTED,
+              rejectionReason: 'Phòng đã được cho thuê bởi người khác',
+            },
+          })
+        }
+      }
+    }
+
+    // Nếu yêu cầu đã được chấp nhận trước đó và bây giờ bị hủy, cập nhật trạng thái phòng thành "còn trống"
+    if (
+      data.status === RentalRequestStatus.CANCELED &&
+      rentalRequest.status === RentalRequestStatus.APPROVED
+    ) {
+      const post = await this.prismaService.rentalPost.findUnique({
+        where: { id: updatedRequest.postId },
+        select: { roomId: true },
+      })
+
+      if (post) {
+        // Cập nhật trạng thái phòng thành còn trống (isAvailable = true)
+        await this.prismaService.room.update({
+          where: { id: post.roomId },
+          data: { isAvailable: true },
+        })
+      }
+    }
 
     // Gửi thông báo email khi trạng thái thay đổi
     if (data.status) {

@@ -34,14 +34,40 @@ export class RentalRequestRepo {
       rejectionReason: data.rejectionReason,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
+
       post: data.post
         ? {
             id: data.post.id,
             title: data.post.title,
+            price: data.post.pricePaid ? Number(data.post.pricePaid) : null,
+            description: data.post.description || null,
+            room: data.post.room
+              ? {
+                  id: data.post.room.id,
+                  title: data.post.room.title,
+                  area: data.post.room.area
+                    ? Number(data.post.room.area)
+                    : null,
+                  price: data.post.room.price
+                    ? Number(data.post.room.price)
+                    : null,
+                }
+              : null,
+            rental: data.post.rental
+              ? {
+                  id: data.post.rental.id,
+                  title: data.post.rental.title,
+                  address: data.post.rental.address || null,
+                }
+              : null,
           }
         : {
             id: 0,
             title: '',
+            price: null,
+            description: null,
+            room: null,
+            rental: null,
           },
       tenant: data.tenant
         ? {
@@ -111,6 +137,23 @@ export class RentalRequestRepo {
               select: {
                 id: true,
                 title: true,
+                pricePaid: true,
+                description: true,
+                rental: {
+                  select: {
+                    id: true,
+                    title: true,
+                    address: true,
+                  },
+                },
+                room: {
+                  select: {
+                    id: true,
+                    title: true,
+                    area: true,
+                    price: true,
+                  },
+                },
               },
             },
             tenant: {
@@ -158,6 +201,23 @@ export class RentalRequestRepo {
             select: {
               id: true,
               title: true,
+              pricePaid: true,
+              description: true,
+              rental: {
+                select: {
+                  id: true,
+                  title: true,
+                  address: true,
+                },
+              },
+              room: {
+                select: {
+                  id: true,
+                  title: true,
+                  area: true,
+                  price: true,
+                },
+              },
             },
           },
           tenant: {
@@ -226,6 +286,23 @@ export class RentalRequestRepo {
             select: {
               id: true,
               title: true,
+              pricePaid: true,
+              description: true,
+              rental: {
+                select: {
+                  id: true,
+                  title: true,
+                  address: true,
+                },
+              },
+              room: {
+                select: {
+                  id: true,
+                  title: true,
+                  area: true,
+                  price: true,
+                },
+              },
             },
           },
           tenant: {
@@ -282,6 +359,23 @@ export class RentalRequestRepo {
             select: {
               id: true,
               title: true,
+              pricePaid: true,
+              description: true,
+              rental: {
+                select: {
+                  id: true,
+                  title: true,
+                  address: true,
+                },
+              },
+              room: {
+                select: {
+                  id: true,
+                  title: true,
+                  area: true,
+                  price: true,
+                },
+              },
             },
           },
           tenant: {

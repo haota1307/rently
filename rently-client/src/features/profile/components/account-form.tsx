@@ -7,9 +7,7 @@ import { Loader2, Upload } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProfileTab from "@/features/profile/components/profile-tab";
-import SecurityTab from "@/features/profile/components/security-tab";
+import { AccountTabs } from "@/features/profile/components/account-tabs";
 import { useAccountMe } from "@/features/profile/useProfile";
 import { UpdateMeBodySchema, UpdateMeBodyType } from "@/schemas/profile.model";
 import { useUploadImage } from "@/features/media/useMedia";
@@ -154,27 +152,13 @@ export default function AccountForm() {
         </div>
       </CardHeader>
       <CardContent className="p-6">
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="profile">Thông tin cá nhân</TabsTrigger>
-            <TabsTrigger value="security">Bảo mật</TabsTrigger>
-          </TabsList>
-          <TabsContent value="profile">
-            <ProfileTab
-              form={form}
-              isLoading={isLoading}
-              setIsLoading={setIsLoading}
-            />
-          </TabsContent>
-          <TabsContent value="security">
-            <SecurityTab
-              isLoading={isLoading}
-              setIsLoading={setIsLoading}
-              landlordStatus={landlordStatus}
-              setLandlordStatus={setLandlordStatus}
-            />
-          </TabsContent>
-        </Tabs>
+        <AccountTabs
+          form={form}
+          isLoading={isLoading}
+          setIsLoading={setIsLoading}
+          landlordStatus={landlordStatus}
+          setLandlordStatus={setLandlordStatus}
+        />
       </CardContent>
     </Card>
   );

@@ -20,7 +20,6 @@ import {
   RentalRequestDetailDTO,
   UpdateRentalRequestBodyDTO,
 } from './rental-request.dto'
-import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('rental-requests')
 @UseGuards(AccessTokenGuard)

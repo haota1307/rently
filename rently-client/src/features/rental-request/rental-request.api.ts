@@ -10,7 +10,11 @@ import {
 const rentalRequestApiRequest = {
   // Lấy danh sách yêu cầu thuê
   list: async (params: GetRentalRequestsQueryType) => {
-    const response = await http.get<any>(`rental-requests`);
+    const response = await http.get<any>(`rental-requests`, {
+      headers: {
+        "query-params": JSON.stringify(params),
+      },
+    });
     return response.payload || response;
   },
 
