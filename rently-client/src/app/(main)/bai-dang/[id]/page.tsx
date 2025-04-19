@@ -1,6 +1,10 @@
 "use client";
 
-import { useGetPostDetail } from "@/features/post/usePost";
+import {
+  useGetPostDetail,
+  useGetSimilarPostsByPrice,
+  useGetSameRentalPosts,
+} from "@/features/post/usePost";
 import { Suspense, use, useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +50,8 @@ import {
   RentalRequestStatus,
   RentalRequestType,
 } from "@/schemas/rental-request.schema";
+import { SimilarPostCard } from "@/components/similar-post-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -583,6 +589,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 </CardContent>
               </Card>
             </div>
+
+            <RelatedPostsSection postId={postId} rentalId={rental?.id || 0} />
           </div>
 
           {/* Sidebar với thông tin chủ nhà và nhà trọ */}
@@ -866,6 +874,108 @@ function PostDetailSkeleton() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RelatedPostsSection({
+  postId,
+  rentalId,
+}: {
+  postId: number;
+  rentalId: number;
+}) {
+  const { data: similarPosts, isLoading: loadingSimilar } =
+    useGetSimilarPostsByPrice(postId);
+  const { data: sameRentalPosts, isLoading: loadingSameRental } =
+    useGetSameRentalPosts(rentalId, postId);
+
+  const hasSimilarPosts = similarPosts?.data && similarPosts.data.length > 0;
+  const hasSameRentalPosts =
+    sameRentalPosts?.data && sameRentalPosts.data.length > 0;
+
+  if (
+    !hasSimilarPosts &&
+    !hasSameRentalPosts &&
+    !loadingSimilar &&
+    !loadingSameRental
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="mt-10">
+      <Separator className="mb-6" />
+
+      <Tabs defaultValue="similar">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold">Phòng trọ liên quan</h3>
+          <TabsList>
+            <TabsTrigger value="similar">Giá tương tự</TabsTrigger>
+            <TabsTrigger value="sameRental">Cùng nhà trọ</TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="similar">
+          {loadingSimilar ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <Skeleton className="aspect-[4/3] w-full" />
+                  <CardContent className="p-3">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-full mb-2" />
+                    <div className="flex justify-between">
+                      <Skeleton className="h-3 w-1/3" />
+                      <Skeleton className="h-3 w-1/4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : !hasSimilarPosts ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Không tìm thấy phòng trọ có giá tương tự
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {similarPosts.data.map((post) => (
+                <SimilarPostCard key={post.id} post={post} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="sameRental">
+          {loadingSameRental ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <Skeleton className="aspect-[4/3] w-full" />
+                  <CardContent className="p-3">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-full mb-2" />
+                    <div className="flex justify-between">
+                      <Skeleton className="h-3 w-1/3" />
+                      <Skeleton className="h-3 w-1/4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : !hasSameRentalPosts ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Không tìm thấy phòng trọ khác trong cùng nhà trọ
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {sameRentalPosts.data.map((post) => (
+                <SimilarPostCard key={post.id} post={post} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

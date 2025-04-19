@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common'
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common'
 import {
   CreatePostBodyType,
   GetPostsQueryType,
@@ -54,12 +58,58 @@ export class PostService {
     }
   }
 
-  async delete({ id, deletedById }: { id: number; deletedById: number }) {
-    try {
-      await this.rentalPostRepo.delete({ id })
-      return { message: 'Delete successfully' }
-    } catch (error) {
-      throw NotFoundRecordException
+  async delete(id: number, userId: number) {
+    const post = await this.rentalPostRepo.findById(id)
+
+    if (!post) {
+      throw new NotFoundException('Không tìm thấy bài đăng')
     }
+
+    if (post.landlordId !== userId) {
+      throw new ForbiddenException('Bạn không có quyền xóa bài đăng này')
+    }
+
+    await this.rentalPostRepo.delete({ id })
+  }
+
+  async getSimilarByPrice(postId: number, limit: number = 4) {
+    // Lấy thông tin bài đăng
+    const post = await this.rentalPostRepo.findById(postId)
+
+    if (!post || !post.room) {
+      return {
+        data: [],
+        totalItems: 0,
+        page: 1,
+        limit,
+        totalPages: 0,
+      }
+    }
+
+    // Tính toán phạm vi giá (+/- 20%)
+    const originalPrice = post.room.price
+    const minPrice = Math.floor(originalPrice * 0.8) // 20% thấp hơn
+    const maxPrice = Math.ceil(originalPrice * 1.2) // 20% cao hơn
+
+    // Lấy các bài đăng có giá tương tự
+    return this.rentalPostRepo.getSimilarByPrice({
+      postId,
+      minPrice,
+      maxPrice,
+      limit,
+    })
+  }
+
+  async getSameRental(
+    rentalId: number,
+    excludePostId: number,
+    limit: number = 4
+  ) {
+    // Lấy các bài đăng khác từ cùng một nhà trọ
+    return this.rentalPostRepo.getSameRental({
+      rentalId,
+      excludePostId,
+      limit,
+    })
   }
 }

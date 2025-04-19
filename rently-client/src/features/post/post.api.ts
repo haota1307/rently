@@ -44,6 +44,18 @@ const postApiRequest = {
     http.put<PostType>(`${prefix}/${postId}`, body),
 
   delete: (postId: number) => http.delete<PostType>(`${prefix}/${postId}`),
+
+  // Lấy danh sách phòng trọ có mức giá tương tự
+  getSimilarByPrice: (postId: number, limit = 4) =>
+    http.get<GetPostsResType>(
+      `${prefix}/${postId}/similar-price?limit=${limit}`
+    ),
+
+  // Lấy danh sách phòng trọ cùng nhà trọ
+  getSameRental: (rentalId: number, currentPostId: number, limit = 4) =>
+    http.get<GetPostsResType>(
+      `${prefix}/rental/${rentalId}?exclude=${currentPostId}&limit=${limit}`
+    ),
 };
 
 export default postApiRequest;

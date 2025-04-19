@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  HttpException,
 } from '@nestjs/common'
 import { RentalRequestRepo } from './rental-request.repo'
 import {
@@ -146,93 +147,99 @@ export class RentalRequestService {
     userId: number,
     roleName: string
   ) {
-    // Kiểm tra yêu cầu thuê tồn tại hay không
-    const rentalRequest = await this.rentalRequestRepo.findById(id)
+    // Kiểm tra xem yêu cầu thuê có tồn tại không
+    const rentalRequest = await this.prismaService.rentalRequest.findUnique({
+      where: { id },
+      include: {
+        post: {
+          select: {
+            id: true,
+            title: true,
+            roomId: true,
+          },
+        },
+      },
+    })
+
     if (!rentalRequest) {
-      throw new NotFoundException('Yêu cầu thuê không tồn tại')
+      throw new HttpException('Rental request not found', 404)
     }
 
-    // Kiểm tra quyền hạn cập nhật
-    // Chỉ admin, landlord hoặc tenant của yêu cầu mới được phép cập nhật
+    // Kiểm tra quyền cập nhật yêu cầu thuê
     if (
-      roleName !== RoleName.Admin &&
-      rentalRequest.tenantId !== userId &&
-      rentalRequest.landlordId !== userId
+      (roleName === 'tenant' && rentalRequest.tenantId !== userId) ||
+      (roleName === 'landlord' && rentalRequest.landlordId !== userId)
     ) {
-      throw new ForbiddenException(
-        'Bạn không có quyền cập nhật yêu cầu thuê này'
+      throw new HttpException(
+        'You do not have permission to update this rental request',
+        403
       )
     }
 
-    // Client chỉ được phép hủy yêu cầu, không được cập nhật các trạng thái khác
-    if (
-      rentalRequest.tenantId === userId &&
-      data.status &&
-      data.status !== RentalRequestStatus.CANCELED
-    ) {
-      throw new ForbiddenException(
-        'Người thuê chỉ có thể hủy yêu cầu, không thể thay đổi trạng thái khác'
-      )
+    // Kiểm tra quyền thay đổi trạng thái
+    if (data.status) {
+      // Tenant chỉ có thể hủy yêu cầu
+      if (
+        roleName === 'tenant' &&
+        data.status !== RentalRequestStatus.CANCELED
+      ) {
+        throw new HttpException('Tenant can only cancel rental requests', 403)
+      }
+
+      // Landlord có thể chấp nhận hoặc từ chối yêu cầu
+      if (
+        roleName === 'landlord' &&
+        data.status !== RentalRequestStatus.APPROVED &&
+        data.status !== RentalRequestStatus.REJECTED
+      ) {
+        throw new HttpException(
+          'Landlord can only approve or reject rental requests',
+          403
+        )
+      }
+
+      // Kiểm tra trạng thái hiện tại
+      if (
+        rentalRequest.status === RentalRequestStatus.CANCELED ||
+        rentalRequest.status === RentalRequestStatus.REJECTED
+      ) {
+        throw new HttpException(
+          'Cannot change status of a canceled or rejected rental request',
+          400
+        )
+      }
     }
 
-    // Landlord chỉ được phép phê duyệt hoặc từ chối yêu cầu
-    if (
-      rentalRequest.landlordId === userId &&
-      data.status &&
-      ![RentalRequestStatus.APPROVED, RentalRequestStatus.REJECTED].includes(
-        data.status
-      )
-    ) {
-      throw new ForbiddenException(
-        'Chủ nhà chỉ có thể phê duyệt hoặc từ chối yêu cầu'
-      )
-    }
-
-    // Nếu từ chối yêu cầu, cần có lý do
-    if (data.status === RentalRequestStatus.REJECTED && !data.rejectionReason) {
-      throw new BadRequestException(
-        'Vui lòng cung cấp lý do từ chối yêu cầu thuê'
-      )
-    }
-
-    // Thực hiện cập nhật yêu cầu
+    // Cập nhật yêu cầu
     const updatedRequest = await this.rentalRequestRepo.update({
       id,
       data,
     })
 
-    // Nếu yêu cầu được chấp nhận, cập nhật trạng thái phòng thành "đã cho thuê"
+    // Nếu yêu cầu được chấp nhận, cập nhật trạng thái phòng thành "đã cho thuê" và từ chối các yêu cầu khác
     if (data.status === RentalRequestStatus.APPROVED) {
-      // Tìm thông tin postId và roomId
-      const post = await this.prismaService.rentalPost.findUnique({
-        where: { id: updatedRequest.postId },
-        select: { roomId: true },
-      })
+      // Cập nhật trạng thái phòng thành đã cho thuê (isAvailable = false)
+      const roomId = rentalRequest.post?.roomId
 
-      if (post) {
-        // Cập nhật trạng thái phòng thành đã cho thuê (isAvailable = false)
+      if (roomId) {
         await this.prismaService.room.update({
-          where: { id: post.roomId },
+          where: { id: roomId },
           data: { isAvailable: false },
         })
 
-        // Từ chối tất cả các yêu cầu PENDING khác cho phòng này
-        // Tìm tất cả các post liên quan đến room này
-        const relatedPosts = await this.prismaService.rentalPost.findMany({
-          where: { roomId: post.roomId },
-          select: { id: true },
-        })
-
-        if (relatedPosts.length > 0) {
-          const postIds = relatedPosts.map(p => p.id)
-
-          // Từ chối tất cả các yêu cầu PENDING cho các bài đăng liên quan đến phòng này
-          await this.prismaService.rentalRequest.updateMany({
+        // Từ chối tất cả các yêu cầu thuê khác cho cùng một bài đăng
+        const otherPendingRequests =
+          await this.prismaService.rentalRequest.findMany({
             where: {
-              postId: { in: postIds },
+              postId: updatedRequest.postId,
               status: RentalRequestStatus.PENDING,
-              id: { not: updatedRequest.id }, // Không bao gồm yêu cầu hiện tại
+              id: { not: id },
             },
+          })
+
+        for (const pendingRequest of otherPendingRequests) {
+          await this.prismaService.rentalRequest.update({
+            where: { id: pendingRequest.id },
             data: {
               status: RentalRequestStatus.REJECTED,
               rejectionReason: 'Phòng đã được cho thuê bởi người khác',
@@ -242,20 +249,18 @@ export class RentalRequestService {
       }
     }
 
-    // Nếu yêu cầu đã được chấp nhận trước đó và bây giờ bị hủy, cập nhật trạng thái phòng thành "còn trống"
+    // Nếu yêu cầu đã được chấp nhận trước đó và bây giờ bị từ chối hoặc hủy, cập nhật trạng thái phòng thành "còn trống"
     if (
-      data.status === RentalRequestStatus.CANCELED &&
+      (data.status === RentalRequestStatus.CANCELED ||
+        data.status === RentalRequestStatus.REJECTED) &&
       rentalRequest.status === RentalRequestStatus.APPROVED
     ) {
-      const post = await this.prismaService.rentalPost.findUnique({
-        where: { id: updatedRequest.postId },
-        select: { roomId: true },
-      })
+      const roomId = rentalRequest.post?.roomId
 
-      if (post) {
+      if (roomId) {
         // Cập nhật trạng thái phòng thành còn trống (isAvailable = true)
         await this.prismaService.room.update({
-          where: { id: post.roomId },
+          where: { id: roomId },
           data: { isAvailable: true },
         })
       }

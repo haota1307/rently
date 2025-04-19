@@ -92,3 +92,33 @@ export const useDeletePost = () => {
     },
   });
 };
+
+export const useGetSimilarPostsByPrice = (postId: number, limit = 4) => {
+  return useQuery({
+    queryKey: ["similarPosts", postId, "price"],
+    queryFn: async () => {
+      const res = await postApiRequest.getSimilarByPrice(postId, limit);
+      return res.payload;
+    },
+    enabled: !!postId,
+  });
+};
+
+export const useGetSameRentalPosts = (
+  rentalId: number,
+  currentPostId: number,
+  limit = 4
+) => {
+  return useQuery({
+    queryKey: ["rentalPosts", rentalId, currentPostId],
+    queryFn: async () => {
+      const res = await postApiRequest.getSameRental(
+        rentalId,
+        currentPostId,
+        limit
+      );
+      return res.payload;
+    },
+    enabled: !!rentalId && !!currentPostId,
+  });
+};

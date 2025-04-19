@@ -79,9 +79,27 @@ export class PostController {
     @Param() params: GetPostParamsDTO,
     @ActiveUser('userId') userId: number
   ) {
-    return this.rentalPostService.delete({
-      id: params.rentalPostId,
-      deletedById: userId,
-    })
+    return this.rentalPostService.delete(params.rentalPostId, userId)
+  }
+
+  @Get(':rentalPostId/similar-price')
+  async getSimilarByPrice(
+    @Param('rentalPostId') id: string,
+    @Query('limit') limit: string = '4'
+  ) {
+    return this.rentalPostService.getSimilarByPrice(+id, +limit)
+  }
+
+  @Get('/rental/:rentalId')
+  async getSameRental(
+    @Param('rentalId') rentalId: string,
+    @Query('exclude') excludePostId: string,
+    @Query('limit') limit: string = '4'
+  ) {
+    return this.rentalPostService.getSameRental(
+      +rentalId,
+      +excludePostId,
+      +limit
+    )
   }
 }
