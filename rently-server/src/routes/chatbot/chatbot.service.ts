@@ -9,10 +9,24 @@ import { RentalService } from 'src/routes/rental/rental.service'
 import { RoomService } from 'src/routes/room/room.service'
 import { PostService } from 'src/routes/post/post.service'
 import { PrismaService } from 'src/shared/services/prisma.service'
+import * as fs from 'fs'
+import * as path from 'path'
 
 interface CacheEntry<T> {
   value: T
   timestamp: number
+}
+
+// Định nghĩa interface cho đoạn kiến thức
+interface KnowledgeChunk {
+  id: string
+  content: string
+  embedding?: number[]
+  metadata: {
+    source: string
+    category: string
+    createdAt: Date
+  }
 }
 
 @Injectable()
@@ -24,6 +38,10 @@ export class ChatbotService {
   private searchResultsCache: Map<string, CacheEntry<any[]>> = new Map()
   // Thời gian hiệu lực của cache (15 phút)
   private readonly CACHE_TTL = 15 * 60 * 1000
+  // Kho lưu trữ kiến thức cho RAG
+  private knowledgeBase: KnowledgeChunk[] = []
+  // Đường dẫn đến thư mục lưu trữ kiến thức
+  private readonly KNOWLEDGE_DIR = path.join(process.cwd(), 'knowledge')
 
   constructor(
     private readonly rentalService: RentalService,
@@ -34,6 +52,247 @@ export class ChatbotService {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     })
+    // Khởi tạo kho kiến thức
+    this.initializeKnowledgeBase()
+  }
+
+  /**
+   * Khởi tạo kho kiến thức từ các file
+   */
+  private async initializeKnowledgeBase() {
+    try {
+      // Đảm bảo thư mục tồn tại
+      if (!fs.existsSync(this.KNOWLEDGE_DIR)) {
+        fs.mkdirSync(this.KNOWLEDGE_DIR, { recursive: true })
+
+        // Tạo các file kiến thức mặc định
+        this.createDefaultKnowledgeFiles()
+      } else {
+        // Kiểm tra xem các file kiến thức mặc định đã tồn tại chưa
+        const defaultFiles = [
+          'rental_process.json',
+          'advice.json',
+          'posting_guide.json',
+        ]
+        let needCreateDefaults = false
+
+        for (const file of defaultFiles) {
+          if (!fs.existsSync(path.join(this.KNOWLEDGE_DIR, file))) {
+            needCreateDefaults = true
+            break
+          }
+        }
+
+        if (needCreateDefaults) {
+          this.createDefaultKnowledgeFiles()
+        }
+      }
+
+      // Đọc các file trong thư mục
+      const files = fs.readdirSync(this.KNOWLEDGE_DIR)
+
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(this.KNOWLEDGE_DIR, file)
+          const content = fs.readFileSync(filePath, 'utf8')
+          const chunks = JSON.parse(content) as KnowledgeChunk[]
+
+          // Tạo embeddings cho các chunk mới
+          for (const chunk of chunks) {
+            if (!chunk.embedding) {
+              chunk.embedding = await this.createEmbedding(chunk.content)
+            }
+          }
+
+          this.knowledgeBase.push(...chunks)
+        }
+      }
+
+      console.log(
+        `Đã tải ${this.knowledgeBase.length} đoạn kiến thức vào kho RAG`
+      )
+    } catch (error) {
+      console.error('Lỗi khởi tạo kho kiến thức:', error)
+    }
+  }
+
+  /**
+   * Tạo các file kiến thức mặc định
+   */
+  private createDefaultKnowledgeFiles() {
+    try {
+      console.log('Tạo các file kiến thức mặc định...')
+
+      // Kiểm tra và tạo file rental_process.json nếu chưa tồn tại
+      const rentalProcessPath = path.join(
+        this.KNOWLEDGE_DIR,
+        'rental_process.json'
+      )
+      if (!fs.existsSync(rentalProcessPath)) {
+        // Sử dụng file từ thư mục knowledge đã được tạo trước đó
+        if (
+          fs.existsSync(
+            path.join(__dirname, 'knowledge', 'rental_process.json')
+          )
+        ) {
+          fs.copyFileSync(
+            path.join(__dirname, 'knowledge', 'rental_process.json'),
+            rentalProcessPath
+          )
+        } else {
+          // Nếu file mẫu không tồn tại, tạo file với nội dung cơ bản
+          const rentalProcessKnowledge = [
+            {
+              id: '1',
+              content:
+                'Quy trình thuê phòng trọ thông thường bao gồm: 1) Tìm kiếm và lựa chọn phòng phù hợp, 2) Liên hệ chủ trọ, 3) Xem phòng trực tiếp, 4) Đàm phán giá cả và điều kiện, 5) Ký hợp đồng thuê phòng, 6) Đóng tiền cọc và tiền phòng, 7) Nhận phòng.',
+              metadata: {
+                source: 'default',
+                category: 'rental_process',
+                createdAt: new Date(),
+              },
+            },
+          ]
+          fs.writeFileSync(
+            rentalProcessPath,
+            JSON.stringify(rentalProcessKnowledge, null, 2)
+          )
+        }
+      }
+
+      // Kiểm tra và tạo file advice.json nếu chưa tồn tại
+      const advicePath = path.join(this.KNOWLEDGE_DIR, 'advice.json')
+      if (!fs.existsSync(advicePath)) {
+        if (fs.existsSync(path.join(__dirname, 'knowledge', 'advice.json'))) {
+          fs.copyFileSync(
+            path.join(__dirname, 'knowledge', 'advice.json'),
+            advicePath
+          )
+        } else {
+          const adviceKnowledge = [
+            {
+              id: '1',
+              content:
+                'Khi thuê phòng trọ, bạn nên kiểm tra kỹ các vấn đề sau: an ninh khu vực, hệ thống điện nước, chất lượng thiết bị trong phòng, độ ẩm và mốc, tiếng ồn, và các quy định của chủ trọ.',
+              metadata: {
+                source: 'default',
+                category: 'advice',
+                createdAt: new Date(),
+              },
+            },
+          ]
+          fs.writeFileSync(advicePath, JSON.stringify(adviceKnowledge, null, 2))
+        }
+      }
+
+      // Kiểm tra và tạo file posting_guide.json nếu chưa tồn tại
+      const postingGuidePath = path.join(
+        this.KNOWLEDGE_DIR,
+        'posting_guide.json'
+      )
+      if (!fs.existsSync(postingGuidePath)) {
+        if (
+          fs.existsSync(path.join(__dirname, 'knowledge', 'posting_guide.json'))
+        ) {
+          fs.copyFileSync(
+            path.join(__dirname, 'knowledge', 'posting_guide.json'),
+            postingGuidePath
+          )
+        } else {
+          const postingGuideKnowledge = [
+            {
+              id: '1',
+              content:
+                'Quy trình đăng bài cho thuê phòng trọ trên Rently gồm 3 bước chính: 1) Tạo nhà trọ (Rental), 2) Tạo phòng (Room), 3) Tạo bài đăng (Post). Bạn phải hoàn thành từng bước theo thứ tự, không thể bỏ qua bước nào.',
+              metadata: {
+                source: 'default',
+                category: 'posting_guide',
+                createdAt: new Date(),
+              },
+            },
+          ]
+          fs.writeFileSync(
+            postingGuidePath,
+            JSON.stringify(postingGuideKnowledge, null, 2)
+          )
+        }
+      }
+
+      console.log('Đã tạo xong các file kiến thức mặc định.')
+    } catch (error) {
+      console.error('Lỗi khi tạo file kiến thức mặc định:', error)
+    }
+  }
+
+  /**
+   * Tạo embedding cho văn bản sử dụng OpenAI API
+   */
+  private async createEmbedding(text: string): Promise<number[]> {
+    try {
+      const response = await this.openai.embeddings.create({
+        model: 'text-embedding-ada-002',
+        input: text,
+      })
+
+      return response.data[0].embedding
+    } catch (error) {
+      console.error('Lỗi tạo embedding:', error)
+      // Trả về vector rỗng nếu có lỗi
+      return []
+    }
+  }
+
+  /**
+   * Tính độ tương đồng cosine giữa hai vector
+   */
+  private cosineSimilarity(vecA: number[], vecB: number[]): number {
+    if (vecA.length === 0 || vecB.length === 0) return 0
+
+    let dotProduct = 0
+    let normA = 0
+    let normB = 0
+
+    for (let i = 0; i < vecA.length; i++) {
+      dotProduct += vecA[i] * vecB[i]
+      normA += vecA[i] * vecA[i]
+      normB += vecB[i] * vecB[i]
+    }
+
+    if (normA === 0 || normB === 0) return 0
+
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
+  }
+
+  /**
+   * Tìm kiếm các đoạn kiến thức liên quan nhất với câu hỏi
+   */
+  private async retrieveRelevantKnowledge(
+    question: string,
+    topK: number = 3
+  ): Promise<KnowledgeChunk[]> {
+    try {
+      // Tạo embedding cho câu hỏi
+      const questionEmbedding = await this.createEmbedding(question)
+
+      if (questionEmbedding.length === 0) return []
+
+      // Tính điểm tương đồng với từng đoạn kiến thức
+      const scoredChunks = this.knowledgeBase.map(chunk => ({
+        chunk,
+        score: this.cosineSimilarity(questionEmbedding, chunk.embedding || []),
+      }))
+
+      // Sắp xếp theo điểm và lấy top K
+      const topChunks = scoredChunks
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK)
+        .map(item => item.chunk)
+
+      return topChunks
+    } catch (error) {
+      console.error('Lỗi khi truy xuất kiến thức:', error)
+      return []
+    }
   }
 
   /**
@@ -87,6 +346,186 @@ export class ChatbotService {
   }
 
   /**
+   * Phân tích tin nhắn người dùng để xác định ý định và trả về kết quả phù hợp
+   * Đã tích hợp RAG để nâng cao chất lượng câu trả lời
+   */
+  private async analyzeMessage(message: string): Promise<{
+    intent: 'search' | 'general' | 'math' | 'advice' | 'posting_guide'
+    content: string
+    criteria?: any
+  }> {
+    try {
+      // Chuẩn hóa tin nhắn để làm khóa cache
+      const cacheKey = `intent_${message.toLowerCase().trim().replace(/\s+/g, ' ')}`
+
+      // Kiểm tra xem có phải toán học đơn giản không
+      const mathRegex = /(\d+\s*[\+\-\*\/]\s*\d+)/
+      const mathMatch = message.match(mathRegex)
+      if (mathMatch) {
+        try {
+          // eslint-disable-next-line no-eval
+          const result = eval(mathMatch[0].replace(/\s/g, ''))
+          return {
+            intent: 'math',
+            content: `Kết quả của phép tính ${mathMatch[0]} là ${result}.`,
+          }
+        } catch (e) {
+          // Nếu không tính được, coi là câu hỏi thông thường
+        }
+      }
+
+      // Kiểm tra các từ khóa liên quan đến tìm phòng
+      const searchKeywords =
+        /(tìm phòng|thuê phòng|giá phòng|phòng trọ|ở đâu có phòng|cần thuê|muốn thuê|cho thuê)/i
+      const adviceKeywords =
+        /(tư vấn|lời khuyên|kinh nghiệm|nên làm gì|cần lưu ý|thủ tục|quy trình|hợp đồng)/i
+      const postingGuideKeywords =
+        /(đăng bài|đăng tin|đăng phòng|cách đăng|hướng dẫn đăng|làm sao để đăng|đăng cho thuê|đưa phòng lên|thêm phòng|tạo bài đăng|tạo tin|đăng thông tin|làm thế nào để đăng)/i
+
+      // Xử lý ưu tiên theo thứ tự từ cụ thể đến chung
+      if (postingGuideKeywords.test(message)) {
+        return {
+          intent: 'posting_guide',
+          content: await this.generateRAGResponse(message, 'posting_guide'),
+        }
+      }
+
+      if (searchKeywords.test(message)) {
+        // Phân tích sâu hơn để xác định xem đây có phải là yêu cầu hướng dẫn đăng bài không
+        if (
+          message.toLowerCase().includes('đăng') ||
+          message.toLowerCase().includes('bán') ||
+          (message.toLowerCase().includes('cho thuê') &&
+            (message.toLowerCase().includes('làm sao') ||
+              message.toLowerCase().includes('thế nào') ||
+              message.toLowerCase().includes('hướng dẫn') ||
+              message.toLowerCase().includes('cách')))
+        ) {
+          return {
+            intent: 'posting_guide',
+            content: await this.generateRAGResponse(message, 'posting_guide'),
+          }
+        }
+
+        // Nếu là tìm kiếm phòng, sử dụng phương thức trích xuất tiêu chí
+        const criteria = await this.extractCriteria(message)
+        return {
+          intent: 'search',
+          content: '',
+          criteria,
+        }
+      }
+
+      if (adviceKeywords.test(message)) {
+        return {
+          intent: 'advice',
+          content: '',
+        }
+      }
+
+      // Với các tin nhắn thông thường, sử dụng GPT kết hợp với kiến thức liên quan
+      return {
+        intent: 'general',
+        content: await this.generateRAGResponse(message, 'general'),
+      }
+    } catch (error) {
+      console.error('Lỗi analyzeMessage:', error)
+      return {
+        intent: 'general',
+        content:
+          'Xin lỗi, tôi đang gặp sự cố khi xử lý tin nhắn của bạn. Vui lòng thử lại sau.',
+      }
+    }
+  }
+
+  /**
+   * Tạo câu trả lời sử dụng kiến thức từ kho RAG
+   */
+  private async generateRAGResponse(
+    message: string,
+    type: 'general' | 'advice' | 'posting_guide'
+  ): Promise<string> {
+    try {
+      // Truy xuất kiến thức liên quan
+      let relevantChunks
+
+      if (type === 'posting_guide') {
+        // Ưu tiên các đoạn kiến thức về hướng dẫn đăng bài
+        relevantChunks = this.knowledgeBase.filter(
+          chunk => chunk.metadata.category === 'posting_guide'
+        )
+      } else {
+        // Tìm kiếm ngữ nghĩa các đoạn kiến thức liên quan
+        relevantChunks = await this.retrieveRelevantKnowledge(message)
+      }
+
+      // Kết hợp các đoạn kiến thức thành context
+      let context = ''
+      if (relevantChunks.length > 0) {
+        context =
+          'Kiến thức liên quan:\n' +
+          relevantChunks.map(chunk => chunk.content).join('\n\n')
+      }
+
+      // Tạo prompt phù hợp với loại câu hỏi
+      let prompt
+      if (type === 'advice') {
+        prompt = `
+        Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ.
+        Hãy đưa ra lời khuyên hữu ích về vấn đề liên quan đến thuê phòng trọ dựa trên kiến thức sau đây.
+        
+        ${context}
+        
+        Câu hỏi: "${message}"
+        
+        Lời khuyên (giữ câu trả lời ngắn gọn, súc tích, dưới 150 từ):`
+      } else if (type === 'posting_guide') {
+        prompt = `
+        Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ.
+        Người dùng đang hỏi về cách đăng bài cho thuê phòng trọ trên trang web của chúng tôi.
+        Hãy cung cấp hướng dẫn chi tiết dựa trên kiến thức sau đây.
+        
+        ${context}
+        
+        Câu hỏi: "${message}"
+        
+        Hướng dẫn đăng bài (đưa ra hướng dẫn rõ ràng, từng bước):`
+      } else {
+        prompt = `
+        Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ.
+        Hãy trả lời câu hỏi của người dùng một cách ngắn gọn, thân thiện và hữu ích dựa trên kiến thức sau đây.
+        
+        ${context}
+        
+        Quy tắc:
+        1. Nếu được hỏi về thông tin cá nhân, hãy nói bạn là trợ lý ảo Rently được tạo ra để hỗ trợ người dùng tìm phòng trọ.
+        2. Chỉ trả lời những câu hỏi chung, không đưa ra thông tin cụ thể về một phòng trọ không tồn tại.
+        3. Nếu không biết câu trả lời, hãy lịch sự đề nghị người dùng hỏi về các vấn đề liên quan đến phòng trọ.
+        4. Giữ câu trả lời ngắn gọn, dưới 2-3 câu.
+        
+        Câu hỏi: "${message}"
+        
+        Trả lời:`
+      }
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1000,
+      })
+
+      return (
+        completion.choices[0]?.message?.content ||
+        'Xin lỗi, tôi không thể trả lời câu hỏi này.'
+      )
+    } catch (error) {
+      console.error('Lỗi generateRAGResponse:', error)
+      return 'Xin lỗi, tôi đang gặp sự cố khi xử lý yêu cầu của bạn. Vui lòng thử lại sau.'
+    }
+  }
+
+  /**
    * Phân tích tin nhắn người dùng và trích xuất tiêu chí tìm phòng theo định dạng JSON
    * với khả năng xử lý lỗi và fallback
    */
@@ -124,7 +563,7 @@ export class ChatbotService {
 
       // Thiết lập timeout cho OpenAI API
       const openaiPromise = this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
       })
@@ -502,35 +941,69 @@ export class ChatbotService {
 
   /**
    * Chuyển đổi từ tin nhắn người dùng sang kết quả tìm kiếm
-   * Với cơ chế retry và fallback
+   * Với cơ chế retry, fallback và tích hợp RAG
    */
   async search(message: string): Promise<{
-    criteria: any
+    criteria?: any
     summary: string
     results: any[]
     totalFound: number
     error?: string
   }> {
     try {
+      // Phân tích tin nhắn để xác định ý định
+      const analysis = await this.analyzeMessage(message)
+
+      // Nếu là câu hỏi toán học hoặc câu hỏi chung
+      if (analysis.intent === 'math' || analysis.intent === 'general') {
+        return {
+          summary: analysis.content,
+          results: [],
+          totalFound: 0,
+        }
+      }
+
+      // Nếu là yêu cầu tư vấn - sử dụng RAG để trả lời chi tiết hơn
+      if (analysis.intent === 'advice') {
+        const adviceResponse = await this.generateAdviceResponse(message)
+        return {
+          summary: adviceResponse,
+          results: [],
+          totalFound: 0,
+        }
+      }
+
+      // Nếu là hướng dẫn đăng bài
+      if (analysis.intent === 'posting_guide') {
+        const postingGuideResponse = await this.generateRAGResponse(
+          message,
+          'posting_guide'
+        )
+        return {
+          summary: postingGuideResponse,
+          results: [],
+          totalFound: 0,
+        }
+      }
+
+      // Với ý định tìm kiếm, tiếp tục xử lý với RAG để cải thiện kết quả
       // Số lần thử lại tối đa
       const MAX_RETRIES = 2
       let retries = 0
       let searchResults: any[] = []
-      let criteria = null
+      const criteria = analysis.criteria
 
       // Luồng hoạt động chính
       while (retries <= MAX_RETRIES && searchResults.length === 0) {
         try {
-          // Phân tích tin nhắn để trích xuất tiêu chí tìm kiếm
-          criteria = await this.extractCriteria(message)
-
           // Mỗi lần retry, giảm bớt các tiêu chí khắt khe để tìm được nhiều kết quả hơn
+          let currentCriteria = criteria
           if (retries > 0) {
-            criteria = this.relaxCriteria(criteria, retries)
+            currentCriteria = this.relaxCriteria(criteria, retries)
           }
 
           // Tìm kiếm các bài đăng phù hợp
-          searchResults = await this.searchPostsByRoomCriteria(criteria)
+          searchResults = await this.searchPostsByRoomCriteria(currentCriteria)
 
           if (searchResults.length > 0) {
             break // Nếu tìm thấy kết quả, thoát khỏi vòng lặp
@@ -546,13 +1019,8 @@ export class ChatbotService {
       // Tạo câu trả lời tổng hợp
       let summary = ''
       if (searchResults.length === 0) {
-        summary = 'Không tìm thấy bài đăng nào phù hợp với yêu cầu của bạn.'
-
-        // Nếu không tìm thấy kết quả, gợi ý những tiêu chí có thể điều chỉnh
-        const suggestions = this.suggestCriteriaAdjustments(criteria)
-        if (suggestions) {
-          summary += ' ' + suggestions
-        }
+        // Sử dụng RAG để đưa ra phản hồi thông minh khi không tìm thấy kết quả
+        summary = await this.generateNoResultsResponse(message, criteria)
       } else {
         summary = `Tìm thấy ${searchResults.length} bài đăng phù hợp với yêu cầu của bạn.`
       }
@@ -567,11 +1035,70 @@ export class ChatbotService {
       console.error('Lỗi search:', error)
       return {
         error: error.message,
-        criteria: null,
-        summary: 'Đã xảy ra lỗi khi tìm kiếm phòng.',
+        summary: 'Đã xảy ra lỗi khi xử lý tin nhắn của bạn.',
         results: [],
         totalFound: 0,
       }
+    }
+  }
+
+  /**
+   * Tạo phản hồi khi không tìm thấy kết quả, sử dụng RAG để đưa ra gợi ý thông minh hơn
+   */
+  private async generateNoResultsResponse(
+    message: string,
+    criteria: any
+  ): Promise<string> {
+    try {
+      // Lấy kiến thức liên quan từ kho RAG
+      const relevantChunks = await this.retrieveRelevantKnowledge(message)
+      let context = ''
+
+      if (relevantChunks.length > 0) {
+        context =
+          'Kiến thức liên quan:\n' +
+          relevantChunks.map(chunk => chunk.content).join('\n\n')
+      }
+
+      // Thông tin về tiêu chí tìm kiếm
+      const criteriaInfo = JSON.stringify(criteria, null, 2)
+
+      const prompt = `
+      Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ.
+      
+      Người dùng đã tìm kiếm phòng trọ nhưng không tìm thấy kết quả phù hợp. Hãy đưa ra một phản hồi hữu ích.
+      
+      Tiêu chí tìm kiếm của người dùng:
+      ${criteriaInfo}
+      
+      ${context}
+      
+      Tin nhắn ban đầu của người dùng: "${message}"
+      
+      Hãy đưa ra một phản hồi ngắn gọn, thân thiện với người dùng, bao gồm:
+      1. Thông báo không tìm thấy kết quả phù hợp
+      2. Giải thích lý do có thể là gì (ví dụ: tiêu chí quá cụ thể)
+      3. Gợi ý cách điều chỉnh tiêu chí tìm kiếm
+      4. Lời khuyên hữu ích cho người tìm phòng
+      
+      Hãy giữ câu trả lời dưới 150 từ:`
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 250,
+      })
+
+      return (
+        completion.choices[0]?.message?.content ||
+        'Không tìm thấy bài đăng nào phù hợp với yêu cầu của bạn. Bạn có thể thử điều chỉnh tiêu chí tìm kiếm.'
+      )
+    } catch (error) {
+      console.error('Lỗi generateNoResultsResponse:', error)
+      // Fallback sang phương thức gợi ý cũ nếu có lỗi
+      const suggestions = this.suggestCriteriaAdjustments(criteria)
+      return `Không tìm thấy bài đăng nào phù hợp với yêu cầu của bạn. ${suggestions || 'Bạn có thể thử điều chỉnh tiêu chí tìm kiếm.'}`
     }
   }
 
@@ -668,5 +1195,224 @@ export class ChatbotService {
     }
 
     return `Bạn có thể thử ${suggestions.join(', ')} để tìm thấy nhiều lựa chọn hơn.`
+  }
+
+  /**
+   * Tạo câu trả lời cho các câu hỏi tư vấn sử dụng RAG
+   */
+  private async generateAdviceResponse(message: string): Promise<string> {
+    return this.generateRAGResponse(message, 'advice')
+  }
+
+  /**
+   * Thêm kiến thức mới vào kho RAG
+   */
+  async addKnowledge(
+    content: string,
+    category: string
+  ): Promise<{ success: boolean; id?: string }> {
+    try {
+      const newChunk: KnowledgeChunk = {
+        id: Date.now().toString(),
+        content,
+        metadata: {
+          source: 'api',
+          category,
+          createdAt: new Date(),
+        },
+      }
+
+      // Tạo embedding cho đoạn kiến thức mới
+      newChunk.embedding = await this.createEmbedding(content)
+
+      // Thêm vào kho kiến thức
+      this.knowledgeBase.push(newChunk)
+
+      // Lưu vào file
+      this.saveKnowledgeToFile(category)
+
+      return { success: true, id: newChunk.id }
+    } catch (error) {
+      console.error('Lỗi khi thêm kiến thức mới:', error)
+      return { success: false }
+    }
+  }
+
+  /**
+   * Lưu kiến thức vào file theo danh mục
+   */
+  private saveKnowledgeToFile(category: string): void {
+    try {
+      // Lọc kiến thức theo danh mục
+      const categoryChunks = this.knowledgeBase.filter(
+        chunk => chunk.metadata.category === category
+      )
+
+      // Lưu vào file
+      const filePath = path.join(this.KNOWLEDGE_DIR, `${category}.json`)
+      fs.writeFileSync(filePath, JSON.stringify(categoryChunks, null, 2))
+    } catch (error) {
+      console.error('Lỗi khi lưu kiến thức vào file:', error)
+    }
+  }
+
+  /**
+   * Cung cấp API endpoint để frontend có thể thêm kiến thức mới
+   */
+  async addKnowledgeFromFile(
+    file: any,
+    category: string
+  ): Promise<{ success: boolean; count: number }> {
+    try {
+      // Đọc nội dung file
+      const content = file.buffer.toString('utf8')
+
+      // Chia nhỏ nội dung thành các đoạn
+      const chunks = this.splitIntoChunks(content)
+
+      let count = 0
+      for (const chunk of chunks) {
+        if (chunk.trim().length > 0) {
+          const result = await this.addKnowledge(chunk, category)
+          if (result.success) count++
+        }
+      }
+
+      return { success: true, count }
+    } catch (error) {
+      console.error('Lỗi khi thêm kiến thức từ file:', error)
+      return { success: false, count: 0 }
+    }
+  }
+
+  /**
+   * Chia văn bản thành các đoạn nhỏ
+   */
+  private splitIntoChunks(text: string, maxLength: number = 500): string[] {
+    const paragraphs = text.split(/\n\s*\n/)
+    const chunks: string[] = []
+
+    for (const paragraph of paragraphs) {
+      if (paragraph.length <= maxLength) {
+        chunks.push(paragraph)
+      } else {
+        // Chia đoạn dài thành các câu
+        const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph]
+
+        let currentChunk = ''
+        for (const sentence of sentences) {
+          if (currentChunk.length + sentence.length <= maxLength) {
+            currentChunk += sentence
+          } else {
+            if (currentChunk) chunks.push(currentChunk)
+            currentChunk = sentence
+          }
+        }
+
+        if (currentChunk) chunks.push(currentChunk)
+      }
+    }
+
+    return chunks
+  }
+
+  /**
+   * API endpoint để liệt kê tất cả kiến thức trong kho RAG
+   */
+  async listKnowledge(
+    category?: string
+  ): Promise<{ chunks: any[]; total: number }> {
+    try {
+      // Lọc theo danh mục nếu có
+      const filteredChunks = category
+        ? this.knowledgeBase.filter(
+            chunk => chunk.metadata.category === category
+          )
+        : this.knowledgeBase
+
+      // Chuyển đổi định dạng, loại bỏ embedding để giảm kích thước phản hồi
+      const chunks = filteredChunks.map(chunk => ({
+        id: chunk.id,
+        content: chunk.content,
+        category: chunk.metadata.category,
+        source: chunk.metadata.source,
+        createdAt: chunk.metadata.createdAt,
+      }))
+
+      return {
+        chunks,
+        total: chunks.length,
+      }
+    } catch (error) {
+      console.error('Lỗi khi liệt kê kiến thức:', error)
+      return { chunks: [], total: 0 }
+    }
+  }
+
+  /**
+   * API endpoint để xóa một mục kiến thức khỏi kho RAG
+   */
+  async deleteKnowledge(id: string): Promise<{ success: boolean }> {
+    try {
+      // Tìm index của mục kiến thức cần xóa
+      const index = this.knowledgeBase.findIndex(chunk => chunk.id === id)
+
+      if (index === -1) {
+        return { success: false }
+      }
+
+      // Lưu lại danh mục để cập nhật file
+      const category = this.knowledgeBase[index].metadata.category
+
+      // Xóa khỏi mảng
+      this.knowledgeBase.splice(index, 1)
+
+      // Cập nhật file
+      this.saveKnowledgeToFile(category)
+
+      return { success: true }
+    } catch (error) {
+      console.error('Lỗi khi xóa kiến thức:', error)
+      return { success: false }
+    }
+  }
+
+  /**
+   * API endpoint để tìm kiếm kiến thức theo từ khóa
+   */
+  async searchKnowledge(
+    query: string
+  ): Promise<{ chunks: any[]; total: number }> {
+    try {
+      // Tạo embedding cho truy vấn
+      const queryEmbedding = await this.createEmbedding(query)
+
+      // Tính điểm tương đồng
+      const scoredChunks = this.knowledgeBase.map(chunk => ({
+        chunk,
+        score: this.cosineSimilarity(queryEmbedding, chunk.embedding || []),
+      }))
+
+      // Sắp xếp theo điểm và lấy top 10
+      const matchedChunks = scoredChunks
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10)
+        .map(item => ({
+          id: item.chunk.id,
+          content: item.chunk.content,
+          category: item.chunk.metadata.category,
+          source: item.chunk.metadata.source,
+          createdAt: item.chunk.metadata.createdAt,
+          score: item.score,
+        }))
+
+      return {
+        chunks: matchedChunks,
+        total: matchedChunks.length,
+      }
+    } catch (error) {
+      console.error('Lỗi khi tìm kiếm kiến thức:', error)
+      return { chunks: [], total: 0 }
+    }
   }
 }

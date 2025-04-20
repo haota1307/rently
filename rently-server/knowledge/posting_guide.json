@@ -1,0 +1,11 @@
+[
+  {
+    "id": "1",
+    "content": "Quy trình đăng bài cho thuê phòng trọ trên Rently gồm 3 bước chính: 1) Tạo nhà trọ (Rental), 2) Tạo phòng (Room), 3) Tạo bài đăng (Post). Bạn phải hoàn thành từng bước theo thứ tự, không thể bỏ qua bước nào.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2025-04-20T06:27:22.615Z"
+    }
+  }
+]

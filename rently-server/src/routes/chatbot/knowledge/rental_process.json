@@ -1,0 +1,38 @@
+[
+  {
+    "id": "1",
+    "content": "Quy trình thuê phòng trọ thông thường bao gồm: 1) Tìm kiếm và lựa chọn phòng phù hợp, 2) Liên hệ chủ trọ, 3) Xem phòng trực tiếp, 4) Đàm phán giá cả và điều kiện, 5) Ký hợp đồng thuê phòng, 6) Đóng tiền cọc và tiền phòng, 7) Nhận phòng.",
+    "metadata": {
+      "source": "default",
+      "category": "rental_process",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "2",
+    "content": "Khi ký hợp đồng thuê phòng, cần lưu ý các điều khoản: thời hạn thuê, giá thuê, phương thức thanh toán, tiền cọc, quy định về sửa chữa, quy định khi kết thúc hợp đồng, và các khoản phí phát sinh như điện, nước, internet.",
+    "metadata": {
+      "source": "default",
+      "category": "rental_process",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "3",
+    "content": "Khi thuê phòng trọ, bạn nên yêu cầu xem phòng trực tiếp trước khi quyết định. Kiểm tra kỹ tình trạng phòng, các thiết bị điện nước, độ ẩm, ánh sáng tự nhiên và tiếng ồn. Tìm hiểu thêm về khu vực xung quanh như an ninh, chợ, trường học và phương tiện giao thông công cộng.",
+    "metadata": {
+      "source": "default",
+      "category": "rental_process",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "4",
+    "content": "Trước khi ký hợp đồng thuê phòng, bạn nên đọc kỹ mọi điều khoản, đặc biệt là điều khoản về việc chấm dứt hợp đồng sớm và hoàn trả tiền cọc. Đảm bảo mọi thỏa thuận đều được ghi rõ trong hợp đồng và có chữ ký của cả hai bên.",
+    "metadata": {
+      "source": "default",
+      "category": "rental_process",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  }
+]

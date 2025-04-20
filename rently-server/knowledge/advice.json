@@ -1,0 +1,20 @@
+[
+  {
+    "id": "3",
+    "content": "Khi thuê phòng trọ, bạn nên kiểm tra kỹ các vấn đề sau: an ninh khu vực, hệ thống điện nước, chất lượng thiết bị trong phòng, độ ẩm và mốc, tiếng ồn, và các quy định của chủ trọ.",
+    "metadata": {
+      "source": "default",
+      "category": "advice",
+      "createdAt": "2025-04-20T06:10:33.423Z"
+    }
+  },
+  {
+    "id": "4",
+    "content": "Nên chụp ảnh hiện trạng phòng trước khi chuyển vào để tránh tranh chấp khi trả phòng. Lưu lại mọi giao dịch thanh toán và thỏa thuận bằng văn bản.",
+    "metadata": {
+      "source": "default",
+      "category": "advice",
+      "createdAt": "2025-04-20T06:10:33.423Z"
+    }
+  }
+]

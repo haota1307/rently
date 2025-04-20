@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * @deprecated Phiên bản chatbot đơn giản này đã được thay thế bởi chatbot-widget.tsx.
+ * Hãy sử dụng ChatbotWidget thay vì ChatProvider và useChat.
+ */
+
 import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface Message {
@@ -19,13 +24,20 @@ interface ChatbotContextType {
 
 const ChatbotContext = createContext<ChatbotContextType | undefined>(undefined);
 
+/**
+ * @deprecated Sử dụng ChatbotWidget từ chatbot-widget.tsx
+ */
 export function ChatProvider({ children }: { children: ReactNode }) {
+  console.warn(
+    "ChatProvider đã bị deprecated. Hãy sử dụng ChatbotWidget từ chatbot-widget.tsx"
+  );
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       content:
-        "Xin chào! Tôi là trợ lý ảo của ThueTro. Tôi có thể giúp gì cho bạn?",
+        "Xin chào! Tôi là trợ lý ảo của Rently. Tôi có thể giúp gì cho bạn?",
       sender: "bot",
       timestamp: new Date(),
     },
@@ -65,7 +77,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       {
         id: "welcome",
         content:
-          "Xin chào! Tôi là trợ lý ảo của ThueTro. Tôi có thể giúp gì cho bạn?",
+          "Xin chào! Tôi là trợ lý ảo của Rently. Tôi có thể giúp gì cho bạn?",
         sender: "bot",
         timestamp: new Date(),
       },
@@ -94,7 +106,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       lowerCaseMessage.includes("liên hệ") ||
       lowerCaseMessage.includes("hotline")
     ) {
-      return "Bạn có thể liên hệ với chúng tôi qua số điện thoại: 0123 456 789 hoặc email: support@thuetro.vn";
+      return "Bạn có thể liên hệ với chúng tôi qua số điện thoại: 0123 456 789 hoặc email: support@rently.vn";
     }
 
     if (lowerCaseMessage.includes("cảm ơn")) {
@@ -119,7 +131,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * @deprecated Sử dụng ChatbotWidget từ chatbot-widget.tsx
+ */
 export function useChat() {
+  console.warn(
+    "useChat đã bị deprecated. Hãy sử dụng ChatbotWidget từ chatbot-widget.tsx"
+  );
+
   const context = useContext(ChatbotContext);
   if (context === undefined) {
     throw new Error("useChat must be used within a ChatProvider");

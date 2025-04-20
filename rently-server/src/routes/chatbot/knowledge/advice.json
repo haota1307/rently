@@ -1,0 +1,47 @@
+[
+  {
+    "id": "1",
+    "content": "Khi thuê phòng trọ, bạn nên kiểm tra kỹ các vấn đề sau: an ninh khu vực, hệ thống điện nước, chất lượng thiết bị trong phòng, độ ẩm và mốc, tiếng ồn, và các quy định của chủ trọ.",
+    "metadata": {
+      "source": "default",
+      "category": "advice",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "2",
+    "content": "Nên chụp ảnh hiện trạng phòng trước khi chuyển vào để tránh tranh chấp khi trả phòng. Lưu lại mọi giao dịch thanh toán và thỏa thuận bằng văn bản.",
+    "metadata": {
+      "source": "default",
+      "category": "advice",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "3",
+    "content": "Tìm phòng trọ gần nơi làm việc hoặc học tập sẽ giúp tiết kiệm thời gian và chi phí đi lại. Nên cân nhắc khoảng cách di chuyển và phương tiện giao thông công cộng có sẵn trong khu vực.",
+    "metadata": {
+      "source": "default",
+      "category": "advice",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "4",
+    "content": "Khi tìm phòng trọ, nên lập danh sách các tiêu chí quan trọng như ngân sách, diện tích tối thiểu, tiện ích cần thiết, và vị trí. Điều này giúp bạn tập trung vào những lựa chọn phù hợp và tiết kiệm thời gian tìm kiếm.",
+    "metadata": {
+      "source": "default",
+      "category": "advice",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "5",
+    "content": "Trước khi đặt cọc, hãy tìm hiểu kỹ về chủ trọ. Nếu có thể, trò chuyện với những người đang thuê để biết thêm về cách chủ trọ xử lý các vấn đề phát sinh và tình trạng bảo trì nhà trọ.",
+    "metadata": {
+      "source": "default",
+      "category": "advice",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  }
+]

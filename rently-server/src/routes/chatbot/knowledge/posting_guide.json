@@ -1,0 +1,74 @@
+[
+  {
+    "id": "1",
+    "content": "Quy trình đăng bài cho thuê phòng trọ trên Rently gồm 4 bước: 1) Đăng ký và xác thực tài khoản chủ trọ, 2) Tạo nhà trọ (Rental) với thông tin vị trí và tiện ích chung, 3) Tạo phòng (Room) thuộc nhà trọ đó với giá cả và tiện ích riêng, 4) Tạo bài đăng (Post) để quảng cáo phòng trống. Bạn phải hoàn thành từng bước theo thứ tự, không thể bỏ qua bước nào.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "2",
+    "content": "Để đăng ký tài khoản chủ trọ trên Rently: 1) Truy cập trang đăng ký, 2) Chọn loại tài khoản là \"Chủ trọ\", 3) Điền thông tin cá nhân (họ tên, email, số điện thoại, mật khẩu), 4) Xác nhận email được gửi đến, 5) Hoàn tất quá trình xác thực bằng cách tải lên giấy tờ tùy thân. Chỉ khi tài khoản được xác thực, bạn mới có thể đăng bài cho thuê phòng.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "3",
+    "content": "Để tạo nhà trọ (Rental) trên Rently: 1) Đăng nhập vào tài khoản chủ trọ, 2) Vào phần \"Quản lý nhà trọ\", 3) Nhấn \"Thêm nhà trọ\", 4) Điền đầy đủ thông tin: tên nhà trọ, địa chỉ chi tiết, các tiện ích chung của khu trọ, 5) Tải lên ít nhất 3 hình ảnh chất lượng của nhà trọ (mặt tiền, khu vực chung), 6) Nhấn \"Lưu\" để hoàn tất. Mỗi chủ trọ có thể tạo nhiều nhà trọ khác nhau tùy theo số lượng cơ sở bạn sở hữu.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "4",
+    "content": "Để tạo phòng (Room) trên Rently: 1) Đăng nhập vào tài khoản chủ trọ, 2) Vào phần \"Quản lý nhà trọ\", 3) Chọn nhà trọ đã tạo, 4) Nhấn \"Thêm phòng\", 5) Điền thông tin chi tiết: mã phòng, diện tích (m²), giá thuê, đặt cọc, các chi phí phát sinh (điện, nước, internet), các tiện ích riêng của phòng, 6) Chọn trạng thái phòng (còn trống), 7) Tải lên ít nhất 3 hình ảnh chất lượng của phòng từ nhiều góc khác nhau, 8) Nhấn \"Lưu\". Mỗi nhà trọ có thể có nhiều phòng khác nhau.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "5",
+    "content": "Để tạo bài đăng (Post) trên Rently: 1) Đăng nhập vào tài khoản chủ trọ, 2) Vào phần \"Quản lý bài đăng\", 3) Nhấn \"Tạo bài đăng\", 4) Chọn nhà trọ và phòng cần đăng tin (phòng phải ở trạng thái còn trống), 5) Tạo tiêu đề hấp dẫn (nên bao gồm khu vực, loại phòng, diện tích), 6) Viết mô tả chi tiết về phòng và khu vực xung quanh, 7) Thiết lập thời gian bắt đầu và kết thúc hiển thị bài đăng, 8) Xem trước và kiểm tra thông tin, 9) Nhấn \"Đăng bài\" để công khai. Bài đăng sẽ được duyệt và hiển thị cho người dùng tìm kiếm phòng trọ.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "6",
+    "content": "Lưu ý quan trọng khi đăng bài cho thuê phòng trên Rently: 1) Phải đăng ký và xác thực tài khoản là chủ trọ trước khi đăng bài, 2) Phải tạo nhà trọ → tạo phòng → tạo bài đăng theo đúng thứ tự, 3) Hình ảnh phải chất lượng, rõ nét và phản ánh đúng thực tế của phòng, không sử dụng hình ảnh sao chép từ internet, 4) Cung cấp thông tin chính xác về giá cả và tiện ích, tránh ghi giá thấp để thu hút rồi yêu cầu chi phí khác, 5) Khi phòng đã được thuê, cần cập nhật trạng thái phòng ngay lập tức, 6) Nên phản hồi nhanh chóng các yêu cầu thuê phòng để tăng tỷ lệ thành công.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "7",
+    "content": "Để tạo một bài đăng hấp dẫn trên Rently, hãy chú ý: 1) Đặt tiêu đề ngắn gọn nhưng nổi bật, bao gồm thông tin quan trọng như khu vực, diện tích và giá, 2) Viết mô tả chi tiết và trung thực, nêu bật những điểm mạnh của phòng, 3) Đăng tải nhiều hình ảnh chất lượng, chụp từ nhiều góc khác nhau (phòng ngủ, nhà vệ sinh, bếp, ban công), 4) Liệt kê đầy đủ tiện ích của phòng và khu vực xung quanh, 5) Cập nhật thông tin liên hệ chính xác để người thuê dễ dàng liên lạc, 6) Mô tả rõ các quy định về thú cưng, khách thăm, giờ giấc và các điều khoản khác.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "8",
+    "content": "Cách quản lý bài đăng hiệu quả trên Rently: 1) Kiểm tra và cập nhật trạng thái phòng thường xuyên (còn trống/đã cho thuê), 2) Gia hạn bài đăng khi sắp hết thời gian hiển thị, 3) Cập nhật thông tin và hình ảnh định kỳ để đảm bảo luôn chính xác, 4) Sử dụng tính năng thống kê để theo dõi lượt xem và mức độ quan tâm, 5) Dành thời gian phản hồi nhanh chóng và chuyên nghiệp các yêu cầu thuê phòng, 6) Sử dụng tính năng đánh dấu tin nổi bật để tăng khả năng hiển thị cho bài đăng của bạn.",
+    "metadata": {
+      "source": "default",
+      "category": "posting_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  }
+]
