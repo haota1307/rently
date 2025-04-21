@@ -5,7 +5,6 @@ import authApiRequest from "@/features/auth/auth.api";
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refreshToken")?.value;
-  const accessToken = cookieStore.get("accessToken")?.value;
 
   if (!refreshToken) {
     return Response.json(
@@ -23,6 +22,7 @@ export async function POST(request: Request) {
       exp: number;
     };
 
+    // Cập nhật cookie
     cookieStore.set("accessToken", payload.accessToken, {
       path: "/",
       httpOnly: true,
@@ -38,11 +38,15 @@ export async function POST(request: Request) {
       expires: decodedRefreshToken.exp * 1000,
     });
 
-    return Response.json(payload);
+    // Trả về accessToken và refreshToken để cho phép client cập nhật vào localStorage
+    return Response.json({
+      accessToken: payload.accessToken,
+      refreshToken: payload.refreshToken,
+    });
   } catch (error: any) {
-    console.log({ error });
+    console.error("Lỗi refresh token:", error);
     return Response.json(
-      { message: error.message ?? "Có lỗi xảy ra" },
+      { message: error.message ?? "Có lỗi xảy ra khi refresh token" },
       { status: 401 }
     );
   }
