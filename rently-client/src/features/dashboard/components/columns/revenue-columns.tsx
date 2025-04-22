@@ -66,6 +66,12 @@ export const revenueColumns: ColumnDef<Transaction>[] = [
         case "listing":
           typeText = "Đăng tin";
           break;
+        case "income":
+          typeText = "Tiền vào";
+          break;
+        case "expense":
+          typeText = "Tiền ra";
+          break;
         default:
           typeText = type;
       }
@@ -110,6 +116,14 @@ export const revenueColumns: ColumnDef<Transaction>[] = [
           {statusText}
         </div>
       );
+    },
+  },
+  {
+    accessorKey: "source",
+    header: "Nguồn",
+    cell: ({ row }) => {
+      const source = row.getValue("source") as string;
+      return source || "Rently";
     },
   },
   {
