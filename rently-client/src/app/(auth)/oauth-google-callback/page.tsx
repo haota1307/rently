@@ -21,11 +21,20 @@ export default function OAuthPage() {
 
   const accessToken = searchParams.get("accessToken");
   const refreshToken = searchParams.get("refreshToken");
-  const message = searchParams.get("message");
+  const error = searchParams.get("error");
+  const blocked = searchParams.get("blocked") === "true";
 
   const count = useRef(0);
 
   useEffect(() => {
+    console.log("[DEBUG] OAuth callback params:", {
+      accessToken: !!accessToken,
+      refreshToken: !!refreshToken,
+      error,
+      blocked,
+      blockedRaw: searchParams.get("blocked"),
+    });
+
     if (accessToken && refreshToken) {
       if (count.current === 0) {
         const { roleId } = decodeAccessToken(accessToken);
@@ -45,10 +54,30 @@ export default function OAuthPage() {
         count.current++;
       }
     } else {
-      console.log(message);
-      toast.error("Đăng nhập thất bại");
+      // Xử lý trường hợp tài khoản bị khóa
+      if (blocked || searchParams.get("blocked") === "true") {
+        console.log("[DEBUG] Account is blocked, showing notification");
+        toast.error("Tài khoản của bạn đã bị khóa", {
+          description:
+            "Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.",
+          duration: 8000,
+        });
+        setTimeout(() => {
+          router.push("/dang-nhap");
+        }, 1000);
+      } else if (error) {
+        toast.error(error || "Đăng nhập thất bại");
+        setTimeout(() => {
+          router.push("/dang-nhap");
+        }, 1000);
+      } else {
+        toast.error("Đăng nhập thất bại");
+        setTimeout(() => {
+          router.push("/dang-nhap");
+        }, 1000);
+      }
     }
-  }, [accessToken, refreshToken, setRole, router, message, mutateAsync]);
+  }, [accessToken, refreshToken, setRole, router, error, blocked, mutateAsync]);
 
   return <div />;
 }

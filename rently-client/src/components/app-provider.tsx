@@ -8,6 +8,7 @@ import {
   removeTokensFromLocalStorage,
   checkAndRefreshToken,
   generateSocketInstance,
+  clearAuthData,
 } from "@/lib/utils";
 
 import { create } from "zustand";
@@ -120,6 +121,44 @@ export default function AppProvider({
             });
           }
         );
+
+        // Lắng nghe sự kiện khóa tài khoản
+        socketInstance.on(
+          "accountBlocked",
+          async (data: { message: string; reason?: string }) => {
+            // Hiển thị thông báo rõ ràng cho người dùng
+            toast.error(data.message || "Tài khoản của bạn đã bị khóa", {
+              duration: 10000,
+              position: "top-center",
+              description: data.reason
+                ? `Lý do: ${data.reason}`
+                : "Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.",
+            });
+
+            // Hiển thị thông báo và tự động đăng xuất sau 3 giây
+            setTimeout(async () => {
+              try {
+                // Đăng xuất người dùng với đầy đủ xóa token và cookie
+                await clearAuthData();
+
+                // Ngắt kết nối socket
+                socketInstance.disconnect();
+
+                // Cập nhật state
+                setRole(undefined);
+                setSocket(undefined);
+
+                // Chuyển hướng người dùng đến trang đăng nhập
+                window.location.href = "/dang-nhap?blocked=true";
+              } catch (error) {
+                console.error("Lỗi khi đăng xuất:", error);
+                // Fallback nếu có lỗi
+                removeTokensFromLocalStorage();
+                window.location.href = "/dang-nhap?blocked=true";
+              }
+            }, 3000);
+          }
+        );
       }
     }
 
@@ -127,6 +166,7 @@ export default function AppProvider({
     return () => {
       if (socket) {
         socket.off("roleUpdate");
+        socket.off("accountBlocked");
         socket.disconnect();
       }
     };

@@ -39,6 +39,7 @@ import {
   RefreshTokenAlreadyUsedException,
   UnauthorizedAccessException,
   UserNotFoundException,
+  UserBlockedException,
 } from 'src/routes/auth/auth.error'
 import { InvalidPasswordException } from 'src/shared/error'
 import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
@@ -192,6 +193,11 @@ export class AuthService {
       throw InvalidPasswordException
     }
 
+    // Kiểm tra trạng thái tài khoản
+    if (user.status === 'BLOCKED') {
+      throw UserBlockedException
+    }
+
     const tokens = await this.generateTokens({
       userId: user.id,
       roleId: user.roleId,
@@ -223,8 +229,14 @@ export class AuthService {
         user: {
           roleId,
           role: { name: roleName },
+          status,
         },
       } = refreshTokenInDb
+
+      // Kiểm tra trạng thái tài khoản
+      if (status === 'BLOCKED') {
+        throw UserBlockedException
+      }
 
       // Xóa refresh token cũ
       const $deleteRefreshToken = this.authRepository.deleteRefreshToken({

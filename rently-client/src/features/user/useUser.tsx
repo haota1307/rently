@@ -100,3 +100,39 @@ export const useDeleteUser = () => {
     },
   });
 };
+
+// Hook khóa tài khoản người dùng
+export const useBlockUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      reason,
+    }: {
+      userId: number;
+      reason?: string;
+    }) => {
+      const res = await userApiRequest.blockUser(userId, reason);
+      return res.payload;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["user", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+};
+
+// Hook mở khóa tài khoản người dùng
+export const useUnblockUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await userApiRequest.unblockUser(userId);
+      return res.payload;
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: ["user", userId] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+};

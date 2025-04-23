@@ -21,6 +21,8 @@ import {
   useGetUsers,
   useDeleteUser,
   useGetLandlords,
+  useBlockUser,
+  useUnblockUser,
 } from "@/features/user/useUser";
 import { toast } from "sonner";
 import {
@@ -32,6 +34,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { DialogClose } from "@radix-ui/react-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // Custom hook debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -53,6 +57,9 @@ export default function UsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
+  const [isUnblockDialogOpen, setIsUnblockDialogOpen] = useState(false);
+  const [blockReason, setBlockReason] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -72,6 +79,8 @@ export default function UsersPage() {
   });
 
   const deleteUserMutation = useDeleteUser();
+  const blockUserMutation = useBlockUser();
+  const unblockUserMutation = useUnblockUser();
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
@@ -91,6 +100,66 @@ export default function UsersPage() {
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
     setIsViewModalOpen(true);
+  };
+
+  const handleBlockUser = (user: User) => {
+    setSelectedUser(user);
+    setBlockReason("");
+    setIsBlockDialogOpen(true);
+  };
+
+  const handleUnblockUser = (userId: number) => {
+    const user = usersData?.data.find((u) => u.id === userId) || null;
+    setSelectedUser(user);
+    setIsUnblockDialogOpen(true);
+  };
+
+  const handleConfirmBlock = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await blockUserMutation.mutateAsync({
+        userId: selectedUser.id,
+        reason: blockReason.trim() || undefined,
+      });
+      toast.success("Khóa tài khoản người dùng thành công");
+      setIsBlockDialogOpen(false);
+      setBlockReason("");
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        if (typeof error.response.data.message === "string") {
+          toast.error(error.response.data.message);
+        } else if (Array.isArray(error.response.data.message)) {
+          error.response.data.message.forEach((err: any) => {
+            toast.error(`Lỗi: ${err.message}`);
+          });
+        }
+      } else {
+        toast.error("Khóa tài khoản thất bại");
+      }
+    }
+  };
+
+  const handleConfirmUnblock = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await unblockUserMutation.mutateAsync(selectedUser.id);
+      toast.success("Mở khóa tài khoản người dùng thành công");
+      setIsUnblockDialogOpen(false);
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        if (typeof error.response.data.message === "string") {
+          toast.error(error.response.data.message);
+        } else if (Array.isArray(error.response.data.message)) {
+          error.response.data.message.forEach((err: any) => {
+            toast.error(`Lỗi: ${err.message}`);
+          });
+        }
+      } else {
+        toast.error("Mở khóa tài khoản thất bại");
+      }
+    }
   };
 
   const handleConfirmDelete = (userId: number) => {
@@ -169,6 +238,8 @@ export default function UsersPage() {
           columns={
             userColumns({
               onDelete: handleConfirmDelete,
+              onBlock: handleBlockUser,
+              onUnblock: handleUnblockUser,
               onEdit: handleEditUser,
               onView: handleViewUser,
             }) as ColumnDef<User>[]
@@ -197,6 +268,44 @@ export default function UsersPage() {
           user={selectedUser}
         />
 
+        {/* Dialog xác nhận khóa tài khoản */}
+        <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Khóa tài khoản người dùng</DialogTitle>
+              <DialogDescription>
+                {selectedUser
+                  ? `Bạn sắp khóa tài khoản của người dùng ${selectedUser.name}.`
+                  : "Bạn sắp khóa tài khoản người dùng này."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <Label htmlFor="block-reason">Lý do (không bắt buộc)</Label>
+              <Textarea
+                id="block-reason"
+                placeholder="Nhập lý do khóa tài khoản..."
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Hủy</Button>
+              </DialogClose>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmBlock}
+                disabled={blockUserMutation.isPending}
+              >
+                {blockUserMutation.isPending
+                  ? "Đang xử lý..."
+                  : "Khóa tài khoản"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Dialog xác nhận xóa */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
@@ -218,6 +327,37 @@ export default function UsersPage() {
                 disabled={deleteUserMutation.isPending}
               >
                 {deleteUserMutation.isPending ? "Đang xóa..." : "Xóa"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog xác nhận mở khóa */}
+        <Dialog
+          open={isUnblockDialogOpen}
+          onOpenChange={setIsUnblockDialogOpen}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Xác nhận mở khóa tài khoản</DialogTitle>
+              <DialogDescription>
+                {selectedUser
+                  ? `Bạn có chắc chắn muốn mở khóa tài khoản người dùng ${selectedUser.name}?`
+                  : "Bạn có chắc chắn muốn mở khóa tài khoản người dùng này?"}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Hủy</Button>
+              </DialogClose>
+              <Button
+                variant="default"
+                onClick={handleConfirmUnblock}
+                disabled={unblockUserMutation.isPending}
+              >
+                {unblockUserMutation.isPending
+                  ? "Đang xử lý..."
+                  : "Mở khóa tài khoản"}
               </Button>
             </DialogFooter>
           </DialogContent>

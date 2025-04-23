@@ -371,6 +371,41 @@ export class EventsGateway
   }
 
   /**
+   * Thông báo cho người dùng biết tài khoản của họ đã bị khóa
+   */
+  notifyUserBlocked(userId: number, reason?: string) {
+    const socketIds = this.userSocketMap.get(userId) || []
+
+    console.log(
+      `[DEBUG] notifyUserBlocked - User ${userId} có ${socketIds.length} socket đang kết nối`
+    )
+
+    if (socketIds.length > 0) {
+      const payload = {
+        message: `Tài khoản của bạn đã bị khóa${reason ? ': ' + reason : '.'}`,
+        reason,
+      }
+
+      this.logger.log(`Sending accountBlocked notification to user ${userId}`)
+      console.log(
+        `[DEBUG] Gửi sự kiện 'accountBlocked' tới các socket: ${socketIds.join(', ')}`
+      )
+
+      // Gửi thông báo đến tất cả socket của user
+      socketIds.forEach(socketId => {
+        console.log(`[DEBUG] Emitting 'accountBlocked' to socket ${socketId}`)
+        this.server.to(socketId).emit('accountBlocked', payload)
+      })
+      return true
+    }
+
+    this.logger.warn(
+      `No connected sockets for user ${userId} to notify about account block`
+    )
+    return false
+  }
+
+  /**
    * Thông báo tin nhắn đã bị xóa
    */
   notifyMessageDeleted(conversationId: number, messageId: number) {

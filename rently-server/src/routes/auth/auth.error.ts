@@ -45,6 +45,12 @@ export const UserNotFoundException = new UnprocessableEntityException([
   },
 ])
 
+export const UserBlockedException = new UnauthorizedException({
+  message: 'Error.UserBlocked',
+  error: 'Unauthorized',
+  statusCode: 401,
+})
+
 export const RefreshTokenAlreadyUsedException = new UnauthorizedException(
   'Error.RefreshTokenAlreadyUsed'
 )

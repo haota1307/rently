@@ -20,6 +20,8 @@ import { RoleName } from 'src/shared/constants/role.constant'
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
 import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
+import { EventsGateway } from 'src/events/events.gateway'
+import { UserStatus } from 'src/shared/constants/auth.constant'
 
 @Injectable()
 export class UserService {
@@ -27,7 +29,8 @@ export class UserService {
     private userRepo: UserRepo,
     private hashingService: HashingService,
     private sharedUserRepository: SharedUserRepository,
-    private sharedRoleRepository: SharedRoleRepository
+    private sharedRoleRepository: SharedRoleRepository,
+    private eventsGateway: EventsGateway
   ) {}
 
   list(pagination: GetUsersQueryType) {
@@ -211,6 +214,119 @@ export class UserService {
       })
       return {
         message: 'Delete successfully',
+      }
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        throw NotFoundRecordException
+      }
+      throw error
+    }
+  }
+
+  async blockUser({
+    id,
+    updatedById,
+    updatedByRoleName,
+    reason,
+  }: {
+    id: number
+    updatedById: number
+    updatedByRoleName: string
+    reason?: string
+  }) {
+    try {
+      // Không thể khóa chính mình (trừ khi là admin)
+      this.verifyYourself({
+        userAgentId: updatedById,
+        userTargetId: id,
+        roleNameAgent: updatedByRoleName,
+      })
+
+      const roleIdTarget = await this.getRoleIdByUserId(id)
+      await this.verifyRole({
+        roleNameAgent: updatedByRoleName,
+        roleIdTarget,
+      })
+
+      // Cập nhật trạng thái thành BLOCKED
+      const blockedUser = await this.sharedUserRepository.update(
+        { id, deletedAt: null },
+        {
+          status: UserStatus.BLOCKED,
+          updatedById,
+          updatedAt: new Date(),
+        }
+      )
+
+      // Gửi thông báo qua socket tới người dùng bị khóa
+      console.log(
+        `[DEBUG] Gửi thông báo khóa tài khoản cho user ${id}, reason: ${reason || 'không có lý do'}`
+      )
+      const notified = this.eventsGateway.notifyUserBlocked(id, reason)
+      console.log(
+        `[DEBUG] Kết quả gửi thông báo: ${notified ? 'Thành công' : 'Không có socket kết nối'}`
+      )
+
+      return {
+        message: 'Block user successfully',
+        userId: id,
+      }
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        throw NotFoundRecordException
+      }
+      throw error
+    }
+  }
+
+  async unblockUser({
+    id,
+    updatedById,
+    updatedByRoleName,
+  }: {
+    id: number
+    updatedById: number
+    updatedByRoleName: string
+  }) {
+    try {
+      // Chỉ admin mới có thể mở khóa tài khoản
+      if (updatedByRoleName !== RoleName.Admin) {
+        throw new ForbiddenException('Chỉ admin mới có thể mở khóa tài khoản')
+      }
+
+      // Lấy thông tin user hiện tại
+      const user = await this.sharedUserRepository.findUnique({
+        id,
+        deletedAt: null,
+      })
+
+      if (!user) {
+        throw NotFoundRecordException
+      }
+
+      // Kiểm tra xem user có đang bị khóa không
+      if (user.status !== UserStatus.BLOCKED) {
+        return {
+          message: 'User is not blocked',
+          userId: id,
+        }
+      }
+
+      // Cập nhật trạng thái thành ACTIVE
+      await this.sharedUserRepository.update(
+        { id, deletedAt: null },
+        {
+          status: UserStatus.ACTIVE,
+          updatedById,
+          updatedAt: new Date(),
+        }
+      )
+
+      // Có thể thêm thông báo qua socket nếu cần
+
+      return {
+        message: 'Unblock user successfully',
+        userId: id,
       }
     } catch (error) {
       if (isNotFoundPrismaError(error)) {

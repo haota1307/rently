@@ -26,12 +26,16 @@ export interface User {
 
 interface UserColumnsProps {
   onDelete: (userId: number) => void;
+  onBlock: (user: User) => void;
+  onUnblock: (userId: number) => void;
   onEdit: (user: User) => void;
   onView: (user: User) => void;
 }
 
 export const userColumns = ({
   onDelete,
+  onBlock,
+  onUnblock,
   onEdit,
   onView,
 }: UserColumnsProps): ColumnDef<User>[] => [
@@ -110,6 +114,7 @@ export const userColumns = ({
     id: "actions",
     cell: ({ row }) => {
       const user = row.original;
+      const isBlocked = user.status === "BLOCKED";
 
       return (
         <DropdownMenu>
@@ -133,11 +138,26 @@ export const userColumns = ({
             <DropdownMenuItem onClick={() => onEdit(user)}>
               Chỉnh sửa
             </DropdownMenuItem>
+            {isBlocked ? (
+              <DropdownMenuItem
+                className="text-green-600"
+                onClick={() => onUnblock(user.id)}
+              >
+                Mở khóa tài khoản
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                className="text-orange-600"
+                onClick={() => onBlock(user)}
+              >
+                Khóa tài khoản
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="text-red-600"
               onClick={() => onDelete(user.id)}
             >
-              Xóa
+              Xóa tài khoản
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

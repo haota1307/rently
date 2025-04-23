@@ -6,6 +6,7 @@ import {
   removeTokensFromLocalStorage,
   setAccessTokenToLocalStorage,
   setRefreshTokenToLocalStorage,
+  clearAuthData,
 } from "@/lib/utils";
 
 import { redirect } from "next/navigation";
@@ -116,6 +117,10 @@ class AuthAgent {
       return clientLogoutRequest;
     }
 
+    // Xóa tokens khỏi localStorage
+    removeTokensFromLocalStorage();
+
+    // Gọi API để xóa cookies trên server
     clientLogoutRequest = fetch("/api/auth/logout", {
       method: "POST",
       headers: {
@@ -128,7 +133,6 @@ class AuthAgent {
     } catch (error) {
       console.error("Lỗi khi đăng xuất:", error);
     } finally {
-      removeTokensFromLocalStorage();
       clientLogoutRequest = null;
       location.href = "/dang-nhap";
     }
@@ -139,7 +143,7 @@ const authAgent = new AuthAgent();
 
 // Thực hiện request với retry logic khi token hết hạn
 const request = async <Response>(
-  method: "GET" | "POST" | "PUT" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
   url: string,
   options?: CustomOptions | undefined,
   retryCount = 0
@@ -202,6 +206,29 @@ const request = async <Response>(
           }
         );
       } else if (res.status === AUTHENTICATION_ERROR_STATUS) {
+        // Kiểm tra nếu là lỗi tài khoản bị khóa
+        const anyPayload = payload as any;
+        if (
+          anyPayload?.message === "Error.UserBlocked" ||
+          anyPayload?.message === "Error.UnauthorizedAccess"
+        ) {
+          if (isClient) {
+            // Buộc đăng xuất ngay lập tức nếu tài khoản bị khóa (xóa cả localStorage và cookies)
+            if (anyPayload?.message === "Error.UserBlocked") {
+              // Dùng async/await trong context sync, nên phải dùng Promise catch
+              clearAuthData().catch(console.error);
+
+              setTimeout(() => {
+                location.href = "/dang-nhap";
+              }, 2000); // Delay 2 giây để người dùng kịp đọc thông báo lỗi
+            } else {
+              // Cho các lỗi UnauthorizedAccess khác
+              removeTokensFromLocalStorage();
+            }
+          }
+          throw new HttpError(data);
+        }
+
         // Token hết hạn - thử refresh token nếu chưa retry và ở client side
         if (
           isClient &&
@@ -299,6 +326,13 @@ const http = {
     options?: Omit<CustomOptions, "body"> | undefined
   ) {
     return request<Response>("DELETE", url, { ...options });
+  },
+  patch<Response>(
+    url: string,
+    body: any,
+    options?: Omit<CustomOptions, "body"> | undefined
+  ) {
+    return request<Response>("PATCH", url, { ...options, body });
   },
   // Expose auth agent for manual operations
   authAgent,

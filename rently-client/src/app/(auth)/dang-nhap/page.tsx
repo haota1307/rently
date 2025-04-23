@@ -1,14 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { House } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import SignInForm from "@/features/auth/components/login-form";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 const SignInPage = () => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Kiểm tra nếu có tham số blocked=true trong URL
+    const blocked = searchParams.get("blocked");
+    if (blocked === "true") {
+      toast.error("Tài khoản của bạn đã bị khóa", {
+        description:
+          "Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.",
+        duration: 8000,
+      });
+    }
+  }, [searchParams]);
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">

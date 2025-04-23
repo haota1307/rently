@@ -33,6 +33,8 @@ const errorMessageMap: Record<string, string> = {
   "Error.InvalidPassword": "Mật khẩu không hợp lệ. Vui lòng thử lại.",
   "Error.EmailNotFound": "Email không tồn tại trong hệ thống.",
   "Error.EmailAlreadyExists": "Email đã tồn tại trong hệ thống.",
+  "Error.UserBlocked":
+    "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
 };
 
 export const handleErrorApi = ({
@@ -42,6 +44,26 @@ export const handleErrorApi = ({
   error: any;
   setError?: UseFormSetError<any>;
 }) => {
+  // Xử lý lỗi 401 đặc biệt từ API
+  if (
+    error?.status === 401 &&
+    error?.payload?.message === "Error.UserBlocked"
+  ) {
+    toast.error(errorMessageMap["Error.UserBlocked"]);
+
+    // Buộc đăng xuất khi tài khoản bị khóa (xóa cả localStorage và cookies)
+    clearAuthData().catch(console.error);
+
+    // Chuyển hướng về trang đăng nhập sau 2 giây để người dùng kịp đọc thông báo lỗi
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.location.href = "/dang-nhap";
+      }
+    }, 2000);
+
+    return;
+  }
+
   // Nếu error có dạng EntityError với payload và có setError
   if (error?.payload && setError) {
     const payload = error.payload;
@@ -80,6 +102,26 @@ export const setRefreshTokenToLocalStorage = (value: string) =>
 export const removeTokensFromLocalStorage = () => {
   isBrowser && localStorage.removeItem("accessToken");
   isBrowser && localStorage.removeItem("refreshToken");
+};
+
+// Hàm xóa cả localStorage và cookies khi tài khoản bị khóa
+export const clearAuthData = async () => {
+  // Xóa localStorage
+  removeTokensFromLocalStorage();
+
+  // Xóa cookies thông qua API
+  if (isBrowser) {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
+      console.error("Lỗi khi xóa cookies:", error);
+    }
+  }
 };
 
 export function formatDistanceToNowVi(date: Date) {

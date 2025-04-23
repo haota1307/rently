@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -90,6 +91,36 @@ export class UserController {
       id: params.userId,
       deletedById: userId,
       deletedByRoleName: roleName,
+    })
+  }
+
+  @Patch(':userId/block')
+  @ZodSerializerDto(MessageResDTO)
+  blockUser(
+    @Param() params: GetUserParamsDTO,
+    @Body() body: { reason?: string },
+    @ActiveUser('userId') userId: number,
+    @ActiveRolePermissions('name') roleName: string
+  ) {
+    return this.userService.blockUser({
+      id: params.userId,
+      updatedById: userId,
+      updatedByRoleName: roleName,
+      reason: body.reason,
+    })
+  }
+
+  @Patch(':userId/unblock')
+  @ZodSerializerDto(MessageResDTO)
+  unblockUser(
+    @Param() params: GetUserParamsDTO,
+    @ActiveUser('userId') userId: number,
+    @ActiveRolePermissions('name') roleName: string
+  ) {
+    return this.userService.unblockUser({
+      id: params.userId,
+      updatedById: userId,
+      updatedByRoleName: roleName,
     })
   }
 }

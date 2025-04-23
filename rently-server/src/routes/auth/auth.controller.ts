@@ -31,6 +31,7 @@ import { AuthService } from 'src/routes/auth/auth.service'
 import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import envConfig from 'src/shared/config'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
+import { UserBlockedException } from 'src/routes/auth/auth.error'
 
 @Controller('auth')
 export class AuthController {
@@ -98,13 +99,21 @@ export class AuthController {
         `${envConfig.GOOGLE_CLIENT_REDIRECT_URI}?accessToken=${data?.accessToken}&refreshToken=${data?.refreshToken}`
       )
     } catch (error) {
-      const message =
-        error instanceof Error
+      console.log('[DEBUG] Google callback error:', error)
+
+      // Kiểm tra lỗi tài khoản bị khóa
+      const isBlockedError =
+        error === UserBlockedException ||
+        (error instanceof Error && error.message === 'Error.UserBlocked')
+
+      const message = isBlockedError
+        ? 'Tài khoản của bạn đã bị khóa'
+        : error instanceof Error
           ? error.message
           : 'Đã có lỗi xảy ra khi đăng nhập bằng google, vui lòng thử lại bằng cách khác'
 
       return res.redirect(
-        `${envConfig.GOOGLE_CLIENT_REDIRECT_URI}?error=${message}`
+        `${envConfig.GOOGLE_CLIENT_REDIRECT_URI}?error=${encodeURIComponent(message)}&blocked=${isBlockedError}`
       )
     }
   }

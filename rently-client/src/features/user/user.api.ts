@@ -63,6 +63,14 @@ const userApiRequest = {
 
   // Xóa người dùng theo userId
   delete: (userId: number) => http.delete(`${prefix}/${userId}`),
+
+  // Khóa tài khoản người dùng
+  blockUser: (userId: number, reason?: string) =>
+    http.patch(`${prefix}/${userId}/block`, { reason }),
+
+  // Mở khóa tài khoản người dùng
+  unblockUser: (userId: number) =>
+    http.patch<GetUserProfileResType>(`${prefix}/${userId}/unblock`, {}),
 };
 
 export default userApiRequest;

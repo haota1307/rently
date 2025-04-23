@@ -8,23 +8,40 @@ import {
 import {
   REQUEST_ROLE_PERMISSION_KEY,
   REQUEST_USER_KEY,
+  UserStatus,
 } from 'src/shared/constants/auth.constant'
 import { HTTPMethod } from 'src/shared/constants/role.constant'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import { TokenService } from 'src/shared/services/token.service'
 import { AccessTokenPayload } from 'src/shared/types/jwt.type'
+import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
+import { UserBlockedException } from 'src/routes/auth/auth.error'
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
   constructor(
     private readonly tokenService: TokenService,
-    private readonly prismaService: PrismaService
+    private readonly prismaService: PrismaService,
+    private readonly sharedUserRepository: SharedUserRepository
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest()
     // Extract và validate token
     const decodedAccessToken = await this.extractAndValidateToken(request)
+
+    // Kiểm tra trạng thái user
+    const user = await this.sharedUserRepository.findUnique({
+      id: decodedAccessToken.userId,
+    })
+
+    if (!user) {
+      throw new UnauthorizedException('User không tồn tại')
+    }
+
+    if (user.status === UserStatus.BLOCKED) {
+      throw UserBlockedException
+    }
 
     // Check user permission
     await this.validateUserPermission(decodedAccessToken, request)
