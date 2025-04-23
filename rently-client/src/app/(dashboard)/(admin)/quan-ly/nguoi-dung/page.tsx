@@ -197,59 +197,66 @@ export default function UsersPage() {
 
   return (
     <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 w-full">
+      <header className="flex h-14 md:h-16 shrink-0 items-center gap-2 border-b px-2 md:px-4 w-full sticky top-0 bg-background z-10">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4 " />
-        <h1 className="text-lg font-semibold">Quản lý người dùng</h1>
+        <h1 className="text-base md:text-lg font-semibold">
+          Quản lý người dùng
+        </h1>
       </header>
 
-      <div className="p-4 space-y-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 md:max-w-sm">
+      <div className="p-2 md:p-4 space-y-4 max-w-full overflow-x-auto">
+        <Card className="overflow-hidden">
+          <CardContent className="p-3 md:p-4">
+            <div className="flex flex-col gap-4">
+              <div className="w-full">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Tìm kiếm theo tên..."
-                    className="pl-8"
+                    className="pl-8 w-full"
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between w-full md:w-auto">
+              <div className="w-full">
                 <UserFilters
                   onStatusFilterChange={handleStatusFilterChange}
                   onRoleFilterChange={handleRoleFilterChange}
                 />
-
-                <Button onClick={() => setIsCreateModalOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span>Thêm người dùng</span>
-                </Button>
               </div>
+
+              <Button
+                className="w-full sm:w-auto self-start"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Thêm người dùng</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        <DataTable
-          columns={
-            userColumns({
-              onDelete: handleConfirmDelete,
-              onBlock: handleBlockUser,
-              onUnblock: handleUnblockUser,
-              onEdit: handleEditUser,
-              onView: handleViewUser,
-            }) as ColumnDef<User>[]
-          }
-          data={usersData?.data || []}
-          currentPage={currentPage}
-          totalPages={usersData?.totalPages || 1}
-          onPageChange={setCurrentPage}
-          isLoading={isLoading}
-        />
+        <div className="overflow-x-auto pb-4">
+          <DataTable
+            columns={
+              userColumns({
+                onDelete: handleConfirmDelete,
+                onBlock: handleBlockUser,
+                onUnblock: handleUnblockUser,
+                onEdit: handleEditUser,
+                onView: handleViewUser,
+              }) as ColumnDef<User>[]
+            }
+            data={usersData?.data || []}
+            currentPage={currentPage}
+            totalPages={usersData?.totalPages || 1}
+            onPageChange={setCurrentPage}
+            isLoading={isLoading}
+          />
+        </div>
 
         <CreateUserModal
           isOpen={isCreateModalOpen}
@@ -270,7 +277,7 @@ export default function UsersPage() {
 
         {/* Dialog xác nhận khóa tài khoản */}
         <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Khóa tài khoản người dùng</DialogTitle>
               <DialogDescription>
@@ -289,11 +296,14 @@ export default function UsersPage() {
                 className="min-h-[100px]"
               />
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
               <DialogClose asChild>
-                <Button variant="outline">Hủy</Button>
+                <Button className="w-full sm:w-auto" variant="outline">
+                  Hủy
+                </Button>
               </DialogClose>
               <Button
+                className="w-full sm:w-auto"
                 variant="destructive"
                 onClick={handleConfirmBlock}
                 disabled={blockUserMutation.isPending}
@@ -308,7 +318,7 @@ export default function UsersPage() {
 
         {/* Dialog xác nhận xóa */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Xác nhận xóa</DialogTitle>
               <DialogDescription>
@@ -317,16 +327,19 @@ export default function UsersPage() {
                   : "Bạn có chắc chắn muốn xóa người dùng này?"}
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
               <DialogClose asChild>
-                <Button variant="outline">Hủy</Button>
+                <Button className="w-full sm:w-auto" variant="outline">
+                  Hủy
+                </Button>
               </DialogClose>
               <Button
+                className="w-full sm:w-auto"
                 variant="destructive"
                 onClick={handleDeleteUser}
                 disabled={deleteUserMutation.isPending}
               >
-                {deleteUserMutation.isPending ? "Đang xóa..." : "Xóa"}
+                {deleteUserMutation.isPending ? "Đang xử lý..." : "Xóa"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -337,7 +350,7 @@ export default function UsersPage() {
           open={isUnblockDialogOpen}
           onOpenChange={setIsUnblockDialogOpen}
         >
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Xác nhận mở khóa tài khoản</DialogTitle>
               <DialogDescription>
@@ -346,11 +359,14 @@ export default function UsersPage() {
                   : "Bạn có chắc chắn muốn mở khóa tài khoản người dùng này?"}
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
               <DialogClose asChild>
-                <Button variant="outline">Hủy</Button>
+                <Button className="w-full sm:w-auto" variant="outline">
+                  Hủy
+                </Button>
               </DialogClose>
               <Button
+                className="w-full sm:w-auto"
                 variant="default"
                 onClick={handleConfirmUnblock}
                 disabled={unblockUserMutation.isPending}

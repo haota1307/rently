@@ -56,11 +56,14 @@ export function ChatbotWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(
+    null
+  );
   const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  const initialRenderRef = useRef(true);
 
   // Tự động cuộn xuống khi có tin nhắn mới
   useEffect(() => {
@@ -75,6 +78,41 @@ export function ChatbotWidget() {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [isLoading]);
+
+  // Lưu vị trí vào localStorage khi vị trí thay đổi
+  useEffect(() => {
+    if (position !== null && !isMaximized) {
+      localStorage.setItem("chatbot-position", JSON.stringify(position));
+    }
+  }, [position, isMaximized]);
+
+  // Lấy vị trí từ localStorage khi component mount
+  useEffect(() => {
+    const savedPosition = localStorage.getItem("chatbot-position");
+    if (savedPosition) {
+      try {
+        setPosition(JSON.parse(savedPosition));
+      } catch (error) {
+        console.error("Error parsing saved position:", error);
+        setPosition(null);
+      }
+    }
+  }, []);
+
+  // Đặt vị trí mặc định cho chat khi mở lần đầu và không có vị trí được lưu
+  useEffect(() => {
+    if (isOpen && position === null && !isMaximized && chatRef.current) {
+      // Đặt vị trí ở góc phải dưới
+      const { innerWidth, innerHeight } = window;
+      const chatWidth = isExpanded ? 650 : 450;
+
+      // Vị trí mặc định: góc phải dưới, lùi vào một chút từ mép màn hình
+      setPosition({
+        x: innerWidth - chatWidth - 50,
+        y: innerHeight - 500,
+      });
+    }
+  }, [isOpen, position, isMaximized, isExpanded]);
 
   const toggleChat = () => {
     setIsOpen((prev) => !prev);
@@ -275,45 +313,87 @@ export function ChatbotWidget() {
               opacity: 1,
               scale: 1,
               ...(isMaximized
-                ? {}
-                : position.x || position.y
-                ? { x: position.x || 0, y: position.y || 0 }
-                : { right: 24, bottom: 100 }),
+                ? { x: 0, y: 0 }
+                : position
+                ? { x: position.x, y: position.y }
+                : { bottom: 100, right: 24, x: 0, y: 0 }),
             }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
             transition={{
               type: "spring",
-              damping: 20,
+              damping: 25,
               stiffness: 300,
-              x: { type: "tween", duration: 0.1 },
-              y: { type: "tween", duration: 0.1 },
+              duration: 0.3,
+              opacity: { duration: 0.2 },
+              scale: { duration: 0.2 },
             }}
             drag={!isMaximized}
             dragConstraints={{
-              left: -1000,
-              right: 1000,
-              top: -500,
-              bottom: 500,
+              left: -window.innerWidth + 200,
+              right: window.innerWidth - 200,
+              top: 10,
+              bottom: window.innerHeight - 200,
             }}
-            dragElastic={0}
+            dragTransition={{
+              power: 0.1,
+              timeConstant: 200,
+              modifyTarget: (target) => Math.round(target / 5) * 5,
+            }}
             dragMomentum={false}
+            dragListener={!isDragging}
             onDragStart={() => setIsDragging(true)}
             onDragEnd={(e, info) => {
               setIsDragging(false);
-              setPosition({
-                x: position.x + info.offset.x,
-                y: position.y + info.offset.y,
-              });
+
+              // Chỉ cập nhật vị trí nếu đã di chuyển đủ xa để tránh lỗi nhấp chuột
+              if (Math.abs(info.offset.x) > 5 || Math.abs(info.offset.y) > 5) {
+                if (position) {
+                  setPosition({
+                    x: position.x + info.offset.x,
+                    y: position.y + info.offset.y,
+                  });
+                } else {
+                  setPosition({
+                    x: info.offset.x,
+                    y: info.offset.y,
+                  });
+                }
+              }
             }}
             style={{
               cursor: isDragging ? "grabbing" : "auto",
               willChange: "transform",
+              pointerEvents: isDragging ? "none" : "auto",
             }}
           >
             {/* Header */}
             <div
-              className="relative flex items-center justify-between border-b bg-gradient-to-r from-primary to-primary/70 p-3 text-primary-foreground"
-              style={{ cursor: isMaximized ? "default" : "grab" }}
+              className="relative flex items-center justify-between border-b bg-gradient-to-r from-primary to-primary/70 p-3 text-primary-foreground cursor-move"
+              onMouseDown={(e) => {
+                if (!isMaximized && e.button === 0) {
+                  // Chỉ xử lý với chuột trái và khi không ở chế độ toàn màn hình
+                  const target = e.target as HTMLElement;
+                  // Kiểm tra xem người dùng có nhấp vào nút hay không
+                  if (target.closest("button")) {
+                    return; // Bỏ qua nếu nhấp vào nút
+                  }
+
+                  // Khởi động sự kiện kéo theo cách thủ công
+                  const chatElement = chatRef.current;
+                  if (chatElement) {
+                    const dragEvent = new MouseEvent("mousedown", {
+                      clientX: e.clientX,
+                      clientY: e.clientY,
+                      bubbles: true,
+                      cancelable: true,
+                      view: window,
+                    });
+
+                    // Lan truyền sự kiện đến thành phần cha
+                    chatElement.dispatchEvent(dragEvent);
+                  }
+                }
+              }}
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -373,7 +453,12 @@ export function ChatbotWidget() {
                 </Button>
               </div>
               {!isMaximized && (
-                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 bg-primary px-2 py-1 rounded-b-md text-xs text-primary-foreground flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
+                <div
+                  className={cn(
+                    "absolute -top-1 left-1/2 transform -translate-x-1/2 bg-primary px-2 py-1 rounded-b-md text-xs text-primary-foreground flex items-center gap-1 transition-opacity",
+                    isDragging ? "opacity-100" : "opacity-0 hover:opacity-70"
+                  )}
+                >
                   <Move className="h-3 w-3" />
                   <span>Kéo để di chuyển</span>
                 </div>

@@ -32,25 +32,30 @@ export function UserFilters({
   };
 
   return (
-    <div className="flex items-center space-x-2">
-      <div className="flex items-center space-x-2">
-        <span className="text-sm font-medium">Trạng thái:</span>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium whitespace-nowrap w-20">
+          Trạng thái:
+        </span>
         <Select value={statusFilter} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Chọn trạng thái" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">Tất cả</SelectItem>
             <SelectItem value="ACTIVE">Hoạt động</SelectItem>
             <SelectItem value="INACTIVE">Không hoạt động</SelectItem>
+            <SelectItem value="BLOCKED">Bị khóa</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <span className="text-sm font-medium">Vai trò:</span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium whitespace-nowrap w-20">
+          Vai trò:
+        </span>
         <Select value={roleFilter} onValueChange={handleRoleChange}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Chọn vai trò" />
           </SelectTrigger>
           <SelectContent>

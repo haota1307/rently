@@ -316,58 +316,58 @@ export default function LandlordViewingSchedulePage() {
           </AlertDescription>
         </Alert>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
           <Card className="bg-blue-50">
-            <CardContent className="pt-6">
+            <CardContent className="pt-4 md:pt-6 p-3 md:p-6">
               <div className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-blue-500" />
-                <CardTitle className="text-sm font-medium text-blue-700">
+                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-blue-500" />
+                <CardTitle className="text-xs md:text-sm font-medium text-blue-700 line-clamp-1">
                   Chấp nhận
                 </CardTitle>
               </div>
-              <CardDescription className="text-xs mt-2 text-blue-600">
+              <CardDescription className="text-xs mt-1 md:mt-2 text-blue-600 hidden md:block">
                 Xác nhận lịch xem phòng với khách hàng
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card className="bg-amber-50">
-            <CardContent className="pt-6">
+            <CardContent className="pt-4 md:pt-6 p-3 md:p-6">
               <div className="flex items-center space-x-2">
-                <Clock className="h-5 w-5 text-amber-500" />
-                <CardTitle className="text-sm font-medium text-amber-700">
+                <Clock className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
+                <CardTitle className="text-xs md:text-sm font-medium text-amber-700 line-clamp-1">
                   Đổi lịch
                 </CardTitle>
               </div>
-              <CardDescription className="text-xs mt-2 text-amber-600">
+              <CardDescription className="text-xs mt-1 md:mt-2 text-amber-600 hidden md:block">
                 Đề xuất thời gian xem phòng khác
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card className="bg-red-50">
-            <CardContent className="pt-6">
+            <CardContent className="pt-4 md:pt-6 p-3 md:p-6">
               <div className="flex items-center space-x-2">
-                <XCircle className="h-5 w-5 text-red-500" />
-                <CardTitle className="text-sm font-medium text-red-700">
+                <XCircle className="h-4 w-4 md:h-5 md:w-5 text-red-500" />
+                <CardTitle className="text-xs md:text-sm font-medium text-red-700 line-clamp-1">
                   Từ chối
                 </CardTitle>
               </div>
-              <CardDescription className="text-xs mt-2 text-red-600">
+              <CardDescription className="text-xs mt-1 md:mt-2 text-red-600 hidden md:block">
                 Từ chối yêu cầu xem phòng với lý do
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card className="bg-green-50">
-            <CardContent className="pt-6">
+            <CardContent className="pt-4 md:pt-6 p-3 md:p-6">
               <div className="flex items-center space-x-2">
-                <CalendarIcon className="h-5 w-5 text-green-500" />
-                <CardTitle className="text-sm font-medium text-green-700">
+                <CalendarIcon className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
+                <CardTitle className="text-xs md:text-sm font-medium text-green-700 line-clamp-1">
                   Lịch trình
                 </CardTitle>
               </div>
-              <CardDescription className="text-xs mt-2 text-green-600">
+              <CardDescription className="text-xs mt-1 md:mt-2 text-green-600 hidden md:block">
                 Xem tất cả lịch đặt theo ngày
               </CardDescription>
             </CardContent>
@@ -388,16 +388,18 @@ export default function LandlordViewingSchedulePage() {
               onValueChange={(value) => setCurrentTab(value as TabType)}
               className="w-full mb-6"
             >
-              <TabsList className="mb-4">
-                <TabsTrigger value="ALL">Tất cả</TabsTrigger>
-                <TabsTrigger value="PENDING">Đang chờ xác nhận</TabsTrigger>
-                <TabsTrigger value="WAITING_TENANT_CONFIRM">
-                  Chờ người thuê xác nhận
-                </TabsTrigger>
-                <TabsTrigger value="APPROVED">Đã xác nhận</TabsTrigger>
-                <TabsTrigger value="REJECTED">Đã hủy</TabsTrigger>
-                <TabsTrigger value="RESCHEDULED">Đã đổi lịch</TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto pb-2">
+                <TabsList className="mb-4 flex w-auto min-w-max">
+                  <TabsTrigger value="ALL">Tất cả</TabsTrigger>
+                  <TabsTrigger value="PENDING">Đang chờ xác nhận</TabsTrigger>
+                  <TabsTrigger value="WAITING_TENANT_CONFIRM">
+                    Chờ người thuê xác nhận
+                  </TabsTrigger>
+                  <TabsTrigger value="APPROVED">Đã xác nhận</TabsTrigger>
+                  <TabsTrigger value="REJECTED">Đã hủy</TabsTrigger>
+                  <TabsTrigger value="RESCHEDULED">Đã đổi lịch</TabsTrigger>
+                </TabsList>
+              </div>
 
               <div>
                 {isLoading ? (
@@ -409,192 +411,206 @@ export default function LandlordViewingSchedulePage() {
                     Không có lịch xem phòng nào trong danh sách này
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Bài đăng</TableHead>
-                        <TableHead>Ngày xem</TableHead>
-                        <TableHead>Trạng thái</TableHead>
-                        <TableHead>Ghi chú</TableHead>
-                        <TableHead className="text-right">Thao tác</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data?.data?.map((schedule: ViewingSchedule) => {
-                        // Kiểm tra xem có phải trạng thái chờ xác nhận từ người thuê không
-                        const isWaitingTenantConfirm =
-                          schedule.status === "RESCHEDULED" &&
-                          schedule.note?.includes(
-                            "Đang chờ người thuê xác nhận"
-                          );
+                  <div className="overflow-x-auto -mx-4 sm:mx-0">
+                    <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="whitespace-nowrap">
+                              Bài đăng
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap">
+                              Ngày xem
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap">
+                              Trạng thái
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap">
+                              Ghi chú
+                            </TableHead>
+                            <TableHead className="text-right whitespace-nowrap">
+                              Thao tác
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {data?.data?.map((schedule: ViewingSchedule) => {
+                            // Kiểm tra xem có phải trạng thái chờ xác nhận từ người thuê không
+                            const isWaitingTenantConfirm =
+                              schedule.status === "RESCHEDULED" &&
+                              schedule.note?.includes(
+                                "Đang chờ người thuê xác nhận"
+                              );
 
-                        return (
-                          <TableRow
-                            key={schedule.id}
-                            className={cn(
-                              "hover:bg-muted/30",
-                              isWaitingTenantConfirm && "bg-purple-50/50"
-                            )}
-                          >
-                            <TableCell>
-                              <Link
-                                href={`/bai-dang/${schedule.post.id}`}
-                                className="hover:underline font-medium text-primary"
+                            return (
+                              <TableRow
+                                key={schedule.id}
+                                className={cn(
+                                  "hover:bg-muted/30",
+                                  isWaitingTenantConfirm && "bg-purple-50/50"
+                                )}
                               >
-                                {schedule.post.title}
-                              </Link>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span>
-                                  {format(
-                                    new Date(schedule.viewingDate),
-                                    "PPP",
-                                    {
-                                      locale: vi,
-                                    }
-                                  )}
-                                </span>
-                                <span className="text-sm text-muted-foreground">
-                                  {format(
-                                    new Date(schedule.viewingDate),
-                                    "HH:mm",
-                                    {
-                                      locale: vi,
-                                    }
-                                  )}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {isWaitingTenantConfirm
-                                ? getStatusBadge("WAITING_TENANT_CONFIRM")
-                                : getStatusBadge(schedule.status)}
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate">
-                              {schedule.note || "-"}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="px-2 h-8 w-8"
+                                <TableCell>
+                                  <Link
+                                    href={`/bai-dang/${schedule.post.id}`}
+                                    className="hover:underline font-medium text-primary"
                                   >
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedSchedule(schedule);
-                                      setIsInfoOpen(true);
-                                    }}
-                                  >
-                                    <UserCircle className="w-4 h-4 mr-2" /> Xem
-                                    thông tin người đặt
-                                  </DropdownMenuItem>
+                                    {schedule.post.title}
+                                  </Link>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col">
+                                    <span>
+                                      {format(
+                                        new Date(schedule.viewingDate),
+                                        "PPP",
+                                        {
+                                          locale: vi,
+                                        }
+                                      )}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                      {format(
+                                        new Date(schedule.viewingDate),
+                                        "HH:mm",
+                                        {
+                                          locale: vi,
+                                        }
+                                      )}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {isWaitingTenantConfirm
+                                    ? getStatusBadge("WAITING_TENANT_CONFIRM")
+                                    : getStatusBadge(schedule.status)}
+                                </TableCell>
+                                <TableCell className="max-w-xs truncate">
+                                  {schedule.note || "-"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="px-2 h-8 w-8"
+                                      >
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedSchedule(schedule);
+                                          setIsInfoOpen(true);
+                                        }}
+                                      >
+                                        <UserCircle className="w-4 h-4 mr-2" />{" "}
+                                        Xem thông tin người đặt
+                                      </DropdownMenuItem>
 
-                                  {schedule.status === "PENDING" && (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedSchedule(schedule);
-                                          setIsApproveOpen(true);
-                                        }}
-                                      >
-                                        <CheckIcon className="w-4 h-4 mr-2" />{" "}
-                                        Duyệt lịch
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedSchedule(schedule);
-                                          setIsRescheduleOpen(true);
-                                        }}
-                                      >
-                                        <Clock className="w-4 h-4 mr-2" /> Đổi
-                                        lịch
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedSchedule(schedule);
-                                          setIsRejectOpen(true);
-                                        }}
-                                        className="text-red-500"
-                                      >
-                                        <XIcon className="w-4 h-4 mr-2" /> Từ
-                                        chối
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
+                                      {schedule.status === "PENDING" && (
+                                        <>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedSchedule(schedule);
+                                              setIsApproveOpen(true);
+                                            }}
+                                          >
+                                            <CheckIcon className="w-4 h-4 mr-2" />{" "}
+                                            Duyệt lịch
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedSchedule(schedule);
+                                              setIsRescheduleOpen(true);
+                                            }}
+                                          >
+                                            <Clock className="w-4 h-4 mr-2" />{" "}
+                                            Đổi lịch
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedSchedule(schedule);
+                                              setIsRejectOpen(true);
+                                            }}
+                                            className="text-red-500"
+                                          >
+                                            <XIcon className="w-4 h-4 mr-2" />{" "}
+                                            Từ chối
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
 
-                                  {schedule.status === "RESCHEDULED" &&
-                                    !isWaitingTenantConfirm && (
-                                      <>
+                                      {schedule.status === "RESCHEDULED" &&
+                                        !isWaitingTenantConfirm && (
+                                          <>
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                setSelectedSchedule(schedule);
+                                                setIsApproveOpen(true);
+                                              }}
+                                            >
+                                              <CheckIcon className="w-4 h-4 mr-2" />{" "}
+                                              Xác nhận lịch
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                setSelectedSchedule(schedule);
+                                                setIsRescheduleOpen(true);
+                                              }}
+                                            >
+                                              <Clock className="w-4 h-4 mr-2" />{" "}
+                                              Đổi lịch lại
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                setSelectedSchedule(schedule);
+                                                setIsRejectOpen(true);
+                                              }}
+                                              className="text-red-500"
+                                            >
+                                              <XIcon className="w-4 h-4 mr-2" />{" "}
+                                              Từ chối
+                                            </DropdownMenuItem>
+                                          </>
+                                        )}
+
+                                      {isWaitingTenantConfirm && (
                                         <DropdownMenuItem
-                                          onClick={() => {
-                                            setSelectedSchedule(schedule);
-                                            setIsApproveOpen(true);
-                                          }}
+                                          disabled
+                                          className="text-purple-600 opacity-60"
                                         >
-                                          <CheckIcon className="w-4 h-4 mr-2" />{" "}
-                                          Xác nhận lịch
+                                          <Clock className="w-4 h-4 mr-2" />{" "}
+                                          Đang chờ xác nhận
                                         </DropdownMenuItem>
+                                      )}
+
+                                      {(schedule.status === "APPROVED" ||
+                                        (schedule.status === "RESCHEDULED" &&
+                                          !isWaitingTenantConfirm)) && (
                                         <DropdownMenuItem
                                           onClick={() => {
                                             setSelectedSchedule(schedule);
-                                            setIsRescheduleOpen(true);
-                                          }}
-                                        >
-                                          <Clock className="w-4 h-4 mr-2" /> Đổi
-                                          lịch lại
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            setSelectedSchedule(schedule);
-                                            setIsRejectOpen(true);
+                                            setIsCancelOpen(true);
                                           }}
                                           className="text-red-500"
                                         >
-                                          <XIcon className="w-4 h-4 mr-2" /> Từ
-                                          chối
+                                          <Trash2Icon className="w-4 h-4 mr-2" />{" "}
+                                          Hủy lịch
                                         </DropdownMenuItem>
-                                      </>
-                                    )}
-
-                                  {isWaitingTenantConfirm && (
-                                    <DropdownMenuItem
-                                      disabled
-                                      className="text-purple-600 opacity-60"
-                                    >
-                                      <Clock className="w-4 h-4 mr-2" /> Đang
-                                      chờ xác nhận
-                                    </DropdownMenuItem>
-                                  )}
-
-                                  {(schedule.status === "APPROVED" ||
-                                    (schedule.status === "RESCHEDULED" &&
-                                      !isWaitingTenantConfirm)) && (
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedSchedule(schedule);
-                                        setIsCancelOpen(true);
-                                      }}
-                                      className="text-red-500"
-                                    >
-                                      <Trash2Icon className="w-4 h-4 mr-2" />{" "}
-                                      Hủy lịch
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 )}
               </div>
             </Tabs>
@@ -604,7 +620,7 @@ export default function LandlordViewingSchedulePage() {
 
       {/* Dialog duyệt lịch */}
       <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[95vw]">
           <DialogHeader>
             <DialogTitle>Xác nhận lịch xem phòng</DialogTitle>
             <DialogDescription>
@@ -618,13 +634,18 @@ export default function LandlordViewingSchedulePage() {
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsApproveOpen(false)}>
+          <DialogFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setIsApproveOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Hủy
             </Button>
             <Button
               onClick={handleApprove}
               disabled={updateViewingSchedule.isPending}
+              className="w-full sm:w-auto"
             >
               Xác nhận
             </Button>
@@ -634,7 +655,7 @@ export default function LandlordViewingSchedulePage() {
 
       {/* Dialog từ chối lịch */}
       <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[95vw]">
           <DialogHeader>
             <DialogTitle>Từ chối lịch xem phòng</DialogTitle>
             <DialogDescription>
@@ -648,13 +669,18 @@ export default function LandlordViewingSchedulePage() {
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRejectOpen(false)}>
+          <DialogFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setIsRejectOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Hủy
             </Button>
             <Button
               onClick={handleReject}
               disabled={updateViewingSchedule.isPending}
+              className="w-full sm:w-auto"
             >
               Xác nhận
             </Button>
@@ -664,7 +690,7 @@ export default function LandlordViewingSchedulePage() {
 
       {/* Dialog đổi lịch */}
       <Dialog open={isRescheduleOpen} onOpenChange={setIsRescheduleOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Đổi lịch xem phòng</DialogTitle>
             <DialogDescription>
@@ -734,16 +760,18 @@ export default function LandlordViewingSchedulePage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row">
             <Button
               variant="outline"
               onClick={() => setIsRescheduleOpen(false)}
+              className="w-full sm:w-auto"
             >
               Hủy
             </Button>
             <Button
               onClick={handleReschedule}
               disabled={!selectedDate || updateViewingSchedule.isPending}
+              className="w-full sm:w-auto"
             >
               Xác nhận
             </Button>
@@ -753,7 +781,7 @@ export default function LandlordViewingSchedulePage() {
 
       {/* Dialog hủy lịch */}
       <Dialog open={isCancelOpen} onOpenChange={setIsCancelOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[95vw]">
           <DialogHeader>
             <DialogTitle>Hủy lịch xem phòng</DialogTitle>
             <DialogDescription>
@@ -767,14 +795,19 @@ export default function LandlordViewingSchedulePage() {
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCancelOpen(false)}>
+          <DialogFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Đóng
             </Button>
             <Button
               variant="destructive"
               onClick={handleCancel}
               disabled={updateViewingSchedule.isPending}
+              className="w-full sm:w-auto"
             >
               Hủy lịch
             </Button>
@@ -784,7 +817,7 @@ export default function LandlordViewingSchedulePage() {
 
       {/* Dialog thông tin người đặt lịch */}
       <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md sm:max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Thông tin người đặt lịch</DialogTitle>
             <DialogDescription>
@@ -798,7 +831,7 @@ export default function LandlordViewingSchedulePage() {
                   <UserCircle className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-medium">
+                  <h3 className="font-medium break-words">
                     {selectedSchedule.tenant?.name || "Chưa có thông tin"}
                   </h3>
                   <p className="text-sm text-muted-foreground">
@@ -812,14 +845,14 @@ export default function LandlordViewingSchedulePage() {
               <div className="space-y-3">
                 {selectedSchedule.tenant?.email && (
                   <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
+                    <Mail className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    <span className="text-sm break-all">
                       {selectedSchedule.tenant.email}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <Phone className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                   <span className="text-sm">
                     {selectedSchedule.tenant?.phoneNumber ||
                       "Chưa có số điện thoại"}
@@ -830,8 +863,8 @@ export default function LandlordViewingSchedulePage() {
               <div className="mt-4">
                 <h4 className="text-sm font-medium mb-2">Thời gian đặt lịch</h4>
                 <div className="bg-muted/50 p-3 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-primary" />
+                  <div className="flex items-start gap-2">
+                    <CalendarIcon className="h-4 w-4 flex-shrink-0 mt-0.5 text-primary" />
                     <span className="text-sm">
                       {selectedSchedule.viewingDate &&
                         format(new Date(selectedSchedule.viewingDate), "PPP", {
