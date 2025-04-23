@@ -8,6 +8,7 @@ import { RoleType } from 'src/shared/models/shared-role.model'
 import { UserType } from 'src/shared/models/shared-user.model'
 import { WhereUniqueUserType } from 'src/shared/repositories/shared-user.repo'
 import { PrismaService } from 'src/shared/services/prisma.service'
+import { isNotFoundPrismaError } from 'src/shared/helpers'
 
 @Injectable()
 export class AuthRepository {
@@ -103,10 +104,20 @@ export class AuthRepository {
     })
   }
 
-  deleteRefreshToken(where: { token: string }): Promise<RefreshTokenType> {
-    return this.prismaService.refreshToken.delete({
-      where,
-    })
+  async deleteRefreshToken(where: {
+    token: string
+  }): Promise<RefreshTokenType | null> {
+    try {
+      return await this.prismaService.refreshToken.delete({
+        where,
+      })
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        // Token không tồn tại, trả về null thay vì báo lỗi
+        return null
+      }
+      throw error // Ném lại các lỗi khác
+    }
   }
 
   deleteVerificationCode(

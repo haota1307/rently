@@ -256,14 +256,15 @@ export class AuthService {
       await this.tokenService.verifyRefreshToken(refreshToken)
 
       // Xóa refresh token khỏi database
-      await this.authRepository.deleteRefreshToken({
+      const result = await this.authRepository.deleteRefreshToken({
         token: refreshToken,
       })
 
+      // Nếu token không tồn tại, vẫn coi như đăng xuất thành công
       return { message: 'Đăng xuất thành công' }
     } catch (error) {
-      if (isNotFoundPrismaError(error)) {
-        throw RefreshTokenAlreadyUsedException
+      if (error instanceof HttpException) {
+        throw error
       }
       throw UnauthorizedAccessException
     }
