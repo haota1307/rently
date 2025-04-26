@@ -10,6 +10,7 @@ import { AuthenticationGuard } from 'src/shared/guards/authentication.guard'
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { EmailService } from 'src/shared/services/email.service'
 import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
+import { SharedPaymentRepository } from 'src/shared/repositories/shared-payment.repo'
 
 @Global()
 @Module({
@@ -21,6 +22,7 @@ import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
     PaymentAPIKeyGuard,
     SharedUserRepository,
     SharedRoleRepository,
+    SharedPaymentRepository,
     EmailService,
     {
       provide: APP_GUARD,
@@ -33,6 +35,7 @@ import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
     TokenService,
     SharedUserRepository,
     SharedRoleRepository,
+    SharedPaymentRepository,
     EmailService,
   ],
   imports: [JwtModule],

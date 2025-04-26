@@ -64,3 +64,7 @@ export const preprocessDecimal = (arg: unknown) =>
   typeof arg === 'object' && arg !== null && 'toNumber' in arg
     ? (arg as Decimal).toNumber()
     : arg
+
+export const generateCancelPaymentJobId = (paymentId: number) => {
+  return `paymentId-${paymentId}`
+}

@@ -44,6 +44,7 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
+  CANCELED
 }
 
 model User {

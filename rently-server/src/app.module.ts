@@ -29,8 +29,18 @@ import { PaymentModule } from './routes/payment/payment.module'
 
 import { AmenityModule } from 'src/routes/amenity/amenity.module'
 import { ScheduleModule } from '@nestjs/schedule'
+import { BullModule } from '@nestjs/bullmq'
+import envConfig from 'src/shared/config'
+import { PaymentConsumer } from 'src/routes/queues/paymemt.consumer'
 @Module({
   imports: [
+    BullModule.forRoot({
+      connection: {
+        host: envConfig.REDIS_HOST,
+        port: parseInt(envConfig.REDIS_PORT),
+        password: envConfig.REDIS_PASSWORD,
+      },
+    }),
     SharedModule,
     AuthModule,
     PermissionModule,
@@ -70,6 +80,7 @@ import { ScheduleModule } from '@nestjs/schedule'
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
+    PaymentConsumer,
   ],
 })
 export class AppModule {}
