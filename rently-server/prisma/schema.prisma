@@ -40,6 +40,12 @@ enum RoleUpgradeRequestStatus {
   REJECTED
 }
 
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id          Int        @id @default(autoincrement())
   name        String
@@ -89,6 +95,8 @@ model User {
   Role                 Role[]                @relation("RoledeletedByIdBy")
   roleUpgradeRequests  RoleUpgradeRequest[]
   processedRequests    RoleUpgradeRequest[]  @relation("ProcessedRequests")
+  paymentTransactions  PaymentTransaction[]
+  payments             Payment[]
 
   tenantViewingSchedules   ViewingSchedule[] @relation("TenantViewingSchedules")
   landlordViewingSchedules ViewingSchedule[] @relation("LandlordViewingSchedules")
@@ -102,11 +110,11 @@ model User {
 }
 
 model Role {
-  id          Int          @id @default(autoincrement())
-  name        String       @db.VarChar(500)
-  description String       @default("")
-  isActive    Boolean      @default(true)
-  // Một Role có nhiều quyền và nhiều user
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(500)
+  description String  @default("")
+  isActive    Boolean @default(true)
+
   permissions Permission[]
   users       User[]
 
@@ -308,11 +316,32 @@ model RentalPost {
   @@index([startDate])
 }
 
+model Payment {
+  id          Int           @id @default(autoincrement())
+  amount      Int // Số tiền nạp vào tài khoản
+  status      PaymentStatus
+  description String? // Mô tả giao dịch
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Kết nối với User
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Kết nối với PaymentTransaction
+  transaction   PaymentTransaction? @relation(fields: [transactionId], references: [id])
+  transactionId Int?                @unique
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
 model PaymentTransaction {
   id                 Int      @id @default(autoincrement())
   gateway            String   @db.VarChar(100)
   transactionDate    DateTime @default(now())
-  accountNumber      String   @db.VarChar(100)
+  accountNumber      String?  @db.VarChar(100)
   subAccount         String?  @db.VarChar(250)
   amountIn           Int      @default(0)
   amountOut          Int      @default(0)
@@ -323,9 +352,15 @@ model PaymentTransaction {
   body               String?  @db.Text
   createdAt          DateTime @default(now())
 
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  payment Payment?
+
   @@index([transactionDate])
   @@index([gateway])
   @@index([accountNumber])
+  @@index([userId])
 }
 
 model Message {
@@ -429,7 +464,6 @@ model Comment {
   post   RentalPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId Int
 
-  // Self-relation cho parent-child comments
   parentId Int?
   parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentReplies")
