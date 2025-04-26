@@ -1,50 +1,40 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common'
-import { ZodSerializerDto } from 'nestjs-zod'
-import { AccessTokenGuard } from 'src/shared/guards/access-token.guard'
+import { Controller, Post, Body, Request } from '@nestjs/common'
 import { PaymentService } from './payment.service'
-import {
-  CountTransactionsResDTO,
-  GetTransactionDetailResDTO,
-  GetTransactionsQueryDTO,
-  GetTransactionsResDTO,
-} from './payment.dto'
-import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
+import { MessageResDTO } from 'src/shared/dtos/response.dto'
+import { ZodSerializerDto } from 'nestjs-zod'
+import { Auth, IsPublic } from 'src/shared/decorators/auth.decorator'
+import { WebhookPaymentBodyDTO } from 'src/routes/payment/payment.dto'
+import { createZodDto } from 'nestjs-zod'
+import { z } from 'zod'
+import { AuthType } from 'src/shared/constants/auth.constant'
 
-@Controller('payments')
-@UseGuards(AccessTokenGuard)
+// DTO cho yêu cầu tạo thanh toán
+export class CreatePaymentDTO extends createZodDto(
+  z.object({
+    userId: z.number().int().positive('ID người dùng phải là số nguyên dương'),
+    amount: z.number().min(1000, 'Số tiền tối thiểu là 1.000 VND'),
+    description: z.string().optional(),
+  })
+) {}
+
+@Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  // Get transaction details by ID
-  @Get('transactions/:id')
-  @ZodSerializerDto(GetTransactionDetailResDTO)
-  async getTransactionDetails(
-    @Param('id') id: string,
-    @ActiveUser('userId') userId: number
-  ) {
-    // Only allow access for admin users
-    return this.paymentService.getTransactionDetails(id)
+  @Post('/receiver')
+  @ZodSerializerDto(MessageResDTO)
+  @Auth([AuthType.APIKey])
+  receiver(@Body() body: WebhookPaymentBodyDTO) {
+    return this.paymentService.receiver(body)
   }
 
-  // Get list of transactions with optional filters
-  @Get('transactions')
-  @ZodSerializerDto(GetTransactionsResDTO)
-  async getTransactionsList(
-    @Query() query: GetTransactionsQueryDTO,
-    @ActiveUser('userId') userId: number
-  ) {
-    // Only allow access for admin users
-    return this.paymentService.getTransactionsList(query)
-  }
-
-  // Count transactions with optional filters
-  @Get('transactions/count')
-  @ZodSerializerDto(CountTransactionsResDTO)
-  async countTransactions(
-    @Query() query: GetTransactionsQueryDTO,
-    @ActiveUser('userId') userId: number
-  ) {
-    // Only allow access for admin users
-    return this.paymentService.countTransactions(query)
+  @Post('/create')
+  @IsPublic()
+  async createPaymentRequest(@Body() body: CreatePaymentDTO) {
+    return this.paymentService.createPaymentRequest(
+      body.userId,
+      body.amount,
+      body.description
+    )
   }
 }

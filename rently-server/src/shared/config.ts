@@ -19,7 +19,6 @@ const configSchema = z.object({
   ACCESS_TOKEN_EXPIRES_IN: z.string(),
   REFRESH_TOKEN_SECRET: z.string(),
   REFRESH_TOKEN_EXPIRES_IN: z.string(),
-  SECRET_API_KEY: z.string(),
   ADMIN_NAME: z.string(),
   ADMIN_PASSWORD: z.string(),
   ADMIN_EMAIL: z.string(),
@@ -34,6 +33,7 @@ const configSchema = z.object({
   CLOUDINARY_API_KEY: z.string(),
   CLOUDINARY_API_SECRET: z.string(),
   OPENAI_API_KEY: z.string(),
+  PAYMENT_API_KEY: z.string(),
 })
 
 const configServer = configSchema.safeParse(process.env)
