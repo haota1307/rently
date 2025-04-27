@@ -12,9 +12,9 @@ export class PaymentProducer {
   constructor(
     @InjectQueue(PAYMENT_QUEUE_NAME) private readonly paymentQueue: Queue
   ) {
-    this.paymentQueue.getJobs().then(jobs => {
-      console.log(jobs)
-    })
+    // this.paymentQueue.getJobs().then(jobs => {
+    //   console.log(jobs)
+    // })
   }
 
   async cancelPaymentJob(paymentId: number) {
@@ -28,6 +28,10 @@ export class PaymentProducer {
         removeOnFail: true,
       }
     )
+  }
+
+  removeCancelPaymentJob(paymentId: number) {
+    return this.paymentQueue.remove(generateCancelPaymentJobId(paymentId))
   }
 
   async addCancelPaymentJob(paymentId: number, delay: number = 0) {

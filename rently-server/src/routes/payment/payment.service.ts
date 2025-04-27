@@ -11,7 +11,11 @@ export class PaymentService {
   ) {}
 
   async receiver(body: WebhookPaymentBodyType) {
-    return this.paymentRepo.receiver(body)
+    const { message, paymentId } = await this.paymentRepo.receiver(body)
+
+    await this.paymentProducer.removeCancelPaymentJob(paymentId)
+
+    return message
   }
 
   async createPaymentRequest(

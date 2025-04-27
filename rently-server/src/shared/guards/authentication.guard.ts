@@ -12,7 +12,7 @@ import {
   AuthTypeDecoratorPayload,
 } from 'src/shared/decorators/auth.decorator'
 import { AccessTokenGuard } from 'src/shared/guards/access-token.guard'
-import { PaymentAPIKeyGuard } from 'src/shared/guards/api-key.guard'
+import { PaymentAPIKeyGuard } from 'src/shared/guards/payment-api-key.guard'
 
 @Injectable()
 export class AuthenticationGuard implements CanActivate {

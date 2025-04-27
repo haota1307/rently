@@ -9,13 +9,15 @@ import { PaymentStatus } from '@prisma/client'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
 // Định nghĩa PREFIX_PAYMENT_CODE nếu không có file constant
-const PREFIX_PAYMENT_CODE = 'NAPTIEN'
+const PREFIX_PAYMENT_CODE = 'NAP'
 
 @Injectable()
 export class PaymentRepo {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async receiver(body: WebhookPaymentBodyType): Promise<{ message: string }> {
+  async receiver(
+    body: WebhookPaymentBodyType
+  ): Promise<{ message: string; paymentId: number }> {
     // 1. Thêm thông tin giao dịch vào DB
     let amountIn = 0
     let amountOut = 0
@@ -66,9 +68,23 @@ export class PaymentRepo {
       )
     }
 
+    const paymentTransaction =
+      await this.prismaService.paymentTransaction.findUnique({
+        where: {
+          id: body.id,
+        },
+      })
+
+    if (paymentTransaction) {
+      throw new BadRequestException(
+        `Giao dịch đã được xử lý trước đó với id ${body.id}`
+      )
+    }
+
     // Ghi lại thông tin giao dịch
     const transaction = await this.prismaService.paymentTransaction.create({
       data: {
+        id: body.id,
         gateway: body.gateway,
         transactionDate: parse(
           body.transactionDate,
@@ -116,6 +132,7 @@ export class PaymentRepo {
 
     return {
       message: 'Nạp tiền thành công',
+      paymentId,
     }
   }
 

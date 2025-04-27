@@ -36,9 +36,7 @@ import { PaymentConsumer } from 'src/routes/queues/paymemt.consumer'
   imports: [
     BullModule.forRoot({
       connection: {
-        host: envConfig.REDIS_HOST,
-        port: parseInt(envConfig.REDIS_PORT),
-        password: envConfig.REDIS_PASSWORD,
+        url: envConfig.REDIS_URL,
       },
     }),
     SharedModule,
