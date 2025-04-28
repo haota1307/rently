@@ -31,7 +31,7 @@ import { AmenityModule } from 'src/routes/amenity/amenity.module'
 import { ScheduleModule } from '@nestjs/schedule'
 import { BullModule } from '@nestjs/bullmq'
 import envConfig from 'src/shared/config'
-import { PaymentConsumer } from 'src/routes/queues/paymemt.consumer'
+import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
 @Module({
   imports: [
     BullModule.forRoot({

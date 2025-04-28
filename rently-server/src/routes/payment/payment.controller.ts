@@ -58,4 +58,22 @@ export class PaymentController {
 
     return payment
   }
+
+  @Get('/transactions')
+  @IsPublic()
+  async getTransactions(@Query() query: any) {
+    return this.paymentService.getTransactions(query)
+  }
+
+  @Get('/transactions/count')
+  @IsPublic()
+  async countTransactions(@Query() query: any) {
+    return this.paymentService.countTransactions(query)
+  }
+
+  @Get('/transactions/:id')
+  @IsPublic()
+  async getTransactionDetail(@Param('id') id: string) {
+    return this.paymentService.getTransactionDetail(parseInt(id, 10))
+  }
 }

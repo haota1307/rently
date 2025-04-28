@@ -127,4 +127,102 @@ export class PaymentService {
       updatedAt: payment.updatedAt,
     }
   }
+
+  /**
+   * Lấy danh sách giao dịch thanh toán
+   * @param query Các tham số lọc và phân trang
+   * @returns Danh sách giao dịch
+   */
+  async getTransactions(query: any) {
+    const transactions = await this.paymentRepo.getTransactions(query)
+
+    return {
+      status: 200,
+      error: null,
+      messages: {
+        success: true,
+      },
+      transactions: transactions.map(t => ({
+        id: t.id.toString(),
+        bank_brand_name: this.bankName,
+        account_number: this.bankAccount,
+        transaction_date:
+          t.transaction?.transactionDate.toISOString() ||
+          t.createdAt.toISOString(),
+        amount_out: t.transaction?.amountOut.toString() || '0',
+        amount_in: t.transaction?.amountIn.toString() || t.amount.toString(),
+        accumulated: t.transaction?.accumulated.toString() || '0',
+        transaction_content: t.transaction?.transactionContent || t.description,
+        reference_number: t.transaction?.referenceNumber || null,
+        code: t.transaction?.code || `NAP${t.id}`,
+        sub_account: t.transaction?.subAccount || null,
+        bank_account_id: '1',
+        user: {
+          id: t.user?.id.toString(),
+          name: t.user?.name || 'Không rõ',
+          email: t.user?.email || '',
+          phoneNumber: t.user?.phoneNumber || '',
+        },
+      })),
+    }
+  }
+
+  /**
+   * Lấy chi tiết một giao dịch
+   * @param id ID của giao dịch
+   * @returns Chi tiết giao dịch
+   */
+  async getTransactionDetail(id: number) {
+    const transaction = await this.paymentRepo.getPaymentById(id)
+
+    if (!transaction) {
+      throw new NotFoundException(`Không tìm thấy giao dịch với ID ${id}`)
+    }
+
+    return {
+      status: 200,
+      error: null,
+      messages: {
+        success: true,
+      },
+      transaction: {
+        id: transaction.id.toString(),
+        bank_brand_name: this.bankName,
+        account_number: this.bankAccount,
+        transaction_date:
+          transaction.transaction?.transactionDate.toISOString() ||
+          transaction.createdAt.toISOString(),
+        amount_out: transaction.transaction?.amountOut.toString() || '0',
+        amount_in:
+          transaction.transaction?.amountIn.toString() ||
+          transaction.amount.toString(),
+        accumulated: transaction.transaction?.accumulated.toString() || '0',
+        transaction_content:
+          transaction.transaction?.transactionContent ||
+          transaction.description,
+        reference_number: transaction.transaction?.referenceNumber || null,
+        code: transaction.transaction?.code || `NAP${transaction.id}`,
+        sub_account: transaction.transaction?.subAccount || null,
+        bank_account_id: '1',
+      },
+    }
+  }
+
+  /**
+   * Đếm số lượng giao dịch
+   * @param query Các tham số lọc
+   * @returns Số lượng giao dịch
+   */
+  async countTransactions(query: any) {
+    const count = await this.paymentRepo.countTransactions(query)
+
+    return {
+      status: 200,
+      error: null,
+      messages: {
+        success: true,
+      },
+      count_transactions: count,
+    }
+  }
 }

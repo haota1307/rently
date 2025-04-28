@@ -7,6 +7,7 @@ import { PAYMENT_QUEUE_NAME } from 'src/shared/constants/queue.constant'
 import { PaymentProducer } from 'src/routes/payment/payment.producer'
 import { SharedPaymentRepository } from 'src/shared/repositories/shared-payment.repo'
 import { EventsModule } from 'src/events/events.module'
+import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EventsModule } from 'src/events/events.module'
     PaymentRepo,
     PaymentProducer,
     SharedPaymentRepository,
+    PaymentConsumer,
   ],
   controllers: [PaymentController],
   exports: [SharedPaymentRepository],

@@ -175,4 +175,83 @@ export class PaymentRepo {
       payment,
     }
   }
+
+  /**
+   * Lấy danh sách giao dịch thanh toán
+   * @param query Các tham số lọc và phân trang
+   * @returns Danh sách giao dịch
+   */
+  async getTransactions(query: any) {
+    // Xây dựng điều kiện lọc
+    const where: any = {}
+
+    // Nếu có tham số userId, lọc theo userId
+    if (query.userId) {
+      where.userId = parseInt(query.userId, 10)
+    }
+
+    // Nếu có từ ngày đến ngày, lọc theo ngày tạo
+    if (query.transaction_date_min) {
+      where.createdAt = {
+        ...where.createdAt,
+        gte: new Date(query.transaction_date_min),
+      }
+    }
+
+    if (query.transaction_date_max) {
+      where.createdAt = {
+        ...where.createdAt,
+        lte: new Date(query.transaction_date_max),
+      }
+    }
+
+    // Giới hạn số lượng bản ghi
+    const limit = query.limit ? parseInt(query.limit, 10) : 20
+
+    return this.prismaService.payment.findMany({
+      where,
+      include: {
+        user: true,
+        transaction: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+    })
+  }
+
+  /**
+   * Đếm số lượng giao dịch
+   * @param query Các tham số lọc
+   * @returns Số lượng giao dịch
+   */
+  async countTransactions(query: any) {
+    // Xây dựng điều kiện lọc
+    const where: any = {}
+
+    // Nếu có tham số userId, lọc theo userId
+    if (query.userId) {
+      where.userId = parseInt(query.userId, 10)
+    }
+
+    // Nếu có từ ngày đến ngày, lọc theo ngày tạo
+    if (query.transaction_date_min) {
+      where.createdAt = {
+        ...where.createdAt,
+        gte: new Date(query.transaction_date_min),
+      }
+    }
+
+    if (query.transaction_date_max) {
+      where.createdAt = {
+        ...where.createdAt,
+        lte: new Date(query.transaction_date_max),
+      }
+    }
+
+    return this.prismaService.payment.count({
+      where,
+    })
+  }
 }

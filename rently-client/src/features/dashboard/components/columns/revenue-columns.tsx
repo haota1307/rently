@@ -11,9 +11,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, User } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { Transaction } from "@/app/(dashboard)/(admin)/quan-ly/doanh-thu/page";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const revenueColumns: ColumnDef<Transaction>[] = [
   {
@@ -80,8 +86,36 @@ export const revenueColumns: ColumnDef<Transaction>[] = [
     },
   },
   {
-    accessorKey: "user",
+    accessorKey: "userName",
     header: "Người dùng",
+    cell: ({ row }) => {
+      const userName = row.getValue("userName") as string;
+      const userEmail = row.original.userEmail;
+      const userPhone = row.original.userPhone;
+
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>{userName}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="space-y-1">
+                <p className="text-sm">
+                  <b>Email:</b> {userEmail || "Không có"}
+                </p>
+                <p className="text-sm">
+                  <b>SĐT:</b> {userPhone || "Không có"}
+                </p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    },
   },
   {
     accessorKey: "status",
@@ -92,20 +126,24 @@ export const revenueColumns: ColumnDef<Transaction>[] = [
       let statusClass = "";
 
       switch (status) {
-        case "completed":
+        case "SUCCESS":
           statusText = "Hoàn thành";
           statusClass = "bg-green-100 text-green-800";
           break;
-        case "pending":
+        case "PENDING":
           statusText = "Đang xử lý";
           statusClass = "bg-yellow-100 text-yellow-800";
           break;
-        case "failed":
+        case "FAILED":
           statusText = "Thất bại";
           statusClass = "bg-red-100 text-red-800";
           break;
+        case "CANCELED":
+          statusText = "Đã hủy";
+          statusClass = "bg-gray-100 text-gray-800";
+          break;
         default:
-          statusText = status;
+          statusText = status || "Không xác định";
           statusClass = "bg-gray-100 text-gray-800";
       }
 

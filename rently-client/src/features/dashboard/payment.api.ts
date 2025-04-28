@@ -19,6 +19,12 @@ interface GetTransactionsResponseType {
     code: string | null;
     sub_account: string | null;
     bank_account_id: string;
+    user?: {
+      id: string;
+      name: string;
+      email: string;
+      phoneNumber: string;
+    };
   }>;
 }
 
@@ -64,7 +70,7 @@ interface TransactionQueryParams {
   amount_out?: string;
 }
 
-const prefix = "/payments";
+const prefix = "/payment";
 
 const paymentApiRequest = {
   getTransactions: (params?: TransactionQueryParams) => {

@@ -12,9 +12,9 @@ export class PaymentProducer {
   constructor(
     @InjectQueue(PAYMENT_QUEUE_NAME) private readonly paymentQueue: Queue
   ) {
-    // this.paymentQueue.getJobs().then(jobs => {
-    //   console.log(jobs)
-    // })
+    this.paymentQueue.getJobs().then(jobs => {
+      console.log(jobs)
+    })
   }
 
   async cancelPaymentJob(paymentId: number) {
@@ -28,25 +28,13 @@ export class PaymentProducer {
         removeOnFail: true,
       }
     )
+
+    this.paymentQueue.getJobCounts().then(counts => {
+      console.log('Cancel payment job added', counts)
+    })
   }
 
-  removeCancelPaymentJob(paymentId: number) {
-    return this.paymentQueue.remove(generateCancelPaymentJobId(paymentId))
-  }
-
-  async addCancelPaymentJob(paymentId: number, delay: number = 0) {
-    return this.paymentQueue.add(
-      'cancel-payment',
-      { paymentId },
-      {
-        delay,
-        removeOnComplete: true,
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-      }
-    )
+  async removeCancelPaymentJob(paymentId: number) {
+    return await this.paymentQueue.remove(generateCancelPaymentJobId(paymentId))
   }
 }
