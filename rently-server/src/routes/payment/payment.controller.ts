@@ -1,25 +1,30 @@
-import { Controller, Post, Body, Request } from '@nestjs/common'
+import {
+  Controller,
+  Post,
+  Body,
+  Request,
+  Get,
+  Query,
+  Param,
+} from '@nestjs/common'
 import { PaymentService } from './payment.service'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 import { ZodSerializerDto } from 'nestjs-zod'
 import { Auth, IsPublic } from 'src/shared/decorators/auth.decorator'
-import { WebhookPaymentBodyDTO } from 'src/routes/payment/payment.dto'
-import { createZodDto } from 'nestjs-zod'
-import { z } from 'zod'
+import {
+  CreatePaymentDTO,
+  GenerateQrDTO,
+  WebhookPaymentBodyDTO,
+} from 'src/routes/payment/payment.dto'
 import { AuthType } from 'src/shared/constants/auth.constant'
-
-// DTO cho yêu cầu tạo thanh toán
-export class CreatePaymentDTO extends createZodDto(
-  z.object({
-    userId: z.number().int().positive('ID người dùng phải là số nguyên dương'),
-    amount: z.number().min(1000, 'Số tiền tối thiểu là 1.000 VND'),
-    description: z.string().optional(),
-  })
-) {}
+import { EventsGateway } from 'src/events/events.gateway'
 
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly eventsGateway: EventsGateway
+  ) {}
 
   @Post('/receiver')
   @ZodSerializerDto(MessageResDTO)
@@ -36,5 +41,21 @@ export class PaymentController {
       body.amount,
       body.description
     )
+  }
+
+  @Get('/qrcode')
+  @IsPublic()
+  async generateQrCode(@Query() query: GenerateQrDTO) {
+    return this.paymentService.generateQrCode(query.paymentId)
+  }
+
+  @Get('/status/:id')
+  @IsPublic()
+  async checkPaymentStatus(@Param('id') id: string) {
+    const payment = await this.paymentService.checkPaymentStatus(
+      parseInt(id, 10)
+    )
+
+    return payment
   }
 }

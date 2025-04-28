@@ -35,6 +35,9 @@ const configSchema = z.object({
   OPENAI_API_KEY: z.string(),
   PAYMENT_API_KEY: z.string(),
   REDIS_URL: z.string(),
+  BANK_ACCOUNT: z.string(),
+  BANK_NAME: z.string(),
+  BANK_ACCOUNT_NAME: z.string(),
 })
 
 const configServer = configSchema.safeParse(process.env)

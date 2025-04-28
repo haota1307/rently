@@ -423,4 +423,38 @@ export class EventsGateway
 
     return true
   }
+
+  /**
+   * Thông báo cập nhật trạng thái thanh toán cho người dùng
+   */
+  notifyPaymentStatusUpdated(
+    userId: number,
+    paymentData: {
+      id: number
+      status: string
+      amount: number
+      description?: string
+    }
+  ) {
+    this.logger.log(`Gửi thông báo cập nhật thanh toán cho userId: ${userId}`)
+
+    const userSockets = this.userSocketMap.get(userId) || []
+
+    if (userSockets.length === 0) {
+      this.logger.warn(
+        `Không có socket nào của user ${userId} để gửi thông báo thanh toán`
+      )
+      return false
+    }
+
+    this.logger.log(
+      `Gửi thông báo đến ${userSockets.length} socket của user ${userId}`
+    )
+
+    userSockets.forEach(socketId => {
+      this.server.to(socketId).emit('paymentStatusUpdated', paymentData)
+    })
+
+    return true
+  }
 }

@@ -136,6 +136,18 @@ export class PaymentRepo {
     }
   }
 
+  async getPaymentById(paymentId: number) {
+    return this.prismaService.payment.findUnique({
+      where: {
+        id: paymentId,
+      },
+      include: {
+        user: true,
+        transaction: true,
+      },
+    })
+  }
+
   async createPaymentRequest(
     userId: number,
     amount: number,

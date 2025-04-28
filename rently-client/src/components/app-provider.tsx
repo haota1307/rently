@@ -156,7 +156,7 @@ export default function AppProvider({
                 removeTokensFromLocalStorage();
                 window.location.href = "/dang-nhap?blocked=true";
               }
-            }, 3000);
+            }, 0);
           }
         );
       }

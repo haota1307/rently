@@ -31,5 +31,22 @@ export const WebhookPaymentBodySchema = z.object({
   description: z.string(), // Toàn bộ nội dung tin nhắn sms
 })
 
+export const GenerateQrSchema = z.object({
+  paymentId: z
+    .string()
+    .transform(val => parseInt(val, 10))
+    .refine(val => !isNaN(val) && val > 0, {
+      message: 'ID thanh toán phải là số nguyên dương',
+    }),
+})
+
+export const CreatePaymentSchema = z.object({
+  userId: z.number().int().positive('ID người dùng phải là số nguyên dương'),
+  amount: z.number().min(1000, 'Số tiền tối thiểu là 1.000 VND'),
+  description: z.string().optional(),
+})
+
 export type PaymentTransactionType = z.infer<typeof PaymentTransactionSchema>
 export type WebhookPaymentBodyType = z.infer<typeof WebhookPaymentBodySchema>
+export type GenerateQrType = z.infer<typeof GenerateQrSchema>
+export type CreatePaymentType = z.infer<typeof CreatePaymentSchema>
