@@ -9,6 +9,7 @@ import { PaymentStatus } from '@prisma/client'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
 // Định nghĩa PREFIX_PAYMENT_CODE nếu không có file constant
+const PREFIX_PAYMENT_SEPAY = 'SEVQR'
 const PREFIX_PAYMENT_CODE = 'NAP'
 
 @Injectable()

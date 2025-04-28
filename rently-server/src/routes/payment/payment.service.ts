@@ -86,14 +86,14 @@ export class PaymentService {
     }
 
     // Tạo nội dung chuyển khoản (kèm mã thanh toán)
-    const description = `NAP${payment.id}`
+    const description = `SEVQR NAP${payment.id}`
 
     // Tạo URL QR code
     const qrCodeUrl = `https://qr.sepay.vn/img?acc=${this.bankAccount}&bank=${this.bankName}&amount=${payment.amount}&des=${description}`
 
     return {
       qrCodeUrl,
-      paymentCode: `NAP${payment.id}`,
+      paymentCode: `SEVQR NAP${payment.id}`,
       amount: payment.amount,
       bankInfo: {
         bankName: this.bankName,
