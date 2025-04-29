@@ -59,6 +59,19 @@ interface CountTransactionsResponseType {
   count_transactions: number;
 }
 
+interface TransactionSummaryType {
+  status: number;
+  error: null | any;
+  messages: {
+    success: boolean;
+  };
+  summary: {
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+  };
+}
+
 interface TransactionQueryParams {
   account_number?: string;
   transaction_date_min?: string;
@@ -68,6 +81,24 @@ interface TransactionQueryParams {
   reference_number?: string;
   amount_in?: string;
   amount_out?: string;
+}
+
+interface GetBankInfoResponseType {
+  status: number;
+  error: null | any;
+  messages: {
+    success: boolean;
+  };
+  bankInfo: {
+    id: string;
+    bankName: string;
+    bankFullName: string;
+    accountNumber: string;
+    accountName: string;
+    accumulated: string;
+    lastTransaction: string;
+    label: string;
+  };
 }
 
 const prefix = "/payment";
@@ -93,6 +124,25 @@ const paymentApiRequest = {
       : "";
     return http.get<CountTransactionsResponseType>(
       `${prefix}/transactions/count${queryParams}`
+    );
+  },
+
+  /**
+   * Lấy thông tin tài khoản ngân hàng
+   */
+  getBankInfo: async () => {
+    return http.get<GetBankInfoResponseType>(`${prefix}/bank-info`);
+  },
+
+  /**
+   * Lấy thống kê tổng tiền vào/ra từ server
+   */
+  getTransactionSummary: (params?: TransactionQueryParams) => {
+    const queryParams = params
+      ? "?" + new URLSearchParams(params as Record<string, string>).toString()
+      : "";
+    return http.get<TransactionSummaryType>(
+      `${prefix}/transactions/summary${queryParams}`
     );
   },
 };

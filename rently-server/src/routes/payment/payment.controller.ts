@@ -15,6 +15,18 @@ import {
   CreatePaymentDTO,
   GenerateQrDTO,
   WebhookPaymentBodyDTO,
+  CheckPaymentStatusDTO,
+  GetTransactionParamsDTO,
+  GetTransactionDetailDTO,
+  MessageResponseDTO,
+  CreatePaymentResponseDTO,
+  GenerateQrResponseDTO,
+  CheckPaymentStatusResponseDTO,
+  GetTransactionsResponseDTO,
+  CountTransactionsResponseDTO,
+  GetTransactionDetailResponseDTO,
+  GetBankInfoResponseDTO,
+  TransactionSummaryResponseDTO,
 } from 'src/routes/payment/payment.dto'
 import { AuthType } from 'src/shared/constants/auth.constant'
 import { EventsGateway } from 'src/events/events.gateway'
@@ -27,13 +39,14 @@ export class PaymentController {
   ) {}
 
   @Post('/receiver')
-  @ZodSerializerDto(MessageResDTO)
+  @ZodSerializerDto(MessageResponseDTO)
   @Auth([AuthType.APIKey])
   receiver(@Body() body: WebhookPaymentBodyDTO) {
     return this.paymentService.receiver(body)
   }
 
   @Post('/create')
+  @ZodSerializerDto(CreatePaymentResponseDTO)
   @IsPublic()
   async createPaymentRequest(@Body() body: CreatePaymentDTO) {
     return this.paymentService.createPaymentRequest(
@@ -44,36 +57,52 @@ export class PaymentController {
   }
 
   @Get('/qrcode')
+  @ZodSerializerDto(GenerateQrResponseDTO)
   @IsPublic()
   async generateQrCode(@Query() query: GenerateQrDTO) {
     return this.paymentService.generateQrCode(query.paymentId)
   }
 
   @Get('/status/:id')
+  @ZodSerializerDto(CheckPaymentStatusResponseDTO)
   @IsPublic()
-  async checkPaymentStatus(@Param('id') id: string) {
-    const payment = await this.paymentService.checkPaymentStatus(
-      parseInt(id, 10)
-    )
-
+  async checkPaymentStatus(@Param() params: CheckPaymentStatusDTO) {
+    const payment = await this.paymentService.checkPaymentStatus(params.id)
     return payment
   }
 
   @Get('/transactions')
+  @ZodSerializerDto(GetTransactionsResponseDTO)
   @IsPublic()
-  async getTransactions(@Query() query: any) {
+  async getTransactions(@Query() query: GetTransactionParamsDTO) {
     return this.paymentService.getTransactions(query)
   }
 
   @Get('/transactions/count')
+  @ZodSerializerDto(CountTransactionsResponseDTO)
   @IsPublic()
-  async countTransactions(@Query() query: any) {
+  async countTransactions(@Query() query: GetTransactionParamsDTO) {
     return this.paymentService.countTransactions(query)
   }
 
-  @Get('/transactions/:id')
+  @Get('/transactions/summary')
+  @ZodSerializerDto(TransactionSummaryResponseDTO)
   @IsPublic()
-  async getTransactionDetail(@Param('id') id: string) {
-    return this.paymentService.getTransactionDetail(parseInt(id, 10))
+  async getTransactionSummary(@Query() query: GetTransactionParamsDTO) {
+    return this.paymentService.getTransactionSummary(query)
+  }
+
+  @Get('/transactions/:id')
+  @ZodSerializerDto(GetTransactionDetailResponseDTO)
+  @IsPublic()
+  async getTransactionDetail(@Param() params: GetTransactionDetailDTO) {
+    return this.paymentService.getTransactionDetail(params.id)
+  }
+
+  @Get('/bank-info')
+  @ZodSerializerDto(GetBankInfoResponseDTO)
+  @IsPublic()
+  async getBankInfo() {
+    return this.paymentService.getBankInfo()
   }
 }

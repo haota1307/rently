@@ -184,10 +184,15 @@ export class PaymentRepo {
   async getTransactions(query: any) {
     // Xây dựng điều kiện lọc
     const where: any = {}
+    const transactionWhere: any = {}
 
     // Nếu có tham số userId, lọc theo userId
     if (query.userId) {
       where.userId = parseInt(query.userId, 10)
+    }
+
+    if (query.status) {
+      where.status = query.status
     }
 
     // Nếu có từ ngày đến ngày, lọc theo ngày tạo
@@ -205,6 +210,19 @@ export class PaymentRepo {
       }
     }
 
+    // Xử lý filter tiền vào/tiền ra
+    if (query.amount_in === 'true') {
+      transactionWhere.amountIn = {
+        gt: 0,
+      }
+    }
+
+    if (query.amount_out === 'true') {
+      transactionWhere.amountOut = {
+        gt: 0,
+      }
+    }
+
     // Giới hạn số lượng bản ghi
     const limit = query.limit ? parseInt(query.limit, 10) : 20
 
@@ -212,7 +230,12 @@ export class PaymentRepo {
       where,
       include: {
         user: true,
-        transaction: true,
+        transaction: {
+          where:
+            Object.keys(transactionWhere).length > 0
+              ? transactionWhere
+              : undefined,
+        },
       },
       orderBy: {
         createdAt: 'desc',

@@ -9,6 +9,7 @@ import { PaymentProducer } from 'src/routes/payment/payment.producer'
 import envConfig from 'src/shared/config'
 import { PaymentStatus } from '@prisma/client'
 import { EventsGateway } from 'src/events/events.gateway'
+import axios from 'axios'
 
 @Injectable()
 export class PaymentService {
@@ -129,6 +130,53 @@ export class PaymentService {
   }
 
   /**
+   * Chuyển đổi dữ liệu từ model sang response
+   * @private
+   */
+  private mapToTransactionResponse(t: any) {
+    return {
+      id: t.id.toString(),
+      bank_brand_name: this.bankName,
+      account_number: this.bankAccount,
+      transaction_date:
+        t.transaction?.transactionDate.toISOString() ||
+        t.createdAt.toISOString(),
+      amount_out: t.transaction?.amountOut.toString() || '0',
+      amount_in: t.transaction?.amountIn.toString() || t.amount.toString(),
+      accumulated: t.transaction?.accumulated.toString() || '0',
+      transaction_content: t.transaction?.transactionContent || t.description,
+      reference_number: t.transaction?.referenceNumber || null,
+      code: t.transaction?.code || `NAP${t.id}`,
+      sub_account: t.transaction?.subAccount || null,
+      bank_account_id: '1',
+      status: t.status,
+      user: t.user
+        ? {
+            id: t.user.id.toString(),
+            name: t.user.name || 'Không rõ',
+            email: t.user.email || '',
+            phoneNumber: t.user.phoneNumber || '',
+          }
+        : undefined,
+    }
+  }
+
+  /**
+   * Tạo response chuẩn
+   * @private
+   */
+  private createSuccessResponse(data: any) {
+    return {
+      status: 200,
+      error: null,
+      messages: {
+        success: true,
+      },
+      ...data,
+    }
+  }
+
+  /**
    * Lấy danh sách giao dịch thanh toán
    * @param query Các tham số lọc và phân trang
    * @returns Danh sách giao dịch
@@ -136,35 +184,11 @@ export class PaymentService {
   async getTransactions(query: any) {
     const transactions = await this.paymentRepo.getTransactions(query)
 
-    return {
-      status: 200,
-      error: null,
-      messages: {
-        success: true,
-      },
-      transactions: transactions.map(t => ({
-        id: t.id.toString(),
-        bank_brand_name: this.bankName,
-        account_number: this.bankAccount,
-        transaction_date:
-          t.transaction?.transactionDate.toISOString() ||
-          t.createdAt.toISOString(),
-        amount_out: t.transaction?.amountOut.toString() || '0',
-        amount_in: t.transaction?.amountIn.toString() || t.amount.toString(),
-        accumulated: t.transaction?.accumulated.toString() || '0',
-        transaction_content: t.transaction?.transactionContent || t.description,
-        reference_number: t.transaction?.referenceNumber || null,
-        code: t.transaction?.code || `NAP${t.id}`,
-        sub_account: t.transaction?.subAccount || null,
-        bank_account_id: '1',
-        user: {
-          id: t.user?.id.toString(),
-          name: t.user?.name || 'Không rõ',
-          email: t.user?.email || '',
-          phoneNumber: t.user?.phoneNumber || '',
-        },
-      })),
-    }
+    const mappedTransactions = transactions.map(t =>
+      this.mapToTransactionResponse(t)
+    )
+
+    return this.createSuccessResponse({ transactions: mappedTransactions })
   }
 
   /**
@@ -179,33 +203,8 @@ export class PaymentService {
       throw new NotFoundException(`Không tìm thấy giao dịch với ID ${id}`)
     }
 
-    return {
-      status: 200,
-      error: null,
-      messages: {
-        success: true,
-      },
-      transaction: {
-        id: transaction.id.toString(),
-        bank_brand_name: this.bankName,
-        account_number: this.bankAccount,
-        transaction_date:
-          transaction.transaction?.transactionDate.toISOString() ||
-          transaction.createdAt.toISOString(),
-        amount_out: transaction.transaction?.amountOut.toString() || '0',
-        amount_in:
-          transaction.transaction?.amountIn.toString() ||
-          transaction.amount.toString(),
-        accumulated: transaction.transaction?.accumulated.toString() || '0',
-        transaction_content:
-          transaction.transaction?.transactionContent ||
-          transaction.description,
-        reference_number: transaction.transaction?.referenceNumber || null,
-        code: transaction.transaction?.code || `NAP${transaction.id}`,
-        sub_account: transaction.transaction?.subAccount || null,
-        bank_account_id: '1',
-      },
-    }
+    const mapped = this.mapToTransactionResponse(transaction)
+    return this.createSuccessResponse({ transaction: mapped })
   }
 
   /**
@@ -215,14 +214,115 @@ export class PaymentService {
    */
   async countTransactions(query: any) {
     const count = await this.paymentRepo.countTransactions(query)
+    return this.createSuccessResponse({ count_transactions: count })
+  }
 
-    return {
-      status: 200,
-      error: null,
-      messages: {
-        success: true,
+  /**
+   * Lấy thống kê tổng tiền vào/ra
+   * @param query Các tham số lọc
+   * @returns Tổng tiền vào/ra và số dư
+   */
+  async getTransactionSummary(query: any) {
+    // Lấy danh sách giao dịch
+    const transactions = await this.paymentRepo.getTransactions({
+      ...query,
+      // Chỉ lấy các giao dịch thành công
+      status: PaymentStatus.COMPLETED,
+    })
+
+    // Tính tổng tiền vào và tiền ra
+    let totalIncome = 0
+    let totalExpense = 0
+
+    transactions.forEach(t => {
+      if (t.transaction) {
+        if (t.transaction.amountIn > 0) {
+          totalIncome += t.transaction.amountIn
+        }
+        if (t.transaction.amountOut > 0) {
+          totalExpense += t.transaction.amountOut
+        }
+      } else if (t.amount > 0 && t.status === PaymentStatus.COMPLETED) {
+        // Nếu là thanh toán thành công không có transaction, coi là tiền vào
+        totalIncome += t.amount
+      }
+    })
+
+    // Tính balance từ accumulated trong bankInfo
+    let balance = 0
+    try {
+      const bankInfoResponse = await this.getBankInfo()
+      if (bankInfoResponse.bankInfo && bankInfoResponse.bankInfo.accumulated) {
+        balance = parseFloat(bankInfoResponse.bankInfo.accumulated)
+      } else {
+        // Nếu không có accumulated, tính balance từ income và expense
+        balance = totalIncome - totalExpense
+      }
+    } catch (error) {
+      console.error('Error getting bank info:', error)
+      balance = totalIncome - totalExpense
+    }
+
+    return this.createSuccessResponse({
+      summary: {
+        totalIncome,
+        totalExpense,
+        balance,
       },
-      count_transactions: count,
+    })
+  }
+
+  /**
+   * Lấy thông tin tài khoản ngân hàng từ SePay API
+   * @returns Thông tin tài khoản ngân hàng
+   */
+  async getBankInfo() {
+    try {
+      // Gọi API SePay để lấy thông tin tài khoản
+      const response = await axios.get(
+        `https://my.sepay.vn/userapi/bankaccounts/details/${envConfig.SEPAY_BANK_ACCOUNT_ID}`,
+        {
+          headers: {
+            Authorization: `Bearer ${envConfig.SEPAY_API_KEY}`,
+          },
+        }
+      )
+
+      if (response.data?.status !== 200 || !response.data?.bankaccount) {
+        throw new Error('Không thể lấy thông tin tài khoản ngân hàng từ SePay')
+      }
+
+      const bankAccount = response.data.bankaccount
+
+      // Chuyển đổi dữ liệu theo định dạng mong muốn
+      return this.createSuccessResponse({
+        bankInfo: {
+          id: bankAccount.id,
+          bankName: bankAccount.bank_short_name,
+          bankFullName: bankAccount.bank_full_name,
+          accountNumber: bankAccount.account_number,
+          accountName: bankAccount.account_holder_name,
+          accumulated: bankAccount.accumulated,
+          lastTransaction: bankAccount.last_transaction,
+          label: bankAccount.label,
+        },
+      })
+    } catch (error) {
+      console.error('Error calling SePay API:', error)
+
+      // Nếu API SePay lỗi, trả về dữ liệu từ cấu hình
+      return this.createSuccessResponse({
+        bankInfo: {
+          id: envConfig.SEPAY_BANK_ACCOUNT_ID,
+          bankName: this.bankName,
+          bankFullName: this.bankName,
+          accountNumber: this.bankAccount,
+          accountName: this.bankAccountName,
+          accumulated: '0',
+          lastTransaction: new Date().toISOString(),
+          label: 'RENTLY',
+        },
+      })
     }
   }
 }

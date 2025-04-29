@@ -38,6 +38,9 @@ const configSchema = z.object({
   BANK_ACCOUNT: z.string(),
   BANK_NAME: z.string(),
   BANK_ACCOUNT_NAME: z.string(),
+  SEPAY_API_KEY: z.string(),
+  SEPAY_API_URL: z.string(),
+  SEPAY_BANK_ACCOUNT_ID: z.string(),
 })
 
 const configServer = configSchema.safeParse(process.env)
