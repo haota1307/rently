@@ -6,6 +6,7 @@ import { UpdateMeBodyType } from "@/schemas/profile.model";
 import { RentalHistoryTab } from "@/features/profile/components/rental-history-tab";
 import { ViewingScheduleTab } from "@/features/profile/components/viewing-schedule-tab";
 import { Dispatch, SetStateAction } from "react";
+import { WalletTab } from "@/features/profile/components/wallet-tab";
 
 interface AccountTabsProps {
   form: UseFormReturn<UpdateMeBodyType>;
@@ -26,9 +27,10 @@ export function AccountTabs({
 }: AccountTabsProps) {
   return (
     <Tabs defaultValue="profile" className="w-full">
-      <TabsList className="grid w-full grid-cols-4 mb-6">
+      <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-6">
         <TabsTrigger value="profile">Thông tin cá nhân</TabsTrigger>
         <TabsTrigger value="security">Bảo mật</TabsTrigger>
+        <TabsTrigger value="wallet">Tài chính</TabsTrigger>
         <TabsTrigger value="rentals">Phòng đã thuê</TabsTrigger>
         <TabsTrigger value="schedule">Lịch xem phòng</TabsTrigger>
       </TabsList>
@@ -48,6 +50,10 @@ export function AccountTabs({
           landlordStatus={landlordStatus}
           setLandlordStatus={setLandlordStatus}
         />
+      </TabsContent>
+
+      <TabsContent value="wallet">
+        <WalletTab />
       </TabsContent>
 
       <TabsContent value="rentals">

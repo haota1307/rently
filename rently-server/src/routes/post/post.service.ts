@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common'
 import {
   CreatePostBodyType,
@@ -9,12 +10,19 @@ import {
   UpdatePostBodyType,
 } from 'src/routes/post/post.model'
 import { PostRepo } from 'src/routes/post/post.repo'
+import { PrismaService } from 'src/shared/services/prisma.service'
+import { RoleName } from 'src/shared/constants/role.constant'
 
 import { NotFoundRecordException } from 'src/shared/error'
 
 @Injectable()
 export class PostService {
-  constructor(private readonly rentalPostRepo: PostRepo) {}
+  private POST_FEE = 10000 // Phí đăng bài: 10,000 VNĐ
+
+  constructor(
+    private readonly rentalPostRepo: PostRepo,
+    private readonly prismaService: PrismaService
+  ) {}
 
   async list(pagination: GetPostsQueryType) {
     return this.rentalPostRepo.list(pagination)
@@ -39,7 +47,59 @@ export class PostService {
     data: CreatePostBodyType
     landlordId: number
   }) {
-    return this.rentalPostRepo.create({ data, landlordId })
+    // Kiểm tra thông tin người dùng, bao gồm số dư và vai trò
+    const user = await this.prismaService.user.findUnique({
+      where: { id: landlordId },
+      include: {
+        role: true,
+      },
+    })
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy thông tin người dùng')
+    }
+
+    // Kiểm tra xem người dùng có phải là admin hay không
+    const isAdmin = user.role?.name === RoleName.Admin
+
+    // Chỉ kiểm tra số dư và trừ phí nếu không phải là admin
+    if (!isAdmin) {
+      // Kiểm tra xem số dư có đủ để trừ phí đăng bài không
+      if (user.balance < this.POST_FEE) {
+        throw new BadRequestException(
+          `Số dư tài khoản không đủ để đăng bài. Cần ít nhất ${this.POST_FEE} VNĐ. Vui lòng nạp thêm tiền vào tài khoản.`
+        )
+      }
+    }
+
+    // Thực hiện transaction để đảm bảo tính nhất quán của dữ liệu
+    const result = await this.prismaService.$transaction(async prisma => {
+      // Nếu không phải admin thì trừ phí và tạo bản ghi thanh toán
+      if (!isAdmin) {
+        // Trừ phí từ tài khoản người dùng
+        await prisma.user.update({
+          where: { id: landlordId },
+          data: {
+            balance: { decrement: this.POST_FEE },
+          },
+        })
+
+        // Tạo bản ghi thanh toán
+        await prisma.payment.create({
+          data: {
+            amount: this.POST_FEE,
+            status: 'COMPLETED',
+            description: 'Phí đăng bài',
+            userId: landlordId,
+          },
+        })
+      }
+
+      // Tạo bài đăng mới
+      return this.rentalPostRepo.create({ data, landlordId })
+    })
+
+    return result
   }
 
   async update({

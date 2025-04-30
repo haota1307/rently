@@ -29,4 +29,9 @@ export class ProfileController {
       body,
     })
   }
+
+  @Get('payment-history')
+  getPaymentHistory(@ActiveUser('userId') userId: number) {
+    return this.profileService.getPaymentHistory(userId)
+  }
 }

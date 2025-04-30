@@ -4,6 +4,21 @@ import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { UpdateMeBodyType } from "@/schemas/profile.model";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+// Định nghĩa interface cho Payment
+export interface Payment {
+  id: number;
+  amount: number;
+  status: string;
+  description: string | null;
+  createdAt: string;
+  userId: number;
+}
+
+export interface PaymentHistoryResponse {
+  status: number;
+  payload: Payment[];
+}
+
 export const useAccountMe = () => {
   return useQuery({
     queryKey: ["account-me"],
@@ -29,5 +44,12 @@ export const useUpdateMeMutation = () => {
         exact: true,
       });
     },
+  });
+};
+
+export const usePaymentHistory = () => {
+  return useQuery({
+    queryKey: ["payment-history"],
+    queryFn: accountApiRequest.getPaymentHistory,
   });
 };

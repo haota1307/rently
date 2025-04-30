@@ -3,7 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  Wallet,
+  User,
+  Calendar,
+  Mail,
+  Phone,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -13,7 +21,8 @@ import { UpdateMeBodySchema, UpdateMeBodyType } from "@/schemas/profile.model";
 import { useUploadImage } from "@/features/media/useMedia";
 import { Role } from "@/constants/type";
 import { useCheckRoleUpgradeStatus } from "@/features/role-upgrade-request/role-upgrade-request.hook";
-import { toast } from "sonner";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
 export default function AccountForm() {
   const { data } = useAccountMe();
@@ -100,7 +109,8 @@ export default function AccountForm() {
   return (
     <Card className="overflow-hidden border-none shadow-md">
       <CardHeader className="bg-primary text-primary-foreground p-6">
-        <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Phần Avatar */}
           <div className="relative group">
             <Avatar className="w-24 h-24 border-4 border-primary-foreground shadow-lg">
               <AvatarImage src={watchedAvatar} alt="Avatar" />
@@ -126,28 +136,62 @@ export default function AccountForm() {
               )}
             </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold">
-              {watchedName || "Tên người dùng"}
-            </h2>
-            <p className="text-primary-foreground/80">
-              {user.email || "abc@gmail.com"}
-            </p>
-            {user?.role.name === Role.Admin && (
-              <Badge className="mt-2 bg-purple-500 hover:bg-purple-500/95">
-                Quản trị viên
-              </Badge>
-            )}
-            {user?.role.name === Role.Landlord && (
-              <Badge className="mt-2 bg-green-500 hover:bg-green-500/95">
-                Người cho thuê
-              </Badge>
-            )}
-            {user?.role.name === Role.Client && (
-              <Badge className="mt-2 bg-blue-500 hover:bg-blue-500/95">
-                Người dùng
-              </Badge>
-            )}
+
+          {/* Thông tin cơ bản */}
+          <div className="flex-1">
+            <div className="flex flex-col md:flex-row justify-between">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  {watchedName || "Tên người dùng"}
+                </h2>
+                <p className="text-primary-foreground/80 flex items-center gap-2 mt-1">
+                  <Mail className="h-4 w-4" />
+                  {user.email || "abc@gmail.com"}
+                </p>
+                <p className="text-primary-foreground/80 flex items-center gap-2 mt-1">
+                  <Phone className="h-4 w-4" />
+                  {user.phoneNumber || "Chưa cập nhật"}
+                </p>
+                <p className="text-primary-foreground/80 flex items-center gap-2 mt-1">
+                  <Calendar className="h-4 w-4" />
+                  Tham gia:{" "}
+                  {format(new Date(user.createdAt), "dd MMMM, yyyy", {
+                    locale: vi,
+                  })}
+                </p>
+              </div>
+
+              <div className="mt-4 md:mt-0 flex flex-col items-start md:items-end">
+                <div className="flex items-center gap-2 bg-primary-foreground/10 rounded-md px-3 py-2">
+                  <Wallet className="h-5 w-5" />
+                  <div>
+                    <p className="text-xs text-primary-foreground/90">Số dư</p>
+                    <p className="font-bold">
+                      {user.balance?.toLocaleString()} VNĐ
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex gap-2">
+                  {user?.role.name === Role.Admin && (
+                    <Badge className="bg-purple-500 hover:bg-purple-500/95">
+                      Quản trị viên
+                    </Badge>
+                  )}
+                  {user?.role.name === Role.Landlord && (
+                    <Badge className="bg-green-500 hover:bg-green-500/95">
+                      Người cho thuê
+                    </Badge>
+                  )}
+                  {user?.role.name === Role.Client && (
+                    <Badge className="bg-blue-500 hover:bg-blue-500/95">
+                      Người dùng
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </CardHeader>

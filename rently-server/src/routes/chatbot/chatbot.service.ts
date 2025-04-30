@@ -42,6 +42,8 @@ export class ChatbotService {
   private knowledgeBase: KnowledgeChunk[] = []
   // Đường dẫn đến thư mục lưu trữ kiến thức
   private readonly KNOWLEDGE_DIR = path.join(process.cwd(), 'knowledge')
+  // Danh sách các tiện ích có trong hệ thống
+  private amenities: { id: number; name: string }[] = []
 
   constructor(
     private readonly rentalService: RentalService,
@@ -54,6 +56,37 @@ export class ChatbotService {
     })
     // Khởi tạo kho kiến thức
     this.initializeKnowledgeBase()
+    // Lấy danh sách tiện ích từ CSDL
+    this.loadAmenities()
+  }
+
+  /**
+   * Lấy danh sách tất cả tiện ích từ cơ sở dữ liệu
+   */
+  private async loadAmenities() {
+    try {
+      this.amenities = await this.prisma.amenity.findMany({
+        select: {
+          id: true,
+          name: true,
+        },
+      })
+      console.log(`Đã tải ${this.amenities.length} tiện ích từ cơ sở dữ liệu`)
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách tiện ích:', error)
+      // Đặt một danh sách mặc định trong trường hợp không thể tải từ CSDL
+      this.amenities = [
+        { id: 1, name: 'máy lạnh' },
+        { id: 2, name: 'wifi' },
+        { id: 3, name: 'nhà vệ sinh riêng' },
+        { id: 4, name: 'tủ lạnh' },
+        { id: 5, name: 'máy giặt' },
+        { id: 6, name: 'gác lửng' },
+        { id: 7, name: 'ban công' },
+        { id: 8, name: 'bếp' },
+        { id: 9, name: 'bàn làm việc' },
+      ]
+    }
   }
 
   /**
@@ -374,6 +407,9 @@ export class ChatbotService {
         }
       }
 
+      // Chuyển đổi tin nhắn về chữ thường để dễ so sánh
+      const lowerMessage = message.toLowerCase()
+
       // Kiểm tra các từ khóa liên quan đến tìm phòng
       const searchKeywords =
         /(tìm phòng|thuê phòng|giá phòng|phòng trọ|ở đâu có phòng|cần thuê|muốn thuê|cho thuê)/i
@@ -381,6 +417,19 @@ export class ChatbotService {
         /(tư vấn|lời khuyên|kinh nghiệm|nên làm gì|cần lưu ý|thủ tục|quy trình|hợp đồng)/i
       const postingGuideKeywords =
         /(đăng bài|đăng tin|đăng phòng|cách đăng|hướng dẫn đăng|làm sao để đăng|đăng cho thuê|đưa phòng lên|thêm phòng|tạo bài đăng|tạo tin|đăng thông tin|làm thế nào để đăng)/i
+
+      // Kiểm tra các từ khóa khoảng cách trước để ưu tiên tìm kiếm
+      const distanceKeywords =
+        /(dưới|trong khoảng|trong phạm vi|gần|cách|trong bán kính|<|<=)\s*(\d+(?:\.\d+)?)\s*(km|m|cây số|mét|kilomet|ki lô mét)?/i
+      if (distanceKeywords.test(lowerMessage)) {
+        // Nếu là tìm kiếm với khoảng cách, sử dụng phương thức trích xuất tiêu chí
+        const criteria = await this.extractCriteria(message)
+        return {
+          intent: 'search',
+          content: '',
+          criteria,
+        }
+      }
 
       // Xử lý ưu tiên theo thứ tự từ cụ thể đến chung
       if (postingGuideKeywords.test(message)) {
@@ -393,13 +442,13 @@ export class ChatbotService {
       if (searchKeywords.test(message)) {
         // Phân tích sâu hơn để xác định xem đây có phải là yêu cầu hướng dẫn đăng bài không
         if (
-          message.toLowerCase().includes('đăng') ||
-          message.toLowerCase().includes('bán') ||
-          (message.toLowerCase().includes('cho thuê') &&
-            (message.toLowerCase().includes('làm sao') ||
-              message.toLowerCase().includes('thế nào') ||
-              message.toLowerCase().includes('hướng dẫn') ||
-              message.toLowerCase().includes('cách')))
+          lowerMessage.includes('đăng') ||
+          lowerMessage.includes('bán') ||
+          (lowerMessage.includes('cho thuê') &&
+            (lowerMessage.includes('làm sao') ||
+              lowerMessage.includes('thế nào') ||
+              lowerMessage.includes('hướng dẫn') ||
+              lowerMessage.includes('cách')))
         ) {
           return {
             intent: 'posting_guide',
@@ -554,6 +603,7 @@ export class ChatbotService {
           - "area": (object | null) diện tích mong muốn với 2 trường con "min" và "max" tính bằng m². Ví dụ: { "min": 20, "max": 30 }.
           - "amenities": (array) danh sách tiện ích cần có, có thể bao gồm: ["máy lạnh", "wifi", "ban công", "tủ lạnh", "máy giặt", "bàn làm việc", "gác lửng", "nhà vệ sinh riêng", "bếp"]
           - "address": (string | null) khu vực hoặc địa chỉ mà người dùng quan tâm.
+          - "distance": (object | null) thông tin khoảng cách với 2 trường: "max" (số km tối đa) và "location" (địa điểm tham chiếu). Ví dụ: { "max": 1, "location": "Đại học Nam Cần Thơ" }.
           - "userType": (string | null) đối tượng người thuê, ví dụ "sinh viên", "người đi làm", "gia đình".
           - "roomType": (string | null) loại phòng, ví dụ "phòng trọ", "căn hộ mini", "nhà nguyên căn".
 
@@ -621,118 +671,273 @@ export class ChatbotService {
    * Phân tích cơ bản không sử dụng AI để trích xuất tiêu chí từ tin nhắn
    */
   private extractBasicCriteria(message: string): any {
-    const criteria: {
-      price: {
-        min?: number
-        max?: number
-      } | null
-      area: {
-        min?: number
-        max?: number
-      } | null
-      amenities: string[]
-      address: string | null
-      userType: string | null
-      roomType: string | null
-    } = {
-      price: null,
-      area: null,
-      amenities: [],
-      address: null,
-      userType: null,
-      roomType: null,
-    }
+    const criteria: any = {}
 
+    // Chuyển tin nhắn về chữ thường để dễ so sánh
     const lowerMessage = message.toLowerCase()
 
-    // Phân tích giá
-    const priceRegex = /(\d+(\.\d+)?)\s*(tr|triệu|m|nghìn|ngàn|k)/g
-    const priceMatches = [...lowerMessage.matchAll(priceRegex)]
+    // Nhận diện cụm từ về khoảng cách - mở rộng regex để bắt nhiều trường hợp hơn
+    const distanceRegex =
+      /(dưới|trong khoảng|trong phạm vi|gần|cách|trong bán kính|<|<=)\s*(\d+(?:\.\d+)?)\s*(km|m|cây số|mét|kilomet|ki lô mét)?/i
+    const distanceMatch = message.match(distanceRegex)
 
-    if (priceMatches.length > 0) {
-      const prices = priceMatches
-        .map(match => {
-          const value = parseFloat(match[1])
-          const unit = match[3]
+    // Nhận diện địa điểm, trường học, cơ quan, etc.
+    const locationRegex =
+      /(?:cách|gần)\s+(trường|đại học|trường đại học|trường học|công ty|bệnh viện|chợ|trung tâm)\s+([^,\.]+)/i
+    const locationMatch = message.match(locationRegex)
 
-          if (unit === 'tr' || unit === 'triệu') {
-            return value * 1000000
-          } else if (
-            unit === 'm' ||
-            unit === 'nghìn' ||
-            unit === 'ngàn' ||
-            unit === 'k'
-          ) {
-            return value * 1000
-          }
+    // Xử lý thông tin khoảng cách
+    if (distanceMatch) {
+      const distanceValue = parseFloat(distanceMatch[2])
+      const distanceUnit = distanceMatch[3]
+        ? distanceMatch[3].toLowerCase()
+        : 'km' // Mặc định là km nếu không chỉ định
 
-          return value
-        })
-        .sort((a, b) => a - b)
+      // Chuyển đổi sang km
+      const distanceInKm =
+        !distanceUnit ||
+        distanceUnit === 'km' ||
+        distanceUnit === 'cây số' ||
+        distanceUnit === 'kilomet' ||
+        distanceUnit === 'ki lô mét'
+          ? distanceValue
+          : distanceValue / 1000
 
-      if (prices.length === 1) {
-        // Nếu chỉ có một giá, giả định đó là mức giá tối đa
-        criteria.price = { max: prices[0] }
+      criteria.distance = {
+        max: distanceInKm,
+      }
 
-        // Kiểm tra nếu có từ "khoảng" hoặc "tầm" thì thêm mức giá tối thiểu
-        if (/(khoảng|tầm|từ) *\d+/i.test(lowerMessage)) {
-          criteria.price.min = prices[0] * 0.8
+      // Nếu có thông tin về địa điểm cụ thể
+      if (locationMatch) {
+        const locationType = locationMatch[1].trim().toLowerCase()
+        const locationName = locationMatch[2].trim()
+
+        criteria.distance.location = {
+          type: locationType,
+          name: locationName,
+          text: `${locationType} ${locationName}`, // Thêm text dễ đọc
         }
-      } else if (prices.length >= 2) {
-        // Nếu có ít nhất hai giá, giả định đó là khoảng giá
-        criteria.price = { min: prices[0], max: prices[prices.length - 1] }
-      }
-    } else if (/(rẻ|giá rẻ|hợp lý|vừa phải)/i.test(lowerMessage)) {
-      // Nếu chỉ đề cập đến giá rẻ
-      criteria.price = { min: 1000000, max: 3000000 }
-    }
 
-    // Phân tích diện tích
-    const areaRegex = /(\d+(\.\d+)?)\s*(m2|m²|met vuong|mét vuông)/g
-    const areaMatches = [...lowerMessage.matchAll(areaRegex)]
-
-    if (areaMatches.length > 0) {
-      const areas = areaMatches
-        .map(match => parseFloat(match[1]))
-        .sort((a, b) => a - b)
-
-      if (areas.length === 1) {
-        criteria.area = { min: areas[0] * 0.8, max: areas[0] * 1.2 }
-      } else if (areas.length >= 2) {
-        criteria.area = { min: areas[0], max: areas[areas.length - 1] }
+        // Đặc biệt xử lý cho trường đại học Nam Cần Thơ
+        if (
+          lowerMessage.includes('nam cần thơ') ||
+          (locationType.includes('đại học') &&
+            locationName.toLowerCase().includes('nam cần thơ'))
+        ) {
+          criteria.distance.location.isUniversity = true
+          criteria.distance.location.coordinates = {
+            lat: 10.0175, // Tọa độ gần đúng của trường Đại học Nam Cần Thơ
+            lng: 105.7239,
+          }
+        }
       }
     }
 
-    // Phân tích tiện ích
-    const amenityKeywords = [
-      { keyword: 'máy lạnh|điều hòa', name: 'máy lạnh' },
-      { keyword: 'wifi|internet|mạng', name: 'wifi' },
-      { keyword: 'ban công', name: 'ban công' },
-      { keyword: 'tủ lạnh', name: 'tủ lạnh' },
-      { keyword: 'máy giặt', name: 'máy giặt' },
-      { keyword: 'bàn làm việc', name: 'bàn làm việc' },
-      { keyword: 'gác lửng|gác', name: 'gác lửng' },
-      {
-        keyword: 'nhà vệ sinh riêng|wc riêng|toilet riêng',
-        name: 'nhà vệ sinh riêng',
-      },
-      { keyword: 'bếp|nấu ăn', name: 'bếp' },
-      { keyword: 'an ninh|bảo vệ|camera|cổng bảo vệ', name: 'an ninh' },
-    ]
+    // Kiểm tra từ khóa cụ thể cho Đại học Nam Cần Thơ, ngay cả khi không có địa điểm rõ ràng
+    if (lowerMessage.includes('nam cần thơ')) {
+      if (criteria.distance && !criteria.distance.location) {
+        // Nếu đã có distance nhưng chưa có location
+        criteria.distance.location = {
+          type: 'đại học',
+          name: 'Nam Cần Thơ',
+          text: 'Đại học Nam Cần Thơ',
+          isUniversity: true,
+          coordinates: {
+            lat: 10.0175,
+            lng: 105.7239,
+          },
+        }
+      }
 
-    for (const amenity of amenityKeywords) {
-      if (new RegExp(amenity.keyword, 'i').test(lowerMessage)) {
-        criteria.amenities.push(amenity.name)
+      // Kiểm tra nếu là phần của câu có khoảng cách
+      if (!lowerMessage.match(/cách.*nam cần thơ|gần.*nam cần thơ/i)) {
+        criteria.address = 'Nam Cần Thơ'
+      }
+    } else if (lowerMessage.includes('cần thơ')) {
+      // Kiểm tra nếu là phần của câu có khoảng cách
+      if (!lowerMessage.match(/cách.*cần thơ|gần.*cần thơ/i)) {
+        criteria.address = 'Cần Thơ'
       }
     }
 
-    // Phân tích địa chỉ
-    const districtRegex =
-      /(quận|huyện|phường|q\.|q) *(\d+|[^\d\s,\.]+)|((bình thạnh)|(tân bình)|(phú nhuận)|(gò vấp)|(bình tân)|(thủ đức))/gi
-    const districtMatch = lowerMessage.match(districtRegex)
+    // Kiểm tra trực tiếp từ khóa chỉ khoảng cách
+    if (
+      lowerMessage.includes('dưới 1km') ||
+      lowerMessage.includes('dưới 1 km') ||
+      lowerMessage.includes('trong bán kính 1km') ||
+      lowerMessage.includes('trong bán kính 1 km') ||
+      lowerMessage.includes('< 1km') ||
+      lowerMessage.includes('<1km') ||
+      lowerMessage.includes('dưới 1')
+    ) {
+      if (!criteria.distance) {
+        criteria.distance = { max: 1 }
+      }
 
-    if (districtMatch) {
-      criteria.address = districtMatch[0]
+      // Nếu có đề cập đến Đại học Nam Cần Thơ
+      if (lowerMessage.includes('nam cần thơ')) {
+        if (!criteria.distance.location) {
+          criteria.distance.location = {
+            type: 'đại học',
+            name: 'Nam Cần Thơ',
+            text: 'Đại học Nam Cần Thơ',
+            isUniversity: true,
+            coordinates: {
+              lat: 10.0175,
+              lng: 105.7239,
+            },
+          }
+        }
+      }
+    }
+
+    // Trích xuất tiêu chí giá
+    const priceRegex =
+      /(?:giá|thuê|chi phí)\s+(?:khoảng|tầm|từ|dưới|trên)?\s*(\d+(?:[,\.]\d+)?)\s*(nghìn|triệu|tr|k|đồng|đ)?(?:\s*(?:-|đến|tới|~)\s*(\d+(?:[,\.]\d+)?)\s*(nghìn|triệu|tr|k|đồng|đ)?)?/i
+    const priceMatch = message.match(priceRegex)
+
+    if (priceMatch) {
+      criteria.price = {}
+
+      // Xử lý giá min
+      if (priceMatch[1]) {
+        let minPrice = parseFloat(priceMatch[1].replace(/[,\.]/g, '.'))
+        const minUnit = priceMatch[2] ? priceMatch[2].toLowerCase() : 'đồng'
+
+        if (minUnit.includes('triệu') || minUnit === 'tr') {
+          minPrice *= 1000000
+        } else if (minUnit.includes('nghìn') || minUnit === 'k') {
+          minPrice *= 1000
+        }
+
+        criteria.price.min = minPrice
+      }
+
+      // Xử lý giá max nếu có
+      if (priceMatch[3]) {
+        let maxPrice = parseFloat(priceMatch[3].replace(/[,\.]/g, '.'))
+        const maxUnit = priceMatch[4]
+          ? priceMatch[4].toLowerCase()
+          : priceMatch[2]
+            ? priceMatch[2].toLowerCase()
+            : 'đồng'
+
+        if (maxUnit.includes('triệu') || maxUnit === 'tr') {
+          maxPrice *= 1000000
+        } else if (maxUnit.includes('nghìn') || maxUnit === 'k') {
+          maxPrice *= 1000
+        }
+
+        criteria.price.max = maxPrice
+      }
+      // Nếu chỉ có "dưới X"
+      else if (message.match(/dưới\s+(\d+(?:[,\.]\d+)?)/i)) {
+        criteria.price.max = criteria.price.min
+        delete criteria.price.min
+      }
+      // Nếu chỉ có "trên X"
+      else if (message.match(/trên\s+(\d+(?:[,\.]\d+)?)/i)) {
+        // Giữ nguyên min, không cần max
+      }
+      // Nếu là "khoảng X" thì tạo range +/- 20%
+      else if (
+        message.match(/khoảng\s+(\d+(?:[,\.]\d+)?)/i) &&
+        !priceMatch[3]
+      ) {
+        const basePrice = criteria.price.min
+        criteria.price.min = basePrice * 0.8
+        criteria.price.max = basePrice * 1.2
+      }
+    }
+
+    // Trích xuất tiêu chí diện tích
+    const areaRegex =
+      /(?:diện tích|rộng|lớn)\s+(?:khoảng|tầm|từ|dưới|trên)?\s*(\d+(?:[,\.]\d+)?)\s*(m2|m²|mét vuông)?(?:\s*(?:-|đến|tới|~)\s*(\d+(?:[,\.]\d+)?)\s*(m2|m²|mét vuông)?)?/i
+    const areaMatch = message.match(areaRegex)
+
+    if (areaMatch) {
+      criteria.area = {}
+
+      // Xử lý diện tích min
+      if (areaMatch[1]) {
+        criteria.area.min = parseFloat(areaMatch[1].replace(/[,\.]/g, '.'))
+      }
+
+      // Xử lý diện tích max nếu có
+      if (areaMatch[3]) {
+        criteria.area.max = parseFloat(areaMatch[3].replace(/[,\.]/g, '.'))
+      }
+      // Nếu chỉ có "dưới X"
+      else if (message.match(/dưới\s+(\d+(?:[,\.]\d+)?)\s*m2/i)) {
+        criteria.area.max = criteria.area.min
+        delete criteria.area.min
+      }
+      // Nếu chỉ có "trên X"
+      else if (message.match(/trên\s+(\d+(?:[,\.]\d+)?)\s*m2/i)) {
+        // Giữ nguyên min, không cần max
+      }
+      // Nếu là "khoảng X" thì tạo range +/- 20%
+      else if (
+        message.match(/khoảng\s+(\d+(?:[,\.]\d+)?)\s*m2/i) &&
+        !areaMatch[3]
+      ) {
+        const baseArea = criteria.area.min
+        criteria.area.min = Math.floor(baseArea * 0.8)
+        criteria.area.max = Math.ceil(baseArea * 1.2)
+      }
+    }
+
+    // Nhận diện các tiện ích từ CSDL
+    const foundAmenities: string[] = []
+
+    // Thêm các từ khóa đồng nghĩa cho một số tiện ích phổ biến
+    const amenitySynonyms = {
+      'máy lạnh': ['điều hòa', 'máy lạnh', 'máy điều hòa'],
+      wifi: ['wifi', 'internet', 'mạng', 'wi-fi'],
+      'nhà vệ sinh riêng': [
+        'wc riêng',
+        'toilet riêng',
+        'nhà vệ sinh riêng',
+        'vệ sinh riêng',
+      ],
+      'tủ lạnh': ['tủ lạnh'],
+      'máy giặt': ['máy giặt'],
+      'gác lửng': ['gác lửng', 'gác xép', 'gác'],
+      'ban công': ['ban công', 'balcony'],
+      bếp: ['bếp', 'phòng bếp', 'khu bếp'],
+      'bàn làm việc': ['bàn làm việc', 'bàn học'],
+    }
+
+    // Kiểm tra đối với mỗi tiện ích đã biết trong CSDL
+    for (const amenity of this.amenities) {
+      // Kiểm tra trực tiếp tên tiện ích
+      if (lowerMessage.includes(amenity.name.toLowerCase())) {
+        foundAmenities.push(amenity.name)
+        continue
+      }
+
+      // Kiểm tra các từ đồng nghĩa
+      const synonyms = amenitySynonyms[amenity.name.toLowerCase()]
+      if (synonyms) {
+        for (const synonym of synonyms) {
+          if (lowerMessage.includes(synonym)) {
+            foundAmenities.push(amenity.name)
+            break
+          }
+        }
+      }
+    }
+
+    // Kiểm tra các mẫu regex phổ biến cho các tiện ích
+    if (
+      message.match(/có (máy lạnh|điều hòa)/i) &&
+      !foundAmenities.includes('máy lạnh')
+    ) {
+      foundAmenities.push('máy lạnh')
+    }
+
+    if (foundAmenities.length > 0) {
+      criteria.amenities = foundAmenities
     }
 
     return criteria
@@ -766,6 +971,11 @@ export class ChatbotService {
       result.address = basicCriteria.address
     }
 
+    // Nếu AI không trích xuất được khoảng cách, sử dụng kết quả phân tích cơ bản
+    if (!aiCriteria.distance && basicCriteria.distance) {
+      result.distance = basicCriteria.distance
+    }
+
     return result
   }
 
@@ -783,20 +993,46 @@ export class ChatbotService {
     }
 
     try {
+      // Xử lý trường hợp có distance.max nhưng không có location
+      if (
+        criteria.distance &&
+        criteria.distance.max &&
+        !criteria.distance.location
+      ) {
+        // Thêm vị trí mặc định - Đại học Nam Cần Thơ là nơi phổ biến
+        criteria.distance.location = {
+          type: 'đại học',
+          name: 'Nam Cần Thơ',
+          text: 'Đại học Nam Cần Thơ',
+          isUniversity: true,
+          coordinates: {
+            lat: 10.0175,
+            lng: 105.7239,
+          },
+        }
+        console.log('Đã thêm vị trí mặc định cho distance: Đại học Nam Cần Thơ')
+      }
+
       // Xử lý tiện ích trước để giảm số lượng tham số cần xử lý trong các truy vấn sau
       let amenityIds: number[] = []
       if (criteria.amenities && criteria.amenities.length > 0) {
-        // Tìm ID của các tiện ích từ tên
-        const amenities = await this.prisma.amenity.findMany({
-          where: {
-            name: {
-              in: criteria.amenities,
+        // Tìm ID của các tiện ích từ tên, sử dụng danh sách đã tải từ CSDL để tối ưu
+        if (this.amenities.length > 0) {
+          amenityIds = this.amenities
+            .filter(a => criteria.amenities.includes(a.name))
+            .map(a => a.id)
+        } else {
+          // Fallback nếu chưa tải được danh sách tiện ích
+          const amenities = await this.prisma.amenity.findMany({
+            where: {
+              name: {
+                in: criteria.amenities,
+              },
             },
-          },
-          select: { id: true }, // Chỉ lấy ID để giảm kích thước dữ liệu
-        })
-
-        amenityIds = amenities.map(a => a.id)
+            select: { id: true },
+          })
+          amenityIds = amenities.map(a => a.id)
+        }
       }
 
       // Khởi tạo điều kiện cơ bản
@@ -848,7 +1084,7 @@ export class ChatbotService {
       }
 
       // Thêm điều kiện địa chỉ nếu có
-      let rentalWhereCondition = {}
+      let rentalWhereCondition: any = {}
       if (criteria.address) {
         rentalWhereCondition = {
           address: {
@@ -858,7 +1094,16 @@ export class ChatbotService {
         }
       }
 
-      // Tìm bài đăng phù hợp với truy vấn một lần thay vì nhiều lần
+      // Thêm điều kiện khoảng cách nếu có
+      if (criteria.distance && criteria.distance.max) {
+        // Sử dụng trực tiếp trường distance trong database
+        rentalWhereCondition.distance = {
+          lte: criteria.distance.max,
+          not: null, // Đảm bảo distance không phải null
+        }
+      }
+
+      // Lấy các bài đăng phù hợp với tiêu chí cơ bản
       const posts = await this.prisma.rentalPost.findMany({
         where: {
           status: 'ACTIVE',
@@ -893,6 +1138,9 @@ export class ChatbotService {
                 select: {
                   id: true,
                   address: true,
+                  lat: true,
+                  lng: true,
+                  distance: true, // Lấy giá trị distance đã lưu
                 },
               },
             },
@@ -901,11 +1149,10 @@ export class ChatbotService {
         orderBy: {
           createdAt: 'desc',
         },
-        take: 10,
       })
 
-      // Map kết quả trả về dạng dễ đọc
-      const results = posts.map(post => {
+      // Map kết quả trả về dạng dễ đọc và sắp xếp theo distance nếu có
+      let results = posts.map(post => {
         const room = post.room
         const rental = room.rental
 
@@ -924,8 +1171,28 @@ export class ChatbotService {
           amenities: amenities,
           imageUrls: room.roomImages.map(img => img.imageUrl),
           createdAt: post.createdAt,
+          distance: rental.distance
+            ? parseFloat(rental.distance.toString())
+            : null,
         }
       })
+
+      // Lọc kết quả theo khoảng cách nếu cần (chỉ để đảm bảo an toàn)
+      if (criteria.distance && criteria.distance.max) {
+        results = results.filter(item => {
+          return (
+            item.distance !== null && item.distance <= criteria.distance.max
+          )
+        })
+
+        // Sắp xếp theo khoảng cách gần nhất
+        results.sort(
+          (a, b) => (a.distance || Infinity) - (b.distance || Infinity)
+        )
+      }
+
+      // Giới hạn kết quả để không quá lớn
+      results = results.slice(0, 10)
 
       // Lưu kết quả vào cache
       this.saveToCache(this.searchResultsCache, cacheKey, results)
@@ -937,6 +1204,41 @@ export class ChatbotService {
         'Lỗi khi tìm kiếm bài đăng: ' + error.message
       )
     }
+  }
+
+  /**
+   * Tính khoảng cách Haversine giữa hai tọa độ
+   * @param lat1 Vĩ độ điểm 1
+   * @param lng1 Kinh độ điểm 1
+   * @param lat2 Vĩ độ điểm 2
+   * @param lng2 Kinh độ điểm 2
+   * @returns Khoảng cách tính bằng km
+   */
+  private calculateDistance(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number {
+    const R = 6371 // Bán kính trái đất (km)
+    const dLat = this.toRadians(lat2 - lat1)
+    const dLng = this.toRadians(lng2 - lng1)
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(lat1)) *
+        Math.cos(this.toRadians(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    const distance = R * c
+    return parseFloat(distance.toFixed(2))
+  }
+
+  /**
+   * Chuyển đổi từ độ sang radian
+   */
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180)
   }
 
   /**
@@ -1063,40 +1365,74 @@ export class ChatbotService {
       // Thông tin về tiêu chí tìm kiếm
       const criteriaInfo = JSON.stringify(criteria, null, 2)
 
+      // Lấy 3 bài đăng gần nhất dựa trên trường distance trong Rental
+      const fallbackPosts = await this.prisma.rentalPost.findMany({
+        where: {
+          status: 'ACTIVE',
+          ...(criteria.distance && criteria.distance.max
+            ? { rental: { distance: { lte: criteria.distance.max * 2 } } }
+            : {}),
+        },
+        orderBy: {
+          rental: { distance: 'asc' },
+        },
+        take: 3,
+        select: {
+          room: {
+            select: {
+              price: true,
+              area: true,
+              roomImages: { take: 1, select: { imageUrl: true } },
+            },
+          },
+          rental: { select: { address: true, distance: true } },
+        },
+      })
+      // Chuẩn bị danh sách gợi ý
+      const fallbackList = fallbackPosts
+        .map((p, idx) => {
+          const price = p.room.price.toString()
+          const area = p.room.area
+          const addr = p.rental.address
+          const dist = p.rental.distance?.toString() || ''
+          return `${idx + 1}. Giá ${price} VND, diện tích ${area}m² tại ${addr} (${dist} km)`
+        })
+        .join('\n')
+
+      // Prompt gửi ChatGPT
       const prompt = `
       Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ.
       
-      Người dùng đã tìm kiếm phòng trọ nhưng không tìm thấy kết quả phù hợp. Hãy đưa ra một phản hồi hữu ích.
+Người dùng đã tìm kiếm phòng trọ nhưng không tìm thấy kết quả phù hợp.
       
       Tiêu chí tìm kiếm của người dùng:
       ${criteriaInfo}
       
       ${context}
       
-      Tin nhắn ban đầu của người dùng: "${message}"
+Dưới đây là một số gợi ý khác, gần với yêu cầu của bạn:
+${fallbackList}
       
-      Hãy đưa ra một phản hồi ngắn gọn, thân thiện với người dùng, bao gồm:
+Hãy đưa ra phản hồi ngắn gọn, thân thiện với người dùng, bao gồm:
       1. Thông báo không tìm thấy kết quả phù hợp
-      2. Giải thích lý do có thể là gì (ví dụ: tiêu chí quá cụ thể)
-      3. Gợi ý cách điều chỉnh tiêu chí tìm kiếm
-      4. Lời khuyên hữu ích cho người tìm phòng
-      
+2. Gợi ý xem qua các gợi ý bên dưới
+3. Cách điều chỉnh tiêu chí tìm kiếm để có nhiều kết quả hơn
       Hãy giữ câu trả lời dưới 150 từ:`
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 250,
+        max_tokens: 300,
       })
 
       return (
         completion.choices[0]?.message?.content ||
-        'Không tìm thấy bài đăng nào phù hợp với yêu cầu của bạn. Bạn có thể thử điều chỉnh tiêu chí tìm kiếm.'
+        `Không tìm thấy bài đăng nào phù hợp với yêu cầu của bạn. Bạn có thể thử điều chỉnh tiêu chí tìm kiếm.`
       )
     } catch (error) {
       console.error('Lỗi generateNoResultsResponse:', error)
-      // Fallback sang phương thức gợi ý cũ nếu có lỗi
+      // Fallback: gợi ý điều chỉnh tiêu chí
       const suggestions = this.suggestCriteriaAdjustments(criteria)
       return `Không tìm thấy bài đăng nào phù hợp với yêu cầu của bạn. ${suggestions || 'Bạn có thể thử điều chỉnh tiêu chí tìm kiếm.'}`
     }

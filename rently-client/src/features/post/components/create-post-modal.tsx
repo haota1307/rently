@@ -9,6 +9,11 @@ import { toast } from "sonner";
 import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { RentalPostStatus } from "@/schemas/post.schema";
 import { Input } from "@/components/ui/input";
+import { useAccountMe } from "@/features/profile/useProfile";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, AlertTriangle, InfoIcon } from "lucide-react";
+import { Role } from "@/constants/type";
+import { addDays, format } from "date-fns";
 
 import {
   Dialog,
@@ -32,16 +37,22 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     roomId: "",
     startDate: "",
     endDate: "",
-    pricePaid: "",
   });
 
   // State để lưu trữ các phòng trọ đã được lọc theo nhà trọ đã chọn
   const [filteredRooms, setFilteredRooms] = useState<any[]>([]);
+  // State để lưu thông tin phòng đã chọn
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
 
   const accessToken = getAccessTokenFromLocalStorage();
   const userId = accessToken ? decodeAccessToken(accessToken).userId : null;
 
   const { mutateAsync: createPost, isPending } = useCreatePost();
+  const { data: meData } = useAccountMe();
+  const userBalance = meData?.payload?.balance || 0;
+  const userRole = meData?.payload?.role?.name || "";
+  const isAdmin = userRole === Role.Admin;
+  const POST_FEE = 10000; // Phí đăng bài 10,000 VNĐ
 
   // Lấy danh sách nhà trọ của người dùng
   const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentalsById(
@@ -72,6 +83,34 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       setFilteredRooms([]);
     }
   }, [formData.rentalId, allRooms]);
+
+  // Cập nhật phòng đã chọn khi người dùng chọn phòng
+  useEffect(() => {
+    if (formData.roomId && filteredRooms.length > 0) {
+      const room = filteredRooms.find(
+        (room) => room.id === parseInt(formData.roomId)
+      );
+      setSelectedRoom(room || null);
+    } else {
+      setSelectedRoom(null);
+    }
+  }, [formData.roomId, filteredRooms]);
+
+  // Tự động cập nhật ngày kết thúc khi người dùng chọn ngày bắt đầu
+  useEffect(() => {
+    if (formData.startDate) {
+      const startDate = new Date(formData.startDate);
+      const endDate = addDays(startDate, 7);
+
+      // Format ngày theo định dạng YYYY-MM-DD cho input type="date"
+      const formattedEndDate = format(endDate, "yyyy-MM-dd");
+
+      setFormData((prev) => ({
+        ...prev,
+        endDate: formattedEndDate,
+      }));
+    }
+  }, [formData.startDate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -107,8 +146,21 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       return;
     }
 
+    if (!selectedRoom) {
+      toast.error("Không tìm thấy thông tin phòng đã chọn");
+      return;
+    }
+
     if (!formData.title) {
       toast.error("Vui lòng nhập tiêu đề bài đăng");
+      return;
+    }
+
+    // Kiểm tra số dư tài khoản nếu không phải admin
+    if (!isAdmin && userBalance < POST_FEE) {
+      toast.error(
+        `Số dư tài khoản không đủ để đăng bài. Vui lòng nạp thêm tiền.`
+      );
       return;
     }
 
@@ -127,7 +179,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       roomId: Number(formData.roomId),
       startDate: new Date(formData.startDate),
       endDate: new Date(formData.endDate),
-      pricePaid: Number(formData.pricePaid),
+      pricePaid: selectedRoom.price, // Sử dụng giá của phòng đã chọn
       status: RentalPostStatus.ACTIVE,
     };
 
@@ -145,8 +197,8 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
         roomId: "",
         startDate: "",
         endDate: "",
-        pricePaid: "",
       });
+      setSelectedRoom(null);
     } catch (err: any) {
       console.error("Error creating post:", err);
       toast.error(
@@ -166,6 +218,45 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
             Tạo bài đăng cho thuê phòng trọ của bạn
           </DialogDescription>
         </DialogHeader>
+
+        <Alert
+          className={
+            isAdmin
+              ? "mt-2 bg-green-50 border-green-200"
+              : "mt-2 bg-amber-50 border-amber-200"
+          }
+        >
+          {isAdmin ? (
+            <InfoIcon className="h-4 w-4 text-green-600" />
+          ) : (
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+          )}
+          <AlertTitle className={isAdmin ? "text-green-800" : "text-amber-800"}>
+            {isAdmin ? "Miễn phí đăng bài" : "Phí đăng bài"}
+          </AlertTitle>
+          <AlertDescription
+            className={isAdmin ? "text-green-700" : "text-amber-700"}
+          >
+            {isAdmin ? (
+              <span>
+                Bạn là admin nên được <strong>miễn phí</strong> khi đăng bài.
+              </span>
+            ) : (
+              <>
+                Khi đăng bài, hệ thống sẽ thu phí{" "}
+                <strong>{POST_FEE.toLocaleString()} VNĐ</strong> cho thời hạn{" "}
+                <strong>7 ngày</strong>. Số dư hiện tại của bạn:{" "}
+                <strong>{userBalance.toLocaleString()} VNĐ</strong>.
+                {userBalance < POST_FEE && (
+                  <div className="mt-2 text-red-600 font-medium">
+                    Số dư không đủ, vui lòng nạp thêm tiền để đăng bài.
+                  </div>
+                )}
+              </>
+            )}
+          </AlertDescription>
+        </Alert>
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             {/* Tiêu đề - giờ bắt buộc phải gửi đến API */}
@@ -274,51 +365,35 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                 />
               </div>
 
-              {/* Ngày kết thúc */}
+              {/* Ngày kết thúc (tự động cập nhật sau 7 ngày) */}
               <div className="grid w-full items-center gap-1.5">
                 <label htmlFor="endDate" className="text-sm font-medium">
-                  Ngày kết thúc <span className="text-red-500">*</span>
+                  Ngày kết thúc{" "}
+                  <span className="text-text-muted">(Hết hạn sau 7N)</span>
                 </label>
-                <input
-                  type="date"
-                  id="endDate"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleInputChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  required
-                />
+                <div className="flex h-10 w-full rounded-md border border-input bg-gray-50 px-3 py-2 text-sm items-center">
+                  {formData.endDate
+                    ? format(new Date(formData.endDate), "dd/MM/yyyy")
+                    : "---"}
+                </div>
               </div>
             </div>
 
-            {/* Giá đăng bài */}
-            <div className="grid w-full items-center gap-1.5">
-              <label htmlFor="pricePaid" className="text-sm font-medium">
-                Giá đăng bài <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="text"
-                pattern="[0-9]*"
-                id="pricePaid"
-                name="pricePaid"
-                value={formData.pricePaid}
-                placeholder="Nhập giá đăng bài"
-                onKeyPress={(e) => {
-                  if (!/[0-9]/.test(e.key)) {
-                    e.preventDefault();
-                  }
-                }}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "");
-                  setFormData({
-                    ...formData,
-                    pricePaid: value,
-                  });
-                }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                required
-              />
-            </div>
+            {/* Hiển thị giá phòng đã chọn */}
+            {selectedRoom && (
+              <div className="p-3 rounded-md bg-blue-50 border border-blue-100">
+                <p className="text-sm font-medium text-blue-800">
+                  Phòng đã chọn: {selectedRoom.title}
+                </p>
+                <p className="text-sm text-blue-700">
+                  Giá phòng:{" "}
+                  <strong>
+                    {new Intl.NumberFormat("vi-VN").format(selectedRoom.price)}đ
+                  </strong>{" "}
+                  (sẽ được dùng làm giá đăng bài)
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter className="mt-6 flex-col space-y-2 sm:space-y-0 sm:flex-row">
             <Button

@@ -11,12 +11,14 @@ import {
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
 import { isUniqueConstraintPrismaError } from 'src/shared/helpers'
+import { SharedPaymentRepository } from 'src/shared/repositories/shared-payment.repo'
 
 @Injectable()
 export class ProfileService {
   constructor(
     private readonly sharedUserRepository: SharedUserRepository,
-    private readonly hashingService: HashingService
+    private readonly hashingService: HashingService,
+    private readonly sharedPaymentRepository: SharedPaymentRepository
   ) {}
 
   async getProfile(userId: number) {
@@ -94,6 +96,27 @@ export class ProfileService {
         throw NotFoundRecordException
       }
       throw error
+    }
+  }
+
+  async getPaymentHistory(userId: number) {
+    // Kiểm tra người dùng tồn tại
+    const user = await this.sharedUserRepository.findUnique({
+      id: userId,
+      deletedAt: null,
+    })
+
+    if (!user) {
+      throw NotFoundRecordException
+    }
+
+    // Lấy lịch sử thanh toán
+    const payments =
+      await this.sharedPaymentRepository.getUserPaymentHistory(userId)
+
+    return {
+      status: 200,
+      payload: payments,
     }
   }
 }
