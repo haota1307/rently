@@ -106,7 +106,7 @@ export function PostDetailModal({
                   {post.status === RentalPostStatus.ACTIVE
                     ? "Đang hoạt động"
                     : post.status === RentalPostStatus.INACTIVE
-                    ? "Đang chờ duyệt"
+                    ? "Hết hạn"
                     : post.status === RentalPostStatus.DELETED
                     ? "Hết hạn"
                     : "Chưa xác định"}

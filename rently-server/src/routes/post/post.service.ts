@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common'
 import {
   CreatePostBodyType,
@@ -12,12 +13,14 @@ import {
 import { PostRepo } from 'src/routes/post/post.repo'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import { RoleName } from 'src/shared/constants/role.constant'
+import { Cron, CronExpression } from '@nestjs/schedule'
 
 import { NotFoundRecordException } from 'src/shared/error'
 
 @Injectable()
 export class PostService {
   private POST_FEE = 10000 // Phí đăng bài: 10,000 VNĐ
+  private readonly logger = new Logger(PostService.name)
 
   constructor(
     private readonly rentalPostRepo: PostRepo,
@@ -171,5 +174,58 @@ export class PostService {
       excludePostId,
       limit,
     })
+  }
+
+  /**
+   * Cron job chạy mỗi phút để cập nhật trạng thái các bài đăng đã hết hạn
+   * Chỉ xử lý các bài đăng mà endDate nhỏ hơn thời gian hiện tại và vẫn còn ACTIVE
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async updateExpiredPosts() {
+    try {
+      this.logger.log('Bắt đầu cập nhật trạng thái các bài đăng đã hết hạn')
+
+      // Lấy thời gian hiện tại UTC
+      const now = new Date()
+
+      // Tìm và cập nhật các bài đăng đã hết hạn và có trạng thái ACTIVE
+      const result = await this.prismaService.rentalPost.updateMany({
+        where: {
+          endDate: {
+            lt: now,
+          },
+          status: 'ACTIVE',
+        },
+        data: {
+          status: 'INACTIVE',
+        },
+      })
+
+      // Log chi tiết hơn để debug
+      if (result.count > 0) {
+        this.logger.log(
+          `Đã cập nhật ${result.count} bài đăng hết hạn thành INACTIVE (thời gian hiện tại: ${now.toISOString()})`
+        )
+      } else {
+        // Log thêm thông tin để debug
+        const expiredPostsCount = await this.prismaService.rentalPost.count({
+          where: {
+            endDate: {
+              lt: now,
+            },
+          },
+        })
+
+        this.logger.debug(
+          `Không có bài đăng nào được cập nhật (thời gian hiện tại: ${now.toISOString()}). ` +
+            `Tổng số bài đăng đã hết hạn: ${expiredPostsCount}`
+        )
+      }
+    } catch (error) {
+      this.logger.error(
+        `Lỗi khi cập nhật bài đăng hết hạn: ${error.message}`,
+        error.stack
+      )
+    }
   }
 }

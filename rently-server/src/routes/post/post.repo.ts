@@ -37,7 +37,12 @@ export class PostRepo {
     try {
       const skip = (pagination.page - 1) * pagination.limit
       const take = pagination.limit
-      const whereClause: any = {}
+      const whereClause: any = {
+        // Chỉ lấy các bài đăng còn hạn (endDate >= ngày hiện tại)
+        endDate: { gte: new Date() },
+        // Chỉ lấy các bài đăng có trạng thái ACTIVE
+        status: 'ACTIVE',
+      }
 
       if (pagination.title) {
         whereClause.title = {
@@ -314,72 +319,79 @@ export class PostRepo {
     maxPrice: number
     limit: number
   }) {
-    // Lấy tổng số bài đăng phù hợp với điều kiện
-    const totalItems = await this.prismaService.rentalPost.count({
-      where: {
-        id: { not: postId }, // Loại trừ chính bài đăng hiện tại
-        status: 'ACTIVE',
-        room: {
-          price: {
-            gte: minPrice,
-            lte: maxPrice,
+    try {
+      // Lấy tổng số bài đăng có mức giá tương tự
+      const totalItems = await this.prismaService.rentalPost.count({
+        where: {
+          id: { not: postId }, // Loại trừ bài đăng hiện tại
+          room: {
+            price: {
+              gte: minPrice,
+              lte: maxPrice,
+            },
+            isAvailable: true, // Chỉ lấy các phòng còn trống
           },
-          isAvailable: true, // Chỉ lấy các phòng còn trống
+          status: 'ACTIVE', // Chỉ lấy các bài đăng có trạng thái ACTIVE
+          endDate: { gte: new Date() }, // Chỉ lấy các bài đăng còn hạn
         },
-      },
-    })
+      })
 
-    // Lấy danh sách bài đăng
-    const posts = await this.prismaService.rentalPost.findMany({
-      where: {
-        id: { not: postId }, // Loại trừ chính bài đăng hiện tại
-        status: 'ACTIVE',
-        room: {
-          price: {
-            gte: minPrice,
-            lte: maxPrice,
+      // Lấy danh sách bài đăng
+      const posts = await this.prismaService.rentalPost.findMany({
+        where: {
+          id: { not: postId }, // Loại trừ bài đăng hiện tại
+          room: {
+            price: {
+              gte: minPrice,
+              lte: maxPrice,
+            },
+            isAvailable: true, // Chỉ lấy các phòng còn trống
           },
-          isAvailable: true, // Chỉ lấy các phòng còn trống
+          status: 'ACTIVE', // Chỉ lấy các bài đăng có trạng thái ACTIVE
+          endDate: { gte: new Date() }, // Chỉ lấy các bài đăng còn hạn
         },
-      },
-      take: limit,
-      orderBy: {
-        createdAt: 'desc', // Lấy bài đăng mới nhất
-      },
-      include: {
-        room: {
-          include: {
-            roomImages: true,
-            roomAmenities: {
-              include: {
-                amenity: true,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc', // Lấy bài đăng mới nhất
+        },
+        include: {
+          room: {
+            include: {
+              roomImages: true,
+              roomAmenities: {
+                include: {
+                  amenity: true,
+                },
               },
             },
           },
-        },
-        landlord: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
+          landlord: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+            },
+          },
+          rental: {
+            select: {
+              id: true,
+              title: true,
+              address: true,
+            },
           },
         },
-        rental: {
-          select: {
-            id: true,
-            title: true,
-            address: true,
-          },
-        },
-      },
-    })
+      })
 
-    return {
-      data: posts,
-      totalItems,
-      page: 1,
-      limit,
-      totalPages: Math.ceil(totalItems / limit),
+      return {
+        data: posts,
+        totalItems,
+        page: 1,
+        limit,
+        totalPages: Math.ceil(totalItems / limit),
+      }
+    } catch (error) {
+      console.error('Error in getSimilarByPrice:', error)
+      throw new InternalServerErrorException(error.message)
     }
   }
 
@@ -398,6 +410,7 @@ export class PostRepo {
         id: { not: excludePostId }, // Loại trừ bài đăng hiện tại
         rentalId: rentalId,
         status: 'ACTIVE',
+        endDate: { gte: new Date() }, // Chỉ lấy các bài đăng còn hạn
         room: {
           isAvailable: true, // Chỉ lấy các phòng còn trống
         },
@@ -410,6 +423,7 @@ export class PostRepo {
         id: { not: excludePostId }, // Loại trừ bài đăng hiện tại
         rentalId: rentalId,
         status: 'ACTIVE',
+        endDate: { gte: new Date() }, // Chỉ lấy các bài đăng còn hạn
         room: {
           isAvailable: true, // Chỉ lấy các phòng còn trống
         },
