@@ -320,18 +320,13 @@ export class PaymentService {
           description: payment.description || '',
         })
 
-        // Thông báo cho phòng admin
+        // Thông báo cho phòng admin - chỉ gửi 1 sự kiện duy nhất
         this.eventsGateway.notifyAdmins('withdraw-confirm', {
           withdrawId: payment.id,
           status: payment.status,
           amount: payment.amount,
           description: payment.description || '',
-        })
-
-        // Thông báo cập nhật giao dịch
-        this.eventsGateway.server.emit('transaction-updated', {
-          id: payment.id,
-          status: payment.status,
+          timestamp: new Date().toISOString(),
         })
       }
 

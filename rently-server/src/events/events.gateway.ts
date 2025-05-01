@@ -33,6 +33,8 @@ export class EventsGateway
   @WebSocketServer() server: Server
   private logger: Logger = new Logger('EventsGateway')
   private userSocketMap: Map<number, string[]> = new Map() // userId -> socketIds[]
+  private recentEvents: Map<string, { timestamp: number; data: any }> =
+    new Map()
 
   constructor(private readonly tokenService: TokenService) {}
 
@@ -434,6 +436,7 @@ export class EventsGateway
       status: string
       amount: number
       description?: string
+      timestamp?: string
     }
   ) {
     this.logger.log(`Gửi thông báo cập nhật thanh toán cho userId: ${userId}`)
@@ -450,6 +453,11 @@ export class EventsGateway
     this.logger.log(
       `Gửi thông báo đến ${userSockets.length} socket của user ${userId}`
     )
+
+    // Thêm timestamp nếu chưa có
+    if (!paymentData.timestamp) {
+      paymentData.timestamp = new Date().toISOString()
+    }
 
     userSockets.forEach(socketId => {
       this.server.to(socketId).emit('paymentStatusUpdated', paymentData)
@@ -511,8 +519,44 @@ export class EventsGateway
 
   /**
    * Thông báo tới admin-room
+   * Thêm cơ chế chống trùng lặp
    */
   notifyAdmins(eventName: string, data: any) {
+    // Thêm timestamp nếu chưa có
+    if (!data.timestamp) {
+      data.timestamp = new Date().toISOString()
+    }
+
+    // Tạo ID duy nhất cho sự kiện này
+    const eventId = `${eventName}-${data.withdrawId || data.id || 'unknown'}-${data.timestamp}`
+
+    // Kiểm tra xem sự kiện này đã được gửi gần đây chưa (trong vòng 5 giây)
+    const now = Date.now()
+    const existingEvent = this.recentEvents.get(eventId)
+
+    if (existingEvent && now - existingEvent.timestamp < 5000) {
+      this.logger.warn(
+        `Sự kiện ${eventId} đã được gửi trước đó, bỏ qua để tránh trùng lặp.`
+      )
+      return 0
+    }
+
+    // Lưu sự kiện này vào danh sách đã gửi
+    this.recentEvents.set(eventId, { timestamp: now, data })
+
+    // Xóa các sự kiện cũ (giữ map trong giới hạn 100 mục)
+    if (this.recentEvents.size > 100) {
+      const keysToDelete = [...this.recentEvents.keys()]
+        .sort(
+          (a, b) =>
+            (this.recentEvents.get(a)?.timestamp || 0) -
+            (this.recentEvents.get(b)?.timestamp || 0)
+        )
+        .slice(0, this.recentEvents.size - 100)
+
+      keysToDelete.forEach(key => this.recentEvents.delete(key))
+    }
+
     this.logger.log(
       `Gửi sự kiện "${eventName}" đến admin-room: ${JSON.stringify(data)}`
     )
