@@ -301,11 +301,6 @@ const WithdrawManagementPage = () => {
             }
           });
 
-          // Sau khi cập nhật, cũng làm mới toàn bộ danh sách để đảm bảo
-          setTimeout(() => {
-            fetchWithdrawRequests(statusFilter);
-          }, 1000);
-
           return true;
         } else {
           // Nếu không tìm thấy giao dịch cụ thể, làm mới toàn bộ danh sách
@@ -324,10 +319,6 @@ const WithdrawManagementPage = () => {
   // Hàm chung để đóng modal và cập nhật danh sách khi có sự kiện từ server
   const closeModalAndUpdateList = useCallback(
     (withdrawId: number, status: string, amount?: number) => {
-      console.log(
-        `Xử lý cập nhật cho rút tiền #${withdrawId} với trạng thái ${status}`
-      );
-
       // Nếu đang hiển thị modal QR cho yêu cầu vừa được cập nhật
       if (selectedRequest && selectedRequest.id === withdrawId) {
         // Đóng modal và reset state
@@ -375,7 +366,6 @@ const WithdrawManagementPage = () => {
   // Xử lý dữ liệu từ sự kiện payment status updated
   const processPaymentUpdateData = useCallback(
     (updateData: any) => {
-      console.log("Xử lý dữ liệu payment status updated:", updateData);
       let withdrawId = null;
 
       // Trích xuất ID từ dữ liệu
@@ -406,7 +396,6 @@ const WithdrawManagementPage = () => {
   // Xử lý sự kiện payment status updated
   const handlePaymentStatusUpdate = useCallback(
     (data: any) => {
-      console.log("Nhận sự kiện paymentStatusUpdated:", data);
       try {
         // Xử lý dữ liệu
         if (data && data.id) {
@@ -417,7 +406,6 @@ const WithdrawManagementPage = () => {
 
           // Kiểm tra xem sự kiện này đã được xử lý chưa
           if (processedEvents.current.has(eventId)) {
-            console.log(`Sự kiện ${eventId} đã được xử lý trước đó, bỏ qua.`);
             return;
           }
 
@@ -442,24 +430,17 @@ const WithdrawManagementPage = () => {
   // Xử lý sự kiện withdraw-confirm
   const handleWithdrawConfirm = useCallback(
     (data: any) => {
-      console.log("Nhận sự kiện withdraw-confirm:", data);
       if (data && data.withdrawId && data.timestamp) {
         // Tạo một ID duy nhất cho sự kiện này
         const eventId = `withdraw-${data.withdrawId}-${data.timestamp}`;
 
         // Kiểm tra xem sự kiện này đã được xử lý chưa
         if (processedEvents.current.has(eventId)) {
-          console.log(`Sự kiện ${eventId} đã được xử lý trước đó, bỏ qua.`);
           return;
         }
 
         // Đánh dấu sự kiện này đã được xử lý
         processedEvents.current.add(eventId);
-
-        // Log thêm để debug
-        console.log(
-          `Handler withdraw-confirm: Đóng dialog và cập nhật trạng thái ID #${data.withdrawId}`
-        );
 
         closeModalAndUpdateList(
           parseInt(data.withdrawId),
@@ -503,10 +484,7 @@ const WithdrawManagementPage = () => {
     // Tham gia room admin sau khi kết nối
     const joinAdminRoom = () => {
       if (socket.connected) {
-        console.log("Tham gia admin-room qua socket");
         emitSocketEvent("join-admin-room", { role: "admin" });
-
-        // Tham gia room cụ thể cho admin
         socket.emit("join", "admin-room");
       }
     };
@@ -516,7 +494,6 @@ const WithdrawManagementPage = () => {
 
     // Lắng nghe sự kiện kết nối thành công để join room
     const handleConnect = () => {
-      console.log("Socket đã kết nối lại, tham gia admin-room");
       joinAdminRoom();
     };
 
@@ -527,7 +504,6 @@ const WithdrawManagementPage = () => {
       if (socket.connected) {
         emitSocketEvent("ping", { timestamp: new Date().toISOString() });
       } else {
-        console.log("Socket mất kết nối, đang thử kết nối lại...");
         socket.connect();
       }
     }, 15000); // Rút ngắn thời gian ping xuống 15 giây
@@ -543,18 +519,10 @@ const WithdrawManagementPage = () => {
     if (!socket) return;
 
     const handleJoinAdminRoomResponse = (data: any) => {
-      console.log("Phản hồi tham gia admin-room:", data);
-      if (data.success) {
-        toast.success("Đã kết nối với hệ thống quản lý rút tiền", {
-          id: "admin-room-connected",
-        });
-      } else {
-        console.error("Không thể tham gia admin-room:", data.message);
-        // Thử tham gia lại sau 5 giây
+      if (!data.success && socket && socket.connected) {
+        // Thử tham gia lại sau 5 giây nếu không thành công
         setTimeout(() => {
-          if (socket && socket.connected) {
-            emitSocketEvent("join-admin-room", { role: "admin" });
-          }
+          emitSocketEvent("join-admin-room", { role: "admin" });
         }, 5000);
       }
     };
@@ -1118,7 +1086,7 @@ const WithdrawManagementPage = () => {
 
               {/* Bank Info Section */}
               {selectedRequest && (
-                <div className="p-6 space-y-5 bg-muted/10 max-h-[600px] overflow-y-auto">
+                <div className="p-6 space-y-5 bg-muted/10">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <BanknoteIcon className="h-5 w-5 text-primary" />
