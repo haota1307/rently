@@ -137,14 +137,24 @@ export function WalletTab() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleDepositClick}
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Nạp tiền
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleDepositClick}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Nạp tiền
+              </Button>
+              <Button
+                variant="default"
+                className="w-full"
+                onClick={() => router.push("/rut-tien")}
+              >
+                <ArrowDownCircle className="h-4 w-4 mr-2" />
+                Rút tiền
+              </Button>
+            </div>
           </CardFooter>
         </Card>
 

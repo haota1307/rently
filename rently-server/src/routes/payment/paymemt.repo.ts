@@ -277,4 +277,169 @@ export class PaymentRepo {
       where,
     })
   }
+
+  // Thêm phương thức tạo yêu cầu rút tiền
+  async createWithdrawRequest(
+    userId: number,
+    amount: number,
+    bankName: string,
+    bankAccountNumber: string,
+    bankAccountName: string,
+    description?: string
+  ) {
+    // Kiểm tra số dư tài khoản
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      throw new BadRequestException('Không tìm thấy thông tin người dùng')
+    }
+
+    if (user.balance < amount) {
+      throw new BadRequestException(
+        `Số dư không đủ để thực hiện yêu cầu rút tiền. Số dư hiện tại: ${user.balance}, yêu cầu rút: ${amount}`
+      )
+    }
+
+    // Tạo một yêu cầu rút tiền mới
+    const paymentData: any = {
+      amount,
+      status: PaymentStatus.PENDING,
+      description:
+        description ||
+        `Yêu cầu rút tiền về tài khoản ${bankAccountNumber} - ${bankName}`,
+      userId,
+      metadata: {
+        bankName,
+        bankAccountNumber,
+        bankAccountName,
+        isWithdraw: true,
+      },
+    }
+
+    const payment = await this.prismaService.payment.create({
+      data: paymentData,
+      include: {
+        user: true,
+      },
+    })
+
+    // Tạm thời trừ tiền từ tài khoản người dùng để đảm bảo không bị rút quá số dư
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: {
+        balance: { decrement: amount },
+      },
+    })
+
+    // Tạo một giao dịch tạm thời
+    const transaction = await this.prismaService.paymentTransaction.create({
+      data: {
+        gateway: 'SYSTEM',
+        transactionDate: new Date(),
+        accountNumber: bankAccountNumber,
+        subAccount: null,
+        amountIn: 0,
+        amountOut: amount,
+        accumulated: user.balance - amount,
+        code: `RUT${payment.id}`,
+        transactionContent: `Yêu cầu rút tiền về tài khoản ${bankAccountNumber} - ${bankName}`,
+        referenceNumber: null,
+        body:
+          description ||
+          `Yêu cầu rút tiền về tài khoản ${bankAccountNumber} - ${bankName}`,
+        userId,
+      },
+    })
+
+    // Cập nhật transaction cho payment
+    await this.prismaService.payment.update({
+      where: { id: payment.id },
+      data: {
+        transactionId: transaction.id,
+      },
+    })
+
+    return payment
+  }
+
+  // Phương thức để admin xử lý yêu cầu rút tiền
+  async processWithdrawRequest(
+    paymentId: number,
+    status: 'COMPLETED' | 'REJECTED',
+    rejectionReason?: string
+  ) {
+    const payment = await this.prismaService.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        user: true,
+        transaction: true,
+      },
+    })
+
+    if (!payment) {
+      throw new BadRequestException(
+        `Không tìm thấy yêu cầu rút tiền với ID ${paymentId}`
+      )
+    }
+
+    // Kiểm tra xem có phải yêu cầu rút tiền không
+    const paymentData = payment as any // Cast để truy cập field metadata
+    if (!paymentData.metadata || !paymentData.metadata.isWithdraw) {
+      throw new BadRequestException(
+        `Giao dịch này không phải là yêu cầu rút tiền`
+      )
+    }
+
+    // Kiểm tra trạng thái hiện tại
+    if (payment.status !== PaymentStatus.PENDING) {
+      throw new ConflictException(
+        `Yêu cầu rút tiền #${paymentId} đã được xử lý trước đó`
+      )
+    }
+
+    // Xử lý theo trạng thái mới
+    if (status === 'COMPLETED') {
+      // Đã hoàn thành rút tiền - không cần thực hiện gì thêm vì tiền đã bị trừ khi tạo yêu cầu
+      await this.prismaService.payment.update({
+        where: { id: paymentId },
+        data: {
+          status: PaymentStatus.COMPLETED,
+        },
+      })
+
+      return {
+        message: `Yêu cầu rút tiền #${paymentId} đã được xử lý thành công`,
+        paymentId,
+      }
+    } else if (status === 'REJECTED') {
+      // Từ chối yêu cầu rút tiền - hoàn lại tiền cho người dùng
+      await this.prismaService.$transaction(async prisma => {
+        // Cập nhật trạng thái thanh toán
+        await prisma.payment.update({
+          where: { id: paymentId },
+          data: {
+            status: PaymentStatus.CANCELED,
+            description: `${payment.description} - Bị từ chối: ${rejectionReason || 'Không có lý do'}`,
+          },
+        })
+
+        // Hoàn lại tiền cho người dùng
+        await prisma.user.update({
+          where: { id: payment.userId },
+          data: {
+            balance: { increment: payment.amount },
+          },
+        })
+      })
+
+      return {
+        message: `Yêu cầu rút tiền #${paymentId} đã bị từ chối, tiền đã được hoàn lại`,
+        paymentId,
+      }
+    }
+
+    throw new BadRequestException('Trạng thái không hợp lệ')
+  }
 }

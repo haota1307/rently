@@ -19,6 +19,12 @@ import {
   SepayBankAccountDetailsSchema,
   SepayBankAccountResponseSchema,
   TransactionSummarySchema,
+  WithdrawRequestSchema,
+  WithdrawRequestResponseSchema,
+  UpdateWithdrawRequestSchema,
+  UpdateWithdrawRequestResponseSchema,
+  GenerateWithdrawQrSchema,
+  GenerateWithdrawQrResponseSchema,
 } from 'src/routes/payment/payment.model'
 
 // Request DTOs
@@ -27,6 +33,10 @@ export class WebhookPaymentBodyDTO extends createZodDto(
 ) {}
 
 export class GenerateQrDTO extends createZodDto(GenerateQrSchema) {}
+
+export class GenerateWithdrawQrDTO extends createZodDto(
+  GenerateWithdrawQrSchema
+) {}
 
 export class CreatePaymentDTO extends createZodDto(CreatePaymentSchema) {}
 
@@ -40,6 +50,12 @@ export class GetTransactionParamsDTO extends createZodDto(
 
 export class GetTransactionDetailDTO extends createZodDto(
   GetTransactionDetailSchema
+) {}
+
+export class WithdrawRequestDTO extends createZodDto(WithdrawRequestSchema) {}
+
+export class UpdateWithdrawRequestDTO extends createZodDto(
+  UpdateWithdrawRequestSchema
 ) {}
 
 // Response DTOs
@@ -79,6 +95,14 @@ export class SepayBankAccountResponseDTO extends createZodDto(
   SepayBankAccountResponseSchema
 ) {}
 
+export class WithdrawRequestResponseDTO extends createZodDto(
+  WithdrawRequestResponseSchema
+) {}
+
+export class UpdateWithdrawRequestResponseDTO extends createZodDto(
+  UpdateWithdrawRequestResponseSchema
+) {}
+
 // Định nghĩa lại response của getBankInfo
 export const GetBankInfoResponseSchema = z.object({
   status: z.number(),
@@ -96,4 +120,9 @@ export class GetBankInfoResponseDTO extends createZodDto(
 // Định nghĩa response cho thống kê giao dịch
 export class TransactionSummaryResponseDTO extends createZodDto(
   TransactionSummarySchema
+) {}
+
+// DTO cho tạo mã QR rút tiền
+export class GenerateWithdrawQrResponseDTO extends createZodDto(
+  GenerateWithdrawQrResponseSchema
 ) {}

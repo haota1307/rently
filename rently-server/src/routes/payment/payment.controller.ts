@@ -6,6 +6,8 @@ import {
   Get,
   Query,
   Param,
+  Put,
+  BadRequestException,
 } from '@nestjs/common'
 import { PaymentService } from './payment.service'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
@@ -27,6 +29,12 @@ import {
   GetTransactionDetailResponseDTO,
   GetBankInfoResponseDTO,
   TransactionSummaryResponseDTO,
+  WithdrawRequestDTO,
+  WithdrawRequestResponseDTO,
+  UpdateWithdrawRequestDTO,
+  UpdateWithdrawRequestResponseDTO,
+  GenerateWithdrawQrDTO,
+  GenerateWithdrawQrResponseDTO,
 } from 'src/routes/payment/payment.dto'
 import { AuthType } from 'src/shared/constants/auth.constant'
 import { EventsGateway } from 'src/events/events.gateway'
@@ -61,6 +69,13 @@ export class PaymentController {
   @IsPublic()
   async generateQrCode(@Query() query: GenerateQrDTO) {
     return this.paymentService.generateQrCode(query.paymentId)
+  }
+
+  @Get('/withdraw-qrcode')
+  @ZodSerializerDto(GenerateWithdrawQrResponseDTO)
+  @IsPublic()
+  async generateWithdrawQrCode(@Query() query: GenerateWithdrawQrDTO) {
+    return this.paymentService.generateWithdrawQrCode(query.withdrawId)
   }
 
   @Get('/status/:id')
@@ -104,5 +119,66 @@ export class PaymentController {
   @IsPublic()
   async getBankInfo() {
     return this.paymentService.getBankInfo()
+  }
+
+  @Post('/withdraw')
+  @ZodSerializerDto(WithdrawRequestResponseDTO)
+  @IsPublic()
+  async createWithdrawRequest(@Body() body: WithdrawRequestDTO) {
+    return this.paymentService.createWithdrawRequest(
+      body.userId,
+      body.amount,
+      body.bankName,
+      body.bankAccountNumber,
+      body.bankAccountName,
+      body.description
+    )
+  }
+
+  @Put('/withdraw/:id')
+  @ZodSerializerDto(UpdateWithdrawRequestResponseDTO)
+  @IsPublic()
+  async processWithdrawRequest(
+    @Param('id') id: string,
+    @Body() body: UpdateWithdrawRequestDTO
+  ) {
+    return this.paymentService.processWithdrawRequest(
+      parseInt(id, 10),
+      body.status,
+      body.rejectionReason
+    )
+  }
+
+  @Post('/withdraw-confirm')
+  @ZodSerializerDto(MessageResponseDTO)
+  @Auth([AuthType.APIKey])
+  async confirmWithdrawTransaction(@Body() body: WebhookPaymentBodyDTO) {
+    const withdrawIdMatch = body.content?.match(/#RUT(\d+)/)
+
+    if (!withdrawIdMatch || !withdrawIdMatch[1]) {
+      throw new BadRequestException(
+        'Không tìm thấy mã giao dịch rút tiền trong nội dung chuyển khoản'
+      )
+    }
+
+    const withdrawId = parseInt(withdrawIdMatch[1], 10)
+
+    // Gọi service để xác nhận giao dịch chuyển tiền đã hoàn tất
+    const result = await this.paymentService.confirmWithdrawTransaction(
+      withdrawId,
+      body
+    )
+
+    // Thông báo qua WebSocket nếu cần
+    if (result.userId) {
+      this.eventsGateway.notifyPaymentStatusUpdated(result.userId, {
+        id: withdrawId,
+        status: 'COMPLETED',
+        amount: body.transferAmount,
+        description: body.content || '',
+      })
+    }
+
+    return result
   }
 }

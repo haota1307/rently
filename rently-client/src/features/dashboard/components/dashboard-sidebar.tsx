@@ -46,6 +46,11 @@ const defaultData = {
       icon: CreditCard,
     },
     {
+      title: "Quản lý rút tiền",
+      url: "/quan-ly/rut-tien",
+      icon: CreditCard,
+    },
+    {
       title: "Quản lý người dùng",
       url: "/quan-ly/nguoi-dung",
       icon: User,

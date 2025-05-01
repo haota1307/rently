@@ -126,6 +126,25 @@ export const GenerateQrResponseSchema = z.object({
   }),
 })
 
+export const GenerateWithdrawQrResponseSchema = z.object({
+  status: z.number(),
+  error: z.null(),
+  messages: z.object({
+    success: z.boolean(),
+  }),
+  qrCodeData: z.object({
+    qrCodeUrl: z.string(),
+    withdrawId: z.number(),
+    amount: z.number(),
+    transferContent: z.string(),
+    recipientInfo: z.object({
+      bankName: z.string(),
+      bankAccountNumber: z.string(),
+      bankAccountName: z.string(),
+    }),
+  }),
+})
+
 export const CheckPaymentStatusResponseSchema = z.object({
   id: z.number(),
   status: z.string(),
@@ -251,6 +270,55 @@ export const TransactionSummarySchema = z.object({
   }),
 })
 
+// Thêm schema cho yêu cầu rút tiền
+export const WithdrawRequestSchema = z.object({
+  userId: z.number().int().positive('ID người dùng phải là số nguyên dương'),
+  amount: z.number().min(10000, 'Số tiền tối thiểu rút là 10.000 VND'),
+  bankName: z.string().min(2, 'Tên ngân hàng không được để trống'),
+  bankAccountNumber: z.string().min(5, 'Số tài khoản không hợp lệ'),
+  bankAccountName: z.string().min(2, 'Tên chủ tài khoản không được để trống'),
+  description: z.string().optional(),
+})
+
+// Response schema cho yêu cầu rút tiền
+export const WithdrawRequestResponseSchema = z.object({
+  status: z.number(),
+  error: z.null(),
+  messages: z.object({
+    success: z.boolean(),
+  }),
+  withdrawRequest: z.object({
+    id: z.number(),
+    amount: z.number(),
+    status: z.string(),
+    description: z.string().nullable(),
+    userId: z.number(),
+    bankName: z.string(),
+    bankAccountNumber: z.string(),
+    bankAccountName: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+  }),
+})
+
+// Schema cho cập nhật trạng thái yêu cầu rút tiền (dành cho admin)
+export const UpdateWithdrawRequestSchema = z.object({
+  status: z.enum(['COMPLETED', 'REJECTED']),
+  rejectionReason: z.string().optional(),
+})
+
+// Response schema cho cập nhật yêu cầu rút tiền
+export const UpdateWithdrawRequestResponseSchema = MessageResponseSchema
+
+export const GenerateWithdrawQrSchema = z.object({
+  withdrawId: z
+    .string()
+    .transform(val => parseInt(val, 10))
+    .refine(val => !isNaN(val) && val > 0, {
+      message: 'ID yêu cầu rút tiền phải là số nguyên dương',
+    }),
+})
+
 export type PaymentTransactionType = z.infer<typeof PaymentTransactionSchema>
 export type WebhookPaymentBodyType = z.infer<typeof WebhookPaymentBodySchema>
 export type GenerateQrType = z.infer<typeof GenerateQrSchema>
@@ -286,4 +354,16 @@ export type SepayBankAccountDetailsType = z.infer<
 >
 export type SepayBankAccountResponseType = z.infer<
   typeof SepayBankAccountResponseSchema
+>
+
+// Export types
+export type WithdrawRequestType = z.infer<typeof WithdrawRequestSchema>
+export type WithdrawRequestResponseType = z.infer<
+  typeof WithdrawRequestResponseSchema
+>
+export type UpdateWithdrawRequestType = z.infer<
+  typeof UpdateWithdrawRequestSchema
+>
+export type UpdateWithdrawRequestResponseType = z.infer<
+  typeof UpdateWithdrawRequestResponseSchema
 >

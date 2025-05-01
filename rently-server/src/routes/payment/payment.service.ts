@@ -9,7 +9,9 @@ import { PaymentProducer } from 'src/routes/payment/payment.producer'
 import envConfig from 'src/shared/config'
 import { PaymentStatus } from '@prisma/client'
 import { EventsGateway } from 'src/events/events.gateway'
+import { PrismaService } from 'src/shared/services/prisma.service'
 import axios from 'axios'
+import { parse } from 'date-fns'
 
 @Injectable()
 export class PaymentService {
@@ -20,7 +22,8 @@ export class PaymentService {
   constructor(
     private readonly paymentRepo: PaymentRepo,
     private readonly paymentProducer: PaymentProducer,
-    private readonly eventsGateway: EventsGateway
+    private readonly eventsGateway: EventsGateway,
+    private readonly prismaService: PrismaService
   ) {
     // Lấy thông tin tài khoản từ config
     this.bankAccount = envConfig.BANK_ACCOUNT
@@ -105,6 +108,113 @@ export class PaymentService {
   }
 
   /**
+   * Tạo QR code cho việc rút tiền
+   * @param withdrawId ID của yêu cầu rút tiền
+   * @returns URL đến QR code và thông tin chuyển khoản
+   */
+  async generateWithdrawQrCode(withdrawId: number) {
+    // Lấy thông tin yêu cầu rút tiền
+    const withdrawRequest = await this.paymentRepo.getPaymentById(withdrawId)
+
+    if (!withdrawRequest) {
+      throw new NotFoundException(
+        `Không tìm thấy yêu cầu rút tiền với ID ${withdrawId}`
+      )
+    }
+
+    // Kiểm tra xem có phải yêu cầu rút tiền không
+    const paymentData = withdrawRequest as any
+    if (!paymentData.metadata || !paymentData.metadata.isWithdraw) {
+      throw new BadRequestException(
+        `Giao dịch này không phải là yêu cầu rút tiền`
+      )
+    }
+
+    // Kiểm tra trạng thái
+    if (withdrawRequest.status !== PaymentStatus.PENDING) {
+      throw new BadRequestException(
+        `Yêu cầu rút tiền #${withdrawId} không ở trạng thái chờ xử lý`
+      )
+    }
+
+    // Trích xuất thông tin chuyển khoản từ metadata
+    const bankName = paymentData.metadata.bankName || ''
+    const bankAccountNumber = paymentData.metadata.bankAccountNumber || ''
+    const bankAccountName = paymentData.metadata.bankAccountName || ''
+
+    // Tạo nội dung chuyển khoản (kèm mã yêu cầu rút tiền)
+    const transferContent = `SEVQR #RUT${withdrawId}`
+
+    // Tạo URL QR code cho SePay
+    const qrCodeUrl = `https://qr.sepay.vn/img?acc=${bankAccountNumber}&bank=${bankName}&amount=${withdrawRequest.amount}&des=${transferContent}`
+
+    return this.createSuccessResponse({
+      qrCodeData: {
+        qrCodeUrl,
+        withdrawId,
+        amount: withdrawRequest.amount,
+        transferContent,
+        recipientInfo: {
+          bankName,
+          bankAccountNumber,
+          bankAccountName,
+        },
+      },
+    })
+  }
+
+  /**
+   * Lấy mã ngân hàng từ tên ngân hàng
+   * @private
+   */
+  private getBankCodeFromName(bankName: string): string {
+    const bankCodes: Record<string, string> = {
+      CAKE: 'CAKE', // Cake by VPBank
+      VietinBank: 'ICB',
+      Vietcombank: 'VCB',
+      BIDV: 'BIDV',
+      Agribank: 'AGR',
+      Techcombank: 'TCB',
+      MBBank: 'MB',
+      ACB: 'ACB',
+      VPBank: 'VPB',
+      TPBank: 'TPB',
+      VIB: 'VIB',
+      SHB: 'SHB',
+      OCB: 'OCB',
+      MSB: 'MSB',
+      SCB: 'SCB',
+      SeABank: 'SEAB',
+      VietCapitalBank: 'VCCB',
+      Eximbank: 'EIB',
+      HDBank: 'HDB',
+      LienVietPostBank: 'LPB',
+      PVcomBank: 'PVCB',
+      SaigonBank: 'SGB',
+      BacABank: 'BAB',
+      PGBank: 'PGB',
+      VietABank: 'VAB',
+      NamABank: 'NAB',
+      KienLongBank: 'KLB',
+      ABBank: 'ABB',
+      GPBank: 'GPB',
+      OceanBank: 'OJB',
+      BaoVietBank: 'BVB',
+      MOMO: 'MOMO',
+      ZaloPay: 'ZALOPAY',
+    }
+
+    // Tìm mã ngân hàng từ tên hoặc trả về mã mặc định
+    for (const [key, value] of Object.entries(bankCodes)) {
+      if (bankName.toLowerCase().includes(key.toLowerCase())) {
+        return value
+      }
+    }
+
+    return 'ICB' // Mặc định là VietinBank nếu không tìm thấy
+  }
+
+  /**
    * Kiểm tra trạng thái thanh toán
    * @param paymentId ID của thanh toán
    * @returns Thông tin thanh toán hiện tại
@@ -126,6 +236,200 @@ export class PaymentService {
       userId: payment.userId,
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
+    }
+  }
+
+  /**
+   * Tạo yêu cầu rút tiền mới
+   */
+  async createWithdrawRequest(
+    userId: number,
+    amount: number,
+    bankName: string,
+    bankAccountNumber: string,
+    bankAccountName: string,
+    description?: string
+  ) {
+    try {
+      const payment = await this.paymentRepo.createWithdrawRequest(
+        userId,
+        amount,
+        bankName,
+        bankAccountNumber,
+        bankAccountName,
+        description
+      )
+
+      // Truy cập metadata một cách an toàn bằng cách cast
+      const paymentData = payment as any
+      const metadata = paymentData.metadata
+
+      // Thông báo cho người dùng qua WebSocket
+      this.eventsGateway.notifyPaymentStatusUpdated(userId, {
+        id: payment.id,
+        status: payment.status,
+        amount: payment.amount,
+        description: payment.description || '',
+      })
+
+      return this.createSuccessResponse({
+        withdrawRequest: {
+          id: payment.id,
+          amount: payment.amount,
+          status: payment.status,
+          description: payment.description,
+          userId: payment.userId,
+          bankName: metadata?.bankName || '',
+          bankAccountNumber: metadata?.bankAccountNumber || '',
+          bankAccountName: metadata?.bankAccountName || '',
+          createdAt: payment.createdAt,
+          updatedAt: payment.updatedAt,
+        },
+      })
+    } catch (error) {
+      throw new BadRequestException(
+        error.message || 'Không thể tạo yêu cầu rút tiền'
+      )
+    }
+  }
+
+  /**
+   * Xử lý yêu cầu rút tiền (dành cho admin)
+   */
+  async processWithdrawRequest(
+    paymentId: number,
+    status: 'COMPLETED' | 'REJECTED',
+    rejectionReason?: string
+  ) {
+    try {
+      const result = await this.paymentRepo.processWithdrawRequest(
+        paymentId,
+        status,
+        rejectionReason
+      )
+
+      // Lấy thông tin người dùng để thông báo
+      const payment = await this.paymentRepo.getPaymentById(paymentId)
+
+      if (payment && payment.userId) {
+        this.eventsGateway.notifyPaymentStatusUpdated(payment.userId, {
+          id: payment.id,
+          status: payment.status,
+          amount: payment.amount,
+          description: payment.description || '',
+        })
+      }
+
+      return result
+    } catch (error) {
+      throw new BadRequestException(
+        error.message || 'Không thể xử lý yêu cầu rút tiền'
+      )
+    }
+  }
+
+  /**
+   * Xác nhận giao dịch chuyển tiền rút tiền từ webhook
+   */
+  async confirmWithdrawTransaction(
+    withdrawId: number,
+    webhookData: WebhookPaymentBodyType
+  ) {
+    try {
+      // Kiểm tra xem yêu cầu rút tiền có tồn tại không
+      const payment = await this.paymentRepo.getPaymentById(withdrawId)
+
+      if (!payment) {
+        throw new NotFoundException(
+          `Không tìm thấy yêu cầu rút tiền với ID ${withdrawId}`
+        )
+      }
+
+      // Kiểm tra xem có phải yêu cầu rút tiền không
+      const paymentData = payment as any
+      if (!paymentData.metadata || !paymentData.metadata.isWithdraw) {
+        throw new BadRequestException(
+          `Giao dịch này không phải là yêu cầu rút tiền`
+        )
+      }
+
+      // Kiểm tra số tiền chuyển khoản
+      if (webhookData.transferAmount !== payment.amount) {
+        console.warn(
+          `Cảnh báo: Số tiền chuyển khoản (${webhookData.transferAmount}) không khớp với số tiền yêu cầu (${payment.amount})`
+        )
+        // Không báo lỗi ở đây, vì có thể admin đã chuyển khác số tiền yêu cầu
+      }
+
+      // Kiểm tra trạng thái hiện tại
+      if (payment.status === PaymentStatus.COMPLETED) {
+        return {
+          message: `Yêu cầu rút tiền #${withdrawId} đã được xử lý trước đó`,
+          paymentId: withdrawId,
+          userId: payment.userId,
+        }
+      }
+
+      // Ghi nhận giao dịch từ webhook
+      let amountIn = 0
+      let amountOut = 0
+
+      if (webhookData.transferType === 'in') {
+        amountIn = webhookData.transferAmount
+      } else if (webhookData.transferType === 'out') {
+        amountOut = webhookData.transferAmount
+      }
+
+      // Tạo giao dịch mới nếu cần, hoặc cập nhật giao dịch hiện tại
+      if (!payment.transactionId) {
+        const transaction = await this.prismaService.paymentTransaction.create({
+          data: {
+            id: webhookData.id,
+            gateway: webhookData.gateway,
+            transactionDate: parse(
+              webhookData.transactionDate,
+              'yyyy-MM-dd HH:mm:ss',
+              new Date()
+            ),
+            accountNumber: webhookData.accountNumber || '',
+            subAccount: webhookData.subAccount,
+            amountIn,
+            amountOut,
+            accumulated: webhookData.accumulated,
+            code: webhookData.code,
+            transactionContent: webhookData.content,
+            referenceNumber: webhookData.referenceCode,
+            body: webhookData.description,
+            userId: payment.userId,
+          },
+        })
+
+        // Cập nhật transaction ID cho payment
+        await this.prismaService.payment.update({
+          where: { id: withdrawId },
+          data: {
+            transactionId: transaction.id,
+          },
+        })
+      }
+
+      // Cập nhật trạng thái thanh toán
+      await this.prismaService.payment.update({
+        where: { id: withdrawId },
+        data: {
+          status: PaymentStatus.COMPLETED,
+        },
+      })
+
+      return {
+        message: `Xác nhận chuyển khoản thành công cho yêu cầu rút tiền #${withdrawId}`,
+        paymentId: withdrawId,
+        userId: payment.userId,
+      }
+    } catch (error) {
+      throw new BadRequestException(
+        error.message || 'Không thể xác nhận giao dịch chuyển khoản'
+      )
     }
   }
 

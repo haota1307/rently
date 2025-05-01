@@ -35,6 +35,15 @@ const queryClient = new QueryClient({
   },
 });
 
+// Thêm các type cho socket events
+type SocketEventHandler = (...args: any[]) => void;
+type PaymentStatusUpdate = {
+  id: number;
+  status: string;
+  amount: number;
+  description?: string;
+};
+
 type AppStoreType = {
   isAuth: boolean;
   role: RoleType | undefined;
@@ -42,9 +51,33 @@ type AppStoreType = {
   socket: Socket | undefined;
   setSocket: (socket?: Socket | undefined) => void;
   disconnectSocket: () => void;
+  // Thêm các phương thức quản lý socket events
+  registerSocketEvent: (eventName: string, handler: SocketEventHandler) => void;
+  unregisterSocketEvent: (
+    eventName: string,
+    handler: SocketEventHandler
+  ) => void;
+  emitSocketEvent: (eventName: string, ...args: any[]) => void;
+  // Thêm trạng thái và phương thức cho payment status
+  paymentStatusListeners: Map<
+    number,
+    ((status: PaymentStatusUpdate) => void)[]
+  >;
+  addPaymentStatusListener: (
+    paymentId: number,
+    listener: (status: PaymentStatusUpdate) => void
+  ) => void;
+  removePaymentStatusListener: (
+    paymentId: number,
+    listener?: (status: PaymentStatusUpdate) => void
+  ) => void;
+  notifyPaymentStatusUpdate: (data: PaymentStatusUpdate) => void;
 };
 
-export const useAppStore = create<AppStoreType>((set) => ({
+// Map để lưu trữ các event handlers
+const socketEventHandlers = new Map<string, SocketEventHandler[]>();
+
+export const useAppStore = create<AppStoreType>((set, get) => ({
   isAuth: false, // Mặc định false cho SSR
   role: undefined,
   setRole: (role?: RoleType) => set({ role, isAuth: !!role }),
@@ -55,7 +88,139 @@ export const useAppStore = create<AppStoreType>((set) => ({
       state.socket?.disconnect();
       return { socket: undefined };
     }),
+
+  // Event management
+  registerSocketEvent: (eventName: string, handler: SocketEventHandler) => {
+    const { socket } = get();
+    if (!socket) return;
+
+    // Add to handler map
+    const handlers = socketEventHandlers.get(eventName) || [];
+    if (!handlers.includes(handler)) {
+      handlers.push(handler);
+      socketEventHandlers.set(eventName, handlers);
+
+      // Register with socket if it's the first handler
+      if (handlers.length === 1) {
+        socket.on(eventName, (...args) => {
+          const currentHandlers = socketEventHandlers.get(eventName) || [];
+          currentHandlers.forEach((h) => h(...args));
+        });
+      }
+    }
+  },
+
+  unregisterSocketEvent: (eventName: string, handler: SocketEventHandler) => {
+    // Remove from handler map
+    const handlers = socketEventHandlers.get(eventName) || [];
+    const index = handlers.indexOf(handler);
+    if (index !== -1) {
+      handlers.splice(index, 1);
+      socketEventHandlers.set(eventName, handlers);
+    }
+  },
+
+  emitSocketEvent: (eventName: string, ...args: any[]) => {
+    const { socket } = get();
+    if (socket && socket.connected) {
+      socket.emit(eventName, ...args);
+    }
+  },
+
+  // Payment status listeners
+  paymentStatusListeners: new Map(),
+
+  addPaymentStatusListener: (
+    paymentId: number,
+    listener: (status: PaymentStatusUpdate) => void
+  ) => {
+    const { paymentStatusListeners } = get();
+    const listeners = paymentStatusListeners.get(paymentId) || [];
+    if (!listeners.includes(listener)) {
+      listeners.push(listener);
+      paymentStatusListeners.set(paymentId, listeners);
+    }
+    set({ paymentStatusListeners });
+  },
+
+  removePaymentStatusListener: (
+    paymentId: number,
+    listener?: (status: PaymentStatusUpdate) => void
+  ) => {
+    const { paymentStatusListeners } = get();
+    if (listener) {
+      const listeners = paymentStatusListeners.get(paymentId) || [];
+      const index = listeners.indexOf(listener);
+      if (index !== -1) {
+        listeners.splice(index, 1);
+        if (listeners.length === 0) {
+          paymentStatusListeners.delete(paymentId);
+        } else {
+          paymentStatusListeners.set(paymentId, listeners);
+        }
+      }
+    } else {
+      // Remove all listeners for this payment ID
+      paymentStatusListeners.delete(paymentId);
+    }
+    set({ paymentStatusListeners });
+  },
+
+  notifyPaymentStatusUpdate: (data: PaymentStatusUpdate) => {
+    const { paymentStatusListeners } = get();
+    const listeners = paymentStatusListeners.get(data.id) || [];
+    listeners.forEach((listener) => listener(data));
+  },
 }));
+
+// Hook hỗ trợ đăng ký sự kiện socket
+export function useSocketEvent(
+  eventName: string,
+  handler: SocketEventHandler,
+  dependencies: any[] = []
+) {
+  const { socket, registerSocketEvent, unregisterSocketEvent } = useAppStore();
+
+  useEffect(() => {
+    if (socket && socket.connected) {
+      registerSocketEvent(eventName, handler);
+
+      return () => {
+        unregisterSocketEvent(eventName, handler);
+      };
+    }
+  }, [
+    socket,
+    eventName,
+    registerSocketEvent,
+    unregisterSocketEvent,
+    ...dependencies,
+  ]);
+}
+
+// Hook hỗ trợ theo dõi trạng thái payment
+export function usePaymentStatusListener(
+  paymentId: number | undefined,
+  callback: (status: PaymentStatusUpdate) => void
+) {
+  const { addPaymentStatusListener, removePaymentStatusListener } =
+    useAppStore();
+
+  useEffect(() => {
+    if (paymentId) {
+      addPaymentStatusListener(paymentId, callback);
+
+      return () => {
+        removePaymentStatusListener(paymentId, callback);
+      };
+    }
+  }, [
+    paymentId,
+    callback,
+    addPaymentStatusListener,
+    removePaymentStatusListener,
+  ]);
+}
 
 export default function AppProvider({
   children,
@@ -64,6 +229,10 @@ export default function AppProvider({
 }) {
   const setRole = useAppStore((state) => state.setRole);
   const setSocket = useAppStore((state) => state.setSocket);
+  const registerSocketEvent = useAppStore((state) => state.registerSocketEvent);
+  const notifyPaymentStatusUpdate = useAppStore(
+    (state) => state.notifyPaymentStatusUpdate
+  );
   const count = useRef(0);
   const [mounted, setMounted] = useState(false);
   const [socket, setSocketState] = useState<Socket | null>(null);
@@ -95,10 +264,28 @@ export default function AppProvider({
       // Đăng ký socket với userId từ token
       if (socketInstance && userId) {
         socketInstance.emit("registerUser", userId);
+
+        // Tham gia room riêng cho user
+        socketInstance.emit("join-user-room", { userId });
+
+        // Tham gia room riêng cho admin nếu là admin
+        if (role === Role.Admin) {
+          socketInstance.emit("join-admin-room", { role: "admin" });
+        }
       }
 
-      // Lắng nghe sự kiện cập nhật vai trò
+      // Thiết lập ping để giữ kết nối socket
+      const pingInterval = setInterval(() => {
+        if (socketInstance && socketInstance.connected) {
+          socketInstance.emit("ping", { timestamp: new Date().toISOString() });
+        } else if (socketInstance) {
+          // Thử kết nối lại nếu mất kết nối
+          socketInstance.connect();
+        }
+      }, 30000);
+
       if (socketInstance) {
+        // Lắng nghe sự kiện cập nhật vai trò
         socketInstance.on(
           "roleUpdate",
           (data: { status: string; note?: string }) => {
@@ -151,7 +338,6 @@ export default function AppProvider({
                 // Chuyển hướng người dùng đến trang đăng nhập
                 window.location.href = "/dang-nhap?blocked=true";
               } catch (error) {
-                console.error("Lỗi khi đăng xuất:", error);
                 // Fallback nếu có lỗi
                 removeTokensFromLocalStorage();
                 window.location.href = "/dang-nhap?blocked=true";
@@ -159,18 +345,103 @@ export default function AppProvider({
             }, 0);
           }
         );
-      }
-    }
 
-    // Cleanup khi component unmount
-    return () => {
-      if (socket) {
-        socket.off("roleUpdate");
-        socket.off("accountBlocked");
-        socket.disconnect();
+        // Lắng nghe các sự kiện thanh toán từ server
+        socketInstance.on("withdraw-confirm", (data: any) => {
+          if (data && data.withdrawId) {
+            notifyPaymentStatusUpdate({
+              id: data.withdrawId,
+              status: "COMPLETED",
+              amount: data.amount || 0,
+              description: data.description || "",
+            });
+          }
+        });
+
+        socketInstance.on("withdraw-reject", (data: any) => {
+          if (data && data.withdrawId) {
+            notifyPaymentStatusUpdate({
+              id: data.withdrawId,
+              status: "REJECTED",
+              amount: data.amount || 0,
+              description: data.description || "",
+            });
+          }
+        });
+
+        socketInstance.on("transaction-updated", (data: any) => {
+          if (data && data.id) {
+            notifyPaymentStatusUpdate({
+              id: data.id,
+              status: data.status || "UPDATED",
+              amount: data.amount || 0,
+              description: data.description || "",
+            });
+          }
+        });
+
+        socketInstance.on("paymentStatusUpdated", (data: any) => {
+          try {
+            // Trường hợp 1: Dữ liệu là mảng
+            if (Array.isArray(data) && data.length > 0) {
+              const updateData = data[0];
+              processPaymentUpdateData(updateData);
+            }
+            // Trường hợp 2: Dữ liệu là object đơn
+            else if (data && typeof data === "object") {
+              processPaymentUpdateData(data);
+            }
+          } catch (err) {
+            // Bỏ qua lỗi
+          }
+        });
+
+        // Hàm xử lý dữ liệu paymentStatusUpdated
+        const processPaymentUpdateData = (updateData: any) => {
+          let paymentId: number | null = null;
+
+          // Trường hợp 1: Dữ liệu có id trực tiếp
+          if (updateData.id) {
+            paymentId = updateData.id;
+          }
+          // Trường hợp 2: Lấy id từ description (mẫu #RUTxx)
+          else if (
+            updateData.description &&
+            typeof updateData.description === "string" &&
+            updateData.description.includes("#RUT")
+          ) {
+            const match = updateData.description.match(/#RUT(\d+)/);
+            if (match && match[1]) {
+              paymentId = parseInt(match[1], 10);
+            }
+          }
+
+          if (paymentId) {
+            notifyPaymentStatusUpdate({
+              id: paymentId,
+              status: updateData.status || "COMPLETED",
+              amount: updateData.amount || 0,
+              description: updateData.description || "",
+            });
+          }
+        };
       }
-    };
-  }, [setRole, setSocket]);
+
+      // Cleanup khi component unmount
+      return () => {
+        clearInterval(pingInterval);
+        if (socketInstance) {
+          socketInstance.off("roleUpdate");
+          socketInstance.off("accountBlocked");
+          socketInstance.off("withdraw-confirm");
+          socketInstance.off("withdraw-reject");
+          socketInstance.off("transaction-updated");
+          socketInstance.off("paymentStatusUpdated");
+          socketInstance.disconnect();
+        }
+      };
+    }
+  }, [setRole, setSocket, notifyPaymentStatusUpdate]);
 
   return (
     <QueryClientProvider client={queryClient}>

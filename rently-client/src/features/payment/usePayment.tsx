@@ -13,6 +13,17 @@ export interface PaymentState {
     accountNumber: string;
     accountName: string;
   };
+  withdrawalInfo?: {
+    id: number;
+    amount: number;
+    status: string;
+    description: string;
+    bankName: string;
+    bankAccountNumber: string;
+    bankAccountName: string;
+    createdAt: string;
+    updatedAt: string;
+  };
   error?: string;
   status:
     | "idle"
@@ -20,7 +31,9 @@ export interface PaymentState {
     | "qr-generated"
     | "checking"
     | "completed"
-    | "failed";
+    | "failed"
+    | "withdraw-requested"
+    | "withdraw-completed";
 }
 
 export const useCreatePaymentMutation = () => {
@@ -41,6 +54,12 @@ export const useCheckPaymentStatusMutation = () => {
   });
 };
 
+export const useCreateWithdrawMutation = () => {
+  return useMutation({
+    mutationFn: paymentApiRequest.createWithdrawRequest,
+  });
+};
+
 export const usePayment = () => {
   const [state, setState] = useState<PaymentState>({
     loading: false,
@@ -50,6 +69,7 @@ export const usePayment = () => {
   const createPaymentMutation = useCreatePaymentMutation();
   const getQrCodeMutation = useGetPaymentQrCodeMutation();
   const checkStatusMutation = useCheckPaymentStatusMutation();
+  const createWithdrawMutation = useCreateWithdrawMutation();
 
   /**
    * Tạo yêu cầu nạp tiền
@@ -177,6 +197,137 @@ export const usePayment = () => {
   };
 
   /**
+   * Tạo yêu cầu rút tiền
+   */
+  const createWithdraw = async (
+    userId: number,
+    amount: number,
+    bankName: string,
+    bankAccountNumber: string,
+    bankAccountName: string,
+    description?: string
+  ) => {
+    setState((prev) => ({
+      ...prev,
+      loading: true,
+      status: "creating",
+      error: undefined,
+    }));
+
+    try {
+      const result = await createWithdrawMutation.mutateAsync({
+        userId,
+        amount,
+        bankName,
+        bankAccountNumber,
+        bankAccountName,
+        description: description || "Rút tiền từ tài khoản",
+      });
+
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        amount: result.withdrawRequest.amount,
+        withdrawalInfo: result.withdrawRequest,
+        status: "withdraw-requested",
+      }));
+    } catch (error: any) {
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error:
+          error?.response?.data?.message ||
+          "Có lỗi xảy ra khi tạo yêu cầu rút tiền",
+        status: "failed",
+      }));
+    }
+  };
+
+  /**
+   * Kiểm tra trạng thái rút tiền
+   */
+  const checkWithdrawStatus = async (withdrawId: number) => {
+    if (!withdrawId) {
+      setState((prev) => ({
+        ...prev,
+        error: "Không có yêu cầu rút tiền nào đang xử lý",
+      }));
+      return;
+    }
+
+    console.log("Đang kiểm tra trạng thái rút tiền cho ID:", withdrawId);
+
+    setState((prev) => ({
+      ...prev,
+      loading: true,
+      error: undefined,
+    }));
+
+    try {
+      // Sử dụng API getTransactions để lấy thông tin giao dịch
+      const result = await paymentApiRequest.getTransactions({
+        id: withdrawId,
+      });
+
+      console.log("Kết quả API getTransactions:", result);
+
+      if (
+        result &&
+        result.status === 200 &&
+        result.payload?.transactions?.length > 0
+      ) {
+        const transaction = result.payload.transactions[0];
+        console.log("Thông tin giao dịch rút tiền:", transaction);
+        console.log("Trạng thái giao dịch:", transaction.status);
+
+        // Xác định trạng thái UI từ trạng thái giao dịch
+        const uiStatus =
+          transaction.status === "COMPLETED"
+            ? "withdraw-completed"
+            : "withdraw-requested";
+
+        console.log("Trạng thái UI mới:", uiStatus);
+
+        // Cập nhật thông tin rút tiền và trạng thái
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          withdrawalInfo: {
+            id: parseInt(transaction.id),
+            userId: transaction.user?.id ? parseInt(transaction.user.id) : 0,
+            amount: parseFloat(transaction.amount_out),
+            status: transaction.status,
+            description: transaction.transaction_content || "",
+            bankName: transaction.metadata?.bankName || "",
+            bankAccountNumber: transaction.metadata?.bankAccountNumber || "",
+            bankAccountName: transaction.metadata?.bankAccountName || "",
+            createdAt: transaction.transaction_date,
+            updatedAt: transaction.transaction_date,
+          },
+          status: uiStatus,
+        }));
+      } else {
+        console.log(
+          "Không tìm thấy thông tin giao dịch rút tiền hoặc API trả về lỗi"
+        );
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+        }));
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi kiểm tra trạng thái rút tiền:", error);
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error:
+          error?.response?.data?.message ||
+          "Có lỗi xảy ra khi kiểm tra trạng thái rút tiền",
+      }));
+    }
+  };
+
+  /**
    * Reset trạng thái
    */
   const resetPayment = () => {
@@ -191,9 +342,12 @@ export const usePayment = () => {
     isCreating: createPaymentMutation.isPending,
     isGeneratingQr: getQrCodeMutation.isPending,
     isChecking: checkStatusMutation.isPending,
+    isWithdrawing: createWithdrawMutation.isPending,
     createPayment,
     generateQrCode,
     checkPayment,
+    createWithdraw,
+    checkWithdrawStatus,
     resetPayment,
   };
 };
