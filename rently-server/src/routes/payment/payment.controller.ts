@@ -169,7 +169,7 @@ export class PaymentController {
       body
     )
 
-    // Thông báo qua WebSocket nếu cần
+    // Thông báo qua WebSocket cho người dùng
     if (result.userId) {
       this.eventsGateway.notifyPaymentStatusUpdated(result.userId, {
         id: withdrawId,
@@ -178,6 +178,20 @@ export class PaymentController {
         description: body.content || '',
       })
     }
+
+    // Thông báo cho admin room để cập nhật trạng thái trên trang quản lý
+    this.eventsGateway.notifyAdmins('withdraw-confirm', {
+      withdrawId: withdrawId,
+      status: 'COMPLETED',
+      amount: body.transferAmount,
+      description: body.content || '',
+    })
+
+    // Thông báo cập nhật giao dịch cho tất cả client kết nối
+    this.eventsGateway.server.emit('transaction-updated', {
+      id: withdrawId,
+      status: 'COMPLETED',
+    })
 
     return result
   }

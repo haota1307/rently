@@ -312,11 +312,26 @@ export class PaymentService {
       const payment = await this.paymentRepo.getPaymentById(paymentId)
 
       if (payment && payment.userId) {
+        // Thông báo cho người dùng
         this.eventsGateway.notifyPaymentStatusUpdated(payment.userId, {
           id: payment.id,
           status: payment.status,
           amount: payment.amount,
           description: payment.description || '',
+        })
+
+        // Thông báo cho phòng admin
+        this.eventsGateway.notifyAdmins('withdraw-confirm', {
+          withdrawId: payment.id,
+          status: payment.status,
+          amount: payment.amount,
+          description: payment.description || '',
+        })
+
+        // Thông báo cập nhật giao dịch
+        this.eventsGateway.server.emit('transaction-updated', {
+          id: payment.id,
+          status: payment.status,
         })
       }
 

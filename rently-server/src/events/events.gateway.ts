@@ -457,4 +457,75 @@ export class EventsGateway
 
     return true
   }
+
+  @SubscribeMessage('join-admin-room')
+  handleJoinAdminRoom(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: SocketWithUser
+  ) {
+    // Kiểm tra xem client có role admin không
+    if (client.user && client.user.role === 'ADMIN') {
+      this.logger.log(`Admin socket ${client.id} đang tham gia admin-room`)
+      client.join('admin-room')
+
+      // Gửi xác nhận tham gia thành công
+      client.emit('joinAdminRoomResponse', {
+        success: true,
+        message: 'Đã tham gia admin-room thành công',
+        room: 'admin-room',
+      })
+
+      return { status: 'success', room: 'admin-room' }
+    } else {
+      this.logger.warn(
+        `Client ${client.id} không phải admin nhưng đang cố gắng tham gia admin-room`
+      )
+      client.emit('joinAdminRoomResponse', {
+        success: false,
+        message: 'Không có quyền tham gia admin-room',
+      })
+
+      return { status: 'error', message: 'Không có quyền' }
+    }
+  }
+
+  @SubscribeMessage('ping')
+  handlePing(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: SocketWithUser
+  ) {
+    this.logger.log(
+      `Ping from client ${client.id}, user: ${client.user?.id || 'unknown'}`
+    )
+
+    return {
+      event: 'pong',
+      data: {
+        serverTime: new Date().toISOString(),
+        clientData: data,
+        userId: client.user?.id,
+        role: client.user?.role,
+      },
+    }
+  }
+
+  /**
+   * Thông báo tới admin-room
+   */
+  notifyAdmins(eventName: string, data: any) {
+    this.logger.log(
+      `Gửi sự kiện "${eventName}" đến admin-room: ${JSON.stringify(data)}`
+    )
+
+    // Lấy danh sách socket trong phòng admin
+    const adminRoom = this.server.sockets.adapter.rooms.get('admin-room')
+    const adminSocketCount = adminRoom ? adminRoom.size : 0
+
+    this.logger.log(`Số lượng socket trong admin-room: ${adminSocketCount}`)
+
+    // Gửi sự kiện đến room admin
+    this.server.to('admin-room').emit(eventName, data)
+
+    return adminSocketCount > 0
+  }
 }

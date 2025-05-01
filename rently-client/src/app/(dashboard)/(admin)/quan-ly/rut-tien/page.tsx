@@ -318,45 +318,119 @@ const WithdrawManagementPage = () => {
     [selectedRequest, statusFilter, fetchWithdrawRequests]
   );
 
-  // ===== SOCKET HANDLERS =====
+  // Hàm chung để đóng modal và cập nhật danh sách khi có sự kiện từ server
+  const closeModalAndUpdateList = useCallback(
+    (withdrawId: number, status: string, amount?: number) => {
+      console.log(
+        `Xử lý cập nhật cho rút tiền #${withdrawId} với trạng thái ${status}`
+      );
+
+      // Nếu đang hiển thị modal QR cho yêu cầu vừa được cập nhật
+      if (selectedRequest && selectedRequest.id === withdrawId) {
+        // Đóng modal và reset state
+        setOpenQrDialog(false);
+        setQrCodeUrl(null);
+        setVietQrUrl(null);
+        setSelectedRequest(null);
+        setProcessingId(null);
+
+        // Hiển thị thông báo
+        if (status === "COMPLETED") {
+          toast.success(
+            `Yêu cầu rút tiền #${withdrawId} đã được xác nhận thành công`
+          );
+        } else if (status === "REJECTED") {
+          toast.error(`Yêu cầu rút tiền #${withdrawId} đã bị từ chối`);
+        } else {
+          toast.info(
+            `Trạng thái yêu cầu rút tiền #${withdrawId} đã được cập nhật thành ${status}`
+          );
+        }
+      }
+
+      // Cập nhật trạng thái trong danh sách
+      setWithdrawRequests((prevRequests) =>
+        prevRequests.map((req) => {
+          if (req.id === withdrawId) {
+            return {
+              ...req,
+              status,
+              updatedAt: new Date().toISOString(),
+              amount: amount !== undefined ? amount : req.amount,
+            };
+          }
+          return req;
+        })
+      );
+
+      // Gọi API để cập nhật đầy đủ thông tin từ server
+      fetchAndUpdateSingleWithdraw(withdrawId);
+    },
+    [selectedRequest, fetchAndUpdateSingleWithdraw]
+  );
+
   // Xử lý sự kiện withdraw-confirm
   const handleWithdrawConfirm = useCallback(
     (data: any) => {
+      console.log("Nhận sự kiện withdraw-confirm:", data);
       if (data && data.withdrawId) {
-        // Kiểm tra nếu đang hiển thị dialog QR cho request vừa được xác nhận
-        if (selectedRequest && selectedRequest.id === data.withdrawId) {
-          // Đóng dialog
-          setOpenQrDialog(false);
-          setQrCodeUrl(null);
-          setVietQrUrl(null);
-          setSelectedRequest(null);
-
-          // Hiển thị thông báo thành công
-          toast.success(
-            `Yêu cầu rút tiền #${data.withdrawId} đã được xác nhận`
-          );
-        }
-
-        // Gọi API để cập nhật trạng thái
-        fetchAndUpdateSingleWithdraw(data.withdrawId);
+        closeModalAndUpdateList(
+          parseInt(data.withdrawId),
+          data.status || "COMPLETED",
+          data.amount
+        );
       }
     },
-    [selectedRequest, fetchAndUpdateSingleWithdraw]
+    [closeModalAndUpdateList]
   );
 
   // Xử lý sự kiện transaction-updated
   const handleTransactionUpdate = useCallback(
     (data: any) => {
+      console.log("Nhận sự kiện transaction-updated:", data);
       if (data && data.id) {
-        fetchAndUpdateSingleWithdraw(data.id);
+        closeModalAndUpdateList(
+          parseInt(data.id),
+          data.status || "COMPLETED",
+          data.amount
+        );
       }
     },
-    [fetchAndUpdateSingleWithdraw]
+    [closeModalAndUpdateList]
   );
+
+  // Lắng nghe phản hồi từ sự kiện tham gia admin room
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleJoinAdminRoomResponse = (data: any) => {
+      console.log("Phản hồi tham gia admin-room:", data);
+      if (data.success) {
+        toast.success("Đã kết nối với hệ thống quản lý rút tiền", {
+          id: "admin-room-connected",
+        });
+      } else {
+        console.error("Không thể tham gia admin-room:", data.message);
+        // Thử tham gia lại sau 5 giây
+        setTimeout(() => {
+          if (socket && socket.connected) {
+            emitSocketEvent("join-admin-room", { role: "admin" });
+          }
+        }, 5000);
+      }
+    };
+
+    socket.on("joinAdminRoomResponse", handleJoinAdminRoomResponse);
+
+    return () => {
+      socket.off("joinAdminRoomResponse", handleJoinAdminRoomResponse);
+    };
+  }, [socket, emitSocketEvent]);
 
   // Xử lý dữ liệu từ sự kiện payment status updated
   const processPaymentUpdateData = useCallback(
     (updateData: any) => {
+      console.log("Xử lý dữ liệu payment status updated:", updateData);
       let withdrawId = null;
 
       // Trích xuất ID từ dữ liệu
@@ -375,41 +449,19 @@ const WithdrawManagementPage = () => {
 
       if (withdrawId) {
         const status = updateData.status || "COMPLETED";
-
-        // Kiểm tra nếu đang hiển thị dialog QR cho request vừa được xác nhận
-        if (
-          selectedRequest &&
-          selectedRequest.id === withdrawId &&
-          status === "COMPLETED"
-        ) {
-          // Đóng dialog
-          setOpenQrDialog(false);
-          setQrCodeUrl(null);
-          setVietQrUrl(null);
-          setSelectedRequest(null);
-
-          // Hiển thị thông báo thành công
-          toast.success(`Yêu cầu rút tiền #${withdrawId} đã được xác nhận`);
-        }
-
-        // Cập nhật dữ liệu
-        fetchAndUpdateSingleWithdraw(withdrawId);
+        closeModalAndUpdateList(withdrawId, status, updateData.amount);
       } else {
         // Không có ID cụ thể, cập nhật toàn bộ danh sách
         fetchWithdrawRequests(statusFilter);
       }
     },
-    [
-      selectedRequest,
-      statusFilter,
-      fetchWithdrawRequests,
-      fetchAndUpdateSingleWithdraw,
-    ]
+    [statusFilter, fetchWithdrawRequests, closeModalAndUpdateList]
   );
 
   // Xử lý sự kiện payment status updated
   const handlePaymentStatusUpdate = useCallback(
     (data: any) => {
+      console.log("Nhận sự kiện paymentStatusUpdated:", data);
       try {
         // Xử lý dữ liệu mảng
         if (Array.isArray(data) && data.length > 0) {
@@ -420,7 +472,7 @@ const WithdrawManagementPage = () => {
           processPaymentUpdateData(data);
         }
       } catch (err) {
-        // Bỏ qua lỗi
+        console.error("Lỗi xử lý sự kiện paymentStatusUpdated:", err);
       }
     },
     [processPaymentUpdateData]
@@ -451,21 +503,40 @@ const WithdrawManagementPage = () => {
     }
 
     // Tham gia room admin sau khi kết nối
-    if (socket.connected) {
-      emitSocketEvent("join-admin-room", { role: "admin" });
-    }
+    const joinAdminRoom = () => {
+      if (socket.connected) {
+        console.log("Tham gia admin-room qua socket");
+        emitSocketEvent("join-admin-room", { role: "admin" });
+
+        // Tham gia room cụ thể cho admin
+        socket.emit("join", "admin-room");
+      }
+    };
+
+    // Join ngay khi đã kết nối
+    joinAdminRoom();
+
+    // Lắng nghe sự kiện kết nối thành công để join room
+    const handleConnect = () => {
+      console.log("Socket đã kết nối lại, tham gia admin-room");
+      joinAdminRoom();
+    };
+
+    socket.on("connect", handleConnect);
 
     // Ping server để giữ kết nối
     const pingInterval = setInterval(() => {
       if (socket.connected) {
         emitSocketEvent("ping", { timestamp: new Date().toISOString() });
-      } else if (socket) {
+      } else {
+        console.log("Socket mất kết nối, đang thử kết nối lại...");
         socket.connect();
       }
-    }, 30000);
+    }, 15000); // Rút ngắn thời gian ping xuống 15 giây
 
     return () => {
       clearInterval(pingInterval);
+      socket.off("connect", handleConnect);
     };
   }, [socket, emitSocketEvent]);
 
@@ -1011,7 +1082,7 @@ const WithdrawManagementPage = () => {
 
               {/* Bank Info Section */}
               {selectedRequest && (
-                <div className="p-6 space-y-5 bg-muted/10 max-h-[600px] overflow-y-auto">
+                <div className="p-6 space-y-5 bg-muted/10">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <BanknoteIcon className="h-5 w-5 text-primary" />
