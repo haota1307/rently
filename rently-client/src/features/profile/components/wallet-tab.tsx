@@ -40,16 +40,36 @@ export function WalletTab() {
   const user = data?.payload;
   const payments: Payment[] = paymentHistoryData?.payload?.payload || [];
 
+  // Hàm xác định loại giao dịch (tiền vào hay tiền ra)
+  const getTransactionType = (description: string | null) => {
+    if (!description) return "unknown";
+
+    // Tiền vào
+    if (
+      description.includes("Nạp tiền") ||
+      description.includes("Nhận tiền đặt cọc")
+    ) {
+      return "in";
+    }
+
+    // Tiền ra
+    if (
+      description.includes("Phí đăng bài") ||
+      description.includes("Tiền đặt cọc")
+    ) {
+      return "out";
+    }
+
+    return "unknown";
+  };
+
   // Tính tổng số tiền đã nạp và đã chi
   const totalIn = payments
-    .filter(
-      (payment) =>
-        payment.amount > 0 && payment.description?.includes("Nạp tiền")
-    )
+    .filter((payment) => getTransactionType(payment.description) === "in")
     .reduce((sum: number, payment) => sum + payment.amount, 0);
 
   const totalOut = payments
-    .filter((payment) => payment.description?.includes("Phí đăng bài"))
+    .filter((payment) => getTransactionType(payment.description) === "out")
     .reduce((sum: number, payment) => sum + payment.amount, 0);
 
   // Hàm xử lý sự kiện khi nhấn vào nút Nạp tiền
@@ -207,8 +227,9 @@ export function WalletTab() {
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="all">Tất cả</TabsTrigger>
+              <TabsTrigger value="deposits">Tiền vào</TabsTrigger>
+              <TabsTrigger value="expenses">Tiền ra</TabsTrigger>
               <TabsTrigger value="posts">Phí đăng bài</TabsTrigger>
-              <TabsTrigger value="deposits">Nạp tiền</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all">
@@ -220,7 +241,7 @@ export function WalletTab() {
                       className="flex items-center justify-between p-4 bg-muted/40 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        {payment.description?.includes("Nạp tiền") ? (
+                        {getTransactionType(payment.description) === "in" ? (
                           <ArrowDownCircle className="h-5 w-5 text-green-500" />
                         ) : (
                           <ArrowUpCircle className="h-5 w-5 text-red-500" />
@@ -241,12 +262,12 @@ export function WalletTab() {
                       <div className="text-right">
                         <div
                           className={
-                            payment.description?.includes("Nạp tiền")
+                            getTransactionType(payment.description) === "in"
                               ? "text-green-600 font-medium"
                               : "text-red-600 font-medium"
                           }
                         >
-                          {payment.description?.includes("Nạp tiền")
+                          {getTransactionType(payment.description) === "in"
                             ? "+"
                             : "-"}
                           {payment.amount.toLocaleString()} VNĐ
@@ -310,9 +331,19 @@ export function WalletTab() {
                           </div>
                           <Badge
                             variant="outline"
-                            className="mt-1 bg-green-100 text-green-800 hover:bg-green-100"
+                            className={`mt-1 ${
+                              payment.status === "COMPLETED"
+                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                : payment.status === "PENDING"
+                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                            }`}
                           >
-                            Hoàn thành
+                            {payment.status === "COMPLETED"
+                              ? "Hoàn thành"
+                              : payment.status === "PENDING"
+                              ? "Đang xử lý"
+                              : "Đã hủy"}
                           </Badge>
                         </div>
                       </div>
@@ -327,10 +358,11 @@ export function WalletTab() {
 
             <TabsContent value="deposits">
               <div className="space-y-4">
-                {payments.filter((p) => p.description?.includes("Nạp tiền"))
-                  .length > 0 ? (
+                {payments.filter(
+                  (p) => getTransactionType(p.description) === "in"
+                ).length > 0 ? (
                   payments
-                    .filter((p) => p.description?.includes("Nạp tiền"))
+                    .filter((p) => getTransactionType(p.description) === "in")
                     .map((payment) => (
                       <div
                         key={payment.id}
@@ -376,7 +408,65 @@ export function WalletTab() {
                     ))
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    Chưa có giao dịch nạp tiền nào
+                    Chưa có giao dịch tiền vào nào
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="expenses">
+              <div className="space-y-4">
+                {payments.filter(
+                  (p) => getTransactionType(p.description) === "out"
+                ).length > 0 ? (
+                  payments
+                    .filter((p) => getTransactionType(p.description) === "out")
+                    .map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="flex items-center justify-between p-4 bg-muted/40 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                          <div>
+                            <div className="font-medium">
+                              {payment.description}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center mt-1">
+                              <CalendarDays className="h-3 w-3 mr-1" />
+                              {format(
+                                new Date(payment.createdAt),
+                                "dd/MM/yyyy HH:mm"
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-red-600 font-medium">
+                            -{payment.amount.toLocaleString()} VNĐ
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={`mt-1 ${
+                              payment.status === "COMPLETED"
+                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                : payment.status === "PENDING"
+                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                            }`}
+                          >
+                            {payment.status === "COMPLETED"
+                              ? "Hoàn thành"
+                              : payment.status === "PENDING"
+                              ? "Đang xử lý"
+                              : "Đã hủy"}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Chưa có giao dịch tiền ra nào
                   </div>
                 )}
               </div>

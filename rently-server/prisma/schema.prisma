@@ -295,6 +295,7 @@ model RentalPost {
   title       String           @db.VarChar(250)
   description String
   pricePaid   Decimal
+  deposit     Decimal          @default(0)
   status      RentalPostStatus @default(ACTIVE)
   createdAt   DateTime         @default(now())
 

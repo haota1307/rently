@@ -48,6 +48,14 @@ export const PostSchema = z.object({
     }
     return arg;
   }, z.number()),
+  deposit: z
+    .preprocess((arg) => {
+      if (typeof arg === "object" && arg !== null && "toNumber" in arg) {
+        return (arg as any).toNumber();
+      }
+      return arg;
+    }, z.number())
+    .default(0),
   title: z.string(),
   description: z.string(),
   status: z.nativeEnum(RentalPostStatus),
@@ -115,6 +123,7 @@ export const CreatePostBodySchema = z
       .optional()
       .default(RentalPostStatus.ACTIVE),
     pricePaid: z.number(),
+    deposit: z.number().optional().default(0),
     rentalId: z.number(),
   })
   .strict();

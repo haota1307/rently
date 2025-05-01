@@ -360,6 +360,22 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     </>
                   )}
                 </div>
+
+                {/* Hiển thị thông tin tiền đặt cọc */}
+                {post.deposit > 0 && (
+                  <div className="mt-2 flex items-center">
+                    <Badge
+                      variant="outline"
+                      className="bg-amber-50 text-amber-800 border-amber-200"
+                    >
+                      Đặt cọc:{" "}
+                      {new Intl.NumberFormat("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                      }).format(post.deposit)}
+                    </Badge>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -421,6 +437,35 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 </p>
               </div>
             </div>
+
+            {/* Thông tin đặt cọc */}
+            {post.deposit > 0 && (
+              <div className="mb-6 p-4 border border-amber-200 rounded-lg bg-amber-50">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-lg font-medium text-amber-800 mb-2">
+                      Điều kiện đặt cọc
+                    </h3>
+                    <p className="text-sm text-amber-700 mb-2">
+                      Chủ nhà yêu cầu đặt cọc{" "}
+                      <span className="font-semibold">
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                        }).format(post.deposit)}
+                      </span>{" "}
+                      khi thuê phòng này.
+                    </p>
+                    <p className="text-sm text-amber-700">
+                      Số tiền cọc sẽ được hoàn trả khi kết thúc hợp đồng thuê
+                      nếu không có hư hỏng tài sản và đã thanh toán đầy đủ các
+                      khoản phí liên quan (điện, nước, internet...).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Thông tin nhà trọ */}
             <div className="p-4 border rounded-lg bg-muted/10 mb-6">
@@ -794,6 +839,19 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         </span>
                       </li>
                     )}
+                    <li className="flex justify-between py-1 border-b">
+                      <span className="text-muted-foreground">
+                        Tiền đặt cọc:
+                      </span>
+                      <span className="font-medium">
+                        {post.deposit > 0
+                          ? new Intl.NumberFormat("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            }).format(post.deposit)
+                          : "Không yêu cầu đặt cọc"}
+                      </span>
+                    </li>
                     <li className="flex justify-between py-1">
                       <span className="text-muted-foreground">Trạng thái:</span>
                       <Badge

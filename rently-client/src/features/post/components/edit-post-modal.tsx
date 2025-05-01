@@ -25,8 +25,10 @@ type EditPostModalProps = {
 
 export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
+    title: post?.title || "",
+    description: post?.description || "",
+    status: post?.status || "",
+    deposit: post?.deposit?.toString() || "0",
     roomId: "",
     startDate: "",
     endDate: "",
@@ -53,6 +55,8 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
       setFormData({
         title: post.title || "",
         description: post.description || "",
+        status: post.status ? post.status.toString() : "",
+        deposit: post.deposit ? post.deposit.toString() : "0",
         roomId: post.roomId ? post.roomId.toString() : "",
         startDate,
         endDate,
@@ -89,6 +93,13 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
       return;
     }
 
+    // Xử lý và kiểm tra giá trị tiền cọc
+    const depositValue = parseFloat(formData.deposit || "0");
+    if (isNaN(depositValue) || depositValue < 0) {
+      toast.error("Số tiền đặt cọc không hợp lệ");
+      return;
+    }
+
     // Tìm rentalId từ phòng đã chọn
     const selectedRoom = rooms.find(
       (room) => room.id === Number(formData.roomId)
@@ -103,14 +114,13 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
     const payload = {
       title: formData.title,
       description: formData.description,
-      roomId: Number(formData.roomId),
+      status: formData.status as RentalPostStatus,
+      deposit: depositValue,
+      pricePaid: Number(formData.pricePaid),
       startDate: new Date(formData.startDate),
       endDate: new Date(formData.endDate),
-      pricePaid: Number(formData.pricePaid),
+      roomId: Number(formData.roomId),
       rentalId: selectedRoom.rentalId,
-      status: post.status
-        ? (post.status as RentalPostStatus)
-        : RentalPostStatus.ACTIVE,
     };
 
     try {
@@ -255,6 +265,27 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 required
               />
+            </div>
+
+            {/* Tiền đặt cọc */}
+            <div className="grid w-full items-center gap-1.5">
+              <label htmlFor="deposit" className="text-sm font-medium">
+                Tiền đặt cọc (VNĐ)
+              </label>
+              <input
+                type="number"
+                id="deposit"
+                name="deposit"
+                value={formData.deposit}
+                onChange={handleInputChange}
+                placeholder="Nhập số tiền đặt cọc (VNĐ)"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                min="0"
+                step="1000"
+              />
+              <p className="text-xs text-muted-foreground">
+                Nhập số tiền đặt cọc mà người thuê cần trả trước khi thuê phòng
+              </p>
             </div>
           </div>
           <DialogFooter className="mt-6">

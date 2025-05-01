@@ -140,21 +140,15 @@ export default function RentalPostsPage() {
       header: "Trạng thái",
       cell: ({ row }: any) => {
         const status = row.getValue("status");
-        const endDate = new Date(row.getValue("endDate"));
-        const now = new Date();
-
         let statusClass = "bg-gray-100 text-gray-800";
         let statusText = "Chưa xác định";
 
-        // Kiểm tra nếu bài đăng đã hết hạn hoặc có trạng thái INACTIVE
-        if (endDate < now || status === "INACTIVE") {
-          statusClass = "bg-red-100 text-red-800";
-          statusText = "Đã hết hạn";
-        }
-        // Nếu chưa hết hạn, hiển thị theo trạng thái
-        else if (status === "ACTIVE") {
+        if (status === "ACTIVE") {
           statusClass = "bg-green-100 text-green-800";
           statusText = "Đang hoạt động";
+        } else if (status === "INACTIVE") {
+          statusClass = "bg-yellow-100 text-yellow-800";
+          statusText = "Đang chờ duyệt";
         } else if (status === "DELETED") {
           statusClass = "bg-red-100 text-red-800";
           statusText = "Đã xóa";
@@ -280,7 +274,7 @@ export default function RentalPostsPage() {
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                   <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
-                  <SelectItem value="INACTIVE">Đã hết hạn</SelectItem>
+                  <SelectItem value="INACTIVE">Đang chờ duyệt</SelectItem>
                   <SelectItem value="DELETED">Đã xóa</SelectItem>
                 </SelectContent>
               </Select>

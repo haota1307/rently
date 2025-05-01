@@ -13,6 +13,7 @@ import {
 } from './rental-request.model'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import { Decimal } from '@prisma/client/runtime/library'
+import { PaymentStatus, Prisma } from '@prisma/client'
 
 @Injectable()
 export class RentalRequestRepo {
@@ -401,5 +402,196 @@ export class RentalRequestRepo {
     } catch (error) {
       throw new InternalServerErrorException(error.message)
     }
+  }
+
+  // Tìm room theo ID
+  async findRoomById(id: number) {
+    return this.prismaService.room.findUnique({
+      where: { id },
+    })
+  }
+
+  // Cập nhật trạng thái phòng
+  async updateRoomAvailability(roomId: number, isAvailable: boolean) {
+    return this.prismaService.room.update({
+      where: { id: roomId },
+      data: { isAvailable },
+    })
+  }
+
+  // Tìm tất cả các yêu cầu đang chờ xử lý cho một bài đăng
+  async findPendingRequestsByPostId(postId: number, excludeId: number) {
+    return this.prismaService.rentalRequest.findMany({
+      where: {
+        postId,
+        status: RentalRequestStatus.PENDING,
+        id: { not: excludeId },
+      },
+    })
+  }
+
+  // Từ chối tất cả các yêu cầu cho một bài đăng
+  async rejectAllPendingRequests(
+    postId: number,
+    excludeId: number,
+    reason: string
+  ) {
+    return this.prismaService.rentalRequest.updateMany({
+      where: {
+        postId,
+        status: RentalRequestStatus.PENDING,
+        id: { not: excludeId },
+      },
+      data: {
+        status: RentalRequestStatus.REJECTED,
+        rejectionReason: reason,
+      },
+    })
+  }
+
+  // Lấy thông tin chi tiết của yêu cầu thuê bao gồm thông tin liên quan
+  async findRequestWithRelations(id: number) {
+    return this.prismaService.rentalRequest.findUnique({
+      where: { id },
+      include: {
+        post: true,
+        tenant: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            balance: true,
+          },
+        },
+        landlord: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            balance: true,
+          },
+        },
+      },
+    })
+  }
+
+  // Tìm bài đăng theo ID
+  async findPostById(id: number) {
+    return this.prismaService.rentalPost.findUnique({
+      where: { id },
+      select: { title: true },
+    })
+  }
+
+  // Tìm người dùng theo ID
+  async findUserById(id: number) {
+    return this.prismaService.user.findUnique({
+      where: { id },
+      select: {
+        email: true,
+        name: true,
+      },
+    })
+  }
+
+  // Kiểm tra nếu yêu cầu thuê đã tồn tại
+  async findExistingRequest(postId: number, tenantId: number) {
+    return this.prismaService.rentalRequest.findFirst({
+      where: {
+        postId,
+        tenantId,
+        OR: [
+          { status: RentalRequestStatus.PENDING },
+          { status: RentalRequestStatus.APPROVED },
+        ],
+      },
+    })
+  }
+
+  // Kiểm tra trạng thái phòng
+  async checkRoomAvailability(postId: number) {
+    return this.prismaService.rentalPost.findUnique({
+      where: { id: postId },
+      include: {
+        room: {
+          select: {
+            isAvailable: true,
+          },
+        },
+      },
+    })
+  }
+
+  // Xử lý giao dịch tiền đặt cọc
+  async processDepositTransaction(
+    tenantId: number,
+    landlordId: number,
+    amount: number,
+    postTitle: string,
+    tenantName: string
+  ) {
+    return this.prismaService.$transaction(async prisma => {
+      // Trừ tiền cọc từ tài khoản người thuê
+      await prisma.user.update({
+        where: { id: tenantId },
+        data: {
+          balance: { decrement: amount },
+        },
+      })
+
+      // Cộng tiền cọc vào tài khoản chủ nhà
+      await prisma.user.update({
+        where: { id: landlordId },
+        data: {
+          balance: { increment: amount },
+        },
+      })
+
+      // Tạo giao dịch tiền ra cho người thuê
+      const tenantTransaction = await prisma.paymentTransaction.create({
+        data: {
+          gateway: 'SYSTEM',
+          transactionDate: new Date(),
+          amountOut: amount,
+          amountIn: 0,
+          transactionContent: `Đặt cọc cho bài đăng: ${postTitle}`,
+          userId: tenantId,
+        },
+      })
+
+      // Tạo giao dịch tiền vào cho chủ nhà
+      const landlordTransaction = await prisma.paymentTransaction.create({
+        data: {
+          gateway: 'SYSTEM',
+          transactionDate: new Date(),
+          amountIn: amount,
+          amountOut: 0,
+          transactionContent: `Nhận tiền đặt cọc từ ${tenantName} cho bài đăng: ${postTitle}`,
+          userId: landlordId,
+        },
+      })
+
+      // Tạo bản ghi thanh toán cho người thuê và liên kết với transaction
+      await prisma.payment.create({
+        data: {
+          amount: amount,
+          status: PaymentStatus.COMPLETED,
+          description: `Tiền đặt cọc cho bài đăng: ${postTitle}`,
+          userId: tenantId,
+          transactionId: tenantTransaction.id,
+        },
+      })
+
+      // Tạo bản ghi thanh toán cho chủ nhà và liên kết với transaction
+      await prisma.payment.create({
+        data: {
+          amount: amount,
+          status: PaymentStatus.COMPLETED,
+          description: `Nhận tiền đặt cọc từ ${tenantName} cho bài đăng: ${postTitle}`,
+          userId: landlordId,
+          transactionId: landlordTransaction.id,
+        },
+      })
+    })
   }
 }

@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useState, useEffect } from "react";
+import { useGetPostDetail } from "@/features/post/usePost";
 
 const formSchema = z.object({
   viewingDate: z.date({
@@ -73,6 +74,9 @@ export function ViewingScheduleForm({
   const [isCheckingExistingSchedule, setIsCheckingExistingSchedule] =
     useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [date, setDate] = useState<Date>();
+  const [note, setNote] = useState("");
+  const [time, setTime] = useState<string>("");
 
   // Lấy danh sách lịch xem hiện tại của người dùng cho phòng trọ này
   const { data: schedules } = getViewingSchedules({
@@ -80,6 +84,9 @@ export function ViewingScheduleForm({
     limit: 10,
     status: "PENDING", // Chỉ lấy trạng thái PENDING
   });
+
+  // Lấy thông tin bài đăng để hiển thị thông tin về tiền đặt cọc
+  const { data: postDetail } = useGetPostDetail(postId);
 
   // Kiểm tra xem người dùng đã có lịch hẹn chưa bị hủy cho phòng này chưa
   useEffect(() => {
@@ -156,115 +163,117 @@ export function ViewingScheduleForm({
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <FormField
-              control={form.control}
-              name="viewingDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ngày xem phòng</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: vi })
-                          ) : (
-                            <span>Chọn ngày xem phòng</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date() ||
-                          date > new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div>
-            <FormField
-              control={form.control}
-              name="viewingTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Giờ xem phòng</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn giờ xem phòng" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {timeSlots.map((slot) => (
-                        <SelectItem key={slot.value} value={slot.value}>
-                          {slot.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+    <div className="space-y-4">
+      {/* Hiển thị thông tin đặt cọc nếu có */}
+      {postDetail?.deposit > 0 && (
+        <div className="p-2 mb-2 border border-amber-200 rounded-md bg-amber-50">
+          <p className="text-xs text-amber-700 flex items-center">
+            <AlertCircle className="h-3 w-3 mr-1 text-amber-600 flex-shrink-0" />
+            Chủ nhà yêu cầu đặt cọc{" "}
+            {new Intl.NumberFormat("vi-VN", {
+              style: "currency",
+              currency: "VND",
+            }).format(postDetail.deposit)}
+          </p>
         </div>
+      )}
 
-        <FormField
-          control={form.control}
-          name="note"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Ghi chú</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Nhập ghi chú (nếu có)"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="date" className="block text-sm font-medium">
+                Chọn ngày <span className="text-red-500">*</span>
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date
+                      ? format(date, "PPP", { locale: vi })
+                      : "Chọn ngày xem phòng"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    disabled={(date) => date < new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={
-            createViewingSchedule.isPending ||
-            isCheckingExistingSchedule ||
-            submitting
-          }
-        >
-          Đặt lịch xem phòng
-        </Button>
-      </form>
-    </Form>
+            <div>
+              <FormField
+                control={form.control}
+                name="viewingTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Giờ xem phòng</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn giờ xem phòng" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {timeSlots.map((slot) => (
+                          <SelectItem key={slot.value} value={slot.value}>
+                            {slot.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          <FormField
+            control={form.control}
+            name="note"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ghi chú</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Nhập ghi chú (nếu có)"
+                    className="resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={
+              createViewingSchedule.isPending ||
+              isCheckingExistingSchedule ||
+              submitting
+            }
+          >
+            Đặt lịch xem phòng
+          </Button>
+        </form>
+      </Form>
+    </div>
   );
 }

@@ -72,6 +72,16 @@ export function PostDetailModal({
             </div>
 
             <div className="grid grid-cols-2 gap-2">
+              <div className="text-sm font-medium">Tiền đặt cọc:</div>
+              <div className="text-sm">
+                {new Intl.NumberFormat("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                }).format(post.deposit || 0)}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
               <div className="text-sm font-medium">Ngày bắt đầu:</div>
               <div className="text-sm">
                 {post.startDate

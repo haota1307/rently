@@ -21,8 +21,7 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 export class RentalRequestService {
   constructor(
     private readonly rentalRequestRepo: RentalRequestRepo,
-    private readonly emailService: EmailService,
-    private readonly prismaService: PrismaService
+    private readonly emailService: EmailService
   ) {}
 
   // Lấy danh sách yêu cầu thuê
@@ -55,16 +54,10 @@ export class RentalRequestService {
   // Tạo yêu cầu thuê mới
   async create(data: CreateRentalRequestBodyType, userId: number) {
     // Kiểm tra xem đã có yêu cầu thuê nào đang PENDING hoặc APPROVED cho post này chưa
-    const existingRequest = await this.prismaService.rentalRequest.findFirst({
-      where: {
-        postId: data.postId,
-        tenantId: userId,
-        OR: [
-          { status: RentalRequestStatus.PENDING },
-          { status: RentalRequestStatus.APPROVED },
-        ],
-      },
-    })
+    const existingRequest = await this.rentalRequestRepo.findExistingRequest(
+      data.postId,
+      userId
+    )
 
     if (existingRequest) {
       const statusMessage =
@@ -77,16 +70,7 @@ export class RentalRequestService {
     }
 
     // Kiểm tra xem bài đăng có sẵn sàng cho thuê hay không
-    const post = await this.prismaService.rentalPost.findUnique({
-      where: { id: data.postId },
-      include: {
-        room: {
-          select: {
-            isAvailable: true,
-          },
-        },
-      },
-    })
+    const post = await this.rentalRequestRepo.checkRoomAvailability(data.postId)
 
     if (!post) {
       throw new NotFoundException('Không tìm thấy bài đăng này')
@@ -103,20 +87,11 @@ export class RentalRequestService {
     })
 
     // Lấy thông tin để gửi email
-    const landlord = await this.prismaService.user.findUnique({
-      where: { id: rentalRequest.landlordId },
-      select: { email: true, name: true },
-    })
-
-    const tenant = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      select: { name: true },
-    })
-
-    const postInfo = await this.prismaService.rentalPost.findUnique({
-      where: { id: data.postId },
-      select: { title: true },
-    })
+    const landlord = await this.rentalRequestRepo.findUserById(
+      rentalRequest.landlordId
+    )
+    const tenant = await this.rentalRequestRepo.findUserById(userId)
+    const postInfo = await this.rentalRequestRepo.findPostById(data.postId)
 
     // Gửi email thông báo cho chủ nhà
     if (landlord && tenant && postInfo) {
@@ -148,18 +123,8 @@ export class RentalRequestService {
     roleName: string
   ) {
     // Kiểm tra xem yêu cầu thuê có tồn tại không
-    const rentalRequest = await this.prismaService.rentalRequest.findUnique({
-      where: { id },
-      include: {
-        post: {
-          select: {
-            id: true,
-            title: true,
-            roomId: true,
-          },
-        },
-      },
-    })
+    const rentalRequest =
+      await this.rentalRequestRepo.findRequestWithRelations(id)
 
     if (!rentalRequest) {
       throw new HttpException('Rental request not found', 404)
@@ -210,6 +175,43 @@ export class RentalRequestService {
       }
     }
 
+    // Trường hợp chấp nhận yêu cầu thuê và có đặt cọc
+    if (data.status === RentalRequestStatus.APPROVED && rentalRequest.post) {
+      // Sử dụng trường deposit một cách an toàn
+      // (có thể là deposit hoặc depositAmount tùy theo trường nào tồn tại)
+      const depositAmount = Number(
+        (rentalRequest.post as any).deposit ||
+          (rentalRequest.post as any).depositAmount ||
+          0
+      )
+
+      // Chỉ xử lý nếu có đặt cọc
+      if (depositAmount > 0) {
+        // Kiểm tra số dư người thuê
+        if (
+          rentalRequest.tenant &&
+          rentalRequest.tenant.balance < depositAmount
+        ) {
+          throw new HttpException('Người thuê không đủ tiền để đặt cọc', 400)
+        }
+
+        // Xử lý giao dịch tiền đặt cọc
+        if (
+          rentalRequest.tenant &&
+          rentalRequest.landlord &&
+          rentalRequest.post
+        ) {
+          await this.rentalRequestRepo.processDepositTransaction(
+            rentalRequest.tenant.id,
+            rentalRequest.landlord.id,
+            depositAmount,
+            rentalRequest.post.title,
+            rentalRequest.tenant.name
+          )
+        }
+      }
+    }
+
     // Cập nhật yêu cầu
     const updatedRequest = await this.rentalRequestRepo.update({
       id,
@@ -222,30 +224,14 @@ export class RentalRequestService {
       const roomId = rentalRequest.post?.roomId
 
       if (roomId) {
-        await this.prismaService.room.update({
-          where: { id: roomId },
-          data: { isAvailable: false },
-        })
+        await this.rentalRequestRepo.updateRoomAvailability(roomId, false)
 
         // Từ chối tất cả các yêu cầu thuê khác cho cùng một bài đăng
-        const otherPendingRequests =
-          await this.prismaService.rentalRequest.findMany({
-            where: {
-              postId: updatedRequest.postId,
-              status: RentalRequestStatus.PENDING,
-              id: { not: id },
-            },
-          })
-
-        for (const pendingRequest of otherPendingRequests) {
-          await this.prismaService.rentalRequest.update({
-            where: { id: pendingRequest.id },
-            data: {
-              status: RentalRequestStatus.REJECTED,
-              rejectionReason: 'Phòng đã được cho thuê bởi người khác',
-            },
-          })
-        }
+        await this.rentalRequestRepo.rejectAllPendingRequests(
+          updatedRequest.postId,
+          id,
+          'Phòng đã được cho thuê bởi người khác'
+        )
       }
     }
 
@@ -259,10 +245,7 @@ export class RentalRequestService {
 
       if (roomId) {
         // Cập nhật trạng thái phòng thành còn trống (isAvailable = true)
-        await this.prismaService.room.update({
-          where: { id: roomId },
-          data: { isAvailable: true },
-        })
+        await this.rentalRequestRepo.updateRoomAvailability(roomId, true)
       }
     }
 
@@ -276,30 +259,17 @@ export class RentalRequestService {
 
       const notificationTarget =
         data.status === RentalRequestStatus.CANCELED
-          ? await this.prismaService.user.findUnique({
-              where: { id: updatedRequest.landlordId },
-              select: { email: true, name: true },
-            })
-          : await this.prismaService.user.findUnique({
-              where: { id: updatedRequest.tenantId },
-              select: { email: true, name: true },
-            })
+          ? await this.rentalRequestRepo.findUserById(updatedRequest.landlordId)
+          : await this.rentalRequestRepo.findUserById(updatedRequest.tenantId)
 
       const sender =
         data.status === RentalRequestStatus.CANCELED
-          ? await this.prismaService.user.findUnique({
-              where: { id: updatedRequest.tenantId },
-              select: { name: true },
-            })
-          : await this.prismaService.user.findUnique({
-              where: { id: updatedRequest.landlordId },
-              select: { name: true },
-            })
+          ? await this.rentalRequestRepo.findUserById(updatedRequest.tenantId)
+          : await this.rentalRequestRepo.findUserById(updatedRequest.landlordId)
 
-      const post = await this.prismaService.rentalPost.findUnique({
-        where: { id: updatedRequest.postId },
-        select: { title: true },
-      })
+      const post = await this.rentalRequestRepo.findPostById(
+        updatedRequest.postId
+      )
 
       if (notificationTarget && sender && post) {
         try {

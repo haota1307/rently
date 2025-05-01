@@ -37,6 +37,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     roomId: "",
     startDate: "",
     endDate: "",
+    deposit: "",
   });
 
   // State để lưu trữ các phòng trọ đã được lọc theo nhà trọ đã chọn
@@ -172,6 +173,13 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       return;
     }
 
+    // Xử lý và kiểm tra giá trị tiền cọc
+    const depositValue = parseFloat(formData.deposit || "0");
+    if (isNaN(depositValue) || depositValue < 0) {
+      toast.error("Số tiền đặt cọc không hợp lệ");
+      return;
+    }
+
     const payload = {
       title: formData.title,
       description: formData.description,
@@ -180,6 +188,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       startDate: new Date(formData.startDate),
       endDate: new Date(formData.endDate),
       pricePaid: selectedRoom.price, // Sử dụng giá của phòng đã chọn
+      deposit: depositValue, // Thêm giá trị tiền cọc
       status: RentalPostStatus.ACTIVE,
     };
 
@@ -197,6 +206,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
         roomId: "",
         startDate: "",
         endDate: "",
+        deposit: "",
       });
       setSelectedRoom(null);
     } catch (err: any) {
@@ -288,6 +298,27 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                 rows={3}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
+            </div>
+
+            {/* Thêm trường tiền đặt cọc */}
+            <div className="grid w-full items-center gap-1.5">
+              <label htmlFor="deposit" className="text-sm font-medium">
+                Tiền đặt cọc (VNĐ)
+              </label>
+              <input
+                type="number"
+                id="deposit"
+                name="deposit"
+                value={formData.deposit}
+                onChange={handleInputChange}
+                placeholder="Nhập số tiền đặt cọc (VNĐ)"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                min="0"
+                step="1000"
+              />
+              <p className="text-xs text-muted-foreground">
+                Nhập số tiền đặt cọc mà người thuê cần trả trước khi thuê phòng
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
