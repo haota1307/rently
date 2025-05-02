@@ -26,6 +26,9 @@ import {
   Circle,
   X,
   Map,
+  PieChart,
+  Activity,
+  Eye,
 } from "lucide-react";
 import {
   useGetStatisticsOverview,
@@ -62,6 +65,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getPostsByArea } from "@/features/statistics/statistics.api";
 import dynamic from "next/dynamic";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Kiểu dữ liệu cho hoạt động giao dịch
 interface Transaction {
@@ -93,6 +112,11 @@ const DashboardPage = () => {
   const [timeRange, setTimeRange] = useState<number>(7);
   const { data: revenueData, isLoading: isLoadingRevenue } =
     useGetRevenueData(timeRange);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: roomDistribution, isLoading: isLoadingRoomDistribution } =
     useGetRoomDistribution();
   const {
@@ -127,6 +151,10 @@ const DashboardPage = () => {
   >({
     limit: "5",
   });
+
+  // Thêm state cho phân trang trong tab tài chính
+  const [financeCurrentPage, setFinanceCurrentPage] = useState(1);
+  const [financeItemsPerPage, setFinanceItemsPerPage] = useState(10);
 
   // Tính toán phần trăm thay đổi an toàn
   const getPercentage = (value?: number) => {
@@ -307,6 +335,46 @@ const DashboardPage = () => {
       posts: typeof area.posts === "number" ? area.posts : 0,
     }));
   }, [postsByArea]);
+
+  // Tính toán số trang cho phân trang
+  const totalPages = Math.ceil(
+    (recentTransactions?.length || 0) / itemsPerPage
+  );
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(
+    startIndex + itemsPerPage,
+    recentTransactions?.length || 0
+  );
+  const currentTransactions =
+    recentTransactions?.slice(startIndex, endIndex) || [];
+
+  // Hàm xử lý khi chuyển trang
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Hàm xử lý xem chi tiết giao dịch
+  const handleViewTransactionDetails = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsDialogOpen(true);
+  };
+
+  // Tính toán số trang và dữ liệu hiển thị cho tab tài chính
+  const financeTotalPages = Math.ceil(
+    (recentTransactions?.length || 0) / financeItemsPerPage
+  );
+  const financeStartIndex = (financeCurrentPage - 1) * financeItemsPerPage;
+  const financeEndIndex = Math.min(
+    financeStartIndex + financeItemsPerPage,
+    recentTransactions?.length || 0
+  );
+  const financeCurrentTransactions =
+    recentTransactions?.slice(financeStartIndex, financeEndIndex) || [];
+
+  // Hàm xử lý khi chuyển trang trong tab tài chính
+  const handleFinancePageChange = (page: number) => {
+    setFinanceCurrentPage(page);
+  };
 
   // Thêm bản đồ nhiệt khu vực
   const HeatmapRentalDistribution = () => {
@@ -700,7 +768,7 @@ const DashboardPage = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 text-green-600">
                           <TrendingUp className="h-3 w-3" />
-                          <span className="text-xs">Tổng nạp:</span>
+                          <span className="text-xs">Doanh thu vào:</span>
                         </div>
                         <span className="text-xs font-medium text-green-600">
                           {formatCurrency(transactionSummary?.totalIncome || 0)}
@@ -710,7 +778,7 @@ const DashboardPage = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 text-red-600">
                           <TrendingDown className="h-3 w-3" />
-                          <span className="text-xs">Tổng rút:</span>
+                          <span className="text-xs">Doanh thu ra:</span>
                         </div>
                         <span className="text-xs font-medium text-red-600">
                           {formatCurrency(
@@ -721,7 +789,9 @@ const DashboardPage = () => {
 
                       <div className="pt-1 border-t">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium">Số dư:</span>
+                          <span className="text-xs font-medium">
+                            Chênh lệch:
+                          </span>
                           <span className="text-sm font-bold">
                             {formatCurrency(transactionSummary?.balance || 0)}
                           </span>
@@ -746,7 +816,7 @@ const DashboardPage = () => {
                     </Badge>
                   </div>
                   <CardDescription className="text-xs">
-                    Thống kê tiền nạp và rút ra trong 7 ngày gần đây
+                    Thống kê doanh thu vào và ra trong 7 ngày gần đây
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
@@ -792,6 +862,7 @@ const DashboardPage = () => {
                           <Area
                             type="monotone"
                             dataKey="nạp"
+                            name="Doanh thu vào"
                             stackId="1"
                             stroke="#10b981"
                             fill="#10b981"
@@ -800,6 +871,7 @@ const DashboardPage = () => {
                           <Area
                             type="monotone"
                             dataKey="rút"
+                            name="Doanh thu ra"
                             stackId="2"
                             stroke="#ef4444"
                             fill="#ef4444"
@@ -816,13 +888,27 @@ const DashboardPage = () => {
               <Card className="overflow-hidden shadow-sm">
                 <CardHeader className="p-3 md:p-6">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm md:text-base">
+                    <CardTitle className="text-sm md:text-base flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-blue-600" />
                       Hoạt động gần đây
                     </CardTitle>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setTransactionFilters((prev) => ({
+                          ...prev,
+                          limit: "20",
+                        }));
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Xem thêm
                     </Button>
                   </div>
+                  <CardDescription className="text-xs mt-1">
+                    Các giao dịch mới nhất trong hệ thống
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="space-y-0">
@@ -835,50 +921,160 @@ const DashboardPage = () => {
                         <Skeleton className="h-12 w-full" />
                       </div>
                     ) : recentTransactions.length > 0 ? (
-                      <div className="divide-y">
-                        {recentTransactions.map((transaction) => (
-                          <div
-                            key={transaction.id}
-                            className="flex items-center justify-between p-3 hover:bg-muted/30"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={cn(
-                                  "h-9 w-9 rounded-full flex items-center justify-center",
-                                  transaction.isDeposit
-                                    ? "bg-green-100"
-                                    : "bg-red-100"
-                                )}
-                              >
-                                {transaction.isDeposit ? (
-                                  <ArrowDownCircle className="h-5 w-5 text-green-600" />
-                                ) : (
-                                  <ArrowUpCircle className="h-5 w-5 text-red-600" />
-                                )}
+                      <>
+                        <div className="divide-y">
+                          {currentTransactions.map((transaction) => (
+                            <div
+                              key={transaction.id}
+                              className="p-3 hover:bg-muted/30 transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={cn(
+                                      "h-9 w-9 rounded-full flex items-center justify-center",
+                                      transaction.isDeposit
+                                        ? "bg-green-100"
+                                        : "bg-red-100"
+                                    )}
+                                  >
+                                    {transaction.isDeposit ? (
+                                      <ArrowDownCircle className="h-5 w-5 text-green-600" />
+                                    ) : (
+                                      <ArrowUpCircle className="h-5 w-5 text-red-600" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {transaction.userName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {getTimeAgo(transaction.transactionDate)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <span
+                                    className={cn(
+                                      "text-sm font-medium",
+                                      transaction.isDeposit
+                                        ? "text-green-600"
+                                        : "text-red-600"
+                                    )}
+                                  >
+                                    {transaction.isDeposit ? "+" : "-"}
+                                    {formatCurrency(transaction.amount)}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {format(
+                                      transaction.transactionDate,
+                                      "dd/MM/yyyy HH:mm",
+                                      { locale: vi }
+                                    )}
+                                  </span>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {transaction.userName}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {getTimeAgo(transaction.transactionDate)}
-                                </p>
+                              <div className="flex justify-between items-center mt-2">
+                                <span className="text-xs text-muted-foreground truncate max-w-[70%]">
+                                  {transaction.description ||
+                                    (transaction.isDeposit
+                                      ? "Nạp tiền vào tài khoản"
+                                      : "Rút tiền từ tài khoản")}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2"
+                                  onClick={() =>
+                                    handleViewTransactionDetails(transaction)
+                                  }
+                                >
+                                  <Eye className="h-3.5 w-3.5 mr-1" />
+                                  <span className="text-xs">Chi tiết</span>
+                                </Button>
                               </div>
                             </div>
-                            <span
-                              className={cn(
-                                "text-sm font-medium",
-                                transaction.isDeposit
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                              )}
-                            >
-                              {transaction.isDeposit ? "+" : "-"}
-                              {formatCurrency(transaction.amount)}
-                            </span>
+                          ))}
+                        </div>
+
+                        {/* Phân trang */}
+                        {totalPages > 1 && (
+                          <div className="py-3 border-t">
+                            <Pagination>
+                              <PaginationContent>
+                                <PaginationItem>
+                                  <PaginationPrevious
+                                    onClick={() =>
+                                      handlePageChange(
+                                        Math.max(1, currentPage - 1)
+                                      )
+                                    }
+                                    className={cn(
+                                      currentPage === 1 &&
+                                        "pointer-events-none opacity-50"
+                                    )}
+                                  />
+                                </PaginationItem>
+
+                                {Array.from({ length: totalPages }).map(
+                                  (_, index) => {
+                                    const page = index + 1;
+                                    // Hiển thị các trang gần trang hiện tại
+                                    if (
+                                      page === 1 ||
+                                      page === totalPages ||
+                                      (page >= currentPage - 1 &&
+                                        page <= currentPage + 1)
+                                    ) {
+                                      return (
+                                        <PaginationItem key={page}>
+                                          <PaginationLink
+                                            isActive={page === currentPage}
+                                            onClick={() =>
+                                              handlePageChange(page)
+                                            }
+                                          >
+                                            {page}
+                                          </PaginationLink>
+                                        </PaginationItem>
+                                      );
+                                    }
+
+                                    // Hiển thị dấu ... nếu có khoảng cách
+                                    if (
+                                      (page === 2 && currentPage > 3) ||
+                                      (page === totalPages - 1 &&
+                                        currentPage < totalPages - 2)
+                                    ) {
+                                      return (
+                                        <PaginationItem key={page}>
+                                          <PaginationEllipsis />
+                                        </PaginationItem>
+                                      );
+                                    }
+
+                                    return null;
+                                  }
+                                )}
+
+                                <PaginationItem>
+                                  <PaginationNext
+                                    onClick={() =>
+                                      handlePageChange(
+                                        Math.min(totalPages, currentPage + 1)
+                                      )
+                                    }
+                                    className={cn(
+                                      currentPage === totalPages &&
+                                        "pointer-events-none opacity-50"
+                                    )}
+                                  />
+                                </PaginationItem>
+                              </PaginationContent>
+                            </Pagination>
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      </>
                     ) : (
                       <div className="text-center py-6 text-sm text-muted-foreground">
                         Chưa có giao dịch nào gần đây
@@ -891,51 +1087,109 @@ const DashboardPage = () => {
 
             <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 mt-4">
               {/* Biểu đồ phân phối phòng trọ */}
-              <Card className="overflow-hidden shadow-sm">
-                <CardHeader className="p-3 md:p-6">
-                  <CardTitle className="text-sm md:text-base">
+              <Card className="overflow-hidden shadow-sm hover:shadow-md transition-all">
+                <CardHeader className="p-3 md:p-6 bg-gradient-to-r from-indigo-50 to-blue-50">
+                  <CardTitle className="text-sm md:text-base flex items-center gap-2">
+                    <PieChart className="h-4 w-4 text-indigo-600" />
                     Phân phối phòng trọ
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Tỉ lệ phòng đã cho thuê và còn trống
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-3 pt-0 md:p-6 md:pt-0 flex justify-center">
-                  <div className="h-[180px] md:h-[220px] w-full max-w-[250px]">
-                    {isLoading || isLoadingRoomDistribution ? (
-                      <Skeleton className="h-full w-full" />
-                    ) : (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPieChart>
-                          <Pie
-                            data={roomDistribution}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={80}
-                            innerRadius={30}
-                            dataKey="value"
-                            label={({ name, percent }) =>
-                              `${name}: ${(percent * 100).toFixed(0)}%`
-                            }
-                          >
-                            {roomDistribution?.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Legend
-                            layout="horizontal"
-                            verticalAlign="bottom"
-                            align="center"
-                            wrapperStyle={{
-                              fontSize: "12px",
-                              paddingTop: "15px",
-                            }}
-                          />
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
+                <CardContent className="p-3 pt-0 md:p-6 md:pt-3">
+                  {isLoading || isLoadingRoomDistribution ? (
+                    <Skeleton className="h-[220px] w-full" />
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      {/* Biểu đồ tròn với % ở giữa */}
+                      <div className="h-[180px] w-[180px] relative mb-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsPieChart>
+                            <Pie
+                              data={roomDistribution}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              outerRadius={75}
+                              innerRadius={55}
+                              dataKey="value"
+                              label={false}
+                              strokeWidth={1}
+                              stroke="#fff"
+                            >
+                              {roomDistribution?.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={entry.color}
+                                  className="drop-shadow-sm hover:opacity-90 transition-opacity"
+                                />
+                              ))}
+                            </Pie>
+                          </RechartsPieChart>
+                        </ResponsiveContainer>
+
+                        {/* Hiển thị % phòng trống ở giữa biểu đồ */}
+                        {roomDistribution && roomDistribution.length >= 2 && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <div className="text-3xl font-bold text-indigo-700">
+                              {Math.round(
+                                (roomDistribution[1].value /
+                                  (roomDistribution[0].value +
+                                    roomDistribution[1].value)) *
+                                  100
+                              )}
+                              %
+                            </div>
+                            <div className="text-xs text-indigo-600">
+                              Còn trống
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Chú thích tùy chỉnh đẹp hơn */}
+                      <div className="grid grid-cols-2 gap-4 w-full">
+                        {roomDistribution?.map((entry, index) => {
+                          const total = roomDistribution.reduce(
+                            (sum, item) => sum + item.value,
+                            0
+                          );
+                          const percent =
+                            total > 0
+                              ? Math.round((entry.value / total) * 100)
+                              : 0;
+
+                          return (
+                            <div
+                              key={`legend-${index}`}
+                              className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/40 transition-colors"
+                            >
+                              <div className="flex-shrink-0">
+                                <div
+                                  className="w-4 h-4 rounded-full border border-white shadow-sm"
+                                  style={{ backgroundColor: entry.color }}
+                                />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {entry.name}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm font-bold">
+                                    {percent}%
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({entry.value} phòng)
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1242,6 +1496,7 @@ const DashboardPage = () => {
                           <Area
                             type="monotone"
                             dataKey="nạp"
+                            name="Doanh thu vào"
                             stackId="1"
                             stroke="#10b981"
                             fill="#10b981"
@@ -1250,6 +1505,7 @@ const DashboardPage = () => {
                           <Area
                             type="monotone"
                             dataKey="rút"
+                            name="Doanh thu ra"
                             stackId="2"
                             stroke="#ef4444"
                             fill="#ef4444"
@@ -1267,20 +1523,32 @@ const DashboardPage = () => {
             <Card className="shadow-sm">
               <CardHeader className="p-4">
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-sm md:text-base">
+                  <CardTitle className="text-sm md:text-base flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-blue-600" />
                     Giao dịch gần đây
                   </CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDateFilterToggle}
+                    >
                       <Calendar className="h-4 w-4 mr-1" />
                       Lọc theo ngày
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUserFilterToggle}
+                    >
                       <Users className="h-4 w-4 mr-1" />
                       Lọc theo người dùng
                     </Button>
                   </div>
                 </div>
+                <CardDescription className="text-xs mt-1">
+                  Danh sách các giao dịch tiền nạp và rút trong hệ thống
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-auto">
@@ -1305,19 +1573,22 @@ const DashboardPage = () => {
                         <th className="p-3 text-left text-xs font-medium text-muted-foreground">
                           Trạng thái
                         </th>
+                        <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                          Thao tác
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {loadingTransactions ? (
-                        Array.from({ length: 5 }).map((_, index) => (
+                        Array.from({ length: 10 }).map((_, index) => (
                           <tr key={index}>
-                            <td colSpan={6} className="p-3">
+                            <td colSpan={7} className="p-3">
                               <Skeleton className="h-6 w-full" />
                             </td>
                           </tr>
                         ))
-                      ) : recentTransactions.length > 0 ? (
-                        recentTransactions.map((transaction) => (
+                      ) : financeCurrentTransactions.length > 0 ? (
+                        financeCurrentTransactions.map((transaction) => (
                           <tr
                             key={transaction.id}
                             className="hover:bg-muted/30"
@@ -1370,12 +1641,25 @@ const DashboardPage = () => {
                                 Hoàn thành
                               </Badge>
                             </td>
+                            <td className="p-3 text-sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2"
+                                onClick={() =>
+                                  handleViewTransactionDetails(transaction)
+                                }
+                              >
+                                <Eye className="h-3.5 w-3.5 mr-1" />
+                                <span className="text-xs">Chi tiết</span>
+                              </Button>
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={7}
                             className="p-6 text-center text-sm text-muted-foreground"
                           >
                             Không có giao dịch nào gần đây
@@ -1385,6 +1669,87 @@ const DashboardPage = () => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Phân trang cho bảng tài chính */}
+                {financeTotalPages > 1 && (
+                  <div className="py-4 flex justify-center border-t">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() =>
+                              handleFinancePageChange(
+                                Math.max(1, financeCurrentPage - 1)
+                              )
+                            }
+                            className={cn(
+                              financeCurrentPage === 1 &&
+                                "pointer-events-none opacity-50"
+                            )}
+                          />
+                        </PaginationItem>
+
+                        {Array.from({ length: financeTotalPages }).map(
+                          (_, index) => {
+                            const page = index + 1;
+                            // Hiển thị các trang gần trang hiện tại
+                            if (
+                              page === 1 ||
+                              page === financeTotalPages ||
+                              (page >= financeCurrentPage - 1 &&
+                                page <= financeCurrentPage + 1)
+                            ) {
+                              return (
+                                <PaginationItem key={page}>
+                                  <PaginationLink
+                                    isActive={page === financeCurrentPage}
+                                    onClick={() =>
+                                      handleFinancePageChange(page)
+                                    }
+                                  >
+                                    {page}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              );
+                            }
+
+                            // Hiển thị dấu ... nếu có khoảng cách
+                            if (
+                              (page === 2 && financeCurrentPage > 3) ||
+                              (page === financeTotalPages - 1 &&
+                                financeCurrentPage < financeTotalPages - 2)
+                            ) {
+                              return (
+                                <PaginationItem key={page}>
+                                  <PaginationEllipsis />
+                                </PaginationItem>
+                              );
+                            }
+
+                            return null;
+                          }
+                        )}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() =>
+                              handleFinancePageChange(
+                                Math.min(
+                                  financeTotalPages,
+                                  financeCurrentPage + 1
+                                )
+                              )
+                            }
+                            className={cn(
+                              financeCurrentPage === financeTotalPages &&
+                                "pointer-events-none opacity-50"
+                            )}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1561,6 +1926,108 @@ const DashboardPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog hiển thị chi tiết giao dịch */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chi tiết giao dịch</DialogTitle>
+            <DialogDescription>
+              Thông tin chi tiết về giao dịch
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTransaction && (
+            <div className="space-y-4 py-2">
+              <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "h-10 w-10 rounded-full flex items-center justify-center",
+                      selectedTransaction.isDeposit
+                        ? "bg-green-100"
+                        : "bg-red-100"
+                    )}
+                  >
+                    {selectedTransaction.isDeposit ? (
+                      <ArrowDownCircle className="h-6 w-6 text-green-600" />
+                    ) : (
+                      <ArrowUpCircle className="h-6 w-6 text-red-600" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="block text-sm font-medium">
+                      {selectedTransaction.isDeposit ? "Nạp tiền" : "Rút tiền"}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-lg font-bold",
+                        selectedTransaction.isDeposit
+                          ? "text-green-600"
+                          : "text-red-600"
+                      )}
+                    >
+                      {selectedTransaction.isDeposit ? "+" : "-"}
+                      {formatCurrency(selectedTransaction.amount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Mã giao dịch:</span>
+                  <span className="font-medium">{selectedTransaction.id}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Thời gian:</span>
+                  <span className="font-medium">
+                    {format(
+                      selectedTransaction.transactionDate,
+                      "dd/MM/yyyy HH:mm:ss",
+                      { locale: vi }
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Người dùng:</span>
+                  <span className="font-medium">
+                    {selectedTransaction.userName}
+                  </span>
+                </div>
+
+                {selectedTransaction.userEmail && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Email:</span>
+                    <span className="font-medium">
+                      {selectedTransaction.userEmail}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">ID người dùng:</span>
+                  <span className="font-medium">
+                    {selectedTransaction.userId}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Nội dung:</span>
+                  <span className="font-medium text-right">
+                    {selectedTransaction.description ||
+                      (selectedTransaction.isDeposit
+                        ? "Nạp tiền vào tài khoản"
+                        : "Rút tiền từ tài khoản")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </SidebarInset>
   );
 };
