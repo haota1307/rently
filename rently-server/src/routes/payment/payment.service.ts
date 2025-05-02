@@ -339,108 +339,70 @@ export class PaymentService {
   }
 
   /**
-   * Xác nhận giao dịch chuyển tiền rút tiền từ webhook
+   * Xác nhận giao dịch rút tiền đã hoàn thành
+   * @param withdrawId ID của yêu cầu rút tiền
+   * @param webhookData Dữ liệu webhook từ cổng thanh toán
+   * @returns Thông tin về giao dịch đã xử lý
    */
   async confirmWithdrawTransaction(
     withdrawId: number,
     webhookData: WebhookPaymentBodyType
   ) {
-    try {
-      // Kiểm tra xem yêu cầu rút tiền có tồn tại không
-      const payment = await this.paymentRepo.getPaymentById(withdrawId)
+    const payment = await this.paymentRepo.getPaymentById(withdrawId)
 
-      if (!payment) {
-        throw new NotFoundException(
-          `Không tìm thấy yêu cầu rút tiền với ID ${withdrawId}`
-        )
-      }
-
-      // Kiểm tra xem có phải yêu cầu rút tiền không
-      const paymentData = payment as any
-      if (!paymentData.metadata || !paymentData.metadata.isWithdraw) {
-        throw new BadRequestException(
-          `Giao dịch này không phải là yêu cầu rút tiền`
-        )
-      }
-
-      // Kiểm tra số tiền chuyển khoản
-      if (webhookData.transferAmount !== payment.amount) {
-        console.warn(
-          `Cảnh báo: Số tiền chuyển khoản (${webhookData.transferAmount}) không khớp với số tiền yêu cầu (${payment.amount})`
-        )
-        // Không báo lỗi ở đây, vì có thể admin đã chuyển khác số tiền yêu cầu
-      }
-
-      // Kiểm tra trạng thái hiện tại
-      if (payment.status === PaymentStatus.COMPLETED) {
-        return {
-          message: `Yêu cầu rút tiền #${withdrawId} đã được xử lý trước đó`,
-          paymentId: withdrawId,
-          userId: payment.userId,
-        }
-      }
-
-      // Ghi nhận giao dịch từ webhook
-      let amountIn = 0
-      let amountOut = 0
-
-      if (webhookData.transferType === 'in') {
-        amountIn = webhookData.transferAmount
-      } else if (webhookData.transferType === 'out') {
-        amountOut = webhookData.transferAmount
-      }
-
-      // Tạo giao dịch mới nếu cần, hoặc cập nhật giao dịch hiện tại
-      if (!payment.transactionId) {
-        const transaction = await this.prismaService.paymentTransaction.create({
-          data: {
-            id: webhookData.id,
-            gateway: webhookData.gateway,
-            transactionDate: parse(
-              webhookData.transactionDate,
-              'yyyy-MM-dd HH:mm:ss',
-              new Date()
-            ),
-            accountNumber: webhookData.accountNumber || '',
-            subAccount: webhookData.subAccount,
-            amountIn,
-            amountOut,
-            accumulated: webhookData.accumulated,
-            code: webhookData.code,
-            transactionContent: webhookData.content,
-            referenceNumber: webhookData.referenceCode,
-            body: webhookData.description,
-            userId: payment.userId,
-          },
-        })
-
-        // Cập nhật transaction ID cho payment
-        await this.prismaService.payment.update({
-          where: { id: withdrawId },
-          data: {
-            transactionId: transaction.id,
-          },
-        })
-      }
-
-      // Cập nhật trạng thái thanh toán
-      await this.prismaService.payment.update({
-        where: { id: withdrawId },
-        data: {
-          status: PaymentStatus.COMPLETED,
-        },
-      })
-
-      return {
-        message: `Xác nhận chuyển khoản thành công cho yêu cầu rút tiền #${withdrawId}`,
-        paymentId: withdrawId,
-        userId: payment.userId,
-      }
-    } catch (error) {
-      throw new BadRequestException(
-        error.message || 'Không thể xác nhận giao dịch chuyển khoản'
+    if (!payment) {
+      throw new NotFoundException(
+        `Không tìm thấy giao dịch với ID ${withdrawId}`
       )
     }
+
+    // Kiểm tra và ngăn chặn xử lý trùng lặp
+    const isDuplicate =
+      await this.paymentRepo.checkDuplicateWithdrawProcessing(withdrawId)
+    if (isDuplicate) {
+      return {
+        message: `Yêu cầu rút tiền #${withdrawId} đã được xử lý trước đó`,
+        status: 'success',
+        duplicate: true,
+      }
+    }
+
+    if (payment.amount !== webhookData.transferAmount) {
+      throw new BadRequestException(
+        `Số tiền không khớp, dự kiến ${payment.amount} nhưng nhận được ${webhookData.transferAmount}`
+      )
+    }
+
+    // Đánh dấu đã xử lý giao dịch này
+    await this.paymentRepo.markWithdrawAsProcessing(withdrawId)
+
+    // Xử lý xác nhận rút tiền trong database
+    const result = await this.paymentRepo.confirmWithdrawTransaction(
+      withdrawId,
+      webhookData
+    )
+
+    // Thông báo qua WebSocket cho người dùng
+    if (result.userId) {
+      this.eventsGateway.notifyPaymentStatusUpdated(result.userId, {
+        id: withdrawId,
+        status: 'COMPLETED',
+        amount: payment.amount,
+        description: payment.description || '',
+        timestamp: new Date().toISOString(),
+      })
+    }
+
+    // Thông báo cho admin room để cập nhật trạng thái trên trang quản lý
+    this.eventsGateway.notifyAdmins('withdraw-confirm', {
+      withdrawId: withdrawId,
+      status: 'COMPLETED',
+      amount: payment.amount,
+      description: payment.description || '',
+      timestamp: new Date().toISOString(),
+    })
+
+    return result
   }
 
   /**

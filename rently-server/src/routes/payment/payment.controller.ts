@@ -10,7 +10,6 @@ import {
   BadRequestException,
 } from '@nestjs/common'
 import { PaymentService } from './payment.service'
-import { MessageResDTO } from 'src/shared/dtos/response.dto'
 import { ZodSerializerDto } from 'nestjs-zod'
 import { Auth, IsPublic } from 'src/shared/decorators/auth.decorator'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
@@ -46,9 +45,6 @@ export class PaymentController {
     private readonly paymentService: PaymentService,
     private readonly eventsGateway: EventsGateway
   ) {}
-
-  // Biến lưu trữ các giao dịch đã xử lý gần đây để tránh xử lý trùng lặp
-  private recentlyProcessedWithdraws: Map<number, number> = new Map()
 
   @Post('/receiver')
   @ZodSerializerDto(MessageResponseDTO)
@@ -194,71 +190,20 @@ export class PaymentController {
   @ZodSerializerDto(MessageResponseDTO)
   @Auth([AuthType.APIKey])
   async confirmWithdrawTransaction(@Body() body: WebhookPaymentBodyDTO) {
+    // Kiểm tra nội dung và lấy ID giao dịch rút tiền
     const withdrawIdMatch = body.content?.match(/#RUT(\d+)/)
-
     if (!withdrawIdMatch || !withdrawIdMatch[1]) {
       throw new BadRequestException(
         'Không tìm thấy mã giao dịch rút tiền trong nội dung chuyển khoản'
       )
     }
-
     const withdrawId = parseInt(withdrawIdMatch[1], 10)
 
-    // Kiểm tra xem giao dịch này đã được xử lý gần đây chưa (trong 10 giây)
-    const now = Date.now()
-    const lastProcessed = this.recentlyProcessedWithdraws.get(withdrawId)
-
-    if (lastProcessed && now - lastProcessed < 10000) {
-      console.log(
-        `Giao dịch rút tiền #${withdrawId} đã được xử lý gần đây, bỏ qua để tránh trùng lặp`
-      )
-      return {
-        message: `Yêu cầu rút tiền #${withdrawId} đã được xử lý trước đó`,
-        status: 'success',
-        duplicate: true,
-      }
-    }
-
-    // Đánh dấu giao dịch này đã được xử lý
-    this.recentlyProcessedWithdraws.set(withdrawId, now)
-
-    // Giới hạn kích thước map để tránh rò rỉ bộ nhớ
-    if (this.recentlyProcessedWithdraws.size > 100) {
-      const entriesToDelete = [...this.recentlyProcessedWithdraws.entries()]
-        .sort((a, b) => a[1] - b[1])
-        .slice(0, this.recentlyProcessedWithdraws.size - 100)
-
-      entriesToDelete.forEach(([key]) =>
-        this.recentlyProcessedWithdraws.delete(key)
-      )
-    }
-
-    // Gọi service để xác nhận giao dịch chuyển tiền đã hoàn tất
+    // Gọi service để xử lý xác nhận rút tiền
     const result = await this.paymentService.confirmWithdrawTransaction(
       withdrawId,
       body
     )
-
-    // Thông báo qua WebSocket cho người dùng
-    if (result.userId) {
-      this.eventsGateway.notifyPaymentStatusUpdated(result.userId, {
-        id: withdrawId,
-        status: 'COMPLETED',
-        amount: body.transferAmount,
-        description: body.content || '',
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    // Thông báo cho admin room để cập nhật trạng thái trên trang quản lý
-    // Chỉ gửi 1 sự kiện duy nhất để tránh xử lý song song
-    this.eventsGateway.notifyAdmins('withdraw-confirm', {
-      withdrawId: withdrawId,
-      status: 'COMPLETED',
-      amount: body.transferAmount,
-      description: body.content || '',
-      timestamp: new Date().toISOString(),
-    })
 
     return result
   }

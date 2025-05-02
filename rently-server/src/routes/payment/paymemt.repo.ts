@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common'
 import { parse } from 'date-fns'
 import { WebhookPaymentBodyType } from 'src/routes/payment/payment.model'
@@ -15,6 +16,9 @@ const PREFIX_PAYMENT_CODE = 'NAP'
 @Injectable()
 export class PaymentRepo {
   constructor(private readonly prismaService: PrismaService) {}
+
+  // Biến lưu trữ các giao dịch đã xử lý gần đây để tránh xử lý trùng lặp
+  private recentlyProcessedWithdraws: Map<number, number> = new Map()
 
   async receiver(
     body: WebhookPaymentBodyType
@@ -441,5 +445,154 @@ export class PaymentRepo {
     }
 
     throw new BadRequestException('Trạng thái không hợp lệ')
+  }
+
+  /**
+   * Kiểm tra xem yêu cầu rút tiền đã được xử lý gần đây chưa
+   * @param withdrawId ID của yêu cầu rút tiền
+   * @returns true nếu đã xử lý gần đây, false nếu chưa
+   */
+  async checkDuplicateWithdrawProcessing(withdrawId: number): Promise<boolean> {
+    // Kiểm tra xem giao dịch này đã được xử lý gần đây chưa (trong 10 giây)
+    const now = Date.now()
+    const lastProcessed = this.recentlyProcessedWithdraws.get(withdrawId)
+
+    if (lastProcessed && now - lastProcessed < 10000) {
+      console.log(
+        `Giao dịch rút tiền #${withdrawId} đã được xử lý gần đây, bỏ qua để tránh trùng lặp`
+      )
+      return true
+    }
+
+    return false
+  }
+
+  /**
+   * Đánh dấu yêu cầu rút tiền đang được xử lý
+   * @param withdrawId ID của yêu cầu rút tiền
+   */
+  async markWithdrawAsProcessing(withdrawId: number): Promise<void> {
+    // Đánh dấu giao dịch này đã được xử lý
+    const now = Date.now()
+    this.recentlyProcessedWithdraws.set(withdrawId, now)
+
+    // Giới hạn kích thước map để tránh rò rỉ bộ nhớ
+    if (this.recentlyProcessedWithdraws.size > 100) {
+      const entriesToDelete = [...this.recentlyProcessedWithdraws.entries()]
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, this.recentlyProcessedWithdraws.size - 100)
+
+      entriesToDelete.forEach(([key]) =>
+        this.recentlyProcessedWithdraws.delete(key)
+      )
+    }
+  }
+
+  /**
+   * Xác nhận giao dịch rút tiền đã hoàn thành
+   * @param withdrawId ID của yêu cầu rút tiền
+   * @param webhookData Dữ liệu webhook từ cổng thanh toán
+   * @returns Thông tin về giao dịch đã xử lý
+   */
+  async confirmWithdrawTransaction(
+    withdrawId: number,
+    webhookData: WebhookPaymentBodyType
+  ) {
+    try {
+      // Kiểm tra xem yêu cầu rút tiền có tồn tại không
+      const payment = await this.getPaymentById(withdrawId)
+
+      if (!payment) {
+        throw new NotFoundException(
+          `Không tìm thấy yêu cầu rút tiền với ID ${withdrawId}`
+        )
+      }
+
+      // Kiểm tra xem có phải yêu cầu rút tiền không
+      const paymentData = payment as any
+      if (!paymentData.metadata || !paymentData.metadata.isWithdraw) {
+        throw new BadRequestException(
+          `Giao dịch này không phải là yêu cầu rút tiền`
+        )
+      }
+
+      // Kiểm tra số tiền chuyển khoản
+      if (webhookData.transferAmount !== payment.amount) {
+        console.warn(
+          `Cảnh báo: Số tiền chuyển khoản (${webhookData.transferAmount}) không khớp với số tiền yêu cầu (${payment.amount})`
+        )
+        // Không báo lỗi ở đây, vì có thể admin đã chuyển khác số tiền yêu cầu
+      }
+
+      // Kiểm tra trạng thái hiện tại
+      if (payment.status === PaymentStatus.COMPLETED) {
+        return {
+          message: `Yêu cầu rút tiền #${withdrawId} đã được xử lý trước đó`,
+          paymentId: withdrawId,
+          userId: payment.userId,
+        }
+      }
+
+      // Ghi nhận giao dịch từ webhook
+      let amountIn = 0
+      let amountOut = 0
+
+      if (webhookData.transferType === 'in') {
+        amountIn = webhookData.transferAmount
+      } else if (webhookData.transferType === 'out') {
+        amountOut = webhookData.transferAmount
+      }
+
+      // Tạo giao dịch mới nếu cần, hoặc cập nhật giao dịch hiện tại
+      if (!payment.transactionId) {
+        const transaction = await this.prismaService.paymentTransaction.create({
+          data: {
+            id: webhookData.id,
+            gateway: webhookData.gateway,
+            transactionDate: parse(
+              webhookData.transactionDate,
+              'yyyy-MM-dd HH:mm:ss',
+              new Date()
+            ),
+            accountNumber: webhookData.accountNumber || '',
+            subAccount: webhookData.subAccount,
+            amountIn,
+            amountOut,
+            accumulated: webhookData.accumulated,
+            code: webhookData.code,
+            transactionContent: webhookData.content,
+            referenceNumber: webhookData.referenceCode,
+            body: webhookData.description,
+            userId: payment.userId,
+          },
+        })
+
+        // Cập nhật transaction ID cho payment
+        await this.prismaService.payment.update({
+          where: { id: withdrawId },
+          data: {
+            transactionId: transaction.id,
+          },
+        })
+      }
+
+      // Cập nhật trạng thái thanh toán
+      await this.prismaService.payment.update({
+        where: { id: withdrawId },
+        data: {
+          status: PaymentStatus.COMPLETED,
+        },
+      })
+
+      return {
+        message: `Xác nhận chuyển khoản thành công cho yêu cầu rút tiền #${withdrawId}`,
+        paymentId: withdrawId,
+        userId: payment.userId,
+      }
+    } catch (error) {
+      throw new BadRequestException(
+        error.message || 'Không thể xác nhận giao dịch chuyển khoản'
+      )
+    }
   }
 }
