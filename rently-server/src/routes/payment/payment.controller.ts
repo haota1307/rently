@@ -13,6 +13,7 @@ import { PaymentService } from './payment.service'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 import { ZodSerializerDto } from 'nestjs-zod'
 import { Auth, IsPublic } from 'src/shared/decorators/auth.decorator'
+import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import {
   CreatePaymentDTO,
   GenerateQrDTO,
@@ -91,22 +92,59 @@ export class PaymentController {
 
   @Get('/transactions')
   @ZodSerializerDto(GetTransactionsResponseDTO)
-  @IsPublic()
-  async getTransactions(@Query() query: GetTransactionParamsDTO) {
+  async getTransactions(
+    @Query() query: GetTransactionParamsDTO,
+    @ActiveUser('userId') currentUserId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    // Nếu tham số current=true được gửi lên, sử dụng ID người dùng hiện tại
+    if (query.current === true) {
+      query.userId = currentUserId
+    }
+
+    // Nếu là admin và không có tham số current, cho phép xem tất cả hoặc lọc theo userId
+    if (roleName !== 'ADMIN' && !query.userId) {
+      query.userId = currentUserId
+    }
+
     return this.paymentService.getTransactions(query)
   }
 
   @Get('/transactions/count')
   @ZodSerializerDto(CountTransactionsResponseDTO)
-  @IsPublic()
-  async countTransactions(@Query() query: GetTransactionParamsDTO) {
+  async countTransactions(
+    @Query() query: GetTransactionParamsDTO,
+    @ActiveUser('userId') currentUserId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    // Xử lý giống như getTransactions
+    if (query.current === true) {
+      query.userId = currentUserId
+    }
+
+    if (roleName !== 'ADMIN' && !query.userId) {
+      query.userId = currentUserId
+    }
+
     return this.paymentService.countTransactions(query)
   }
 
   @Get('/transactions/summary')
   @ZodSerializerDto(TransactionSummaryResponseDTO)
-  @IsPublic()
-  async getTransactionSummary(@Query() query: GetTransactionParamsDTO) {
+  async getTransactionSummary(
+    @Query() query: GetTransactionParamsDTO,
+    @ActiveUser('userId') currentUserId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    // Xử lý giống như getTransactions
+    if (query.current === true) {
+      query.userId = currentUserId
+    }
+
+    if (roleName !== 'ADMIN' && !query.userId) {
+      query.userId = currentUserId
+    }
+
     return this.paymentService.getTransactionSummary(query)
   }
 

@@ -63,6 +63,10 @@ export const GetTransactionParamsSchema = z.object({
     .refine(val => val === undefined || (!isNaN(val) && val > 0), {
       message: 'ID người dùng phải là số nguyên dương',
     }),
+  current: z
+    .string()
+    .optional()
+    .transform(val => val === 'true' || val === '1'),
   transaction_date_min: z.string().optional(),
   transaction_date_max: z.string().optional(),
   since_id: z.string().optional(),
