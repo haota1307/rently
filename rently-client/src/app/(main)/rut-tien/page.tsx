@@ -23,13 +23,22 @@ import {
   BuildingIcon,
   UserIcon,
   CreditCardIcon,
+  Search,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { useAppStore } from "@/components/app-provider";
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import paymentApiRequest from "@/features/payment/payment.api";
+import { BANKS } from "@/features/payment/constants";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface WithdrawFormValues {
   amount: number;
@@ -49,6 +58,15 @@ export default function WithdrawPage() {
     resetPayment,
     checkWithdrawStatus,
   } = usePayment();
+
+  // State cho tìm kiếm ngân hàng
+  const [bankSearchTerm, setBankSearchTerm] = useState("");
+  const filteredBanks = BANKS.filter(
+    (bank) =>
+      bank.fullName.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
+      bank.name.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
+      bank.id.toLowerCase().includes(bankSearchTerm.toLowerCase())
+  ).sort((a, b) => a.fullName.localeCompare(b.fullName, "vi"));
 
   const accessToken = getAccessTokenFromLocalStorage();
   const userId = accessToken ? decodeAccessToken(accessToken).userId : 1;
@@ -156,10 +174,31 @@ export default function WithdrawPage() {
     },
   });
 
+  // Thêm useEffect để validate select khi có thay đổi
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      // Validate khi select thay đổi giá trị
+      if (name === "bankName" && value.bankName) {
+        form.clearErrors("bankName");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   // Các mệnh giá nhanh
   const quickAmounts = [50000, 100000, 200000, 500000, 1000000];
 
   const onSubmit = (values: WithdrawFormValues) => {
+    // Kiểm tra thêm nếu chưa chọn ngân hàng
+    if (!values.bankName) {
+      form.setError("bankName", {
+        type: "required",
+        message: "Vui lòng chọn ngân hàng",
+      });
+      return;
+    }
+
     createWithdraw(
       userId,
       Number(values.amount),
@@ -315,7 +354,11 @@ export default function WithdrawPage() {
                       Ngân hàng:
                     </span>
                     <span className="text-sm font-medium">
-                      {withdrawalInfo?.bankName}
+                      {(withdrawalInfo?.bankName &&
+                        BANKS.find(
+                          (bank) => bank.name === withdrawalInfo.bankName
+                        )?.fullName) ||
+                        withdrawalInfo?.bankName}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -437,13 +480,57 @@ export default function WithdrawPage() {
                   <Label htmlFor="bankName" className="text-sm">
                     Tên ngân hàng
                   </Label>
-                  <Input
-                    id="bankName"
+                  <Select
                     disabled={loading}
-                    {...form.register("bankName", {
-                      required: "Vui lòng nhập tên ngân hàng",
-                    })}
-                  />
+                    onValueChange={(value) => form.setValue("bankName", value)}
+                    defaultValue={form.watch("bankName")}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn ngân hàng" />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      sideOffset={5}
+                      className="w-full z-[1000] max-h-[300px] overflow-hidden"
+                      align="center"
+                      avoidCollisions={true}
+                    >
+                      <div className="flex items-center border-b px-3 py-2 sticky top-0 bg-popover z-10">
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                        <input
+                          className="flex w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="Tìm kiếm ngân hàng..."
+                          value={bankSearchTerm}
+                          onChange={(e) => setBankSearchTerm(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="overflow-y-auto max-h-[240px] py-1 px-0">
+                        {filteredBanks.length > 0 ? (
+                          filteredBanks.map((bank) => (
+                            <SelectItem
+                              key={bank.id}
+                              value={bank.name}
+                              textValue={bank.fullName}
+                              className="px-3 py-2"
+                            >
+                              <div className="flex items-center">
+                                <span>{bank.fullName}</span>
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  ({bank.name})
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            Không tìm thấy ngân hàng phù hợp
+                          </div>
+                        )}
+                      </div>
+                    </SelectContent>
+                  </Select>
                   {form.formState.errors.bankName && (
                     <p className="text-xs text-destructive mt-1">
                       {form.formState.errors.bankName.message}

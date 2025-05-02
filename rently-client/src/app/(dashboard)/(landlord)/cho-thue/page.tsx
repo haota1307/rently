@@ -70,6 +70,7 @@ interface Transaction {
   isDeposit: boolean;
   transactionDate: Date;
   description: string;
+  status: string;
 }
 
 const LandlordPage = () => {
@@ -122,8 +123,8 @@ const LandlordPage = () => {
 
       // Gọi API lấy giao dịch của chính người cho thuê
       const response = await paymentApiRequest.getTransactions({
-        current: true, // Sử dụng tham số current để lấy giao dịch của người dùng hiện tại
-        limit: 20, // Lấy nhiều hơn để phân trang tại client
+        current: true,
+        limit: 20,
       });
 
       if (response.status === 200 && response.payload?.transactions) {
@@ -131,22 +132,63 @@ const LandlordPage = () => {
         const formattedTransactions: Transaction[] =
           response.payload.transactions
             .map((transaction: any) => {
-              const isDeposit = parseFloat(transaction.amount_in) > 0;
+              // Xác định loại giao dịch dựa vào nội dung và số tiền
+              let isDeposit = parseFloat(transaction.amount_in) > 0;
+
+              // Kiểm tra nội dung giao dịch để xác định đúng loại
+              const content =
+                transaction.transaction_content?.toLowerCase() || "";
+
+              // Nếu nội dung chứa từ khóa liên quan đến phí đăng bài hoặc thanh toán phí, coi là tiền ra
+              if (
+                content.includes("phí đăng") ||
+                content.includes("phí quảng cáo") ||
+                content.includes("phí dịch vụ")
+              ) {
+                isDeposit = false;
+              }
+              // Nếu nội dung chứa từ khóa liên quan đến nạp tiền hoặc thanh toán từ người thuê, coi là tiền vào
+              else if (
+                content.includes("nạp tiền") ||
+                content.includes("thanh toán từ người thuê")
+              ) {
+                isDeposit = true;
+              }
+              // Xác định theo code giao dịch
+              else if (transaction.code?.startsWith("RUT")) {
+                isDeposit = false;
+              } else if (
+                transaction.code?.startsWith("NAP") &&
+                !content.includes("phí")
+              ) {
+                isDeposit = true;
+              }
+
+              // Số tiền hiển thị:
+              let amount;
+              if (isDeposit) {
+                amount = parseFloat(transaction.amount_in);
+              } else {
+                // Nếu là tiền ra, ưu tiên dùng amount_out, nếu amount_out = 0 thì dùng amount_in
+                amount =
+                  parseFloat(transaction.amount_out) ||
+                  parseFloat(transaction.amount_in);
+              }
+
               return {
                 id: transaction.id,
                 userId: transaction.user?.id || "0",
                 userName: transaction.user?.name || "Không xác định",
                 userEmail: transaction.user?.email,
-                amount: isDeposit
-                  ? parseFloat(transaction.amount_in)
-                  : parseFloat(transaction.amount_out),
+                amount: amount,
                 isDeposit: isDeposit,
                 transactionDate: new Date(transaction.transaction_date),
                 description:
                   transaction.transaction_content ||
                   (isDeposit
-                    ? "Thanh toán từ người thuê"
-                    : "Thanh toán phí đăng bài"),
+                    ? "Nạp tiền vào tài khoản"
+                    : "Thanh toán phí dịch vụ"),
+                status: transaction.status || "COMPLETED",
               };
             })
             .sort(
@@ -187,6 +229,62 @@ const LandlordPage = () => {
   // Hàm thay đổi khoảng thời gian biểu đồ
   const handleTimeRangeChange = (days: number) => {
     setTimeRange(days);
+  };
+
+  // Hàm xác định loại giao dịch chi tiết dựa vào nội dung
+  const getTransactionType = (transaction: Transaction) => {
+    const content = transaction.description.toLowerCase();
+
+    if (transaction.isDeposit) {
+      if (content.includes("từ người thuê") || content.includes("thanh toán")) {
+        return "Thu từ người thuê";
+      } else {
+        return "Nạp tiền vào tài khoản";
+      }
+    } else {
+      if (
+        content.includes("phí đăng") ||
+        content.includes("phí quảng cáo") ||
+        content.includes("phí dịch vụ")
+      ) {
+        return "Phí đăng bài";
+      } else if (content.includes("rút tiền")) {
+        return "Rút tiền về tài khoản";
+      } else {
+        return "Chi phí dịch vụ";
+      }
+    }
+  };
+
+  // Thêm hàm hiển thị tên trạng thái
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case "COMPLETED":
+        return "Hoàn thành";
+      case "PENDING":
+        return "Đang chờ xử lý";
+      case "CANCELED":
+        return "Đã hủy";
+      case "REJECTED":
+        return "Bị từ chối";
+      default:
+        return "Không xác định";
+    }
+  };
+
+  // Thêm hàm trả về màu variant cho badge trạng thái
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case "COMPLETED":
+        return "outline";
+      case "PENDING":
+        return "warning";
+      case "CANCELED":
+      case "REJECTED":
+        return "destructive";
+      default:
+        return "outline";
+    }
   };
 
   return (
@@ -309,7 +407,7 @@ const LandlordPage = () => {
             <div className="flex justify-between items-center">
               <CardTitle className="text-sm md:text-base flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-blue-600" />
-                Doanh thu theo thời gian
+                Biến động Thu - Chi
               </CardTitle>
               <div className="flex gap-2">
                 <Button
@@ -336,7 +434,7 @@ const LandlordPage = () => {
               </div>
             </div>
             <CardDescription className="text-xs">
-              Thống kê doanh thu vào và ra trong khoảng thời gian
+              Thống kê tiền vào và tiền ra trong khoảng thời gian
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
@@ -451,9 +549,7 @@ const LandlordPage = () => {
                             </div>
                             <div>
                               <p className="text-sm font-medium">
-                                {transaction.isDeposit
-                                  ? "Nhận thanh toán"
-                                  : "Thanh toán phí"}
+                                {transaction.isDeposit ? "Tiền vào" : "Tiền ra"}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {getTimeAgo(transaction.transactionDate)}
@@ -615,9 +711,7 @@ const LandlordPage = () => {
                   </div>
                   <div>
                     <span className="block text-sm font-medium">
-                      {selectedTransaction.isDeposit
-                        ? "Nhận thanh toán"
-                        : "Thanh toán phí"}
+                      {selectedTransaction.isDeposit ? "Tiền vào" : "Tiền ra"}
                     </span>
                     <span
                       className={cn(
@@ -653,8 +747,11 @@ const LandlordPage = () => {
 
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Trạng thái:</span>
-                  <Badge variant="outline" className="font-normal">
-                    Hoàn thành
+                  <Badge
+                    variant={getStatusVariant(selectedTransaction.status)}
+                    className="font-normal"
+                  >
+                    {getStatusDisplay(selectedTransaction.status)}
                   </Badge>
                 </div>
 
@@ -666,11 +763,9 @@ const LandlordPage = () => {
                 </div>
 
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Liên quan đến:</span>
+                  <span className="text-muted-foreground">Loại giao dịch:</span>
                   <span className="font-medium">
-                    {selectedTransaction.isDeposit
-                      ? "Thu từ người thuê"
-                      : "Phí quảng cáo"}
+                    {getTransactionType(selectedTransaction)}
                   </span>
                 </div>
               </div>

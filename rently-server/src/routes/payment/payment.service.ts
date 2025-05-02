@@ -260,6 +260,9 @@ export class PaymentService {
         description
       )
 
+      // Thêm yêu cầu rút tiền vào hàng đợi hủy tự động sau 15 phút
+      await this.paymentProducer.cancelWithdrawJob(payment.id)
+
       // Truy cập metadata một cách an toàn bằng cách cast
       const paymentData = payment as any
       const metadata = paymentData.metadata
@@ -302,6 +305,9 @@ export class PaymentService {
     rejectionReason?: string
   ) {
     try {
+      // Xóa công việc khỏi hàng đợi vì admin đã xử lý thủ công
+      await this.paymentProducer.removeCancelWithdrawJob(paymentId)
+
       const result = await this.paymentRepo.processWithdrawRequest(
         paymentId,
         status,
@@ -372,6 +378,9 @@ export class PaymentService {
         `Số tiền không khớp, dự kiến ${payment.amount} nhưng nhận được ${webhookData.transferAmount}`
       )
     }
+
+    // Xóa yêu cầu rút tiền khỏi hàng đợi hủy tự động
+    await this.paymentProducer.removeCancelWithdrawJob(withdrawId)
 
     // Đánh dấu đã xử lý giao dịch này
     await this.paymentRepo.markWithdrawAsProcessing(withdrawId)

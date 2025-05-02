@@ -37,14 +37,10 @@ import {
   GenerateWithdrawQrResponseDTO,
 } from 'src/routes/payment/payment.dto'
 import { AuthType } from 'src/shared/constants/auth.constant'
-import { EventsGateway } from 'src/events/events.gateway'
 
 @Controller('payment')
 export class PaymentController {
-  constructor(
-    private readonly paymentService: PaymentService,
-    private readonly eventsGateway: EventsGateway
-  ) {}
+  constructor(private readonly paymentService: PaymentService) {}
 
   @Post('/receiver')
   @ZodSerializerDto(MessageResponseDTO)

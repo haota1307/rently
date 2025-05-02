@@ -68,3 +68,7 @@ export const preprocessDecimal = (arg: unknown) =>
 export const generateCancelPaymentJobId = (paymentId: number) => {
   return `paymentId-${paymentId}`
 }
+
+export const generateCancelWithdrawJobId = (withdrawId: number) => {
+  return `withdrawId-${withdrawId}`
+}

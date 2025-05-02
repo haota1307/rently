@@ -322,16 +322,14 @@ model Payment {
   id          Int           @id @default(autoincrement())
   amount      Int // Số tiền nạp vào tài khoản
   status      PaymentStatus
-  description String? // Mô tả giao dịch
-  metadata    Json? // Thêm trường metadata để lưu thông tin ngân hàng
+  description String?
+  metadata    Json?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  // Kết nối với User
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Kết nối với PaymentTransaction
   transaction   PaymentTransaction? @relation(fields: [transactionId], references: [id])
   transactionId Int?                @unique
 

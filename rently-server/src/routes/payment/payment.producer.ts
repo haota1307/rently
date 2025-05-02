@@ -3,9 +3,13 @@ import { Injectable } from '@nestjs/common'
 import { Queue } from 'bullmq'
 import {
   CANCEL_PAYMENT_JOB_NAME,
+  CANCEL_WITHDRAW_JOB_NAME,
   PAYMENT_QUEUE_NAME,
 } from 'src/shared/constants/queue.constant'
-import { generateCancelPaymentJobId } from 'src/shared/helpers'
+import {
+  generateCancelPaymentJobId,
+  generateCancelWithdrawJobId,
+} from 'src/shared/helpers'
 
 @Injectable()
 export class PaymentProducer {
@@ -36,5 +40,28 @@ export class PaymentProducer {
 
   async removeCancelPaymentJob(paymentId: number) {
     return await this.paymentQueue.remove(generateCancelPaymentJobId(paymentId))
+  }
+
+  async cancelWithdrawJob(withdrawId: number) {
+    await this.paymentQueue.add(
+      CANCEL_WITHDRAW_JOB_NAME,
+      { withdrawId },
+      {
+        delay: 1000 * 60 * 15, // 15 minutes
+        jobId: generateCancelWithdrawJobId(withdrawId),
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    )
+
+    this.paymentQueue.getJobCounts().then(counts => {
+      console.log('Cancel withdraw job added', counts)
+    })
+  }
+
+  async removeCancelWithdrawJob(withdrawId: number) {
+    return await this.paymentQueue.remove(
+      generateCancelWithdrawJobId(withdrawId)
+    )
   }
 }
