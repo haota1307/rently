@@ -1,6 +1,5 @@
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { ChatProvider } from "@/features/chatbot/components/chatbot-context";
 import { ChatbotWidget } from "@/features/chatbot/components/chatbot-widget";
 
 const MainLayout = ({
@@ -11,10 +10,8 @@ const MainLayout = ({
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <ChatProvider>
-        <main className="flex w-full">{children}</main>
-        <ChatbotWidget />
-      </ChatProvider>
+      <main className="flex w-full">{children}</main>
+      <ChatbotWidget />
       <Footer />
     </div>
   );

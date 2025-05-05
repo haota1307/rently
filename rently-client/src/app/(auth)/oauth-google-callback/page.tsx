@@ -9,10 +9,11 @@ import {
   setRefreshTokenToLocalStorage,
 } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { toast } from "sonner";
 
-export default function OAuthPage() {
+// Tách phần xử lý OAuth thành component riêng
+function OAuthHandler() {
   const setRole = useAppStore((state) => state.setRole);
   const { mutateAsync } = useSetTokenToCookieMutation();
 
@@ -77,7 +78,26 @@ export default function OAuthPage() {
         }, 1000);
       }
     }
-  }, [accessToken, refreshToken, setRole, router, error, blocked, mutateAsync]);
+  }, [
+    accessToken,
+    refreshToken,
+    setRole,
+    router,
+    error,
+    blocked,
+    mutateAsync,
+    searchParams,
+  ]);
 
-  return <div />;
+  return null;
+}
+
+export default function OAuthPage() {
+  return (
+    <div>
+      <Suspense fallback={<div>Đang xử lý đăng nhập...</div>}>
+        <OAuthHandler />
+      </Suspense>
+    </div>
+  );
 }

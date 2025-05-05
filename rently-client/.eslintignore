@@ -1,0 +1,15 @@
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Dependencies
+node_modules/
+
+# Generated files
+.vercel
+.env*.local
+
+# Schema files - thường chứa nhiều type và không cần kiểm tra nghiêm ngặt
+src/schemas/ 

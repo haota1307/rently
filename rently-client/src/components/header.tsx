@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -128,13 +128,27 @@ const categories: Record<string, Category> = {
   management: { name: "Quản lý", icon: Settings },
 };
 
+// Component riêng để xử lý SearchParams
+function SearchHandler({
+  onSearchChange,
+}: {
+  onSearchChange: (value: string) => void;
+}) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    onSearchChange(searchParams.get("search") || "");
+  }, [searchParams, onSearchChange]);
+
+  return null;
+}
+
 export function Header() {
   const { isAuth, role } = useAppStore();
   const [search, setSearch] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const pathname = usePathname();
   const normalizedPathname = normalizePath(pathname || "");
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -143,10 +157,12 @@ export function Header() {
     setIsHydrated(true);
   }, []);
 
-  // Đặt giá trị search từ URL
-  useEffect(() => {
-    setSearch(searchParams.get("search") || "");
-  }, [searchParams]);
+  // Xử lý khi người dùng tìm kiếm
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`/phong-tro?search=${encodeURIComponent(search)}`);
+    setIsSearchOpen(false);
+  };
 
   // Tạo danh sách link dựa vào vai trò người dùng
   const getAllLinks = () => {
@@ -193,12 +209,6 @@ export function Header() {
 
   const { mainLinks, categorized } = getCategorizedLinks();
 
-  // Xử lý khi người dùng tìm kiếm
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push(`/phong-tro?search=${encodeURIComponent(search)}`);
-    setIsSearchOpen(false);
-  };
   // Component tùy chỉnh cho các dropdown menu
   const CustomDropdownMenu = ({
     categoryKey,
@@ -259,6 +269,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-[999] border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur-sm py-3 shadow-sm dark:shadow-gray-900/20">
+      {/* Thêm Suspense để bọc SearchHandler */}
+      <Suspense fallback={null}>
+        <SearchHandler onSearchChange={setSearch} />
+      </Suspense>
+
       <div className="mx-auto flex w-full items-center justify-between px-4 md:px-8">
         {/* Left section: Logo */}
         <div className="flex items-center">

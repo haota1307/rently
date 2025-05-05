@@ -5,10 +5,11 @@ import {
   getRefreshTokenFromLocalStorage,
 } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { toast } from "sonner";
 
-export default function RefreshTokenPage() {
+// Component riêng để xử lý refresh token với search params
+function RefreshTokenHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const refreshTokenFromUrl = searchParams.get("refreshToken");
@@ -29,5 +30,16 @@ export default function RefreshTokenPage() {
       router.push("/dang-nhap");
     }
   }, [router, refreshTokenFromUrl, redirectPathname]);
-  return <div></div>;
+
+  return null;
+}
+
+export default function RefreshTokenPage() {
+  return (
+    <div>
+      <Suspense fallback={<div>Đang tải...</div>}>
+        <RefreshTokenHandler />
+      </Suspense>
+    </div>
+  );
 }

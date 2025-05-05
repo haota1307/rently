@@ -47,6 +47,19 @@ enum PaymentStatus {
   CANCELED
 }
 
+enum RentalPostStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+enum RentalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
 model User {
   id          Int        @id @default(autoincrement())
   name        String
@@ -79,8 +92,6 @@ model User {
   refreshTokens        RefreshToken[]
   rentals              Rental[]              @relation("LandlordRentals")
   rentalPosts          RentalPost[]          @relation("LandlordRentalPosts")
-  sentMessages         Message[]             @relation("SentMessages")
-  receivedMessages     Message[]             @relation("ReceivedMessages")
   conversationsOne     Conversation[]        @relation("UserOneConversations")
   conversationsTwo     Conversation[]        @relation("UserTwoConversations")
   conversationMessages ConversationMessage[]
@@ -282,12 +293,6 @@ model RoomAmenity {
   @@unique([roomId, amenityId])
 }
 
-enum RentalPostStatus {
-  ACTIVE
-  INACTIVE
-  DELETED
-}
-
 model RentalPost {
   id          Int              @id @default(autoincrement())
   startDate   DateTime
@@ -362,22 +367,6 @@ model PaymentTransaction {
   @@index([gateway])
   @@index([accountNumber])
   @@index([userId])
-}
-
-model Message {
-  id        Int      @id @default(autoincrement())
-  content   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  sender     User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  senderId   Int
-  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
-  receiverId Int
-
-  @@index([senderId])
-  @@index([receiverId])
-  @@index([isRead])
 }
 
 model Conversation {
@@ -516,13 +505,6 @@ model ViewingSchedule {
   @@index([postId])
   @@index([tenantId])
   @@index([landlordId])
-}
-
-enum RentalRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELED
 }
 
 model RentalRequest {

@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,13 +23,54 @@ import { ArrowLeft, Upload } from "lucide-react";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export const metadata: Metadata = {
-  title: "Đăng tin cho thuê - Thuê Trọ",
-  description:
-    "Đăng tin cho thuê phòng trọ, căn hộ của bạn để tiếp cận hàng ngàn người thuê tiềm năng.",
+// Component riêng cho số liệu dạng số
+const NumberInput = ({
+  id,
+  placeholder,
+  label,
+  required = false,
+  onChange,
+}: {
+  id: string;
+  placeholder: string;
+  label: string;
+  required?: boolean;
+  onChange?: (value: string) => void;
+}) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!/[0-9]/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    if (onChange) {
+      onChange(value);
+    }
+  };
+
+  return (
+    <div className="grid w-full items-center gap-1.5">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <Input
+        type="text"
+        pattern="[0-9]*"
+        id={id}
+        placeholder={placeholder}
+        onKeyPress={handleKeyPress}
+        onChange={handleChange}
+      />
+    </div>
+  );
 };
 
 export default function PostListingPage() {
+  const [price, setPrice] = useState("");
+  const [area, setArea] = useState("");
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
@@ -68,46 +111,21 @@ export default function PostListingPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="grid w-full items-center gap-1.5">
-                    <label htmlFor="price" className="text-sm font-medium">
-                      Giá phòng (VNĐ) <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      type="text"
-                      pattern="[0-9]*"
-                      id="price"
-                      placeholder="Nhập giá phòng"
-                      onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "");
-                        // Xử lý onChange tùy theo logic của bạn
-                      }}
-                    />
-                  </div>
-                  <div className="grid w-full items-center gap-1.5">
-                    <label htmlFor="area" className="text-sm font-medium">
-                      Diện tích (m²) <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      type="text"
-                      pattern="[0-9]*"
-                      id="area"
-                      placeholder="Ví dụ: 25"
-                      onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "");
-                        // Xử lý onChange tùy theo logic của bạn
-                      }}
-                    />
-                  </div>
+                  <NumberInput
+                    id="price"
+                    label="Giá phòng (VNĐ)"
+                    placeholder="Nhập giá phòng"
+                    required
+                    onChange={setPrice}
+                  />
+
+                  <NumberInput
+                    id="area"
+                    label="Diện tích (m²)"
+                    placeholder="Ví dụ: 25"
+                    required
+                    onChange={setArea}
+                  />
                   <div className="grid gap-2">
                     <Label htmlFor="deposit">Tiền đặt cọc</Label>
                     <Input id="deposit" placeholder="Ví dụ: 1 tháng" />

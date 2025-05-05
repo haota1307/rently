@@ -13,13 +13,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpDown, MoreHorizontal, User } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { Transaction } from "@/app/(dashboard)/(admin)/quan-ly/doanh-thu/page";
+
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Transaction } from "@/schemas/payment.schema";
 
 export const revenueColumns: ColumnDef<Transaction>[] = [
   {

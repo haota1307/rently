@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeAccessToken } from "@/lib/utils";
+import { decodeAccessToken } from "@/lib/auth-utils";
 import { Role } from "@/constants/type";
 
 // Định nghĩa các tuyến đường dành riêng cho vai trò cụ thể
@@ -90,14 +90,6 @@ export async function middleware(request: NextRequest) {
 // Định nghĩa các tuyến đường sẽ chạy middleware này
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes
-     */
     "/((?!api|_next/static|_next/image|favicon.ico|opengraph-image|robots.txt|sitemap.xml|.*\\.png$).*)",
   ],
 };

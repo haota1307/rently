@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,7 +146,8 @@ interface AttachedImage {
   thumbnailUrl?: string;
 }
 
-export default function MessagesPage() {
+// Component chính của trang tin nhắn
+function MessagesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const conversationId = searchParams.get("id");
@@ -2281,5 +2282,17 @@ export default function MessagesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-center">Đang tải ứng dụng tin nhắn...</div>
+      }
+    >
+      <MessagesContent />
+    </Suspense>
   );
 }

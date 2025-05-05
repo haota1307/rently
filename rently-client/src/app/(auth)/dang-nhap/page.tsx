@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { House } from "lucide-react";
@@ -9,8 +9,8 @@ import SignInForm from "@/features/auth/components/login-form";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-const SignInPage = () => {
-  const [imageLoaded, setImageLoaded] = useState(false);
+// Component riêng để xử lý Search Params
+function HandleSearchParams() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -25,8 +25,19 @@ const SignInPage = () => {
     }
   }, [searchParams]);
 
+  return null;
+}
+
+const SignInPage = () => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
+      {/* Sử dụng Suspense để bọc component sử dụng useSearchParams */}
+      <Suspense fallback={null}>
+        <HandleSearchParams />
+      </Suspense>
+
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href="#" className="flex items-center gap-2 font-medium">

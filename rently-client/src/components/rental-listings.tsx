@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import {
   Pagination,
   PaginationContent,
@@ -48,7 +48,8 @@ interface RentalListingsProps {
   onFiltersChange?: (filters: FilterValues) => void;
 }
 
-export default function RentalListings({
+// Component chính kèm params
+function RentalListingsContent({
   filters = {},
   onFiltersChange,
 }: RentalListingsProps) {
@@ -416,5 +417,15 @@ export default function RentalListings({
         </>
       )}
     </div>
+  );
+}
+
+export default function RentalListings(props: RentalListingsProps) {
+  return (
+    <Suspense
+      fallback={<div className="p-4">Đang tải danh sách phòng trọ...</div>}
+    >
+      <RentalListingsContent {...props} />
+    </Suspense>
   );
 }

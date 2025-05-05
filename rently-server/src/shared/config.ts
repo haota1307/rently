@@ -1,15 +1,9 @@
-import * as fs from 'fs'
-import path from 'path'
 import { config } from 'dotenv'
 import { z } from 'zod'
 
-config({
-  path: '.env',
-})
-
-if (!fs.existsSync(path.resolve('.env'))) {
-  console.log('Không tìm thấy file .env')
-  process.exit(1)
+// Chỉ load .env khi chạy local (không phải production)
+if (process.env.NODE_ENV !== 'production') {
+  config() // Tự động đọc từ file .env
 }
 
 const configSchema = z.object({
@@ -46,7 +40,7 @@ const configSchema = z.object({
 const configServer = configSchema.safeParse(process.env)
 
 if (!configServer.success) {
-  console.error('Các giá trị khai báo trong file .env không hợp lệ')
+  console.error('❌ Các giá trị biến môi trường không hợp lệ:')
   console.error(configServer.error.format())
   process.exit(1)
 }

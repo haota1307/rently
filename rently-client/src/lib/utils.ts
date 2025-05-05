@@ -9,18 +9,31 @@ import { io, Socket } from "socket.io-client";
 import { formatDistance } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Role, RoleType } from "@/constants/type";
+import {
+  decodeAccessToken,
+  decodeRefreshToken,
+  getAccessTokenFromLocalStorage,
+  getRefreshTokenFromLocalStorage,
+  setAccessTokenToLocalStorage,
+  setRefreshTokenToLocalStorage,
+  removeTokensFromLocalStorage,
+  clearAuthData,
+} from "./auth-utils";
+
+export {
+  decodeAccessToken,
+  decodeRefreshToken,
+  getAccessTokenFromLocalStorage,
+  getRefreshTokenFromLocalStorage,
+  setAccessTokenToLocalStorage,
+  setRefreshTokenToLocalStorage,
+  removeTokensFromLocalStorage,
+  clearAuthData,
+};
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-export const decodeAccessToken = (token: string) => {
-  return jwtDecode(token) as AccessTokenPayload;
-};
-
-export const decodeRefreshToken = (token: string) => {
-  return jwtDecode(token) as RefreshTokenPayload;
-};
 
 /**
  * Xóa đi ký tự `/` đầu tiên của path
@@ -86,43 +99,6 @@ export const handleErrorApi = ({
 };
 
 const isBrowser = typeof window !== "undefined";
-
-export const getAccessTokenFromLocalStorage = () =>
-  isBrowser ? localStorage.getItem("accessToken") : null;
-
-export const getRefreshTokenFromLocalStorage = () =>
-  isBrowser ? localStorage.getItem("refreshToken") : null;
-
-export const setAccessTokenToLocalStorage = (value: string) =>
-  isBrowser && localStorage.setItem("accessToken", value);
-
-export const setRefreshTokenToLocalStorage = (value: string) =>
-  isBrowser && localStorage.setItem("refreshToken", value);
-
-export const removeTokensFromLocalStorage = () => {
-  isBrowser && localStorage.removeItem("accessToken");
-  isBrowser && localStorage.removeItem("refreshToken");
-};
-
-// Hàm xóa cả localStorage và cookies khi tài khoản bị khóa
-export const clearAuthData = async () => {
-  // Xóa localStorage
-  removeTokensFromLocalStorage();
-
-  // Xóa cookies thông qua API
-  if (isBrowser) {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (error) {
-      console.error("Lỗi khi xóa cookies:", error);
-    }
-  }
-};
 
 export function formatDistanceToNowVi(date: Date) {
   return formatDistance(date, new Date(), {
@@ -201,7 +177,7 @@ export function generateSocketInstance(accessToken: string): Socket | null {
   if (typeof window === "undefined") return null;
 
   try {
-    const socket = io("http://localhost:4000", {
+    const socket = io(process.env.NEXT_PUBLIC_API_ENDPOINT || "", {
       auth: {
         token: accessToken,
       },

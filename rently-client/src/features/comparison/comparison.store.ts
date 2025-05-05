@@ -101,6 +101,7 @@ export const useComparisonStore = create<ComparisonStore>()(
               new Date().setFullYear(new Date().getFullYear() + 1)
             ),
             pricePaid: 0,
+            deposit: rental.rooms?.[0]?.price || 0,
             room: {
               id: rental.rooms?.[0]?.id || 0,
               title: rental.rooms?.[0]?.title || "",
