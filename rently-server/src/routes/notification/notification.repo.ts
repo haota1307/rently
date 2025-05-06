@@ -59,8 +59,10 @@ export class NotificationRepo {
 
   async create(data: CreateNotificationBodyType) {
     try {
+      console.log('NotificationRepo - Creating notification in DB:', data)
+
       // Đảm bảo dữ liệu phù hợp với schema Prisma
-      return await this.prismaService.notification.create({
+      const notification = await this.prismaService.notification.create({
         data: {
           userId: Number(data.userId),
           type: data.type,
@@ -71,7 +73,17 @@ export class NotificationRepo {
           deepLink: data.deepLink || null,
         },
       })
+
+      console.log(
+        'NotificationRepo - Notification created in DB:',
+        notification
+      )
+      return notification
     } catch (error) {
+      console.error(
+        'NotificationRepo - Error creating notification in DB:',
+        error
+      )
       throw new InternalServerErrorException(error.message)
     }
   }

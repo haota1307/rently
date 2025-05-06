@@ -17,16 +17,27 @@ export const useViewingSchedule = () => {
       viewingDate: string;
       note?: string;
     }) => {
-      const res = await viewingScheduleApi.create(data);
-      return res.payload;
+      console.log("Creating viewing schedule with data:", data);
+      try {
+        const res = await viewingScheduleApi.create(data);
+        console.log("Viewing schedule creation response:", res);
+        return res.payload;
+      } catch (error) {
+        console.error("Viewing schedule API error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Đặt lịch xem phòng thành công");
       queryClient.invalidateQueries({ queryKey: ["viewing-schedules"] });
-      router.push("/lich-xem-phong");
+      router.push("/tai-khoan/lich-hen");
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra");
+      console.error("Viewing schedule creation error:", error);
+      const errorMsg =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi đặt lịch. Vui lòng thử lại!";
+      toast.error(errorMsg);
     },
   });
 

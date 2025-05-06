@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common'
 import { PaymentRepo } from 'src/routes/payment/paymemt.repo'
 import { WebhookPaymentBodyType } from 'src/routes/payment/payment.model'
@@ -12,18 +13,21 @@ import { EventsGateway } from 'src/events/events.gateway'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import axios from 'axios'
 import { parse } from 'date-fns'
+import { NotificationService } from 'src/routes/notification/notification.service'
 
 @Injectable()
 export class PaymentService {
   private bankAccount: string
   private bankName: string
   private bankAccountName: string
+  private readonly logger = new Logger(PaymentService.name)
 
   constructor(
     private readonly paymentRepo: PaymentRepo,
     private readonly paymentProducer: PaymentProducer,
     private readonly eventsGateway: EventsGateway,
-    private readonly prismaService: PrismaService
+    private readonly prismaService: PrismaService,
+    private readonly notificationService: NotificationService
   ) {
     // Lấy thông tin tài khoản từ config
     this.bankAccount = envConfig.BANK_ACCOUNT
@@ -46,6 +50,16 @@ export class PaymentService {
           amount: payment.amount,
           description: payment.description || undefined,
         })
+
+        // Lấy userId từ thông tin thanh toán
+        const userId = payment.userId // Thay thế bằng cách lấy userId thực tế
+
+        // Thêm gửi thông báo sau khi xác nhận thanh toán
+        await this.notificationService.notifyPayment(
+          userId,
+          payment.amount,
+          'Thanh toán đã được xác nhận'
+        )
       }
     }
 
@@ -64,6 +78,13 @@ export class PaymentService {
     )
 
     await this.paymentProducer.cancelPaymentJob(result.payment.id)
+
+    // Thêm gửi thông báo sau khi tạo yêu cầu thanh toán
+    await this.notificationService.notifyPayment(
+      userId,
+      amount,
+      'Yêu cầu thanh toán mới'
+    )
 
     return result
   }
@@ -608,6 +629,27 @@ export class PaymentService {
           label: 'RENTLY',
         },
       })
+    }
+  }
+
+  /**
+   * Xử lý thanh toán thành công
+   */
+  async handleSuccessfulPayment(
+    userId: number,
+    amount: number,
+    description: string
+  ) {
+    try {
+      // Xử lý logic thanh toán của bạn
+
+      // Gửi thông báo
+      await this.notificationService.notifyPayment(userId, amount, description)
+
+      return { success: true }
+    } catch (error) {
+      this.logger.error(`Error in handleSuccessfulPayment: ${error.message}`)
+      throw error
     }
   }
 }

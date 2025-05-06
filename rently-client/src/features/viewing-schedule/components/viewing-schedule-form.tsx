@@ -74,9 +74,6 @@ export function ViewingScheduleForm({
   const [isCheckingExistingSchedule, setIsCheckingExistingSchedule] =
     useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [date, setDate] = useState<Date>();
-  const [note, setNote] = useState("");
-  const [time, setTime] = useState<string>("");
 
   // Lấy danh sách lịch xem hiện tại của người dùng cho phòng trọ này
   const { data: schedules } = getViewingSchedules({
@@ -123,12 +120,21 @@ export function ViewingScheduleForm({
       setSubmitting(true);
       // Kết hợp ngày và giờ
       const [hours, minutes] = values.viewingTime.split(":").map(Number);
-      const dateWithTime = set(values.viewingDate, {
+
+      // Đảm bảo ngày là đối tượng Date hợp lệ
+      let dateWithTime = new Date(values.viewingDate);
+
+      // Đặt lại giờ, phút và đảm bảo giây và mili giây là 0
+      dateWithTime = set(dateWithTime, {
         hours,
         minutes,
         seconds: 0,
         milliseconds: 0,
       });
+
+      console.log("Form values:", values);
+      console.log("Date with time:", dateWithTime);
+      console.log("ISO string:", dateWithTime.toISOString());
 
       await createViewingSchedule.mutateAsync({
         postId,
@@ -141,6 +147,7 @@ export function ViewingScheduleForm({
         onSuccess();
       }
     } catch (error: any) {
+      console.error("Error submitting form:", error);
       if (error.response?.data?.message) {
         toast.error(error.response.data.message);
       } else {
@@ -165,7 +172,7 @@ export function ViewingScheduleForm({
   return (
     <div className="space-y-4">
       {/* Hiển thị thông tin đặt cọc nếu có */}
-      {postDetail?.deposit > 0 && (
+      {postDetail?.deposit && postDetail.deposit > 0 && (
         <div className="p-2 mb-2 border border-amber-200 rounded-md bg-amber-50">
           <p className="text-xs text-amber-700 flex items-center">
             <AlertCircle className="h-3 w-3 mr-1 text-amber-600 flex-shrink-0" />
@@ -181,66 +188,73 @@ export function ViewingScheduleForm({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="date" className="block text-sm font-medium">
-                Chọn ngày <span className="text-red-500">*</span>
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date
-                      ? format(date, "PPP", { locale: vi })
-                      : "Chọn ngày xem phòng"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                    disabled={(date) => date < new Date()}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div>
-              <FormField
-                control={form.control}
-                name="viewingTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Giờ xem phòng</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+            <FormField
+              control={form.control}
+              name="viewingDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Ngày xem phòng</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn giờ xem phòng" />
-                        </SelectTrigger>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? (
+                            format(field.value, "PPP", { locale: vi })
+                          ) : (
+                            <span>Chọn ngày xem phòng</span>
+                          )}
+                        </Button>
                       </FormControl>
-                      <SelectContent>
-                        {timeSlots.map((slot) => (
-                          <SelectItem key={slot.value} value={slot.value}>
-                            {slot.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                        disabled={(date) => date < new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="viewingTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Giờ xem phòng</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn giờ xem phòng" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {timeSlots.map((slot) => (
+                        <SelectItem key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <FormField
@@ -267,7 +281,8 @@ export function ViewingScheduleForm({
             disabled={
               createViewingSchedule.isPending ||
               isCheckingExistingSchedule ||
-              submitting
+              submitting ||
+              !form.formState.isValid
             }
           >
             Đặt lịch xem phòng

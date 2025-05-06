@@ -19,15 +19,22 @@ export class NotificationService {
   }
 
   async create(data: CreateNotificationBodyType) {
-    const notification = await this.notificationRepo.create(data)
+    try {
+      console.log('Creating notification:', data)
+      const notification = await this.notificationRepo.create(data)
+      console.log('Notification created:', notification)
 
-    // Gửi thông báo realtime đến client - đảm bảo userId là number
-    this.notificationGateway.sendNotificationToUser(
-      Number(data.userId),
-      notification
-    )
+      // Gửi thông báo realtime đến client - đảm bảo userId là number
+      this.notificationGateway.sendNotificationToUser(
+        Number(data.userId),
+        notification
+      )
 
-    return notification
+      return notification
+    } catch (error) {
+      console.error('Error creating notification:', error)
+      throw error
+    }
   }
 
   async markAsRead(id: number) {
@@ -133,22 +140,44 @@ export class NotificationService {
     roomName: string,
     scheduleId: number
   ) {
-    const formattedTime = new Intl.DateTimeFormat('vi-VN', {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-    }).format(scheduledTime)
+    try {
+      // Đảm bảo scheduledTime là đối tượng Date hợp lệ
+      const dateObj =
+        scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime)
 
-    return this.create({
-      userId,
-      type: NotificationTypeEnum.VIEWING_SCHEDULE,
-      title: 'Lịch hẹn xem phòng',
-      message: `Nhắc nhở: Bạn có lịch xem phòng "${roomName}" vào lúc ${formattedTime}`,
-      relatedId: scheduleId,
-      relatedType: 'viewing_schedule',
-      deepLink: `/tai-khoan/lich-hen/${scheduleId}`,
-    })
+      if (isNaN(dateObj.getTime())) {
+        throw new Error(`Ngày giờ không hợp lệ: ${scheduledTime}`)
+      }
+
+      const formattedTime = new Intl.DateTimeFormat('vi-VN', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+      }).format(dateObj)
+
+      return this.create({
+        userId,
+        type: NotificationTypeEnum.VIEWING_SCHEDULE,
+        title: 'Lịch hẹn xem phòng',
+        message: `Nhắc nhở: Bạn có lịch xem phòng "${roomName}" vào lúc ${formattedTime}`,
+        relatedId: scheduleId,
+        relatedType: 'viewing_schedule',
+        deepLink: `/lich-xem-phong`,
+      })
+    } catch (error) {
+      console.error('Lỗi khi tạo thông báo lịch hẹn:', error)
+      // Tạo thông báo không có thời gian cụ thể nếu xảy ra lỗi
+      return this.create({
+        userId,
+        type: NotificationTypeEnum.VIEWING_SCHEDULE,
+        title: 'Lịch hẹn xem phòng',
+        message: `Bạn có lịch xem phòng "${roomName}" mới`,
+        relatedId: scheduleId,
+        relatedType: 'viewing_schedule',
+        deepLink: `/lich-xem-phong`,
+      })
+    }
   }
 }

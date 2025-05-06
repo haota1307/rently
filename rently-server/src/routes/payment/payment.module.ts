@@ -8,6 +8,7 @@ import { PaymentProducer } from 'src/routes/payment/payment.producer'
 import { SharedPaymentRepository } from 'src/shared/repositories/shared-payment.repo'
 import { EventsModule } from 'src/events/events.module'
 import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
+import { NotificationModule } from 'src/routes/notification/notification.module'
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
       name: PAYMENT_QUEUE_NAME,
     }),
     EventsModule,
+    NotificationModule,
   ],
   providers: [
     PaymentService,

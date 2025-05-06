@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common'
 import { MessagesRepo } from './messages.repo'
 import {
   CreateConversationBodyType,
@@ -9,12 +13,14 @@ import {
 } from './messages.dto'
 import { EventsGateway } from 'src/events/events.gateway'
 import { MessageType } from './messages.dto'
+import { NotificationService } from 'src/routes/notification/notification.service'
 
 @Injectable()
 export class MessagesService {
   constructor(
     private readonly messagesRepo: MessagesRepo,
-    private readonly eventsGateway: EventsGateway
+    private readonly eventsGateway: EventsGateway,
+    private readonly notificationService: NotificationService
   ) {}
 
   /**
@@ -235,5 +241,56 @@ export class MessagesService {
     this.eventsGateway.notifyMessageDeleted(message.conversationId, messageId)
 
     return result
+  }
+
+  // Cập nhật phương thức gửi tin nhắn mới
+  async sendMessage(senderId: number, conversationId: number, content: string) {
+    try {
+      // Kiểm tra quyền truy cập cuộc trò chuyện
+      const isMember = await this.messagesRepo.isConversationMember(
+        conversationId,
+        senderId
+      )
+
+      if (!isMember) {
+        throw new UnauthorizedException(
+          'Bạn không có quyền gửi tin nhắn trong cuộc trò chuyện này'
+        )
+      }
+
+      // Lấy thông tin conversation
+      const conversation =
+        await this.messagesRepo.getConversationById(conversationId)
+
+      if (!conversation) {
+        throw new NotFoundException('Cuộc trò chuyện không tồn tại')
+      }
+
+      // Xác định người nhận
+      const receiverId =
+        conversation.userOneId === senderId
+          ? conversation.userTwoId
+          : conversation.userOneId
+
+      // Tạo tin nhắn
+      const message = await this.messagesRepo.createMessage(senderId, {
+        conversationId,
+        content,
+        type: MessageType.TEXT,
+      })
+
+      // Gửi thông báo tới người nhận
+      await this.notificationService.notifyNewMessage(
+        receiverId,
+        conversation.userOneId === senderId
+          ? conversation.userOne.name
+          : conversation.userTwo.name,
+        conversationId
+      )
+
+      return message
+    } catch (error) {
+      throw error
+    }
   }
 }

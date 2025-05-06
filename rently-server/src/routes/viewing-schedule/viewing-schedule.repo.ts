@@ -27,12 +27,25 @@ export class ViewingScheduleRepo {
         throw new Error('Post not found')
       }
 
+      // Xử lý ngày giờ an toàn
+      let viewingDate: Date
+      try {
+        viewingDate = new Date(body.viewingDate)
+        if (isNaN(viewingDate.getTime())) {
+          throw new Error(`Ngày giờ không hợp lệ: ${body.viewingDate}`)
+        }
+      } catch (error) {
+        throw new Error(
+          `Không thể chuyển đổi chuỗi ngày giờ: ${body.viewingDate}. Lỗi: ${error.message}`
+        )
+      }
+
       const viewingSchedule = await this.prismaService.viewingSchedule.create({
         data: {
           postId: body.postId,
           tenantId,
           landlordId: post.landlordId,
-          viewingDate: new Date(body.viewingDate),
+          viewingDate,
           note: body.note,
           status: 'PENDING',
         },
@@ -62,13 +75,28 @@ export class ViewingScheduleRepo {
 
   async update(id: number, body: UpdateViewingScheduleBodyType): Promise<any> {
     try {
+      // Xử lý ngày giờ rescheduledDate an toàn nếu có
+      let rescheduledDate: Date | null = null
+      if (body.rescheduledDate) {
+        try {
+          rescheduledDate = new Date(body.rescheduledDate)
+          if (isNaN(rescheduledDate.getTime())) {
+            throw new Error(
+              `Ngày giờ đặt lại không hợp lệ: ${body.rescheduledDate}`
+            )
+          }
+        } catch (error) {
+          throw new Error(
+            `Không thể chuyển đổi chuỗi ngày giờ đặt lại: ${body.rescheduledDate}. Lỗi: ${error.message}`
+          )
+        }
+      }
+
       const viewingSchedule = await this.prismaService.viewingSchedule.update({
         where: { id },
         data: {
           status: body.status,
-          rescheduledDate: body.rescheduledDate
-            ? new Date(body.rescheduledDate)
-            : null,
+          rescheduledDate,
           note: body.note,
           requireTenantConfirmation: body.requireTenantConfirmation,
         },

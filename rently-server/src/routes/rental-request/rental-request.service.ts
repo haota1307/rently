@@ -16,12 +16,14 @@ import {
 import { RoleName } from 'src/shared/constants/role.constant'
 import { EmailService } from 'src/shared/services/email.service'
 import { PrismaService } from 'src/shared/services/prisma.service'
+import { NotificationService } from 'src/routes/notification/notification.service'
 
 @Injectable()
 export class RentalRequestService {
   constructor(
     private readonly rentalRequestRepo: RentalRequestRepo,
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
+    private readonly notificationService: NotificationService
   ) {}
 
   // Lấy danh sách yêu cầu thuê
@@ -53,66 +55,81 @@ export class RentalRequestService {
 
   // Tạo yêu cầu thuê mới
   async create(data: CreateRentalRequestBodyType, userId: number) {
-    // Kiểm tra xem đã có yêu cầu thuê nào đang PENDING hoặc APPROVED cho post này chưa
-    const existingRequest = await this.rentalRequestRepo.findExistingRequest(
-      data.postId,
-      userId
-    )
-
-    if (existingRequest) {
-      const statusMessage =
-        existingRequest.status === RentalRequestStatus.PENDING
-          ? 'đang chờ xử lý'
-          : 'đã được chấp thuận'
-      throw new BadRequestException(
-        `Bạn đã có một yêu cầu thuê ${statusMessage} cho bài đăng này. Không thể tạo thêm yêu cầu mới.`
+    try {
+      // Kiểm tra xem đã có yêu cầu thuê nào đang PENDING hoặc APPROVED cho post này chưa
+      const existingRequest = await this.rentalRequestRepo.findExistingRequest(
+        data.postId,
+        userId
       )
-    }
 
-    // Kiểm tra xem bài đăng có sẵn sàng cho thuê hay không
-    const post = await this.rentalRequestRepo.checkRoomAvailability(data.postId)
-
-    if (!post) {
-      throw new NotFoundException('Không tìm thấy bài đăng này')
-    }
-
-    if (post.room && !post.room.isAvailable) {
-      throw new BadRequestException('Phòng này hiện không có sẵn để cho thuê')
-    }
-
-    // Tạo yêu cầu mới
-    const rentalRequest = await this.rentalRequestRepo.create({
-      data,
-      tenantId: userId,
-    })
-
-    // Lấy thông tin để gửi email
-    const landlord = await this.rentalRequestRepo.findUserById(
-      rentalRequest.landlordId
-    )
-    const tenant = await this.rentalRequestRepo.findUserById(userId)
-    const postInfo = await this.rentalRequestRepo.findPostById(data.postId)
-
-    // Gửi email thông báo cho chủ nhà
-    if (landlord && tenant && postInfo) {
-      try {
-        await this.emailService.send({
-          to: landlord.email,
-          subject: 'Yêu cầu thuê mới',
-          html: `
-            <p>Chào ${landlord.name},</p>
-            <p>Bạn vừa nhận được một yêu cầu thuê mới từ ${tenant.name} cho tin đăng "${postInfo.title}".</p>
-            <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và phản hồi yêu cầu.</p>
-            <p>Trân trọng,</p>
-            <p>Đội ngũ Rently</p>
-          `,
-        })
-      } catch (error) {
-        console.error('Failed to send email notification:', error)
+      if (existingRequest) {
+        const statusMessage =
+          existingRequest.status === RentalRequestStatus.PENDING
+            ? 'đang chờ xử lý'
+            : 'đã được chấp thuận'
+        throw new BadRequestException(
+          `Bạn đã có một yêu cầu thuê ${statusMessage} cho bài đăng này. Không thể tạo thêm yêu cầu mới.`
+        )
       }
-    }
 
-    return rentalRequest
+      // Kiểm tra xem bài đăng có sẵn sàng cho thuê hay không
+      const post = await this.rentalRequestRepo.checkRoomAvailability(
+        data.postId
+      )
+
+      if (!post) {
+        throw new NotFoundException('Không tìm thấy bài đăng này')
+      }
+
+      if (post.room && !post.room.isAvailable) {
+        throw new BadRequestException('Phòng này hiện không có sẵn để cho thuê')
+      }
+
+      // Tạo yêu cầu mới
+      const rentalRequest = await this.rentalRequestRepo.create({
+        data,
+        tenantId: userId,
+      })
+
+      // Lấy thông tin để gửi email
+      const landlord = await this.rentalRequestRepo.findUserById(
+        rentalRequest.landlordId
+      )
+      const tenant = await this.rentalRequestRepo.findUserById(userId)
+      const postInfo = await this.rentalRequestRepo.findPostById(data.postId)
+
+      // Gửi email thông báo cho chủ nhà
+      if (landlord && tenant && postInfo) {
+        try {
+          await this.emailService.send({
+            to: landlord.email,
+            subject: 'Yêu cầu thuê mới',
+            html: `
+              <p>Chào ${landlord.name},</p>
+              <p>Bạn vừa nhận được một yêu cầu thuê mới từ ${tenant.name} cho tin đăng "${postInfo.title}".</p>
+              <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và phản hồi yêu cầu.</p>
+              <p>Trân trọng,</p>
+              <p>Đội ngũ Rently</p>
+            `,
+          })
+        } catch (error) {
+          console.error('Failed to send email notification:', error)
+        }
+      }
+
+      // Gửi thông báo cho chủ nhà
+      if (tenant) {
+        await this.notificationService.notifyRentalRequest(
+          post.landlordId,
+          tenant.name,
+          rentalRequest.id
+        )
+      }
+
+      return rentalRequest
+    } catch (error) {
+      throw error
+    }
   }
 
   // Cập nhật yêu cầu thuê
@@ -122,182 +139,200 @@ export class RentalRequestService {
     userId: number,
     roleName: string
   ) {
-    // Kiểm tra xem yêu cầu thuê có tồn tại không
-    const rentalRequest =
-      await this.rentalRequestRepo.findRequestWithRelations(id)
+    try {
+      // Kiểm tra xem yêu cầu thuê có tồn tại không
+      const rentalRequest =
+        await this.rentalRequestRepo.findRequestWithRelations(id)
 
-    if (!rentalRequest) {
-      throw new HttpException('Rental request not found', 404)
-    }
-
-    // Kiểm tra quyền cập nhật yêu cầu thuê
-    if (
-      (roleName === 'tenant' && rentalRequest.tenantId !== userId) ||
-      (roleName === 'landlord' && rentalRequest.landlordId !== userId)
-    ) {
-      throw new HttpException(
-        'You do not have permission to update this rental request',
-        403
-      )
-    }
-
-    // Kiểm tra quyền thay đổi trạng thái
-    if (data.status) {
-      // Tenant chỉ có thể hủy yêu cầu
-      if (
-        roleName === 'tenant' &&
-        data.status !== RentalRequestStatus.CANCELED
-      ) {
-        throw new HttpException('Tenant can only cancel rental requests', 403)
+      if (!rentalRequest) {
+        throw new HttpException('Rental request not found', 404)
       }
 
-      // Landlord có thể chấp nhận hoặc từ chối yêu cầu
+      // Kiểm tra quyền cập nhật yêu cầu thuê
       if (
-        roleName === 'landlord' &&
-        data.status !== RentalRequestStatus.APPROVED &&
-        data.status !== RentalRequestStatus.REJECTED
+        (roleName === 'tenant' && rentalRequest.tenantId !== userId) ||
+        (roleName === 'landlord' && rentalRequest.landlordId !== userId)
       ) {
         throw new HttpException(
-          'Landlord can only approve or reject rental requests',
+          'You do not have permission to update this rental request',
           403
         )
       }
 
-      // Kiểm tra trạng thái hiện tại
-      if (
-        rentalRequest.status === RentalRequestStatus.CANCELED ||
-        rentalRequest.status === RentalRequestStatus.REJECTED
-      ) {
-        throw new HttpException(
-          'Cannot change status of a canceled or rejected rental request',
-          400
-        )
-      }
-    }
-
-    // Trường hợp chấp nhận yêu cầu thuê và có đặt cọc
-    if (data.status === RentalRequestStatus.APPROVED && rentalRequest.post) {
-      // Sử dụng trường deposit một cách an toàn
-      // (có thể là deposit hoặc depositAmount tùy theo trường nào tồn tại)
-      const depositAmount = Number(
-        (rentalRequest.post as any).deposit ||
-          (rentalRequest.post as any).depositAmount ||
-          0
-      )
-
-      // Chỉ xử lý nếu có đặt cọc
-      if (depositAmount > 0) {
-        // Kiểm tra số dư người thuê
+      // Kiểm tra quyền thay đổi trạng thái
+      if (data.status) {
+        // Tenant chỉ có thể hủy yêu cầu
         if (
-          rentalRequest.tenant &&
-          rentalRequest.tenant.balance < depositAmount
+          roleName === 'tenant' &&
+          data.status !== RentalRequestStatus.CANCELED
         ) {
-          throw new HttpException('Người thuê không đủ tiền để đặt cọc', 400)
+          throw new HttpException('Tenant can only cancel rental requests', 403)
         }
 
-        // Xử lý giao dịch tiền đặt cọc
+        // Landlord có thể chấp nhận hoặc từ chối yêu cầu
         if (
-          rentalRequest.tenant &&
-          rentalRequest.landlord &&
-          rentalRequest.post
+          roleName === 'landlord' &&
+          data.status !== RentalRequestStatus.APPROVED &&
+          data.status !== RentalRequestStatus.REJECTED
         ) {
-          await this.rentalRequestRepo.processDepositTransaction(
-            rentalRequest.tenant.id,
-            rentalRequest.landlord.id,
-            depositAmount,
-            rentalRequest.post.title,
-            rentalRequest.tenant.name
+          throw new HttpException(
+            'Landlord can only approve or reject rental requests',
+            403
+          )
+        }
+
+        // Kiểm tra trạng thái hiện tại
+        if (
+          rentalRequest.status === RentalRequestStatus.CANCELED ||
+          rentalRequest.status === RentalRequestStatus.REJECTED
+        ) {
+          throw new HttpException(
+            'Cannot change status of a canceled or rejected rental request',
+            400
           )
         }
       }
-    }
 
-    // Cập nhật yêu cầu
-    const updatedRequest = await this.rentalRequestRepo.update({
-      id,
-      data,
-    })
-
-    // Nếu yêu cầu được chấp nhận, cập nhật trạng thái phòng thành "đã cho thuê" và từ chối các yêu cầu khác
-    if (data.status === RentalRequestStatus.APPROVED) {
-      // Cập nhật trạng thái phòng thành đã cho thuê (isAvailable = false)
-      const roomId = rentalRequest.post?.roomId
-
-      if (roomId) {
-        await this.rentalRequestRepo.updateRoomAvailability(roomId, false)
-
-        // Từ chối tất cả các yêu cầu thuê khác cho cùng một bài đăng
-        await this.rentalRequestRepo.rejectAllPendingRequests(
-          updatedRequest.postId,
-          id,
-          'Phòng đã được cho thuê bởi người khác'
+      // Trường hợp chấp nhận yêu cầu thuê và có đặt cọc
+      if (data.status === RentalRequestStatus.APPROVED && rentalRequest.post) {
+        // Sử dụng trường deposit một cách an toàn
+        // (có thể là deposit hoặc depositAmount tùy theo trường nào tồn tại)
+        const depositAmount = Number(
+          (rentalRequest.post as any).deposit ||
+            (rentalRequest.post as any).depositAmount ||
+            0
         )
-      }
-    }
 
-    // Nếu yêu cầu đã được chấp nhận trước đó và bây giờ bị từ chối hoặc hủy, cập nhật trạng thái phòng thành "còn trống"
-    if (
-      (data.status === RentalRequestStatus.CANCELED ||
-        data.status === RentalRequestStatus.REJECTED) &&
-      rentalRequest.status === RentalRequestStatus.APPROVED
-    ) {
-      const roomId = rentalRequest.post?.roomId
+        // Chỉ xử lý nếu có đặt cọc
+        if (depositAmount > 0) {
+          // Kiểm tra số dư người thuê
+          if (
+            rentalRequest.tenant &&
+            rentalRequest.tenant.balance < depositAmount
+          ) {
+            throw new HttpException('Người thuê không đủ tiền để đặt cọc', 400)
+          }
 
-      if (roomId) {
-        // Cập nhật trạng thái phòng thành còn trống (isAvailable = true)
-        await this.rentalRequestRepo.updateRoomAvailability(roomId, true)
-      }
-    }
-
-    // Gửi thông báo email khi trạng thái thay đổi
-    if (data.status) {
-      const statusMessages = {
-        [RentalRequestStatus.APPROVED]: 'đã được chấp thuận',
-        [RentalRequestStatus.REJECTED]: 'đã bị từ chối',
-        [RentalRequestStatus.CANCELED]: 'đã bị hủy',
-      }
-
-      const notificationTarget =
-        data.status === RentalRequestStatus.CANCELED
-          ? await this.rentalRequestRepo.findUserById(updatedRequest.landlordId)
-          : await this.rentalRequestRepo.findUserById(updatedRequest.tenantId)
-
-      const sender =
-        data.status === RentalRequestStatus.CANCELED
-          ? await this.rentalRequestRepo.findUserById(updatedRequest.tenantId)
-          : await this.rentalRequestRepo.findUserById(updatedRequest.landlordId)
-
-      const post = await this.rentalRequestRepo.findPostById(
-        updatedRequest.postId
-      )
-
-      if (notificationTarget && sender && post) {
-        try {
-          await this.emailService.send({
-            to: notificationTarget.email,
-            subject: `Cập nhật trạng thái yêu cầu thuê: ${statusMessages[data.status]}`,
-            html: `
-              <p>Chào ${notificationTarget.name},</p>
-              <p>Yêu cầu thuê của bạn cho tin đăng "${post.title}" ${
-                statusMessages[data.status]
-              } bởi ${sender.name}.</p>
-              ${
-                data.status === RentalRequestStatus.REJECTED &&
-                data.rejectionReason
-                  ? `<p>Lý do: ${data.rejectionReason}</p>`
-                  : ''
-              }
-              <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
-              <p>Trân trọng,</p>
-              <p>Đội ngũ Rently</p>
-            `,
-          })
-        } catch (error) {
-          console.error('Failed to send email notification:', error)
+          // Xử lý giao dịch tiền đặt cọc
+          if (
+            rentalRequest.tenant &&
+            rentalRequest.landlord &&
+            rentalRequest.post
+          ) {
+            await this.rentalRequestRepo.processDepositTransaction(
+              rentalRequest.tenant.id,
+              rentalRequest.landlord.id,
+              depositAmount,
+              rentalRequest.post.title,
+              rentalRequest.tenant.name
+            )
+          }
         }
       }
-    }
 
-    return updatedRequest
+      // Cập nhật yêu cầu
+      const updatedRequest = await this.rentalRequestRepo.update({
+        id,
+        data,
+      })
+
+      // Nếu yêu cầu được chấp nhận, cập nhật trạng thái phòng thành "đã cho thuê" và từ chối các yêu cầu khác
+      if (data.status === RentalRequestStatus.APPROVED) {
+        // Cập nhật trạng thái phòng thành đã cho thuê (isAvailable = false)
+        const roomId = rentalRequest.post?.roomId
+
+        if (roomId) {
+          await this.rentalRequestRepo.updateRoomAvailability(roomId, false)
+
+          // Từ chối tất cả các yêu cầu thuê khác cho cùng một bài đăng
+          await this.rentalRequestRepo.rejectAllPendingRequests(
+            updatedRequest.postId,
+            id,
+            'Phòng đã được cho thuê bởi người khác'
+          )
+        }
+      }
+
+      // Nếu yêu cầu đã được chấp nhận trước đó và bây giờ bị từ chối hoặc hủy, cập nhật trạng thái phòng thành "còn trống"
+      if (
+        (data.status === RentalRequestStatus.CANCELED ||
+          data.status === RentalRequestStatus.REJECTED) &&
+        rentalRequest.status === RentalRequestStatus.APPROVED
+      ) {
+        const roomId = rentalRequest.post?.roomId
+
+        if (roomId) {
+          // Cập nhật trạng thái phòng thành còn trống (isAvailable = true)
+          await this.rentalRequestRepo.updateRoomAvailability(roomId, true)
+        }
+      }
+
+      // Gửi thông báo email khi trạng thái thay đổi
+      if (data.status) {
+        const statusMessages = {
+          [RentalRequestStatus.APPROVED]: 'đã được chấp thuận',
+          [RentalRequestStatus.REJECTED]: 'đã bị từ chối',
+          [RentalRequestStatus.CANCELED]: 'đã bị hủy',
+        }
+
+        const notificationTarget =
+          data.status === RentalRequestStatus.CANCELED
+            ? await this.rentalRequestRepo.findUserById(
+                updatedRequest.landlordId
+              )
+            : await this.rentalRequestRepo.findUserById(updatedRequest.tenantId)
+
+        const sender =
+          data.status === RentalRequestStatus.CANCELED
+            ? await this.rentalRequestRepo.findUserById(updatedRequest.tenantId)
+            : await this.rentalRequestRepo.findUserById(
+                updatedRequest.landlordId
+              )
+
+        const post = await this.rentalRequestRepo.findPostById(
+          updatedRequest.postId
+        )
+
+        if (notificationTarget && sender && post) {
+          try {
+            await this.emailService.send({
+              to: notificationTarget.email,
+              subject: `Cập nhật trạng thái yêu cầu thuê: ${statusMessages[data.status]}`,
+              html: `
+                <p>Chào ${notificationTarget.name},</p>
+                <p>Yêu cầu thuê của bạn cho tin đăng "${post.title}" ${
+                  statusMessages[data.status]
+                } bởi ${sender.name}.</p>
+                ${
+                  data.status === RentalRequestStatus.REJECTED &&
+                  data.rejectionReason
+                    ? `<p>Lý do: ${data.rejectionReason}</p>`
+                    : ''
+                }
+                <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
+                <p>Trân trọng,</p>
+                <p>Đội ngũ Rently</p>
+              `,
+            })
+          } catch (error) {
+            console.error('Failed to send email notification:', error)
+          }
+        }
+      }
+
+      // Nếu đang cập nhật trạng thái, gửi thông báo cho người thuê
+      if (data.status && data.status !== rentalRequest.status) {
+        await this.notificationService.notifyRentalRequestUpdate(
+          updatedRequest.tenantId,
+          data.status,
+          updatedRequest.post?.room?.title || 'Phòng',
+          id
+        )
+      }
+
+      return updatedRequest
+    } catch (error) {
+      throw error
+    }
   }
 }

@@ -16,7 +16,8 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 import { EmailService } from 'src/shared/services/email.service'
 import { addHours, isBefore } from 'date-fns'
 import { Cron } from '@nestjs/schedule'
-import { Prisma } from '@prisma/client'
+import { NotificationService } from 'src/routes/notification/notification.service'
+import { Logger } from '@nestjs/common'
 
 // Định nghĩa kiểu dữ liệu cho schedule với thông tin quan hệ
 interface ScheduleWithRelations {
@@ -53,10 +54,13 @@ interface ScheduleWithRelations {
 
 @Injectable()
 export class ViewingScheduleService {
+  private readonly logger = new Logger(ViewingScheduleService.name)
+
   constructor(
     private viewingScheduleRepo: ViewingScheduleRepo,
     private prismaService: PrismaService,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private readonly notificationService: NotificationService
   ) {}
 
   async create(
@@ -72,6 +76,7 @@ export class ViewingScheduleService {
     // Kiểm tra post có tồn tại không
     const post = await this.prismaService.rentalPost.findUnique({
       where: { id: body.postId },
+      include: { room: true },
     })
 
     if (!post) {
@@ -114,9 +119,24 @@ export class ViewingScheduleService {
       )
     }
 
-    const createdSchedule = await this.viewingScheduleRepo.create(body, userId)
+    const schedule = await this.viewingScheduleRepo.create(body, userId)
 
-    return createdSchedule
+    // Gửi thông báo cho chủ nhà
+    console.log('Sending viewing schedule notification to landlord:', {
+      landlordId: post.landlordId,
+      viewingDate: schedule.viewingDate,
+      roomTitle: post.room.title,
+      scheduleId: schedule.id,
+    })
+
+    await this.notificationService.notifyViewingSchedule(
+      post.landlordId,
+      schedule.viewingDate,
+      post.room.title,
+      schedule.id
+    )
+
+    return schedule
   }
 
   async update(
@@ -382,6 +402,100 @@ export class ViewingScheduleService {
       )
     } catch (error) {
       console.error('Lỗi khi gửi nhắc lịch hẹn hàng ngày:', error)
+    }
+  }
+
+  // Thêm phương thức nhắc nhở lịch hẹn
+  async sendScheduleReminder(scheduleId: number) {
+    try {
+      // Lấy thông tin lịch hẹn
+      const schedule = await this.prismaService.viewingSchedule.findUnique({
+        where: { id: scheduleId },
+        include: {
+          post: {
+            include: { room: true },
+          },
+        },
+      })
+
+      if (!schedule) {
+        throw new NotFoundException('Không tìm thấy lịch hẹn')
+      }
+
+      // Gửi thông báo nhắc nhở cho người thuê
+      await this.notificationService.notifyViewingSchedule(
+        schedule.tenantId,
+        schedule.viewingDate,
+        schedule.post.room.title,
+        scheduleId
+      )
+
+      // Gửi thông báo nhắc nhở cho chủ nhà
+      await this.notificationService.notifyViewingSchedule(
+        schedule.landlordId,
+        schedule.viewingDate,
+        schedule.post.room.title,
+        scheduleId
+      )
+
+      return { success: true, message: 'Đã gửi nhắc nhở lịch hẹn' }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  @Cron('0 */1 * * * *') // Chạy mỗi 1 phút
+  async handleScheduleReminders() {
+    try {
+      const currentDate = new Date()
+      // Lấy các lịch hẹn sắp diễn ra trong 1 giờ tới
+      const oneHourLater = new Date(currentDate.getTime() + 60 * 60 * 1000)
+
+      // Tìm các lịch hẹn cần nhắc nhở
+      const schedulesToRemind =
+        await this.prismaService.viewingSchedule.findMany({
+          where: {
+            viewingDate: {
+              gte: currentDate,
+              lte: oneHourLater,
+            },
+            // Thêm điều kiện để không nhắc lại nhiều lần
+            // Có thể lưu trạng thái đã nhắc trong DB hoặc dùng cách khác
+          },
+          include: {
+            post: {
+              include: { room: true },
+            },
+          },
+        })
+
+      // Gửi thông báo cho từng lịch hẹn
+      for (const schedule of schedulesToRemind) {
+        // Gửi thông báo cho người thuê
+        await this.notificationService.notifyViewingSchedule(
+          schedule.tenantId,
+          schedule.viewingDate,
+          schedule.post.room.title,
+          schedule.id
+        )
+
+        // Gửi thông báo cho chủ nhà
+        await this.notificationService.notifyViewingSchedule(
+          schedule.landlordId,
+          schedule.viewingDate,
+          schedule.post.room.title,
+          schedule.id
+        )
+
+        // Cập nhật trạng thái đã nhắc (nếu cần)
+        // await this.prismaService.viewingSchedule.update({ ... })
+      }
+
+      this.logger.log(
+        `Sent reminders for ${schedulesToRemind.length} upcoming viewing schedules`
+      )
+    } catch (error) {
+      this.logger.error(`Error sending schedule reminders: ${error.message}`)
     }
   }
 }
