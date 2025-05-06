@@ -4,7 +4,7 @@ import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import AppProvider from "@/components/app-provider";
+import { AppProvider } from "@/components/app-provider";
 import NextTopLoader from "nextjs-toploader";
 
 const geistSans = localFont({

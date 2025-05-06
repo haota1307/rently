@@ -43,6 +43,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { NotificationPopover } from "@/features/notification/notification-popover";
 
 // Định nghĩa interface cho một link
 interface NavLink {
@@ -329,7 +330,10 @@ export function Header() {
             <ModeToggle />
             {isHydrated ? (
               isAuth ? (
-                <DropdownAvatar />
+                <>
+                  <NotificationPopover />
+                  <DropdownAvatar />
+                </>
               ) : (
                 <div className="flex space-x-2">
                   <Button variant="outline" asChild>

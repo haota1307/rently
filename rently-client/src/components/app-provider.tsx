@@ -18,6 +18,7 @@ import { ConfirmProvider } from "./confirm-dialog";
 import { Socket } from "socket.io-client";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { NotificationSocketProvider } from "@/features/notification/notification-socket-provider";
 
 // Import ListenRoleUpdateSocket với chế độ client-side only
 const ListenRoleUpdateSocket = dynamic(
@@ -222,11 +223,7 @@ export function usePaymentStatusListener(
   ]);
 }
 
-export default function AppProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function AppProvider({ children }: { children: React.ReactNode }) {
   const setRole = useAppStore((state) => state.setRole);
   const setSocket = useAppStore((state) => state.setSocket);
   const registerSocketEvent = useAppStore((state) => state.registerSocketEvent);
@@ -445,11 +442,13 @@ export default function AppProvider({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ConfirmProvider>
-        {children}
-        <RefreshToken />
-        {mounted && <ListenRoleUpdateSocket />}
-      </ConfirmProvider>
+      <NotificationSocketProvider>
+        <ConfirmProvider>
+          {children}
+          <RefreshToken />
+          {mounted && <ListenRoleUpdateSocket />}
+        </ConfirmProvider>
+      </NotificationSocketProvider>
     </QueryClientProvider>
   );
 }

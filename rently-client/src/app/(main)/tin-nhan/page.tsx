@@ -22,6 +22,8 @@ import {
   Trash2,
   Pencil,
   MoreVertical,
+  Search,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -97,6 +99,7 @@ interface MessageImagePreviewProps {
   removeImage: (index: number) => void;
 }
 
+// Component MessageImagePreview đã được cải thiện
 function MessageImagePreview({
   images,
   removeImage,
@@ -104,30 +107,30 @@ function MessageImagePreview({
   if (images.length === 0) return null;
 
   return (
-    <div className="p-2 border rounded-md mb-2 bg-background">
-      <div className="text-xs text-muted-foreground mb-1 flex justify-between items-center">
-        <span>Ảnh đính kèm ({images.length})</span>
+    <div className="p-3 border rounded-xl mb-2 bg-background/90 backdrop-blur-sm shadow-sm">
+      <div className="text-xs text-muted-foreground mb-2 flex justify-between items-center">
+        <span className="font-medium">Ảnh đính kèm ({images.length})</span>
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 px-2 text-xs"
+          className="h-6 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
           onClick={() => images.forEach((_, index) => removeImage(index))}
         >
           Xóa tất cả
         </Button>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
         {images.map((image, index) => (
-          <div key={index} className="relative min-w-[80px] h-[80px]">
+          <div key={index} className="relative min-w-[100px] h-[100px] group">
             <img
               src={image.url}
               alt={`Ảnh đính kèm ${index + 1}`}
-              className="w-[80px] h-[80px] object-cover rounded-md"
+              className="w-[100px] h-[100px] object-cover rounded-md transition-all duration-200 group-hover:brightness-90"
             />
             <button
               type="button"
               onClick={() => removeImage(index)}
-              className="absolute top-0.5 right-0.5 bg-black bg-opacity-50 text-white rounded-full p-0.5"
+              className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <X className="h-3 w-3" />
             </button>
@@ -1928,65 +1931,100 @@ function MessagesContent() {
   );
 
   return (
-    <div className="max-w-full w-full py-4 mx-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-120px)]">
-        {/* Danh sách cuộc trò chuyện */}
-        <div className="md:col-span-1 h-full overflow-hidden">
-          <Card className="h-full flex flex-col">
-            <CardContent className="p-3 pb-0 flex-1 overflow-hidden flex flex-col">
-              <h2 className="font-medium mb-3">Cuộc trò chuyện</h2>
+    <div className="max-w-7xl w-full py-4 mx-auto px-4 md:px-8">
+      <Card className="h-[calc(100vh-120px)] shadow-xl border-muted overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 h-full">
+          {/* Danh sách cuộc trò chuyện */}
+          <div className="md:col-span-1 h-full border-r">
+            <div className="h-full flex flex-col">
+              <div className="p-4 pb-3 border-b">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                    Tin nhắn
+                  </h2>
+                  <div className="relative">
+                    <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Tìm kiếm..."
+                      className="pl-9 h-9 w-[180px] bg-muted/50 focus:bg-background"
+                    />
+                  </div>
+                </div>
+              </div>
 
               {loading ? (
-                <div className="space-y-3 flex-1">
+                <div className="space-y-3 flex-1 p-4">
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="space-y-2">
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-2 animate-pulse"
+                    >
+                      <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
+                      <div className="space-y-2 flex-1">
                         <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-40" />
                       </div>
                     </div>
                   ))}
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground flex-1">
+                <div className="text-center py-8 flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground/50" />
                   <p>Bạn chưa có cuộc trò chuyện nào</p>
+                  <Button variant="outline" size="sm" className="mt-2">
+                    Bắt đầu trò chuyện mới
+                  </Button>
                 </div>
               ) : (
-                <ScrollArea className="flex-1 h-0">
-                  <div className="space-y-2 pr-4">
+                <ScrollArea className="flex-1 h-0 pr-4 pl-4 py-2">
+                  <div className="space-y-1">
                     {conversations.map((conversation) => {
                       const displayUser = getDisplayUser(conversation);
                       const isUnread =
                         conversation.unreadCount > 0 &&
                         userId !== conversation.latestMessage?.senderId;
+                      const isActive =
+                        activeConversation?.id === conversation.id;
                       return (
                         <div
                           key={conversation.id}
-                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
-                            activeConversation?.id === conversation.id
-                              ? "bg-muted"
-                              : ""
+                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted ${
+                            isActive
+                              ? "bg-primary/10 border-l-4 border-primary"
+                              : "border-l-4 border-transparent"
                           } ${isUnread ? "bg-primary/5" : ""}`}
                           onClick={(e) => onSelectConversation(conversation, e)}
                         >
-                          <Avatar>
-                            <AvatarImage
-                              src={displayUser.avatar || undefined}
-                            />
-                            <AvatarFallback>
-                              <UserCircle className="h-6 w-6" />
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-12 w-12 border-2 border-background">
+                              <AvatarImage
+                                src={displayUser.avatar || undefined}
+                                className="object-cover"
+                              />
+                              <AvatarFallback className="bg-primary/20 text-primary font-medium">
+                                {displayUser.name?.charAt(0)?.toUpperCase() || (
+                                  <UserCircle className="h-6 w-6" />
+                                )}
+                              </AvatarFallback>
+                            </Avatar>
+                            {isUnread && (
+                              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-white font-bold border-2 border-background">
+                                {conversation.unreadCount > 9
+                                  ? "9+"
+                                  : conversation.unreadCount}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex-1 overflow-hidden">
                             <div className="font-medium truncate flex items-center gap-2">
                               {displayUser.name}
-                              {isUnread && (
-                                <span className="h-2 w-2 rounded-full bg-primary inline-block"></span>
+                              {isUnread && !isActive && (
+                                <span className="h-2 w-2 rounded-full bg-primary inline-block animate-pulse"></span>
                               )}
                             </div>
                             <div
-                              className={`text-xs truncate ${
+                              className={`text-sm truncate ${
                                 isUnread
                                   ? "text-foreground font-medium"
                                   : "text-muted-foreground"
@@ -1996,6 +2034,15 @@ function MessagesContent() {
                                 ? conversation.latestMessage.content
                                 : "Bắt đầu trò chuyện..."}
                             </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {conversation.latestMessage?.createdAt &&
+                                new Date(
+                                  conversation.latestMessage.createdAt
+                                ).toLocaleTimeString("vi-VN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                            </div>
                           </div>
                         </div>
                       );
@@ -2003,46 +2050,64 @@ function MessagesContent() {
                   </div>
                 </ScrollArea>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
 
-        {/* Khung chat */}
-        <div className="md:col-span-2 h-full overflow-hidden">
-          <Card className="h-full flex flex-col">
+          {/* Khung chat */}
+          <div className="md:col-span-2 h-full flex flex-col">
             {activeConversation ? (
               <>
                 {/* Header của chat */}
-                <div className="border-b py-3 px-4 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Avatar>
+                <div className="border-b py-3 px-4 flex items-center justify-between gap-3 bg-gradient-to-r from-primary/5 to-background">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border-2 border-background">
                       <AvatarImage
                         src={
                           getDisplayUser(activeConversation).avatar || undefined
                         }
+                        className="object-cover"
                       />
-                      <AvatarFallback>
-                        <UserCircle className="h-6 w-6" />
+                      <AvatarFallback className="bg-primary/20 text-primary font-medium">
+                        {getDisplayUser(activeConversation)
+                          .name?.charAt(0)
+                          ?.toUpperCase() || <UserCircle className="h-6 w-6" />}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">
+                      <div className="font-semibold">
                         {getDisplayUser(activeConversation).name}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            socketConnected ? "bg-green-500" : "bg-amber-500"
+                          }`}
+                        ></span>
+                        {socketConnected ? "Trực tuyến" : "Đang kết nối..."}
                       </div>
                     </div>
                   </div>
 
-                  {!socketConnected && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Loader2 className="animate-spin h-3 w-3 mr-1" />
-                      Đang kết nối...
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!socketConnected && (
+                      <div className="flex items-center text-xs text-muted-foreground bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
+                        <Loader2 className="animate-spin h-3 w-3 mr-1" />
+                        Đang kết nối...
+                      </div>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full h-8 w-8"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Tin nhắn */}
                 <ScrollArea
-                  className="flex-1 px-6 py-4 h-0 w-full"
+                  className="flex-1 px-6 py-4 h-0 w-full bg-[url('/images/chat-pattern.svg')] bg-repeat bg-opacity-5 overflow-auto"
                   id="messages-container"
                   onScroll={handleScroll}
                   ref={scrollAreaComponentRef}
@@ -2062,18 +2127,25 @@ function MessagesContent() {
                           </span>
                         </div>
                       ) : currentPage < totalPages ? (
-                        <div className="py-2 px-4 text-xs opacity-50">
-                          Cuộn lên để xem thêm tin nhắn cũ
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-muted-foreground flex items-center gap-1"
+                        >
+                          <span>Xem thêm tin nhắn cũ</span>
+                        </Button>
                       ) : (
-                        <div className="py-2 px-4 text-xs opacity-50">
+                        <Badge
+                          variant="outline"
+                          className="bg-background/80 text-xs py-1"
+                        >
                           Đã hiển thị tất cả tin nhắn
-                        </div>
+                        </Badge>
                       )}
                     </div>
 
                     {/* Khu vực thông tin debug - để người dùng biết trạng thái hiện tại */}
-                    <div className="text-xs text-muted-foreground mb-4 p-2 bg-muted/30 rounded-md">
+                    <div className="text-xs text-muted-foreground mb-4 p-2 rounded-md bg-background/80 backdrop-blur-sm shadow-sm border border-border/30 hidden">
                       Đã tải: {messages.length} tin nhắn | Trang: {currentPage}/
                       {totalPages}
                       {currentPage >= totalPages && " | Đã tải hết"}
@@ -2097,44 +2169,129 @@ function MessagesContent() {
                         ))}
                       </div>
                     ) : messages.length === 0 ? (
-                      <div className="text-center py-16 text-muted-foreground">
-                        <p>Hãy bắt đầu cuộc trò chuyện...</p>
+                      <div className="text-center py-16 text-muted-foreground flex flex-col items-center gap-3">
+                        <MessageSquare className="h-16 w-16 text-muted-foreground/30" />
+                        <p className="text-lg font-medium">
+                          Hãy bắt đầu cuộc trò chuyện...
+                        </p>
+                        <p className="text-sm max-w-md">
+                          Gửi tin nhắn đầu tiên để bắt đầu cuộc trò chuyện với
+                          người dùng này.
+                        </p>
                       </div>
                     ) : (
-                      <div className="space-y-3 w-full pb-1">
+                      <div className="space-y-4 w-full pb-1">
                         {messages.length > 0 &&
                           /* Messages được lưu theo thứ tự DESC (mới ở đầu) dựa trên API trả về 
                              Để hiển thị theo thứ tự đúng (cũ ở trên, mới ở dưới), chúng ta đảo ngược mảng */
-                          [...messages].reverse().map((msg, index) => (
-                            <div
-                              key={`msg-${msg.id}-${index}`}
-                              className={`flex ${
-                                msg.senderId === userId
-                                  ? "justify-end"
-                                  : "justify-start"
-                              }`}
-                            >
-                              {msg.senderId !== userId && (
-                                <Avatar className="h-8 w-8 mr-2 mt-1 hidden sm:block">
-                                  <AvatarImage
-                                    src={msg.sender.avatar || undefined}
-                                  />
-                                  <AvatarFallback>
-                                    <UserCircle className="h-4 w-4" />
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
-                              <div
-                                className={`max-w-[85%] sm:max-w-[75%] rounded-lg p-3 ${
-                                  msg.senderId === userId
-                                    ? "bg-primary text-primary-foreground rounded-tr-none"
-                                    : "bg-muted rounded-tl-none"
-                                }`}
-                              >
-                                {renderMessageContent(msg)}
-                              </div>
-                            </div>
-                          ))}
+                          [...messages]
+                            .reverse()
+                            .map((msg, index, messagesArray) => {
+                              // Kiểm tra xem tin nhắn này và tin nhắn trước đó có cùng người gửi không
+                              const prevMsg =
+                                index > 0 ? messagesArray[index - 1] : null;
+                              const isSameSender =
+                                prevMsg && prevMsg.senderId === msg.senderId;
+
+                              // Kiểm tra xem tin nhắn tiếp theo có cùng người gửi không
+                              const nextMsg =
+                                index < messagesArray.length - 1
+                                  ? messagesArray[index + 1]
+                                  : null;
+                              const isNextSameSender =
+                                nextMsg && nextMsg.senderId === msg.senderId;
+
+                              // Xác định vị trí tin nhắn trong chuỗi (đầu, giữa, cuối)
+                              const messagePosition = !isSameSender
+                                ? "first"
+                                : !isNextSameSender
+                                ? "last"
+                                : "middle";
+
+                              // Tính thời gian giữa các tin nhắn để hiển thị timestamp
+                              const showTimestamp =
+                                !isSameSender ||
+                                (prevMsg &&
+                                  new Date(msg.createdAt).getTime() -
+                                    new Date(prevMsg.createdAt).getTime() >
+                                    5 * 60 * 1000);
+
+                              return (
+                                <div key={`msg-${msg.id}-${index}`}>
+                                  {showTimestamp && (
+                                    <div className="flex justify-center my-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-background/80 text-xs py-1"
+                                      >
+                                        {new Date(msg.createdAt).toLocaleString(
+                                          "vi-VN",
+                                          {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            day: "2-digit",
+                                            month: "2-digit",
+                                          }
+                                        )}
+                                      </Badge>
+                                    </div>
+                                  )}
+                                  <div
+                                    className={`flex ${
+                                      msg.senderId === userId
+                                        ? "justify-end"
+                                        : "justify-start"
+                                    }`}
+                                  >
+                                    {msg.senderId !== userId &&
+                                      messagePosition === "first" && (
+                                        <Avatar className="h-8 w-8 mr-2 mt-1 hidden sm:block">
+                                          <AvatarImage
+                                            src={msg.sender.avatar || undefined}
+                                          />
+                                          <AvatarFallback className="bg-primary/20 text-primary font-medium">
+                                            {msg.sender.name
+                                              ?.charAt(0)
+                                              ?.toUpperCase() || (
+                                              <UserCircle className="h-4 w-4" />
+                                            )}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      )}
+                                    {msg.senderId !== userId &&
+                                      messagePosition !== "first" && (
+                                        <div className="w-8 mr-2 mt-1 hidden sm:block"></div>
+                                      )}
+                                    <div
+                                      className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 
+                                    ${
+                                      msg.senderId === userId
+                                        ? `bg-primary text-primary-foreground ${
+                                            messagePosition === "first"
+                                              ? "rounded-tr-none"
+                                              : messagePosition === "last"
+                                              ? "rounded-br-none"
+                                              : "rounded-r-none"
+                                          }`
+                                        : `bg-muted ${
+                                            messagePosition === "first"
+                                              ? "rounded-tl-none"
+                                              : messagePosition === "last"
+                                              ? "rounded-bl-none"
+                                              : "rounded-l-none"
+                                          }`
+                                    } ${
+                                        messagePosition !== "first"
+                                          ? "mt-1"
+                                          : "mt-0"
+                                      }`}
+                                    >
+                                      {renderMessageContent(msg)}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                         <div ref={messagesEndRef} />
                       </div>
                     )}
@@ -2142,7 +2299,7 @@ function MessagesContent() {
                 </ScrollArea>
 
                 {/* Khung nhập tin nhắn */}
-                <div className="border-t py-3 px-4 flex flex-col gap-2 mt-auto">
+                <div className="border-t py-3 px-4 flex flex-col gap-2 mt-auto bg-gradient-to-b from-background to-muted/10">
                   {/* Hiển thị ảnh đính kèm */}
                   {attachedImages.length > 0 && (
                     <MessageImagePreview
@@ -2161,7 +2318,7 @@ function MessagesContent() {
                         placeholder="Nhập tin nhắn..."
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        className="flex-1"
+                        className="flex-1 rounded-full border-muted-foreground/20 pl-4 pr-12 py-6 focus-visible:ring-primary/30 shadow-sm"
                         autoComplete="off"
                         ref={messageInputRef}
                         disabled={
@@ -2178,6 +2335,7 @@ function MessagesContent() {
                           }
                         }}
                       />
+
                       {/* Nút đính kèm file */}
                       <input
                         type="file"
@@ -2198,26 +2356,28 @@ function MessagesContent() {
                         disabled={uploading || sendingImages}
                       />
 
-                      <div className="flex items-center gap-1">
+                      <div className="absolute right-2 flex items-center gap-1">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8"
+                          className="h-8 w-8 rounded-full hover:bg-primary/10"
                           type="button"
                           disabled={uploading || sendingImages}
                           onClick={() => imageInputRef.current?.click()}
+                          title="Đính kèm ảnh"
                         >
-                          <ImageIcon className="h-5 w-5" />
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8"
+                          className="h-8 w-8 rounded-full hover:bg-primary/10"
                           type="button"
                           disabled={uploading || sendingImages}
                           onClick={() => fileInputRef.current?.click()}
+                          title="Đính kèm tệp tin"
                         >
-                          <Paperclip className="h-5 w-5" />
+                          <Paperclip className="h-4 w-4 text-muted-foreground" />
                         </Button>
                       </div>
                     </div>
@@ -2225,7 +2385,7 @@ function MessagesContent() {
                     <Button
                       type="button"
                       size="icon"
-                      className="rounded-full h-10 w-10 flex-shrink-0"
+                      className="rounded-full h-12 w-12 flex-shrink-0 shadow-md transition-all duration-200 hover:shadow-lg active:scale-95"
                       disabled={
                         (!message.trim() && attachedImages.length === 0) ||
                         isSendingMessage ||
@@ -2250,13 +2410,22 @@ function MessagesContent() {
 
                   {/* Hiển thị trạng thái tải lên/gửi */}
                   {(uploading || sendingImages) && (
-                    <div className="flex-1 flex items-center gap-2 h-10 px-3 rounded-md border bg-background">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm">
+                    <div className="flex-1 flex items-center gap-2 h-10 px-3 py-5 rounded-md border bg-background/95 backdrop-blur-sm shadow-sm animate-pulse">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-sm font-medium">
                         {uploading
                           ? `Đang tải lên ${selectedFile?.name}`
                           : `Đang gửi tin nhắn kèm ảnh...`}
                       </span>
+                      <div className="flex-1 ml-2">
+                        <div className="h-2 bg-muted-foreground/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary"
+                            style={{ width: `${uploadProgress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <span className="text-xs">{uploadProgress}%</span>
                     </div>
                   )}
 
@@ -2264,23 +2433,39 @@ function MessagesContent() {
                   {attachedImages.length > 0 &&
                     !uploading &&
                     !sendingImages && (
-                      <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-muted/30">
+                      <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-primary/5 border border-primary/10">
                         <ImageIcon className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">
                           {attachedImages.length} ảnh đã sẵn sàng
                         </span>
+                        <Badge
+                          variant="secondary"
+                          className="ml-auto bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
+                          onClick={clearAttachedImages}
+                        >
+                          Xóa tất cả
+                        </Badge>
                       </div>
                     )}
                 </div>
               </>
             ) : (
-              <div className="text-center py-16 text-muted-foreground">
-                <p>Hãy chọn một cuộc trò chuyện để bắt đầu trò chuyện...</p>
+              <div className="text-center flex flex-col items-center justify-center h-full text-muted-foreground bg-muted/10">
+                <div className="max-w-md p-6 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm border border-muted">
+                  <MessageSquare className="h-16 w-16 mx-auto mb-4 text-primary/30" />
+                  <h3 className="text-xl font-medium mb-2">Tin nhắn của bạn</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Chọn một cuộc trò chuyện từ danh sách để bắt đầu nhắn tin
+                  </p>
+                  <Button variant="outline" className="mx-auto">
+                    Bắt đầu cuộc trò chuyện mới
+                  </Button>
+                </div>
               </div>
             )}
-          </Card>
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -2289,7 +2474,12 @@ export default function MessagesPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-8 text-center">Đang tải ứng dụng tin nhắn...</div>
+        <div className="p-8 flex justify-center items-center h-[80vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-lg font-medium">Đang tải ứng dụng tin nhắn...</p>
+          </div>
+        </div>
       }
     >
       <MessagesContent />
