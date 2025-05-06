@@ -241,43 +241,45 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="container mx-auto px-8 py-6">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6">
         {/* Back link */}
-        <div className="mb-4">
+        <div className="mb-3 sm:mb-4">
           <Button
             variant="ghost"
             size="sm"
             className="text-muted-foreground -ml-2"
             onClick={() => window.history.back()}
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại kết quả
+            <ArrowLeft className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="text-xs sm:text-sm">Quay lại kết quả</span>
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Cột chính với thông tin bài đăng */}
           <div className="lg:col-span-2">
             {/* Thông tin chính */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {post.title}
+            <div className="mb-4 sm:mb-6">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 line-clamp-2">
+                {post?.title}
               </h1>
-              <div className="flex items-center text-muted-foreground text-sm space-x-1">
-                <MapPin className="h-3.5 w-3.5" />
-                <span>{rental?.address || "Không có địa chỉ"}</span>
+              <div className="flex items-center text-muted-foreground text-xs sm:text-sm space-x-1">
+                <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                <span className="line-clamp-1">
+                  {post?.rental?.address || "Không có địa chỉ"}
+                </span>
               </div>
             </div>
 
             {/* Slider hình ảnh */}
-            <div className="relative mb-6 rounded-xl overflow-hidden border bg-muted/20">
+            <div className="relative mb-4 sm:mb-6 rounded-lg sm:rounded-xl overflow-hidden border bg-muted/20">
               <div className="relative aspect-[4/3] w-full">
                 <Image
                   src={images[activeImageIndex].url}
                   alt={`Hình ảnh ${activeImageIndex + 1}`}
                   fill
                   priority
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 800px"
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 100vw, (max-width: 1200px) 66vw, 800px"
                   className="object-cover"
                 />
 
@@ -286,18 +288,18 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 rounded-full w-9 h-9 shadow-sm"
+                      className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 rounded-full w-7 h-7 sm:w-9 sm:h-9 shadow-sm"
                       onClick={prevImage}
                     >
-                      <ChevronLeft className="h-5 w-5" />
+                      <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 rounded-full w-9 h-9 shadow-sm"
+                      className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 rounded-full w-7 h-7 sm:w-9 sm:h-9 shadow-sm"
                       onClick={nextImage}
                     >
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                   </>
                 )}
@@ -305,7 +307,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 <div className="absolute bottom-2 right-2">
                   <Badge
                     variant="secondary"
-                    className="bg-black/50 text-white font-normal"
+                    className="bg-black/50 text-white font-normal text-xs py-0.5"
                   >
                     {activeImageIndex + 1}/{images.length}
                   </Badge>
@@ -314,40 +316,43 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
               {/* Thanh thumbnail */}
               {images.length > 1 && (
-                <div className="flex overflow-x-auto py-2 px-2 gap-2">
-                  {images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setActiveImageIndex(index)}
-                      className={`relative h-16 w-24 flex-shrink-0 cursor-pointer rounded-md overflow-hidden transition ${
-                        activeImageIndex === index
-                          ? "ring-2 ring-primary ring-offset-1"
-                          : "opacity-60 hover:opacity-100"
-                      }`}
-                    >
-                      <Image
-                        src={image.url}
-                        alt={`Thumbnail ${index + 1}`}
-                        fill
-                        sizes="96px"
-                        className="object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
+                <ScrollArea className="w-full pb-1 pt-2">
+                  <div className="flex px-2 gap-2">
+                    {images.map((image, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setActiveImageIndex(index)}
+                        className={`relative h-12 sm:h-16 w-20 sm:w-24 flex-shrink-0 cursor-pointer rounded-md overflow-hidden transition ${
+                          activeImageIndex === index
+                            ? "ring-2 ring-primary ring-offset-1"
+                            : "opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <Image
+                          src={image.url}
+                          alt={`Thumbnail ${index + 1}`}
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
               )}
             </div>
 
             {/* Thông tin giá, trạng thái và các action */}
-            <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
               <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-primary">
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <span className="text-xl sm:text-2xl font-bold text-primary">
                     {room ? formatPrice(room.price) : "Liên hệ"}
                   </span>
-                  <span className="text-muted-foreground">/tháng</span>
+                  <span className="text-muted-foreground text-sm">/tháng</span>
                 </div>
-                <div className="flex items-center mt-1 text-sm">
+                <div className="flex items-center mt-0.5 sm:mt-1 text-xs sm:text-sm">
                   <span className="text-muted-foreground">
                     {room?.area || "N/A"} m²
                   </span>
@@ -363,10 +368,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
                 {/* Hiển thị thông tin tiền đặt cọc */}
                 {post.deposit > 0 && (
-                  <div className="mt-2 flex items-center">
+                  <div className="mt-1 sm:mt-2 flex items-center">
                     <Badge
                       variant="outline"
-                      className="bg-amber-50 text-amber-800 border-amber-200"
+                      className="bg-amber-50 text-amber-800 border-amber-200 text-xs py-0.5 px-1.5 sm:px-2"
                     >
                       Đặt cọc:{" "}
                       {new Intl.NumberFormat("vi-VN", {
@@ -378,24 +383,30 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <Badge variant={room?.isAvailable ? "default" : "destructive"}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge
+                  variant={room?.isAvailable ? "default" : "destructive"}
+                  className="text-xs h-5"
+                >
                   {room?.isAvailable ? "Còn trống" : "Đã cho thuê"}
                 </Badge>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
+                <Badge
+                  variant="outline"
+                  className="flex items-center gap-1 text-xs h-5"
+                >
+                  <Calendar className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                   {new Date(post.createdAt).toLocaleDateString("vi-VN")}
                 </Badge>
               </div>
             </div>
 
             {/* Liên hệ */}
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex flex-wrap items-center gap-2 mb-4 sm:mb-6">
               <Button
                 onClick={handleContactLandlord}
-                className="flex gap-2 items-center"
+                className="flex gap-1 sm:gap-2 items-center h-8 sm:h-10 text-xs sm:text-sm"
               >
-                <Phone size={16} />
+                <Phone size={14} className="sm:size-16" />
                 Liên hệ chủ nhà
               </Button>
 
@@ -405,23 +416,28 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   postId={postId}
                   isAvailable={room?.isAvailable}
                   existingRequest={hasExistingRequest}
+                  className="h-8 sm:h-10 text-xs sm:text-sm"
                 />
               )}
 
-              {postActions}
+              <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-0">
+                {postActions}
+              </div>
             </div>
 
             {/* Tiện ích */}
             {amenities.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Tiện ích</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="mb-4 sm:mb-6">
+                <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3">
+                  Tiện ích
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-2">
                   {amenities.map((amenity, index) => (
                     <div
                       key={index}
-                      className="flex items-center p-2 border rounded-md bg-background"
+                      className="flex items-center p-1.5 sm:p-2 border rounded-md bg-background"
                     >
-                      <span className="text-sm">{amenity}</span>
+                      <span className="text-xs sm:text-sm">{amenity}</span>
                     </div>
                   ))}
                 </div>
@@ -429,9 +445,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             )}
 
             {/* Mô tả chi tiết */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-3">Mô tả chi tiết</h3>
-              <div className="prose prose-sm max-w-none text-gray-700">
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3">
+                Mô tả chi tiết
+              </h3>
+              <div className="prose prose-sm max-w-none text-gray-700 text-xs sm:text-sm">
                 <p className="whitespace-pre-line">
                   {post.description || "Không có mô tả chi tiết"}
                 </p>
@@ -440,14 +458,14 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
             {/* Thông tin đặt cọc */}
             {post.deposit > 0 && (
-              <div className="mb-6 p-4 border border-amber-200 rounded-lg bg-amber-50">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 border border-amber-200 rounded-lg bg-amber-50">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-lg font-medium text-amber-800 mb-2">
+                    <h3 className="text-base sm:text-lg font-medium text-amber-800 mb-1 sm:mb-2">
                       Điều kiện đặt cọc
                     </h3>
-                    <p className="text-sm text-amber-700 mb-2">
+                    <p className="text-xs sm:text-sm text-amber-700 mb-1.5 sm:mb-2">
                       Chủ nhà yêu cầu đặt cọc{" "}
                       <span className="font-semibold">
                         {new Intl.NumberFormat("vi-VN", {
@@ -457,7 +475,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                       </span>{" "}
                       khi thuê phòng này.
                     </p>
-                    <p className="text-sm text-amber-700">
+                    <p className="text-xs sm:text-sm text-amber-700">
                       Số tiền cọc sẽ được hoàn trả khi kết thúc hợp đồng thuê
                       nếu không có hư hỏng tài sản và đã thanh toán đầy đủ các
                       khoản phí liên quan (điện, nước, internet...).
@@ -468,26 +486,30 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             )}
 
             {/* Thông tin nhà trọ */}
-            <div className="p-4 border rounded-lg bg-muted/10 mb-6">
-              <div className="flex items-start gap-2 mb-2">
-                <Home className="h-5 w-5 text-muted-foreground mt-1" />
+            <div className="p-3 sm:p-4 border rounded-lg bg-muted/10 mb-4 sm:mb-6">
+              <div className="flex items-start gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                <Home className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-base">
+                  <h3 className="font-medium text-sm sm:text-base">
                     Thuộc nhà trọ: {rental?.title || "Không có thông tin"}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
                     {rental?.address}
                   </p>
                 </div>
               </div>
               {rental?.description && (
-                <p className="text-sm text-muted-foreground mt-2 ml-7">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 sm:mt-2 ml-5 sm:ml-7 line-clamp-2">
                   {rental.description}
                 </p>
               )}
-              <div className="mt-3 ml-7">
+              <div className="mt-2 sm:mt-3 ml-5 sm:ml-7">
                 <Link href={`/nha-tro/${rental?.id}`} passHref>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 sm:h-9 text-xs sm:text-sm"
+                  >
                     Xem thông tin nhà trọ
                   </Button>
                 </Link>
@@ -496,13 +518,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
             {/* Google Maps location */}
             {googleMapsUrl && (
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-medium">Vị trí trên bản đồ</h3>
+              <div className="mb-4 sm:mb-6">
+                <div className="flex justify-between items-center mb-2 sm:mb-3">
+                  <h3 className="text-base sm:text-lg font-medium">
+                    Vị trí trên bản đồ
+                  </h3>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowMap(!showMap)}
+                    className="h-7 sm:h-9 text-xs sm:text-sm"
                   >
                     {showMap ? "Ẩn bản đồ" : "Hiển thị bản đồ"}
                   </Button>
@@ -524,20 +549,22 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             )}
 
             {/* Phần bình luận */}
-            <div className="mt-8">
-              <Separator className="mb-6" />
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">Đánh giá & Bình luận</h3>
+            <div className="mt-6 sm:mt-8">
+              <Separator className="mb-4 sm:mb-6" />
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <h3 className="text-lg sm:text-xl font-semibold">
+                  Đánh giá & Bình luận
+                </h3>
               </div>
 
               <Card className="overflow-hidden shadow-sm">
                 <CardContent className="p-0">
                   {/* Header phần bình luận */}
-                  <div className="p-4 border-b bg-card flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="p-3 sm:p-4 border-b bg-card flex items-center justify-between">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <Badge
                         variant="outline"
-                        className="bg-primary/5 text-primary hover:bg-primary/10 py-1.5 h-auto"
+                        className="bg-primary/5 text-primary hover:bg-primary/10 py-1 sm:py-1.5 h-auto text-xs"
                       >
                         <span className="font-semibold">
                           {totalComments || 0}
@@ -549,21 +576,27 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-xs h-8 px-3 border-dashed"
+                      className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3 border-dashed"
                       onClick={() => {
                         window.location.reload();
                       }}
                     >
-                      <RefreshCcw className="h-3.5 w-3.5 mr-2" />
+                      <RefreshCcw className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 sm:mr-2" />
                       Làm mới
                     </Button>
                   </div>
 
                   {/* Phần hiển thị bình luận */}
-                  <div className="flex flex-col" style={{ height: "450px" }}>
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      height: "350px",
+                      maxHeight: "calc(100vh - 300px)",
+                    }}
+                  >
                     {/* Phần cuộn bình luận */}
                     <ScrollArea className="flex-1 bg-muted/5">
-                      <div className="p-5">
+                      <div className="p-3 sm:p-5">
                         <CommentSection
                           postId={postId}
                           hideCommentForm={true}
@@ -573,9 +606,9 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     </ScrollArea>
 
                     {/* Form nhập bình luận */}
-                    <div className="border-t bg-card p-4">
-                      <div className="flex gap-3">
-                        <div className="relative h-10 w-10 rounded-full overflow-hidden border bg-muted flex-shrink-0">
+                    <div className="border-t bg-card p-3 sm:p-4">
+                      <div className="flex gap-2 sm:gap-3">
+                        <div className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-full overflow-hidden border bg-muted flex-shrink-0">
                           <Image
                             src="/placeholder.svg?height=40&width=40"
                             alt="Avatar"
@@ -584,13 +617,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                             className="object-cover"
                           />
                         </div>
-                        <div className="flex-1 space-y-3">
+                        <div className="flex-1 space-y-2 sm:space-y-3">
                           <div className="relative">
                             <textarea
                               ref={commentInputRef}
                               value={newComment}
                               onChange={(e) => setNewComment(e.target.value)}
-                              className="min-h-[100px] w-full rounded-lg border border-input bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                              className="min-h-[80px] sm:min-h-[100px] w-full rounded-lg border border-input bg-background px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                               placeholder={
                                 isAuth
                                   ? "Chia sẻ ý kiến của bạn về bài đăng này..."
@@ -599,18 +632,23 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                               disabled={!isAuth}
                             />
                             {!isAuth && (
-                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-4 rounded-lg text-center">
-                                <p className="text-sm font-medium mb-2">
+                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-3 sm:p-4 rounded-lg text-center">
+                                <p className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                                   Bạn cần đăng nhập để bình luận
                                 </p>
                                 <Link href="/dang-nhap">
-                                  <Button size="sm">Đăng nhập</Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-7 sm:h-9 text-xs"
+                                  >
+                                    Đăng nhập
+                                  </Button>
                                 </Link>
                               </div>
                             )}
                           </div>
                           <div className="flex justify-between items-center">
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">
                               Hãy chia sẻ đánh giá chân thực để giúp người khác
                             </div>
                             <Button
@@ -622,7 +660,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                                 }
                               }}
                               disabled={!isAuth || !newComment.trim()}
-                              className="px-4"
+                              className="px-3 sm:px-4 h-7 sm:h-9 text-xs"
                             >
                               Gửi bình luận
                             </Button>
@@ -640,13 +678,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
           {/* Sidebar với thông tin chủ nhà và nhà trọ */}
           <div>
+            <div className="mt-4 block lg:hidden"></div>
             <div className="lg:sticky lg:top-20">
               {/* Thông tin người cho thuê */}
               <Card className="mb-4">
-                <CardContent className="p-5">
-                  <h3 className="font-medium mb-4">Thông tin người cho thuê</h3>
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="relative h-12 w-12 rounded-full overflow-hidden bg-gray-200">
+                <CardContent className="p-3 sm:p-5">
+                  <h3 className="font-medium mb-3 sm:mb-4 text-sm sm:text-base">
+                    Thông tin người cho thuê
+                  </h3>
+                  <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+                    <div className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full overflow-hidden bg-gray-200">
                       <Image
                         src={
                           post.landlord?.avatar ||
@@ -659,18 +700,21 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                       />
                     </div>
                     <div>
-                      <p className="font-medium">
+                      <p className="font-medium text-sm sm:text-base">
                         {post.landlord?.name || "Không có thông tin"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
                         Chủ nhà trọ
                       </p>
                     </div>
                   </div>
 
                   {post.landlord?.phoneNumber && (
-                    <Button className="w-full mb-2" variant="default">
-                      <Phone className="h-4 w-4 mr-2" />
+                    <Button
+                      className="w-full mb-2 h-8 sm:h-10 text-xs sm:text-sm"
+                      variant="default"
+                    >
+                      <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                       {post.landlord.phoneNumber}
                     </Button>
                   )}
@@ -678,7 +722,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   {/* Hiển thị nút nhắn tin chỉ khi người dùng đã đăng nhập và không phải là chủ nhà */}
                   {isAuth && !isLandlord && (
                     <Button
-                      className="w-full"
+                      className="w-full h-8 sm:h-10 text-xs sm:text-sm"
                       variant="outline"
                       onClick={handleSendMessage}
                       disabled={loadingConversation}
@@ -689,7 +733,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
                   {/* Hiển thị thông báo khi người dùng là chủ nhà */}
                   {isAuth && isLandlord && (
-                    <div className="text-xs text-center text-muted-foreground mt-2">
+                    <div className="text-[10px] sm:text-xs text-center text-muted-foreground mt-2">
                       Bạn là chủ nhà trọ này
                     </div>
                   )}
@@ -697,7 +741,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   {!isAuth && (
                     <div className="mt-2">
                       <Link href="/dang-nhap">
-                        <Button className="w-full" variant="outline">
+                        <Button
+                          className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                          variant="outline"
+                        >
                           Đăng nhập để nhắn tin
                         </Button>
                       </Link>
@@ -705,7 +752,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   )}
 
                   {post.landlord?.email && (
-                    <p className="text-xs text-center text-muted-foreground mt-2">
+                    <p className="text-[10px] sm:text-xs text-center text-muted-foreground mt-2">
                       {post.landlord.email}
                     </p>
                   )}
@@ -714,18 +761,25 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
               {/* Form đặt lịch xem phòng */}
               <Card className="mb-4">
-                <CardContent className="p-5">
-                  <h3 className="font-medium mb-4">Đặt lịch xem phòng</h3>
+                <CardContent className="p-3 sm:p-5">
+                  <h3 className="font-medium mb-3 sm:mb-4 text-sm sm:text-base">
+                    Đặt lịch xem phòng
+                  </h3>
 
                   {!isAuth && (
-                    <Alert variant="default" className="bg-muted">
-                      <CalendarX className="h-4 w-4" />
-                      <AlertTitle>Cần đăng nhập</AlertTitle>
-                      <AlertDescription className="mb-2">
+                    <Alert variant="default" className="bg-muted p-2 sm:p-3">
+                      <CalendarX className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <AlertTitle className="text-xs sm:text-sm">
+                        Cần đăng nhập
+                      </AlertTitle>
+                      <AlertDescription className="mb-1.5 sm:mb-2 text-[10px] sm:text-xs">
                         Bạn cần đăng nhập để đặt lịch xem phòng
                       </AlertDescription>
                       <Link href="/dang-nhap">
-                        <Button size="sm" className="mt-2">
+                        <Button
+                          size="sm"
+                          className="mt-1.5 sm:mt-2 h-7 sm:h-9 text-xs"
+                        >
                           Đăng nhập
                         </Button>
                       </Link>
@@ -733,10 +787,12 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   )}
 
                   {isAuth && isLandlordOrAdmin && (
-                    <Alert variant="default" className="bg-muted">
-                      <CalendarX className="h-4 w-4" />
-                      <AlertTitle>Không thể đặt lịch</AlertTitle>
-                      <AlertDescription>
+                    <Alert variant="default" className="bg-muted p-2 sm:p-3">
+                      <CalendarX className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <AlertTitle className="text-xs sm:text-sm">
+                        Không thể đặt lịch
+                      </AlertTitle>
+                      <AlertDescription className="text-[10px] sm:text-xs">
                         Chủ nhà và quản trị viên không thể đặt lịch xem phòng
                       </AlertDescription>
                     </Alert>
@@ -753,21 +809,21 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                       }
                       className={
                         existingSchedule.status === "PENDING"
-                          ? "bg-yellow-50"
+                          ? "bg-yellow-50 p-2 sm:p-3"
                           : existingSchedule.status === "APPROVED"
-                          ? "bg-green-50"
-                          : "bg-blue-50"
+                          ? "bg-green-50 p-2 sm:p-3"
+                          : "bg-blue-50 p-2 sm:p-3"
                       }
                     >
-                      <Calendar className="h-4 w-4" />
-                      <AlertTitle>
+                      <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <AlertTitle className="text-xs sm:text-sm">
                         {existingSchedule.status === "PENDING"
                           ? "Đang chờ xác nhận"
                           : existingSchedule.status === "APPROVED"
                           ? "Đã xác nhận lịch hẹn"
                           : "Đã đổi lịch"}
                       </AlertTitle>
-                      <AlertDescription>
+                      <AlertDescription className="text-[10px] sm:text-xs">
                         Bạn đã đặt lịch xem phòng này vào ngày{" "}
                         {format(new Date(existingSchedule.viewingDate), "PPP", {
                           locale: vi,
@@ -800,9 +856,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
               {/* Thông tin chi tiết */}
               <Card className="mb-4">
-                <CardContent className="p-5">
-                  <h3 className="font-medium mb-3">Thông tin chi tiết</h3>
-                  <ul className="space-y-2 text-sm">
+                <CardContent className="p-3 sm:p-5">
+                  <h3 className="font-medium mb-2 sm:mb-3 text-sm sm:text-base">
+                    Thông tin chi tiết
+                  </h3>
+                  <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                     <li className="flex justify-between py-1 border-b">
                       <span className="text-muted-foreground">
                         ID bài đăng:
@@ -858,7 +916,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         variant={
                           post.status === "ACTIVE" ? "default" : "outline"
                         }
-                        className="font-normal"
+                        className="font-normal text-xs h-5"
                       >
                         {post.status === "ACTIVE"
                           ? "Đang hoạt động"
@@ -872,63 +930,17 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </Card>
 
               {/* CTA cuối trang */}
-              <div className="text-center p-4 bg-muted/20 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-2">
+              <div className="text-center p-3 sm:p-4 bg-muted/20 rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">
                   Bạn có phòng trọ cần cho thuê?
                 </p>
                 <Link href="/dang-tin">
-                  <Button className="w-full">Đăng tin ngay</Button>
+                  <Button className="w-full h-8 sm:h-10 text-xs sm:text-sm">
+                    Đăng tin ngay
+                  </Button>
                 </Link>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PostDetailSkeleton() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div>
-            <Skeleton className="h-8 w-2/3" />
-            <Skeleton className="h-4 w-1/2 mt-2" />
-          </div>
-
-          <Skeleton className="aspect-video w-full rounded-lg" />
-
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-8 w-1/3" />
-            <div className="flex space-x-2">
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-6 w-20" />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-1/4" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <Skeleton className="h-[150px] w-full rounded-xl" />
-          </div>
-          <div>
-            <Skeleton className="h-[200px] w-full rounded-xl" />
           </div>
         </div>
       </div>
@@ -962,41 +974,53 @@ function RelatedPostsSection({
   }
 
   return (
-    <div className="mt-10">
-      <Separator className="mb-6" />
+    <div className="mt-6 sm:mt-10">
+      <Separator className="mb-4 sm:mb-6" />
 
       <Tabs defaultValue="similar">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold">Phòng trọ liên quan</h3>
-          <TabsList>
-            <TabsTrigger value="similar">Giá tương tự</TabsTrigger>
-            <TabsTrigger value="sameRental">Cùng nhà trọ</TabsTrigger>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-3 sm:mb-4">
+          <h3 className="text-lg sm:text-xl font-semibold">
+            Phòng trọ liên quan
+          </h3>
+          <TabsList className="h-8 sm:h-9">
+            <TabsTrigger
+              value="similar"
+              className="text-xs sm:text-sm h-7 sm:h-8"
+            >
+              Giá tương tự
+            </TabsTrigger>
+            <TabsTrigger
+              value="sameRental"
+              className="text-xs sm:text-sm h-7 sm:h-8"
+            >
+              Cùng nhà trọ
+            </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="similar">
           {loadingSimilar ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="overflow-hidden">
                   <Skeleton className="aspect-[4/3] w-full" />
-                  <CardContent className="p-3">
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-3 w-full mb-2" />
+                  <CardContent className="p-2 sm:p-3">
+                    <Skeleton className="h-3 sm:h-4 w-3/4 mb-1.5 sm:mb-2" />
+                    <Skeleton className="h-2.5 sm:h-3 w-full mb-1.5 sm:mb-2" />
                     <div className="flex justify-between">
-                      <Skeleton className="h-3 w-1/3" />
-                      <Skeleton className="h-3 w-1/4" />
+                      <Skeleton className="h-2.5 sm:h-3 w-1/3" />
+                      <Skeleton className="h-2.5 sm:h-3 w-1/4" />
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : !hasSimilarPosts ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-6 sm:py-8 text-muted-foreground text-sm">
               Không tìm thấy phòng trọ có giá tương tự
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               {similarPosts.data.map((post) => (
                 <SimilarPostCard key={post.id} post={post} />
               ))}
@@ -1006,27 +1030,27 @@ function RelatedPostsSection({
 
         <TabsContent value="sameRental">
           {loadingSameRental ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="overflow-hidden">
                   <Skeleton className="aspect-[4/3] w-full" />
-                  <CardContent className="p-3">
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-3 w-full mb-2" />
+                  <CardContent className="p-2 sm:p-3">
+                    <Skeleton className="h-3 sm:h-4 w-3/4 mb-1.5 sm:mb-2" />
+                    <Skeleton className="h-2.5 sm:h-3 w-full mb-1.5 sm:mb-2" />
                     <div className="flex justify-between">
-                      <Skeleton className="h-3 w-1/3" />
-                      <Skeleton className="h-3 w-1/4" />
+                      <Skeleton className="h-2.5 sm:h-3 w-1/3" />
+                      <Skeleton className="h-2.5 sm:h-3 w-1/4" />
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : !hasSameRentalPosts ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-6 sm:py-8 text-muted-foreground text-sm">
               Không tìm thấy phòng trọ khác trong cùng nhà trọ
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               {sameRentalPosts.data.map((post) => (
                 <SimilarPostCard key={post.id} post={post} />
               ))}
@@ -1034,6 +1058,54 @@ function RelatedPostsSection({
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function PostDetailSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-4 sm:py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          <div>
+            <Skeleton className="h-6 sm:h-8 w-2/3" />
+            <Skeleton className="h-3 sm:h-4 w-1/2 mt-1 sm:mt-2" />
+          </div>
+
+          <Skeleton className="aspect-video w-full rounded-lg" />
+
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-6 sm:h-8 w-1/3" />
+            <div className="flex space-x-2">
+              <Skeleton className="h-5 sm:h-6 w-16 sm:w-20" />
+              <Skeleton className="h-5 sm:h-6 w-16 sm:w-20" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5 sm:space-y-2">
+            <Skeleton className="h-5 sm:h-6 w-1/4" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <Skeleton className="h-8 sm:h-10 w-full" />
+              <Skeleton className="h-8 sm:h-10 w-full" />
+              <Skeleton className="h-8 sm:h-10 w-full" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5 sm:space-y-2">
+            <Skeleton className="h-5 sm:h-6 w-1/4" />
+            <Skeleton className="h-16 sm:h-20 w-full" />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <Skeleton className="h-[120px] sm:h-[150px] w-full rounded-xl" />
+          </div>
+          <div>
+            <Skeleton className="h-[180px] sm:h-[200px] w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

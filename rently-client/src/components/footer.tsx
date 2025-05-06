@@ -61,15 +61,15 @@ const FooterLinkSection = ({
   links: { name: string; href: string }[];
 }) => (
   <div>
-    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 text-base">
       {title}
     </h3>
-    <ul className="space-y-3">
+    <ul className="space-y-2.5">
       {links.map((link) => (
         <li key={link.name}>
           <Link
             href={link.href}
-            className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm"
           >
             {link.name}
           </Link>
@@ -82,20 +82,20 @@ const FooterLinkSection = ({
 export const Footer = () => {
   return (
     <footer className="bg-white dark:bg-gray-950 border-t dark:border-gray-800">
-      <div className="mx-auto w-full px-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
         {/* Thông tin liên hệ */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 border-b dark:border-gray-800">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 border-b dark:border-gray-800 py-4">
           {contactInfo.map((item, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 group hover:bg-gray-50 dark:hover:bg-gray-900 p-4 transition-colors"
+              className="flex items-center gap-3 group hover:bg-gray-50 dark:hover:bg-gray-900 p-3 sm:p-4 transition-colors rounded-lg"
             >
-              <item.icon className="text-gray-700 dark:text-gray-400 group-hover:text-primary dark:group-hover:text-primary transition-colors" />
+              <item.icon className="text-gray-700 dark:text-gray-400 group-hover:text-primary dark:group-hover:text-primary transition-colors h-5 w-5 shrink-0" />
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary dark:group-hover:text-primary transition-colors">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary dark:group-hover:text-primary transition-colors text-sm sm:text-base">
                   {item.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 group-hover:text-gray-900 dark:group-hover:text-gray-300 transition-colors">
+                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 group-hover:text-gray-900 dark:group-hover:text-gray-300 transition-colors line-clamp-2">
                   {item.content}
                 </p>
               </div>
@@ -104,11 +104,11 @@ export const Footer = () => {
         </div>
 
         {/* Nội dung chính của Footer */}
-        <div className="py-12 grid grid-cols-3 lg:grid-cols-4 gap-8">
+        <div className="py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Logo & Mạng xã hội */}
           <div className="space-y-4">
             <Link href={"/"}>
-              <h2 className="text-2xl font-black tracking-wider uppercase text-gray-900 dark:text-gray-100">
+              <h2 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-gray-900 dark:text-gray-100">
                 Rently
               </h2>
             </Link>
@@ -116,14 +116,14 @@ export const Footer = () => {
               Cảm ơn bạn đã tin tưởng và lựa chọn sản phẩm của chúng tôi. Chúng
               tôi sẽ cố gắng hoàn thiện tốt hơn.
             </p>
-            <div className="flex items-center gap-3.5 text-muted-foreground">
+            <div className="flex items-center gap-3 text-muted-foreground">
               {socialLinks.map(({ icon: Icon, href }, index) => (
                 <Link
                   key={index}
                   href={href}
-                  className="border p-2 rounded-full border-black/40 dark:border-white/40 bg-transparent hover:bg-muted dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  className="border p-1.5 sm:p-2 rounded-full border-black/40 dark:border-white/40 bg-transparent hover:bg-muted dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                 >
-                  <Icon />
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Link>
               ))}
             </div>
@@ -135,9 +135,9 @@ export const Footer = () => {
         </div>
 
         {/* Footer cuối */}
-        <div className="py-6 border-t dark:border-gray-800 text-center text-sm text-gray-600 dark:text-gray-400">
+        <div className="py-4 sm:py-6 border-t dark:border-gray-800 text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           <p>© 2025 Rently. Mọi quyền được bảo lưu.</p>
-          <p>
+          <p className="mt-1">
             Website này được tạo với mục đích học tập, không vì mục đích kinh
             doanh.
           </p>

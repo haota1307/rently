@@ -100,18 +100,18 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
       case NotificationType.PAYMENT:
-        return <CreditCardIcon className="h-6 w-6" />;
+        return <CreditCardIcon className="h-4 w-4 sm:h-6 sm:w-6" />;
       case NotificationType.INTERACTION:
-        return <MessageCircleIcon className="h-6 w-6" />;
+        return <MessageCircleIcon className="h-4 w-4 sm:h-6 sm:w-6" />;
       case NotificationType.RENTAL_REQUEST:
-        return <HomeIcon className="h-6 w-6" />;
+        return <HomeIcon className="h-4 w-4 sm:h-6 sm:w-6" />;
       case NotificationType.VIEWING_SCHEDULE:
-        return <CalendarIcon className="h-6 w-6" />;
+        return <CalendarIcon className="h-4 w-4 sm:h-6 sm:w-6" />;
       case NotificationType.POST:
-        return <HeartIcon className="h-6 w-6" />;
+        return <HeartIcon className="h-4 w-4 sm:h-6 sm:w-6" />;
       case NotificationType.SYSTEM:
       default:
-        return <BellIcon className="h-6 w-6" />;
+        return <BellIcon className="h-4 w-4 sm:h-6 sm:w-6" />;
     }
   };
 
@@ -145,14 +145,14 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 
   if (isLoading) {
     return (
-      <div className="p-4 space-y-4">
+      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-start gap-3">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-2/3" />
+          <div key={i} className="flex items-start gap-2 sm:gap-3">
+            <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-full" />
+            <div className="space-y-1 sm:space-y-2 flex-1">
+              <Skeleton className="h-4 sm:h-5 w-32 sm:w-40" />
+              <Skeleton className="h-3 sm:h-4 w-full" />
+              <Skeleton className="h-3 sm:h-4 w-2/3" />
             </div>
           </div>
         ))}
@@ -162,10 +162,14 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 
   if (notifications.length === 0) {
     return (
-      <div className="p-12 text-center text-muted-foreground">
-        <BellIcon className="h-10 w-10 mx-auto mb-3 opacity-50" />
-        <p className="text-lg font-medium">Không có thông báo nào</p>
-        <p className="text-sm mt-2">Thông báo mới sẽ xuất hiện ở đây</p>
+      <div className="p-8 sm:p-12 text-center text-muted-foreground">
+        <BellIcon className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 sm:mb-3 opacity-50" />
+        <p className="text-base sm:text-lg font-medium">
+          Không có thông báo nào
+        </p>
+        <p className="text-xs sm:text-sm mt-1 sm:mt-2">
+          Thông báo mới sẽ xuất hiện ở đây
+        </p>
       </div>
     );
   }
@@ -173,16 +177,16 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   const groupedNotifications = groupNotificationsByDate(notifications);
 
   return (
-    <ScrollArea className="h-[65vh] max-h-[450px]">
-      <div className="p-2">
+    <ScrollArea className="h-[60vh] max-h-[450px]">
+      <div className="p-1 sm:p-2">
         {Object.entries(groupedNotifications).map(([date, items]) => (
-          <div key={date} className="mb-3">
-            <div className="sticky top-0 z-10 bg-background px-4 py-2 border-b mb-2">
+          <div key={date} className="mb-2 sm:mb-3">
+            <div className="sticky top-0 z-10 bg-background px-3 sm:px-4 py-1.5 sm:py-2 border-b mb-1 sm:mb-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {date}
               </p>
             </div>
-            <div className="space-y-2 py-1">
+            <div className="space-y-1.5 sm:space-y-2 py-1">
               {items.map((notification) => (
                 <motion.div
                   key={notification.id}
@@ -190,7 +194,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
                   className={cn(
-                    "px-5 py-4 mx-2 rounded-xl cursor-pointer flex gap-4 transition-all hover:bg-muted hover:shadow-sm",
+                    "px-3 sm:px-5 py-3 sm:py-4 mx-1 sm:mx-2 rounded-xl cursor-pointer flex gap-2 sm:gap-4 transition-all hover:bg-muted hover:shadow-sm",
                     !notification.isRead
                       ? "bg-muted/50 border-l-3 border-primary shadow-sm"
                       : "bg-background border border-border/30"
@@ -199,7 +203,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
                 >
                   <div
                     className={cn(
-                      "h-12 w-12 rounded-full flex items-center justify-center shrink-0 shadow-sm",
+                      "h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center shrink-0 shadow-sm",
                       getIconColorByType(notification.type)
                     )}
                   >
@@ -207,20 +211,20 @@ export const NotificationList: React.FC<NotificationListProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                      <h4 className="text-base font-semibold leading-tight line-clamp-1 mr-2">
+                      <h4 className="text-sm sm:text-base font-semibold leading-tight line-clamp-1 mr-2">
                         {notification.title}
                       </h4>
-                      <p className="text-xs text-muted-foreground whitespace-nowrap font-medium">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap font-medium">
                         {formatDistanceToNow(new Date(notification.createdAt), {
                           addSuffix: true,
                           locale: vi,
                         })}
                       </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2">
                       {notification.message}
                     </p>
-                    <div className="flex justify-between items-center mt-3">
+                    <div className="flex justify-between items-center mt-2 sm:mt-3">
                       {(notification.type === NotificationType.PAYMENT ||
                         notification.type ===
                           NotificationType.VIEWING_SCHEDULE ||
@@ -235,19 +239,20 @@ export const NotificationList: React.FC<NotificationListProps> = ({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 text-xs px-3 rounded-full text-primary hover:bg-primary/10 hover:text-primary font-medium"
+                          className="h-6 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3 rounded-full text-primary hover:bg-primary/10 hover:text-primary font-medium"
                         >
                           Xem chi tiết
-                          <ArrowRightIcon className="h-3 w-3 ml-1" />
+                          <ArrowRightIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-1" />
                         </Button>
                       )}
                       {!notification.isRead ? (
-                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
                           Mới
                         </span>
                       ) : (
-                        <span className="inline-flex items-center text-xs text-muted-foreground">
-                          <CheckIcon className="h-3.5 w-3.5 mr-1" /> Đã đọc
+                        <span className="inline-flex items-center text-[10px] sm:text-xs text-muted-foreground">
+                          <CheckIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1" />{" "}
+                          Đã đọc
                         </span>
                       )}
                     </div>

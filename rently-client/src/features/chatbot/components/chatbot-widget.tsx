@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { AnimatePresence, motion, useDragControls } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   MessageSquare,
   X,
@@ -20,8 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import chatbotApiRequest from "../chatbot.api";
-// Tạm thời remove import DOMPurify để fix lỗi
-// import DOMPurify from "dompurify";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface Message {
   id: string;
@@ -64,6 +63,7 @@ export function ChatbotWidget() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const initialRenderRef = useRef(true);
+  const isMobile = useMediaQuery("(max-width: 640px)");
 
   // Tự động cuộn xuống khi có tin nhắn mới
   useEffect(() => {
@@ -106,13 +106,36 @@ export function ChatbotWidget() {
       const { innerWidth, innerHeight } = window;
       const chatWidth = isExpanded ? 650 : 450;
 
-      // Vị trí mặc định: góc phải dưới, lùi vào một chút từ mép màn hình
-      setPosition({
-        x: innerWidth - chatWidth - 50,
-        y: innerHeight - 500,
-      });
+      // Trên thiết bị di động, đặt ở một vị trí khác so với desktop
+      if (isMobile) {
+        setPosition({
+          x: innerWidth - 320 - 16, // Điều chỉnh kích thước và khoảng cách cho phù hợp hơn
+          y: innerHeight - 450,
+        });
+      } else {
+        // Vị trí mặc định: góc phải dưới, lùi vào một chút từ mép màn hình
+        setPosition({
+          x: innerWidth - chatWidth - 50,
+          y: innerHeight - 500,
+        });
+      }
     }
-  }, [isOpen, position, isMaximized, isExpanded]);
+  }, [isOpen, position, isMaximized, isExpanded, isMobile]);
+
+  // Tự động tối đa hóa trên thiết bị di động
+  useEffect(() => {
+    if (isMobile && isOpen) {
+      setIsMaximized(true);
+    }
+  }, [isMobile, isOpen]);
+
+  // Tự động đặt lại kích thước phù hợp khi mở chatbot trên điện thoại
+  useEffect(() => {
+    if (isMobile && isOpen) {
+      // Reset các kích thước và vị trí để tránh bị khuất
+      setPosition(null);
+    }
+  }, [isMobile, isOpen]);
 
   const toggleChat = () => {
     setIsOpen((prev) => !prev);
@@ -140,35 +163,35 @@ export function ChatbotWidget() {
       .slice(0, 5)
       .map(
         (result, index) => `
-        <div class="p-3 my-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900 hover:shadow-md transition-all duration-200">
+        <div class="p-1.5 sm:p-3 my-1.5 sm:my-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900 hover:shadow-md transition-all duration-200">
           <a href="/bai-dang/${result.postId}" 
              target="_blank" 
-             class="text-primary hover:text-primary/80 font-semibold transition-colors duration-200">
+             class="text-primary hover:text-primary/80 font-semibold transition-colors duration-200 text-[11px] sm:text-sm">
             ${index + 1}. ${result.title}
           </a>
-          <div class="flex flex-wrap items-center gap-1 text-sm mt-2">
+          <div class="flex flex-wrap items-center gap-1 text-[10px] sm:text-xs mt-1 sm:mt-2">
             <span class="font-bold text-green-600 dark:text-green-400">${new Intl.NumberFormat(
               "vi-VN"
             ).format(Number(result.price))} VNĐ/tháng</span> 
             <span class="mx-1">•</span>
             <span class="font-medium">${result.area}m²</span>
             <span class="mx-1">•</span>
-            <span class="text-gray-600 dark:text-gray-300 truncate max-w-[200px]">${
+            <span class="text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[200px]">${
               result.address
             }</span>
           </div>
           ${
             result.imageUrls && result.imageUrls.length > 0
-              ? `<div class="mt-2 overflow-hidden rounded-md">
-                   <img src="${result.imageUrls[0]}" alt="${result.title}" class="w-full h-32 object-cover hover:scale-105 transition-transform duration-500" />
+              ? `<div class="mt-1 sm:mt-2 overflow-hidden rounded-md">
+                   <img src="${result.imageUrls[0]}" alt="${result.title}" class="w-full h-20 sm:h-32 object-cover hover:scale-105 transition-transform duration-500" />
                  </div>`
               : ""
           }
-          <div class="text-xs mt-2 flex flex-wrap gap-1">
+          <div class="text-[8px] sm:text-xs mt-1 sm:mt-2 flex flex-wrap gap-0.5 sm:gap-1">
             ${result.amenities
               .map(
                 (amenity: string) =>
-                  `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded-full text-blue-700 dark:text-blue-300">${amenity}</span>`
+                  `<span class="px-1 py-0.5 sm:px-2 sm:py-1 bg-blue-100 dark:bg-blue-900/50 rounded-full text-blue-700 dark:text-blue-300">${amenity}</span>`
               )
               .join(" ")}
           </div>
@@ -178,10 +201,10 @@ export function ChatbotWidget() {
       .join("");
 
     return `
-      <div class="space-y-2 my-3">
+      <div class="space-y-1 sm:space-y-2 my-1.5 sm:my-3">
         ${resultsHtml}
       </div>
-      <p class="text-sm mt-3 text-gray-600 dark:text-gray-300 italic">Bạn có thể nhấp vào tên phòng để xem chi tiết.</p>
+      <p class="text-[9px] sm:text-sm mt-1.5 sm:mt-3 text-gray-600 dark:text-gray-300 italic">Bạn có thể nhấp vào tên phòng để xem chi tiết.</p>
     `;
   };
 
@@ -281,16 +304,16 @@ export function ChatbotWidget() {
   return (
     <>
       <Button
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary-foreground/20 p-0 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+        className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary-foreground/20 p-0 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
         onClick={toggleChat}
         aria-label={isOpen ? "Đóng trợ lý ảo" : "Mở trợ lý ảo"}
       >
         {isOpen ? (
-          <X className="h-6 w-6" />
+          <X className="h-5 w-5 sm:h-6 sm:w-6" />
         ) : (
           <div className="relative">
-            <Sparkles className="h-6 w-6 absolute -top-2 -right-2 text-yellow-300 animate-pulse" />
-            <MessageSquare className="h-6 w-6" />
+            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 absolute -top-2 -right-2 text-yellow-300 animate-pulse" />
+            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
         )}
       </Button>
@@ -301,12 +324,14 @@ export function ChatbotWidget() {
           <motion.div
             ref={chatRef}
             className={cn(
-              "fixed z-50 overflow-hidden rounded-2xl border-2 border-primary/20 bg-background shadow-2xl",
+              "fixed flex flex-col my-auto mx-2 z-[9999999] max-h-[500px] overflow-hidden rounded-xl sm:rounded-2xl border-2 border-primary/20 bg-background shadow-2xl",
               isMaximized
-                ? "inset-6"
+                ? isMobile
+                  ? "inset-0" // Toàn màn hình trên mobile để tránh bị khuất
+                  : "inset-6"
                 : isExpanded
-                ? "w-[650px] md:w-[750px] lg:w-[850px]"
-                : "w-[450px] sm:w-[500px] md:w-[550px]"
+                ? "w-[85vw] sm:w-[650px] md:w-[750px] lg:w-[850px]"
+                : "w-[85vw] sm:w-[450px] md:w-[550px]"
             )}
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{
@@ -316,7 +341,7 @@ export function ChatbotWidget() {
                 ? { x: 0, y: 0 }
                 : position
                 ? { x: position.x, y: position.y }
-                : { bottom: 100, right: 24, x: 0, y: 0 }),
+                : { bottom: 70, right: 16, x: 0, y: 0 }),
             }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
             transition={{
@@ -327,7 +352,7 @@ export function ChatbotWidget() {
               opacity: { duration: 0.2 },
               scale: { duration: 0.2 },
             }}
-            drag={!isMaximized}
+            drag={!isMaximized && !isMobile}
             dragConstraints={{
               left: -window.innerWidth + 200,
               right: window.innerWidth - 200,
@@ -340,7 +365,7 @@ export function ChatbotWidget() {
               modifyTarget: (target) => Math.round(target / 5) * 5,
             }}
             dragMomentum={false}
-            dragListener={!isDragging}
+            dragListener={!isDragging && !isMobile}
             onDragStart={() => setIsDragging(true)}
             onDragEnd={(e, info) => {
               setIsDragging(false);
@@ -368,10 +393,10 @@ export function ChatbotWidget() {
           >
             {/* Header */}
             <div
-              className="relative flex items-center justify-between border-b bg-gradient-to-r from-primary to-primary/70 p-3 text-primary-foreground cursor-move"
+              className="relative flex items-center justify-between border-b bg-gradient-to-r from-primary to-primary/70 p-2 sm:p-3 text-primary-foreground cursor-move"
               onMouseDown={(e) => {
-                if (!isMaximized && e.button === 0) {
-                  // Chỉ xử lý với chuột trái và khi không ở chế độ toàn màn hình
+                if (!isMaximized && !isMobile && e.button === 0) {
+                  // Chỉ xử lý với chuột trái, không ở chế độ toàn màn hình và không phải trên thiết bị di động
                   const target = e.target as HTMLElement;
                   // Kiểm tra xem người dùng có nhấp vào nút hay không
                   if (target.closest("button")) {
@@ -395,64 +420,72 @@ export function ChatbotWidget() {
                 }
               }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="relative">
-                  <Avatar className="h-10 w-10 bg-primary-foreground text-primary ring-2 ring-white/20 flex items-center justify-center">
+                  <Avatar className="h-8 w-8 sm:h-10 sm:w-10 bg-primary-foreground text-primary ring-2 ring-white/20 flex items-center justify-center">
                     <AvatarFallback>
-                      <Bot className="h-5 w-5" />
+                      <Bot className="h-4 w-4 sm:h-5 sm:w-5" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-primary"></span>
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-green-500 ring-2 ring-primary"></span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">Rently Assistant</h3>
-                  <p className="text-xs opacity-90">
-                    Trợ lý ảo thông minh hỗ trợ 24/7
+                  <h3 className="text-sm sm:text-lg font-semibold">
+                    Rently Assistant
+                  </h3>
+                  <p className="text-[10px] sm:text-xs opacity-90">
+                    Trợ lý ảo thông minh
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleMaximize}
-                  className="text-primary-foreground hover:bg-primary/90"
-                  aria-label={
-                    isMaximized ? "Thu nhỏ cửa sổ chat" : "Phóng to cửa sổ chat"
-                  }
-                >
-                  {isMaximized ? (
-                    <MinimizeIcon className="h-5 w-5" />
-                  ) : (
-                    <MaximizeIcon className="h-5 w-5" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleExpand}
-                  className="text-primary-foreground hover:bg-primary/90"
-                  aria-label={
-                    isExpanded ? "Thu nhỏ cửa sổ chat" : "Mở rộng cửa sổ chat"
-                  }
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-5 w-5" />
-                  ) : (
-                    <ChevronUp className="h-5 w-5" />
-                  )}
-                </Button>
+              <div className="flex items-center gap-1 sm:gap-2">
+                {!isMobile && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleMaximize}
+                    className="text-primary-foreground hover:bg-primary/90 h-7 w-7 sm:h-8 sm:w-8"
+                    aria-label={
+                      isMaximized
+                        ? "Thu nhỏ cửa sổ chat"
+                        : "Phóng to cửa sổ chat"
+                    }
+                  >
+                    {isMaximized ? (
+                      <MinimizeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    ) : (
+                      <MaximizeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    )}
+                  </Button>
+                )}
+                {!isMobile && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleExpand}
+                    className="text-primary-foreground hover:bg-primary/90 h-7 w-7 sm:h-8 sm:w-8"
+                    aria-label={
+                      isExpanded ? "Thu nhỏ cửa sổ chat" : "Mở rộng cửa sổ chat"
+                    }
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
+                    ) : (
+                      <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                    )}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleChat}
-                  className="text-primary-foreground hover:bg-primary/90"
+                  className="text-primary-foreground hover:bg-primary/90 h-7 w-7 sm:h-8 sm:w-8"
                   aria-label="Đóng cửa sổ chat"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
-              {!isMaximized && (
+              {!isMaximized && !isMobile && (
                 <div
                   className={cn(
                     "absolute -top-1 left-1/2 transform -translate-x-1/2 bg-primary px-2 py-1 rounded-b-md text-xs text-primary-foreground flex items-center gap-1 transition-opacity",
@@ -460,7 +493,9 @@ export function ChatbotWidget() {
                   )}
                 >
                   <Move className="h-3 w-3" />
-                  <span>Kéo để di chuyển</span>
+                  <span className="text-[10px] sm:text-xs">
+                    Kéo để di chuyển
+                  </span>
                 </div>
               )}
             </div>
@@ -468,16 +503,18 @@ export function ChatbotWidget() {
             {/* Chat messages */}
             <ScrollArea
               className={cn(
-                "p-4 overflow-y-auto",
-                isMaximized
-                  ? "h-[calc(100%-150px)]"
+                "px-2 sm:px-4 py-2 sm:py-4 overflow-y-auto",
+                isMaximized && isMobile
+                  ? "h-[calc(100%-95px)]" // Tối ưu cho toàn màn hình trên mobile
+                  : isMaximized
+                  ? "h-[calc(100%-110px)] sm:h-[calc(100%-150px)]"
                   : isExpanded
-                  ? "h-[350px]"
-                  : "h-[300px]"
+                  ? "h-[280px] sm:h-[350px]"
+                  : "h-[230px] sm:h-[300px]"
               )}
               ref={scrollAreaRef}
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2 sm:gap-4">
                 {messages.map((message) => (
                   <motion.div
                     key={message.id}
@@ -485,7 +522,7 @@ export function ChatbotWidget() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                     className={cn(
-                      "flex max-w-[85%] flex-col rounded-xl p-4",
+                      "flex max-w-[92%] sm:max-w-[85%] flex-col rounded-xl p-2 sm:p-4",
                       message.sender === "user"
                         ? "ml-auto bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md"
                         : "bg-gradient-to-r from-muted/60 to-muted shadow-sm"
@@ -493,17 +530,17 @@ export function ChatbotWidget() {
                   >
                     {message.isHtml ? (
                       <div
-                        className="text-sm leading-relaxed"
+                        className="text-xs sm:text-sm leading-relaxed"
                         dangerouslySetInnerHTML={{
                           __html: sanitizeHtml(message.content),
                         }}
                       />
                     ) : (
-                      <p className="text-sm whitespace-pre-line leading-relaxed">
+                      <p className="text-xs sm:text-sm whitespace-pre-line leading-relaxed">
                         {message.content}
                       </p>
                     )}
-                    <span className="mt-2 text-right text-xs opacity-70">
+                    <span className="mt-1 sm:mt-2 text-right text-[9px] sm:text-xs opacity-70">
                       {message.timestamp.toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -515,16 +552,16 @@ export function ChatbotWidget() {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex max-w-[85%] flex-col rounded-xl p-4 bg-muted/60"
+                    className="flex max-w-[92%] sm:max-w-[85%] flex-col rounded-xl p-3 sm:p-4 bg-muted/60"
                   >
-                    <div className="flex space-x-2">
-                      <div className="h-2.5 w-2.5 animate-bounce rounded-full bg-primary/60"></div>
+                    <div className="flex space-x-1.5 sm:space-x-2">
+                      <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 animate-bounce rounded-full bg-primary/60"></div>
                       <div
-                        className="h-2.5 w-2.5 animate-bounce rounded-full bg-primary/60"
+                        className="h-2 w-2 sm:h-2.5 sm:w-2.5 animate-bounce rounded-full bg-primary/60"
                         style={{ animationDelay: "0.2s" }}
                       ></div>
                       <div
-                        className="h-2.5 w-2.5 animate-bounce rounded-full bg-primary/60"
+                        className="h-2 w-2 sm:h-2.5 sm:w-2.5 animate-bounce rounded-full bg-primary/60"
                         style={{ animationDelay: "0.4s" }}
                       ></div>
                     </div>
@@ -535,48 +572,50 @@ export function ChatbotWidget() {
             </ScrollArea>
 
             {/* Input area */}
-            <div className="flex items-center gap-2 border-t bg-muted/30 p-3">
+            <div className="flex items-center gap-2 border-t bg-muted/30 p-2 sm:p-3">
               <Input
                 placeholder="Nhập tin nhắn của bạn..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 rounded-xl border-muted-foreground/20 bg-background px-4 py-3 shadow-sm focus:border-primary focus:ring-primary"
+                className="flex-1 rounded-xl border-muted-foreground/20 bg-background px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm shadow-sm focus:border-primary focus:ring-primary"
                 disabled={isLoading}
                 aria-label="Nhập tin nhắn"
               />
               <Button
                 size="icon"
-                className="h-10 w-10 rounded-xl bg-primary hover:bg-primary/80 transition-colors"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary hover:bg-primary/80 transition-colors"
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading}
                 aria-label="Gửi tin nhắn"
               >
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
 
             {/* Gợi ý nhanh */}
-            <div className="border-t bg-muted/10 p-2 flex flex-wrap gap-2 justify-center">
-              {[
-                "Tìm phòng giá rẻ",
-                "Hướng dẫn đăng bài",
-                "Kinh nghiệm thuê phòng",
-                "Phòng gần trường đại học",
-              ].map((suggestion) => (
-                <Button
-                  key={suggestion}
-                  variant="outline"
-                  size="sm"
-                  className="bg-background hover:bg-muted/50 text-xs py-0.5 h-auto rounded-full"
-                  onClick={() => {
-                    setInputValue(suggestion);
-                  }}
-                >
-                  {suggestion}
-                </Button>
-              ))}
-            </div>
+            {!isMobile ? (
+              <div className="border-t bg-muted/10 p-1.5 sm:p-2 flex flex-wrap gap-1 sm:gap-2 justify-center">
+                {[
+                  "Tìm phòng giá rẻ",
+                  "Hướng dẫn đăng bài",
+                  "Thuê phòng",
+                  "Phòng gần ĐH",
+                ].map((suggestion) => (
+                  <Button
+                    key={suggestion}
+                    variant="outline"
+                    size="sm"
+                    className="bg-background hover:bg-muted/50 text-[10px] sm:text-xs py-0.5 h-6 sm:h-auto rounded-full"
+                    onClick={() => {
+                      setInputValue(suggestion);
+                    }}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
           </motion.div>
         )}
       </AnimatePresence>

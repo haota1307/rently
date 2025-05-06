@@ -105,12 +105,12 @@ export class RentalRequestService {
             to: landlord.email,
             subject: 'Yêu cầu thuê mới',
             html: `
-              <p>Chào ${landlord.name},</p>
-              <p>Bạn vừa nhận được một yêu cầu thuê mới từ ${tenant.name} cho tin đăng "${postInfo.title}".</p>
-              <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và phản hồi yêu cầu.</p>
-              <p>Trân trọng,</p>
-              <p>Đội ngũ Rently</p>
-            `,
+            <p>Chào ${landlord.name},</p>
+            <p>Bạn vừa nhận được một yêu cầu thuê mới từ ${tenant.name} cho tin đăng "${postInfo.title}".</p>
+            <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và phản hồi yêu cầu.</p>
+            <p>Trân trọng,</p>
+            <p>Đội ngũ Rently</p>
+          `,
           })
         } catch (error) {
           console.error('Failed to send email notification:', error)
@@ -299,20 +299,20 @@ export class RentalRequestService {
               to: notificationTarget.email,
               subject: `Cập nhật trạng thái yêu cầu thuê: ${statusMessages[data.status]}`,
               html: `
-                <p>Chào ${notificationTarget.name},</p>
-                <p>Yêu cầu thuê của bạn cho tin đăng "${post.title}" ${
-                  statusMessages[data.status]
-                } bởi ${sender.name}.</p>
-                ${
-                  data.status === RentalRequestStatus.REJECTED &&
-                  data.rejectionReason
-                    ? `<p>Lý do: ${data.rejectionReason}</p>`
-                    : ''
-                }
-                <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
-                <p>Trân trọng,</p>
-                <p>Đội ngũ Rently</p>
-              `,
+              <p>Chào ${notificationTarget.name},</p>
+              <p>Yêu cầu thuê của bạn cho tin đăng "${post.title}" ${
+                statusMessages[data.status]
+              } bởi ${sender.name}.</p>
+              ${
+                data.status === RentalRequestStatus.REJECTED &&
+                data.rejectionReason
+                  ? `<p>Lý do: ${data.rejectionReason}</p>`
+                  : ''
+              }
+              <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
+              <p>Trân trọng,</p>
+              <p>Đội ngũ Rently</p>
+            `,
             })
           } catch (error) {
             console.error('Failed to send email notification:', error)
