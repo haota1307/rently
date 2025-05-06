@@ -64,7 +64,6 @@ export class NotificationService {
       title: 'Thông báo thanh toán',
       message: `${description}: ${amount.toLocaleString('vi-VN')} VNĐ`,
       relatedType: 'payment',
-      deepLink: '/tai-khoan/lich-su-thanh-toan',
     })
   }
 
@@ -80,7 +79,6 @@ export class NotificationService {
       message: `${tenantName} đã gửi một yêu cầu thuê mới cho phòng của bạn`,
       relatedId: rentalRequestId,
       relatedType: 'rental_request',
-      deepLink: `/quan-ly/yeu-cau-thue/${rentalRequestId}`,
     })
   }
 
@@ -97,7 +95,6 @@ export class NotificationService {
       message: `Yêu cầu thuê phòng "${roomName}" của bạn đã được ${status === 'APPROVED' ? 'chấp nhận' : 'từ chối'}`,
       relatedId: rentalRequestId,
       relatedType: 'rental_request',
-      deepLink: `/tai-khoan/yeu-cau-thue/${rentalRequestId}`,
     })
   }
 
@@ -113,7 +110,6 @@ export class NotificationService {
       message: `Bạn có tin nhắn mới từ ${senderName}`,
       relatedId: conversationId,
       relatedType: 'conversation',
-      deepLink: `/tin-nhan/${conversationId}`,
     })
   }
 
@@ -130,7 +126,6 @@ export class NotificationService {
       message: `${commenterName} đã bình luận về bài đăng "${postTitle}"`,
       relatedId: postId,
       relatedType: 'post',
-      deepLink: `/bai-dang/${postId}`,
     })
   }
 
@@ -164,7 +159,6 @@ export class NotificationService {
         message: `Nhắc nhở: Bạn có lịch xem phòng "${roomName}" vào lúc ${formattedTime}`,
         relatedId: scheduleId,
         relatedType: 'viewing_schedule',
-        deepLink: `/lich-xem-phong`,
       })
     } catch (error) {
       console.error('Lỗi khi tạo thông báo lịch hẹn:', error)
@@ -176,7 +170,6 @@ export class NotificationService {
         message: `Bạn có lịch xem phòng "${roomName}" mới`,
         relatedId: scheduleId,
         relatedType: 'viewing_schedule',
-        deepLink: `/lich-xem-phong`,
       })
     }
   }

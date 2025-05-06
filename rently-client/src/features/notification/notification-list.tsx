@@ -53,9 +53,46 @@ export const NotificationList: React.FC<NotificationListProps> = ({
       markAsRead(notification.id);
     }
 
-    // Điều hướng nếu có deepLink
-    if (notification.deepLink) {
-      router.push(notification.deepLink);
+    // Điều hướng dựa vào loại thông báo
+    switch (notification.type) {
+      case NotificationType.PAYMENT:
+        router.push("/tai-khoan/lich-su-thanh-toan");
+        break;
+      case NotificationType.RENTAL_REQUEST:
+        // Kiểm tra nếu là người thuê hay người cho thuê để điều hướng
+        if (notification.relatedId) {
+          router.push(`/quan-ly/yeu-cau-thue/${notification.relatedId}`);
+        }
+        break;
+      case NotificationType.VIEWING_SCHEDULE:
+        router.push("/lich-xem-phong");
+        break;
+      case NotificationType.INTERACTION:
+        // Nếu là tin nhắn
+        if (
+          notification.relatedType === "conversation" &&
+          notification.relatedId
+        ) {
+          router.push(`/tin-nhan/${notification.relatedId}`);
+        }
+        // Nếu là bình luận
+        else if (
+          notification.relatedType === "post" &&
+          notification.relatedId
+        ) {
+          router.push(`/bai-dang/${notification.relatedId}`);
+        }
+        break;
+      case NotificationType.POST:
+        if (notification.relatedId) {
+          router.push(`/bai-dang/${notification.relatedId}`);
+        }
+        break;
+      default:
+        // Có deepLink thì vẫn dùng
+        if (notification.deepLink) {
+          router.push(notification.deepLink);
+        }
     }
   };
 
@@ -184,7 +221,17 @@ export const NotificationList: React.FC<NotificationListProps> = ({
                       {notification.message}
                     </p>
                     <div className="flex justify-between items-center mt-3">
-                      {notification.deepLink && (
+                      {(notification.type === NotificationType.PAYMENT ||
+                        notification.type ===
+                          NotificationType.VIEWING_SCHEDULE ||
+                        (notification.type ===
+                          NotificationType.RENTAL_REQUEST &&
+                          notification.relatedId) ||
+                        (notification.type === NotificationType.INTERACTION &&
+                          notification.relatedId) ||
+                        (notification.type === NotificationType.POST &&
+                          notification.relatedId) ||
+                        !!notification.deepLink) && (
                         <Button
                           variant="ghost"
                           size="sm"

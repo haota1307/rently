@@ -18,6 +18,7 @@ import {
   UpdateAmenityBodyDTO,
 } from 'src/routes/amenity/amenity.dto'
 import { AmenityService } from 'src/routes/amenity/amenity.service'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('amenities')
@@ -25,6 +26,7 @@ export class AmenityController {
   constructor(private readonly amenityService: AmenityService) {}
 
   @Get()
+  @IsPublic()
   @ZodSerializerDto(GetAmenitiesResDTO)
   list(@Query() query: GetAmenitiesQueryDTO) {
     return this.amenityService.list(query)

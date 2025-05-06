@@ -30,7 +30,7 @@ export const useViewingSchedule = () => {
     onSuccess: () => {
       toast.success("Đặt lịch xem phòng thành công");
       queryClient.invalidateQueries({ queryKey: ["viewing-schedules"] });
-      router.push("/tai-khoan/lich-hen");
+      router.push("/lich-xem-phong");
     },
     onError: (error: any) => {
       console.error("Viewing schedule creation error:", error);

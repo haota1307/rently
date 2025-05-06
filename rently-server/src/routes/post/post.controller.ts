@@ -20,6 +20,7 @@ import {
 import { PostService } from 'src/routes/post/post.service'
 
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('posts')
@@ -27,6 +28,7 @@ export class PostController {
   constructor(private readonly rentalPostService: PostService) {}
 
   @Get()
+  @IsPublic()
   @ZodSerializerDto(GetPostsResDTO)
   list(@Query() query: GetPostsQueryDTO) {
     return this.rentalPostService.list(query)

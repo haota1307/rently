@@ -35,7 +35,15 @@ export class CommentService {
     data: CreateCommentBodyType
   ): Promise<CommentType> {
     try {
-      return await this.commentRepo.createComment(userId, data)
+      // Chuyển đổi data để phù hợp với tham số của phương thức create
+      const createData = {
+        content: data.content,
+        postId: data.postId,
+        parentId: data.parentId,
+      }
+
+      // Sử dụng phương thức create để đảm bảo thông báo được gửi
+      return await this.create(createData, userId)
     } catch (error) {
       if (error.message === 'Bài đăng không tồn tại') {
         throw new NotFoundException('Bài đăng không tồn tại')
@@ -77,7 +85,7 @@ export class CommentService {
   }
 
   async create(
-    data: { content: string; postId: number; parentId?: number },
+    data: { content: string; postId: number; parentId?: number | null },
     userId: number
   ) {
     try {

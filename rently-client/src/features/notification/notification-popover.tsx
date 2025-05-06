@@ -93,7 +93,7 @@ export const NotificationPopover = () => {
               variant="outline"
               size="sm"
               className="h-9 text-xs font-medium bg-background hover:bg-primary/10 hover:text-primary"
-              onClick={() => router.push("/tai-khoan/thong-bao")}
+              onClick={() => router.push("/lich-xem-phong")}
             >
               <ExternalLink className="h-4 w-4 mr-1" />
               Xem tất cả

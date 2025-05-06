@@ -7,6 +7,7 @@ import { getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { toast } from "sonner";
 import { Notification } from "@/schemas/notification.schema";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NotificationSocketContextType {
   notifications: Notification[];
@@ -43,6 +44,7 @@ export const NotificationSocketProvider: React.FC<
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Khởi tạo kết nối socket khi user đã đăng nhập
   useEffect(() => {
@@ -95,6 +97,10 @@ export const NotificationSocketProvider: React.FC<
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
 
+      // Invalidate query cache để cập nhật danh sách thông báo từ API
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationCount"] });
+
       // Hiển thị toast từ sonner
       toast(notification.title, {
         description: notification.message,
@@ -120,7 +126,7 @@ export const NotificationSocketProvider: React.FC<
       socket.off("newNotification");
       socket.off("unreadCount");
     };
-  }, [socket, router]);
+  }, [socket, router, queryClient]);
 
   // Đánh dấu thông báo đã đọc
   const markAsRead = (notificationId: number) => {
