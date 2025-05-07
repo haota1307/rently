@@ -598,10 +598,13 @@ const DashboardPage = () => {
             <Calendar className="h-4 w-4 mr-1" />
             Hôm nay
           </Button>
+          <Button variant="outline" size="icon" className="flex md:hidden">
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </Button>
         </div>
       </header>
 
-      <div className="p-2 md:p-4 space-y-4 overflow-y-auto overflow-x-hidden">
+      <div className="p-2 md:p-4 space-y-4 overflow-y-auto overflow-x-hidden max-w-full">
         <Tabs
           defaultValue="overview"
           className="w-full"
@@ -609,30 +612,36 @@ const DashboardPage = () => {
           onValueChange={setActiveTab}
         >
           <div className="flex justify-between items-center mb-4">
-            <TabsList className="mb-0">
-              <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-              <TabsTrigger value="finance">Tài chính</TabsTrigger>
-              <TabsTrigger value="regions">Khu vực</TabsTrigger>
+            <TabsList className="mb-0 w-full sm:w-auto overflow-x-auto">
+              <TabsTrigger value="overview" className="text-xs md:text-sm">
+                Tổng quan
+              </TabsTrigger>
+              <TabsTrigger value="finance" className="text-xs md:text-sm">
+                Tài chính
+              </TabsTrigger>
+              <TabsTrigger value="regions" className="text-xs md:text-sm">
+                Khu vực
+              </TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="overview" className="mt-0">
-            <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 md:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-4">
               <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:pb-2 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-blue-50 to-indigo-50">
                   <CardTitle className="text-xs md:text-sm font-medium">
                     Tổng nhà trọ
                   </CardTitle>
-                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Building2 className="h-4 w-4 text-blue-700" />
+                  <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Building2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-700" />
                   </div>
                 </CardHeader>
-                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <CardContent className="p-2 md:p-3 pt-0 md:pt-0">
                   {isLoading ? (
                     <Skeleton className="h-8 w-24" />
                   ) : (
                     <>
-                      <div className="text-xl md:text-2xl font-bold">
+                      <div className="text-lg md:text-xl lg:text-2xl font-bold">
                         {data?.totalRentals?.toLocaleString("vi-VN") || "0"}
                       </div>
                       <div className="flex items-center mt-1">
@@ -644,7 +653,7 @@ const DashboardPage = () => {
                               : "destructive"
                           }
                           className={cn(
-                            "text-xs",
+                            "text-[10px] md:text-xs",
                             data?.percentageChanges?.rentals &&
                               data?.percentageChanges?.rentals >= 0
                               ? "bg-green-100 text-green-700"
@@ -653,7 +662,7 @@ const DashboardPage = () => {
                         >
                           {getPercentage(data?.percentageChanges?.rentals)}%
                         </Badge>
-                        <span className="text-xs text-muted-foreground ml-1.5">
+                        <span className="text-[10px] md:text-xs text-muted-foreground ml-1">
                           so với tháng trước
                         </span>
                       </div>
@@ -663,20 +672,20 @@ const DashboardPage = () => {
               </Card>
 
               <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:pb-2 bg-gradient-to-r from-green-50 to-emerald-50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-green-50 to-emerald-50">
                   <CardTitle className="text-xs md:text-sm font-medium">
                     Phòng trọ
                   </CardTitle>
-                  <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                    <HomeIcon className="h-4 w-4 text-green-700" />
+                  <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-green-100 flex items-center justify-center">
+                    <HomeIcon className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-700" />
                   </div>
                 </CardHeader>
-                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <CardContent className="p-2 md:p-3 pt-0 md:pt-0">
                   {isLoading ? (
                     <Skeleton className="h-8 w-24" />
                   ) : (
                     <>
-                      <div className="text-xl md:text-2xl font-bold">
+                      <div className="text-lg md:text-xl lg:text-2xl font-bold">
                         {data?.totalRooms?.toLocaleString("vi-VN") || "0"}
                       </div>
                       <div className="flex items-center mt-1">
@@ -688,7 +697,7 @@ const DashboardPage = () => {
                               : "destructive"
                           }
                           className={cn(
-                            "text-xs",
+                            "text-[10px] md:text-xs",
                             data?.percentageChanges?.rooms &&
                               data?.percentageChanges?.rooms >= 0
                               ? "bg-green-100 text-green-700"
@@ -697,7 +706,7 @@ const DashboardPage = () => {
                         >
                           {getPercentage(data?.percentageChanges?.rooms)}%
                         </Badge>
-                        <span className="text-xs text-muted-foreground ml-1.5">
+                        <span className="text-[10px] md:text-xs text-muted-foreground ml-1">
                           so với tháng trước
                         </span>
                       </div>
@@ -707,20 +716,20 @@ const DashboardPage = () => {
               </Card>
 
               <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:pb-2 bg-gradient-to-r from-purple-50 to-violet-50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-purple-50 to-violet-50">
                   <CardTitle className="text-xs md:text-sm font-medium">
                     Bài đăng
                   </CardTitle>
-                  <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Layers className="h-4 w-4 text-purple-700" />
+                  <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Layers className="h-3.5 w-3.5 md:h-4 md:w-4 text-purple-700" />
                   </div>
                 </CardHeader>
-                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <CardContent className="p-2 md:p-3 pt-0 md:pt-0">
                   {isLoading ? (
                     <Skeleton className="h-8 w-24" />
                   ) : (
                     <>
-                      <div className="text-xl md:text-2xl font-bold">
+                      <div className="text-lg md:text-xl lg:text-2xl font-bold">
                         {data?.totalPosts?.toLocaleString("vi-VN") || "0"}
                       </div>
                       <div className="flex items-center mt-1">
@@ -732,7 +741,7 @@ const DashboardPage = () => {
                               : "destructive"
                           }
                           className={cn(
-                            "text-xs",
+                            "text-[10px] md:text-xs",
                             data?.percentageChanges?.posts &&
                               data?.percentageChanges?.posts >= 0
                               ? "bg-green-100 text-green-700"
@@ -741,7 +750,7 @@ const DashboardPage = () => {
                         >
                           {getPercentage(data?.percentageChanges?.posts)}%
                         </Badge>
-                        <span className="text-xs text-muted-foreground ml-1.5">
+                        <span className="text-[10px] md:text-xs text-muted-foreground ml-1">
                           so với tháng trước
                         </span>
                       </div>
@@ -752,25 +761,27 @@ const DashboardPage = () => {
 
               {/* Card hiển thị doanh thu với số tiền nạp và rút */}
               <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 md:pb-2 bg-gradient-to-r from-amber-50 to-yellow-50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-amber-50 to-yellow-50">
                   <CardTitle className="text-xs md:text-sm font-medium">
                     Doanh thu
                   </CardTitle>
-                  <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
-                    <DollarSign className="h-4 w-4 text-amber-700" />
+                  <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-amber-100 flex items-center justify-center">
+                    <DollarSign className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-700" />
                   </div>
                 </CardHeader>
-                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <CardContent className="p-2 md:p-3 pt-0 md:pt-0">
                   {loadingSummary ? (
                     <Skeleton className="h-14 w-full" />
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1 md:space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 text-green-600">
                           <TrendingUp className="h-3 w-3" />
-                          <span className="text-xs">Doanh thu vào:</span>
+                          <span className="text-[10px] md:text-xs">
+                            Doanh thu vào:
+                          </span>
                         </div>
-                        <span className="text-xs font-medium text-green-600">
+                        <span className="text-[10px] md:text-xs font-medium text-green-600">
                           {formatCurrency(transactionSummary?.totalIncome || 0)}
                         </span>
                       </div>
@@ -778,9 +789,11 @@ const DashboardPage = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 text-red-600">
                           <TrendingDown className="h-3 w-3" />
-                          <span className="text-xs">Doanh thu ra:</span>
+                          <span className="text-[10px] md:text-xs">
+                            Doanh thu ra:
+                          </span>
                         </div>
-                        <span className="text-xs font-medium text-red-600">
+                        <span className="text-[10px] md:text-xs font-medium text-red-600">
                           {formatCurrency(
                             transactionSummary?.totalExpense || 0
                           )}
@@ -789,10 +802,10 @@ const DashboardPage = () => {
 
                       <div className="pt-1 border-t">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium">
+                          <span className="text-[10px] md:text-xs font-medium">
                             Chênh lệch:
                           </span>
-                          <span className="text-sm font-bold">
+                          <span className="text-xs md:text-sm font-bold">
                             {formatCurrency(transactionSummary?.balance || 0)}
                           </span>
                         </div>
@@ -806,21 +819,24 @@ const DashboardPage = () => {
             <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 mt-4">
               {/* Biểu đồ doanh thu 7 ngày qua */}
               <Card className="lg:col-span-2 overflow-hidden shadow-sm">
-                <CardHeader className="p-3 md:p-6">
+                <CardHeader className="p-2 md:p-3 lg:p-6">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm md:text-base">
+                    <CardTitle className="text-xs md:text-sm lg:text-base">
                       Doanh thu 7 ngày qua
                     </CardTitle>
-                    <Badge variant="outline" className="font-normal">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] md:text-xs font-normal"
+                    >
                       7 ngày
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[10px] md:text-xs">
                     Thống kê doanh thu vào và ra trong 7 ngày gần đây
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-                  <div className="h-[240px] md:h-[300px] w-full">
+                <CardContent className="p-2 md:p-3 pt-0 lg:p-6 lg:pt-0">
+                  <div className="h-[200px] sm:h-[240px] md:h-[300px] w-full">
                     {isLoading || isLoadingRevenue ? (
                       <Skeleton className="h-full w-full" />
                     ) : (
@@ -829,13 +845,13 @@ const DashboardPage = () => {
                           data={revenueData}
                           margin={{
                             top: 10,
-                            right: 30,
+                            right: 5,
                             left: 0,
                             bottom: 0,
                           }}
                         >
                           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                          <XAxis dataKey="name" fontSize={12} tickMargin={10} />
+                          <XAxis dataKey="name" fontSize={10} tickMargin={5} />
                           <YAxis
                             tickFormatter={(value) =>
                               value >= 1000000
@@ -844,18 +860,23 @@ const DashboardPage = () => {
                                 ? `${(value / 1000).toFixed(0)}k`
                                 : value.toString()
                             }
-                            fontSize={12}
+                            fontSize={10}
+                            width={35}
                           />
                           <Tooltip
                             formatter={(value: number) => formatCurrency(value)}
                             labelStyle={{
                               fontWeight: "bold",
                               marginBottom: "5px",
+                              fontSize: "12px",
+                            }}
+                            contentStyle={{
+                              fontSize: "12px",
                             }}
                           />
                           <Legend
                             wrapperStyle={{
-                              fontSize: "12px",
+                              fontSize: "10px",
                               paddingTop: "10px",
                             }}
                           />
@@ -886,15 +907,16 @@ const DashboardPage = () => {
 
               {/* Hoạt động nạp/rút tiền gần đây */}
               <Card className="overflow-hidden shadow-sm">
-                <CardHeader className="p-3 md:p-6">
+                <CardHeader className="p-2 md:p-3 lg:p-6">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm md:text-base flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-blue-600" />
+                    <CardTitle className="text-xs md:text-sm lg:text-base flex items-center gap-1 md:gap-2">
+                      <Activity className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
                       Hoạt động gần đây
                     </CardTitle>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-7 text-[10px] md:text-xs"
                       onClick={() => {
                         setTransactionFilters((prev) => ({
                           ...prev,
@@ -902,23 +924,23 @@ const DashboardPage = () => {
                         }));
                       }}
                     >
-                      <Eye className="h-4 w-4 mr-2" />
+                      <Eye className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                       Xem thêm
                     </Button>
                   </div>
-                  <CardDescription className="text-xs mt-1">
+                  <CardDescription className="text-[10px] md:text-xs mt-1">
                     Các giao dịch mới nhất trong hệ thống
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="space-y-0">
                     {loadingTransactions ? (
-                      <div className="p-3 pt-0 md:p-6 md:pt-0 space-y-4">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
+                      <div className="p-2 md:p-3 lg:p-6 pt-0 space-y-3 md:space-y-4">
+                        <Skeleton className="h-10 md:h-12 w-full" />
+                        <Skeleton className="h-10 md:h-12 w-full" />
+                        <Skeleton className="h-10 md:h-12 w-full" />
+                        <Skeleton className="h-10 md:h-12 w-full" />
+                        <Skeleton className="h-10 md:h-12 w-full" />
                       </div>
                     ) : recentTransactions.length > 0 ? (
                       <>
@@ -926,29 +948,29 @@ const DashboardPage = () => {
                           {currentTransactions.map((transaction) => (
                             <div
                               key={transaction.id}
-                              className="p-3 hover:bg-muted/30 transition-colors"
+                              className="p-2 md:p-3 hover:bg-muted/30 transition-colors"
                             >
                               <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 md:gap-3">
                                   <div
                                     className={cn(
-                                      "h-9 w-9 rounded-full flex items-center justify-center",
+                                      "h-7 w-7 md:h-9 md:w-9 rounded-full flex items-center justify-center",
                                       transaction.isDeposit
                                         ? "bg-green-100"
                                         : "bg-red-100"
                                     )}
                                   >
                                     {transaction.isDeposit ? (
-                                      <ArrowDownCircle className="h-5 w-5 text-green-600" />
+                                      <ArrowDownCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                                     ) : (
-                                      <ArrowUpCircle className="h-5 w-5 text-red-600" />
+                                      <ArrowUpCircle className="h-4 w-4 md:h-5 md:w-5 text-red-600" />
                                     )}
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium">
+                                    <p className="text-xs md:text-sm font-medium line-clamp-1 max-w-[120px] sm:max-w-full">
                                       {transaction.userName}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-[10px] md:text-xs text-muted-foreground">
                                       {getTimeAgo(transaction.transactionDate)}
                                     </p>
                                   </div>
@@ -956,7 +978,7 @@ const DashboardPage = () => {
                                 <div className="flex flex-col items-end">
                                   <span
                                     className={cn(
-                                      "text-sm font-medium",
+                                      "text-xs md:text-sm font-medium",
                                       transaction.isDeposit
                                         ? "text-green-600"
                                         : "text-red-600"
@@ -965,7 +987,7 @@ const DashboardPage = () => {
                                     {transaction.isDeposit ? "+" : "-"}
                                     {formatCurrency(transaction.amount)}
                                   </span>
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-[10px] md:text-xs text-muted-foreground">
                                     {format(
                                       transaction.transactionDate,
                                       "dd/MM/yyyy HH:mm",
@@ -975,7 +997,7 @@ const DashboardPage = () => {
                                 </div>
                               </div>
                               <div className="flex justify-between items-center mt-2">
-                                <span className="text-xs text-muted-foreground truncate max-w-[70%]">
+                                <span className="text-[10px] md:text-xs text-muted-foreground truncate max-w-[50%] sm:max-w-[70%]">
                                   {transaction.description ||
                                     (transaction.isDeposit
                                       ? "Nạp tiền vào tài khoản"
@@ -984,13 +1006,15 @@ const DashboardPage = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 px-2"
+                                  className="h-6 md:h-7 px-1.5 md:px-2 text-[10px] md:text-xs"
                                   onClick={() =>
                                     handleViewTransactionDetails(transaction)
                                   }
                                 >
-                                  <Eye className="h-3.5 w-3.5 mr-1" />
-                                  <span className="text-xs">Chi tiết</span>
+                                  <Eye className="h-3 w-3 md:h-3.5 md:w-3.5 mr-1" />
+                                  <span className="text-[10px] md:text-xs">
+                                    Chi tiết
+                                  </span>
                                 </Button>
                               </div>
                             </div>
@@ -999,9 +1023,9 @@ const DashboardPage = () => {
 
                         {/* Phân trang */}
                         {totalPages > 1 && (
-                          <div className="py-3 border-t">
+                          <div className="py-2 md:py-3 border-t flex justify-center">
                             <Pagination>
-                              <PaginationContent>
+                              <PaginationContent className="flex items-center gap-0 md:gap-1">
                                 <PaginationItem>
                                   <PaginationPrevious
                                     onClick={() =>
@@ -1010,6 +1034,7 @@ const DashboardPage = () => {
                                       )
                                     }
                                     className={cn(
+                                      "h-7 w-7 md:h-8 md:w-8 p-0 md:p-2",
                                       currentPage === 1 &&
                                         "pointer-events-none opacity-50"
                                     )}
@@ -1033,6 +1058,7 @@ const DashboardPage = () => {
                                             onClick={() =>
                                               handlePageChange(page)
                                             }
+                                            className="h-7 w-7 md:h-8 md:w-8 p-0 text-xs"
                                           >
                                             {page}
                                           </PaginationLink>
@@ -1065,6 +1091,7 @@ const DashboardPage = () => {
                                       )
                                     }
                                     className={cn(
+                                      "h-7 w-7 md:h-8 md:w-8 p-0 md:p-2",
                                       currentPage === totalPages &&
                                         "pointer-events-none opacity-50"
                                     )}
@@ -1076,7 +1103,7 @@ const DashboardPage = () => {
                         )}
                       </>
                     ) : (
-                      <div className="text-center py-6 text-sm text-muted-foreground">
+                      <div className="text-center py-4 md:py-6 text-xs md:text-sm text-muted-foreground">
                         Chưa có giao dịch nào gần đây
                       </div>
                     )}
@@ -1088,22 +1115,22 @@ const DashboardPage = () => {
             <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 mt-4">
               {/* Biểu đồ phân phối phòng trọ */}
               <Card className="overflow-hidden shadow-sm hover:shadow-md transition-all">
-                <CardHeader className="p-3 md:p-6 bg-gradient-to-r from-indigo-50 to-blue-50">
-                  <CardTitle className="text-sm md:text-base flex items-center gap-2">
-                    <PieChart className="h-4 w-4 text-indigo-600" />
+                <CardHeader className="p-2 md:p-3 lg:p-6 bg-gradient-to-r from-indigo-50 to-blue-50">
+                  <CardTitle className="text-xs md:text-sm lg:text-base flex items-center gap-1 md:gap-2">
+                    <PieChart className="h-3 w-3 md:h-4 md:w-4 text-indigo-600" />
                     Phân phối phòng trọ
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[10px] md:text-xs">
                     Tỉ lệ phòng đã cho thuê và còn trống
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-3 pt-0 md:p-6 md:pt-3">
+                <CardContent className="p-2 md:p-3 pt-0 lg:p-6 lg:pt-3">
                   {isLoading || isLoadingRoomDistribution ? (
-                    <Skeleton className="h-[220px] w-full" />
+                    <Skeleton className="h-[180px] md:h-[220px] w-full" />
                   ) : (
                     <div className="flex flex-col items-center">
                       {/* Biểu đồ tròn với % ở giữa */}
-                      <div className="h-[180px] w-[180px] relative mb-4">
+                      <div className="h-[150px] w-[150px] md:h-[180px] md:w-[180px] relative mb-3 md:mb-4">
                         <ResponsiveContainer width="100%" height="100%">
                           <RechartsPieChart>
                             <Pie
@@ -1111,8 +1138,8 @@ const DashboardPage = () => {
                               cx="50%"
                               cy="50%"
                               labelLine={false}
-                              outerRadius={75}
-                              innerRadius={55}
+                              outerRadius={65}
+                              innerRadius={45}
                               dataKey="value"
                               label={false}
                               strokeWidth={1}
@@ -1132,7 +1159,7 @@ const DashboardPage = () => {
                         {/* Hiển thị % phòng trống ở giữa biểu đồ */}
                         {roomDistribution && roomDistribution.length >= 2 && (
                           <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="text-3xl font-bold text-indigo-700">
+                            <div className="text-xl md:text-3xl font-bold text-indigo-700">
                               {Math.round(
                                 (roomDistribution[1].value /
                                   (roomDistribution[0].value +
@@ -1141,7 +1168,7 @@ const DashboardPage = () => {
                               )}
                               %
                             </div>
-                            <div className="text-xs text-indigo-600">
+                            <div className="text-[10px] md:text-xs text-indigo-600">
                               Còn trống
                             </div>
                           </div>
@@ -1149,7 +1176,7 @@ const DashboardPage = () => {
                       </div>
 
                       {/* Chú thích tùy chỉnh đẹp hơn */}
-                      <div className="grid grid-cols-2 gap-4 w-full">
+                      <div className="grid grid-cols-2 gap-2 md:gap-4 w-full">
                         {roomDistribution?.map((entry, index) => {
                           const total = roomDistribution.reduce(
                             (sum, item) => sum + item.value,
@@ -1163,23 +1190,23 @@ const DashboardPage = () => {
                           return (
                             <div
                               key={`legend-${index}`}
-                              className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/40 transition-colors"
+                              className="flex items-center gap-2 md:gap-3 p-1 md:p-2 rounded-md hover:bg-muted/40 transition-colors"
                             >
                               <div className="flex-shrink-0">
                                 <div
-                                  className="w-4 h-4 rounded-full border border-white shadow-sm"
+                                  className="w-3 h-3 md:w-4 md:h-4 rounded-full border border-white shadow-sm"
                                   style={{ backgroundColor: entry.color }}
                                 />
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-sm font-medium">
+                                <span className="text-xs md:text-sm font-medium">
                                   {entry.name}
                                 </span>
                                 <div className="flex items-center gap-1">
-                                  <span className="text-sm font-bold">
+                                  <span className="text-xs md:text-sm font-bold">
                                     {percent}%
                                   </span>
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-[10px] md:text-xs text-muted-foreground">
                                     ({entry.value} phòng)
                                   </span>
                                 </div>
@@ -1195,24 +1222,24 @@ const DashboardPage = () => {
 
               {/* Biểu đồ số bài đăng theo khu vực */}
               <Card className="overflow-hidden shadow-sm">
-                <CardHeader className="p-3 md:p-6">
-                  <CardTitle className="text-sm md:text-base">
+                <CardHeader className="p-2 md:p-3 lg:p-6">
+                  <CardTitle className="text-xs md:text-sm lg:text-base">
                     Bài đăng theo khu vực
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[10px] md:text-xs">
                     Top 5 khu vực có nhiều bài đăng nhất
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-                  <div className="h-[180px] md:h-[220px] w-full">
+                <CardContent className="p-2 md:p-3 pt-0 lg:p-6 lg:pt-0">
+                  <div className="h-[150px] md:h-[180px] lg:h-[220px] w-full">
                     {isLoading || isLoadingPostsByArea ? (
                       <Skeleton className="h-full w-full" />
                     ) : postsByAreaError ? (
-                      <div className="text-center py-6 text-sm text-red-500">
+                      <div className="text-center py-4 md:py-6 text-xs md:text-sm text-red-500">
                         <p>
                           Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.
                         </p>
-                        <p className="text-xs mt-2">
+                        <p className="text-[10px] md:text-xs mt-2">
                           {postsByAreaError.message}
                         </p>
                       </div>
@@ -1222,8 +1249,8 @@ const DashboardPage = () => {
                           data={normalizedPostsByArea}
                           margin={{
                             top: 5,
-                            right: 30,
-                            left: 20,
+                            right: 5,
+                            left: 0,
                             bottom: 5,
                           }}
                           layout="vertical"
@@ -1234,12 +1261,12 @@ const DashboardPage = () => {
                             vertical={false}
                             opacity={0.2}
                           />
-                          <XAxis type="number" fontSize={12} />
+                          <XAxis type="number" fontSize={10} tickMargin={5} />
                           <YAxis
                             dataKey="name"
                             type="category"
-                            fontSize={12}
-                            width={120}
+                            fontSize={10}
+                            width={80}
                             tick={{ fill: "#666" }}
                           />
                           <Tooltip
@@ -1247,14 +1274,22 @@ const DashboardPage = () => {
                               `${value} bài đăng`,
                               "Số lượng",
                             ]}
+                            contentStyle={{
+                              fontSize: "12px",
+                            }}
                           />
-                          <Legend />
+                          <Legend
+                            wrapperStyle={{
+                              fontSize: "10px",
+                              paddingTop: "5px",
+                            }}
+                          />
                           <Bar
                             dataKey="posts"
                             name="Số bài đăng"
                             fill="#8884d8"
                             radius={[0, 4, 4, 0]}
-                            barSize={30}
+                            barSize={20}
                           >
                             {normalizedPostsByArea?.map((entry, index) => (
                               <Cell
@@ -1266,7 +1301,7 @@ const DashboardPage = () => {
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="text-center py-6 text-sm text-muted-foreground">
+                      <div className="text-center py-4 md:py-6 text-xs md:text-sm text-muted-foreground">
                         Chưa có dữ liệu về bài đăng theo khu vực
                       </div>
                     )}
@@ -1276,39 +1311,41 @@ const DashboardPage = () => {
 
               {/* Khu vực nổi bật */}
               <Card className="overflow-hidden shadow-sm">
-                <CardHeader className="p-3 md:p-6">
-                  <CardTitle className="text-sm md:text-base">
+                <CardHeader className="p-2 md:p-3 lg:p-6">
+                  <CardTitle className="text-xs md:text-sm lg:text-base">
                     Khu vực nổi bật
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[10px] md:text-xs">
                     Khu vực có lượng tìm kiếm cao nhất
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y">
                     {isLoading || isLoadingPopularAreas ? (
-                      <div className="p-3 pt-0 space-y-4">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
+                      <div className="p-2 md:p-3 pt-0 space-y-3 md:space-y-4">
+                        <Skeleton className="h-8 md:h-12 w-full" />
+                        <Skeleton className="h-8 md:h-12 w-full" />
+                        <Skeleton className="h-8 md:h-12 w-full" />
+                        <Skeleton className="h-8 md:h-12 w-full" />
+                        <Skeleton className="h-8 md:h-12 w-full" />
                       </div>
                     ) : popularAreasData && popularAreasData.length > 0 ? (
                       popularAreasData.map((area, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 hover:bg-muted/30"
+                          className="flex items-center justify-between p-2 md:p-3 hover:bg-muted/30"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center">
-                              <span className="text-xs font-medium text-blue-700">
+                          <div className="flex items-center gap-2 md:gap-3">
+                            <div className="h-6 w-6 md:h-7 md:w-7 rounded-full bg-blue-100 flex items-center justify-center">
+                              <span className="text-[10px] md:text-xs font-medium text-blue-700">
                                 {index + 1}
                               </span>
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{area.name}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs md:text-sm font-medium">
+                                {area.name}
+                              </p>
+                              <p className="text-[10px] md:text-xs text-muted-foreground">
                                 {area.count} phòng
                               </p>
                             </div>
@@ -1316,7 +1353,7 @@ const DashboardPage = () => {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-6 text-sm text-muted-foreground">
+                      <div className="text-center py-4 md:py-6 text-xs md:text-sm text-muted-foreground">
                         Chưa có dữ liệu về khu vực nổi bật
                       </div>
                     )}
@@ -1326,8 +1363,8 @@ const DashboardPage = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="finance" className="mt-0 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <TabsContent value="finance" className="mt-0 space-y-3 md:space-y-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               {/* Thẻ tổng doanh thu */}
               <Card className="shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
@@ -1521,69 +1558,71 @@ const DashboardPage = () => {
 
             {/* Bảng giao dịch gần đây */}
             <Card className="shadow-sm">
-              <CardHeader className="p-4">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-sm md:text-base flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-blue-600" />
+              <CardHeader className="p-2 md:p-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <CardTitle className="text-xs md:text-sm lg:text-base flex items-center gap-1 md:gap-2">
+                    <Activity className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
                     Giao dịch gần đây
                   </CardTitle>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1 md:gap-2">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3"
                       onClick={handleDateFilterToggle}
                     >
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Lọc theo ngày
+                      <Calendar className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                      Ngày
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3"
                       onClick={handleUserFilterToggle}
                     >
-                      <Users className="h-4 w-4 mr-1" />
-                      Lọc theo người dùng
+                      <Users className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                      Người dùng
                     </Button>
                   </div>
                 </div>
-                <CardDescription className="text-xs mt-1">
+                <CardDescription className="text-[10px] md:text-xs mt-1">
                   Danh sách các giao dịch tiền nạp và rút trong hệ thống
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-auto">
-                  <table className="w-full border-collapse">
+                  <table className="w-full border-collapse min-w-[600px]">
                     <thead>
                       <tr className="bg-muted/50">
-                        <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                        <th className="p-2 md:p-3 text-left text-[10px] md:text-xs font-medium text-muted-foreground">
                           ID
                         </th>
-                        <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                        <th className="p-2 md:p-3 text-left text-[10px] md:text-xs font-medium text-muted-foreground">
                           Người dùng
                         </th>
-                        <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                        <th className="p-2 md:p-3 text-left text-[10px] md:text-xs font-medium text-muted-foreground">
                           Loại
                         </th>
-                        <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                        <th className="p-2 md:p-3 text-left text-[10px] md:text-xs font-medium text-muted-foreground">
                           Ngày
                         </th>
-                        <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                        <th className="p-2 md:p-3 text-left text-[10px] md:text-xs font-medium text-muted-foreground">
                           Số tiền
                         </th>
-                        <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                        <th className="p-2 md:p-3 text-left text-[10px] md:text-xs font-medium text-muted-foreground">
                           Trạng thái
                         </th>
-                        <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                        <th className="p-2 md:p-3 text-left text-[10px] md:text-xs font-medium text-muted-foreground">
                           Thao tác
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {loadingTransactions ? (
-                        Array.from({ length: 10 }).map((_, index) => (
+                        Array.from({ length: 5 }).map((_, index) => (
                           <tr key={index}>
-                            <td colSpan={7} className="p-3">
-                              <Skeleton className="h-6 w-full" />
+                            <td colSpan={7} className="p-2 md:p-3">
+                              <Skeleton className="h-5 md:h-6 w-full" />
                             </td>
                           </tr>
                         ))
@@ -1593,13 +1632,13 @@ const DashboardPage = () => {
                             key={transaction.id}
                             className="hover:bg-muted/30"
                           >
-                            <td className="p-3 text-sm">
+                            <td className="p-2 md:p-3 text-[10px] md:text-xs">
                               {transaction.id.substring(0, 6)}...
                             </td>
-                            <td className="p-3 text-sm">
+                            <td className="p-2 md:p-3 text-[10px] md:text-xs">
                               {transaction.userName}
                             </td>
-                            <td className="p-3 text-sm">
+                            <td className="p-2 md:p-3 text-[10px] md:text-xs">
                               <Badge
                                 variant={
                                   transaction.isDeposit
@@ -1607,7 +1646,7 @@ const DashboardPage = () => {
                                     : "destructive"
                                 }
                                 className={cn(
-                                  "font-normal",
+                                  "font-normal text-[10px] whitespace-nowrap",
                                   transaction.isDeposit
                                     ? "bg-green-100 text-green-700"
                                     : "bg-red-100 text-red-700"
@@ -1618,7 +1657,7 @@ const DashboardPage = () => {
                                   : "Rút tiền"}
                               </Badge>
                             </td>
-                            <td className="p-3 text-sm">
+                            <td className="p-2 md:p-3 text-[10px] md:text-xs whitespace-nowrap">
                               {format(
                                 transaction.transactionDate,
                                 "dd/MM/yyyy HH:mm",
@@ -1626,7 +1665,7 @@ const DashboardPage = () => {
                               )}
                             </td>
                             <td
-                              className="p-3 text-sm font-medium"
+                              className="p-2 md:p-3 text-[10px] md:text-xs font-medium whitespace-nowrap"
                               style={{
                                 color: transaction.isDeposit
                                   ? "#10b981"
@@ -1636,22 +1675,27 @@ const DashboardPage = () => {
                               {transaction.isDeposit ? "+" : "-"}
                               {formatCurrency(transaction.amount)}
                             </td>
-                            <td className="p-3 text-sm">
-                              <Badge variant="outline" className="font-normal">
+                            <td className="p-2 md:p-3 text-[10px] md:text-xs">
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-normal"
+                              >
                                 Hoàn thành
                               </Badge>
                             </td>
-                            <td className="p-3 text-sm">
+                            <td className="p-2 md:p-3 text-[10px] md:text-xs">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 px-2"
+                                className="h-6 md:h-7 px-1.5 md:px-2"
                                 onClick={() =>
                                   handleViewTransactionDetails(transaction)
                                 }
                               >
-                                <Eye className="h-3.5 w-3.5 mr-1" />
-                                <span className="text-xs">Chi tiết</span>
+                                <Eye className="h-3 w-3 md:h-3.5 md:w-3.5 mr-1" />
+                                <span className="text-[10px] md:text-xs">
+                                  Chi tiết
+                                </span>
                               </Button>
                             </td>
                           </tr>
@@ -1660,7 +1704,7 @@ const DashboardPage = () => {
                         <tr>
                           <td
                             colSpan={7}
-                            className="p-6 text-center text-sm text-muted-foreground"
+                            className="p-4 md:p-6 text-center text-xs md:text-sm text-muted-foreground"
                           >
                             Không có giao dịch nào gần đây
                           </td>
@@ -1672,9 +1716,9 @@ const DashboardPage = () => {
 
                 {/* Phân trang cho bảng tài chính */}
                 {financeTotalPages > 1 && (
-                  <div className="py-4 flex justify-center border-t">
+                  <div className="py-2 md:py-4 flex justify-center border-t">
                     <Pagination>
-                      <PaginationContent>
+                      <PaginationContent className="flex items-center gap-0 md:gap-1">
                         <PaginationItem>
                           <PaginationPrevious
                             onClick={() =>
@@ -1683,6 +1727,7 @@ const DashboardPage = () => {
                               )
                             }
                             className={cn(
+                              "h-7 w-7 md:h-8 md:w-8 p-0 md:p-2",
                               financeCurrentPage === 1 &&
                                 "pointer-events-none opacity-50"
                             )}
@@ -1706,6 +1751,7 @@ const DashboardPage = () => {
                                     onClick={() =>
                                       handleFinancePageChange(page)
                                     }
+                                    className="h-7 w-7 md:h-8 md:w-8 p-0 text-xs"
                                   >
                                     {page}
                                   </PaginationLink>
@@ -1741,6 +1787,7 @@ const DashboardPage = () => {
                               )
                             }
                             className={cn(
+                              "h-7 w-7 md:h-8 md:w-8 p-0 md:p-2",
                               financeCurrentPage === financeTotalPages &&
                                 "pointer-events-none opacity-50"
                             )}
@@ -1754,58 +1801,60 @@ const DashboardPage = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="regions" className="mt-0 space-y-4">
+          <TabsContent value="regions" className="mt-0 space-y-3 md:space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {/* Bản đồ nhiệt khu vực */}
-              <Card className="lg:col-span-2 shadow-sm">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-sm md:text-base">
+              <Card className="md:col-span-2 shadow-sm">
+                <CardHeader className="p-2 md:p-4">
+                  <CardTitle className="text-xs md:text-sm lg:text-base">
                     Phân bố nhà trọ theo khu vực
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[10px] md:text-xs">
                     Hiển thị mật độ nhà trọ theo khu vực
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
+                <CardContent className="p-2 md:p-4 pt-0">
                   <HeatmapRentalDistribution />
                 </CardContent>
               </Card>
 
               {/* Thông tin khu vực */}
               <Card className="shadow-sm">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-sm md:text-base">
+                <CardHeader className="p-2 md:p-4">
+                  <CardTitle className="text-xs md:text-sm lg:text-base">
                     Khu vực nổi bật
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[10px] md:text-xs">
                     Các khu vực có nhiều nhà trọ và bài đăng nhất
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y">
                     {isLoadingPopularAreas ? (
-                      <div className="p-3 pt-0 space-y-4">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
+                      <div className="p-2 md:p-3 pt-0 space-y-3 md:space-y-4">
+                        <Skeleton className="h-8 md:h-12 w-full" />
+                        <Skeleton className="h-8 md:h-12 w-full" />
+                        <Skeleton className="h-8 md:h-12 w-full" />
+                        <Skeleton className="h-8 md:h-12 w-full" />
+                        <Skeleton className="h-8 md:h-12 w-full" />
                       </div>
                     ) : popularAreasData && popularAreasData.length > 0 ? (
                       popularAreasData.map((area, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 hover:bg-muted/30"
+                          className="flex items-center justify-between p-2 md:p-3 hover:bg-muted/30"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center">
-                              <span className="text-xs font-medium text-blue-700">
+                          <div className="flex items-center gap-2 md:gap-3">
+                            <div className="h-6 w-6 md:h-7 md:w-7 rounded-full bg-blue-100 flex items-center justify-center">
+                              <span className="text-[10px] md:text-xs font-medium text-blue-700">
                                 {index + 1}
                               </span>
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{area.name}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs md:text-sm font-medium">
+                                {area.name}
+                              </p>
+                              <p className="text-[10px] md:text-xs text-muted-foreground">
                                 {area.count} phòng
                               </p>
                             </div>
@@ -1813,7 +1862,7 @@ const DashboardPage = () => {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-6 text-sm text-muted-foreground">
+                      <div className="text-center py-4 md:py-6 text-xs md:text-sm text-muted-foreground">
                         Chưa có dữ liệu về khu vực nổi bật
                       </div>
                     )}
@@ -1824,27 +1873,33 @@ const DashboardPage = () => {
 
             {/* Biểu đồ phân bố bài đăng theo khu vực */}
             <Card className="shadow-sm">
-              <CardHeader className="p-4">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-sm md:text-base">
+              <CardHeader className="p-2 md:p-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <CardTitle className="text-xs md:text-sm lg:text-base">
                     Phân bố bài đăng theo khu vực
                   </CardTitle>
-                  <Button variant="outline" size="sm">
-                    <ArrowDownCircle className="h-4 w-4 mr-1" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3"
+                  >
+                    <ArrowDownCircle className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                     Xuất dữ liệu
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="h-[350px] w-full">
+              <CardContent className="p-2 md:p-4 pt-0">
+                <div className="h-[250px] sm:h-[300px] md:h-[350px] w-full">
                   {isLoadingPostsByArea ? (
                     <Skeleton className="h-full w-full" />
                   ) : postsByAreaError ? (
-                    <div className="text-center py-6 text-sm text-red-500">
+                    <div className="text-center py-4 md:py-6 text-xs md:text-sm text-red-500">
                       <p>
                         Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.
                       </p>
-                      <p className="text-xs mt-2">{postsByAreaError.message}</p>
+                      <p className="text-[10px] md:text-xs mt-2">
+                        {postsByAreaError.message}
+                      </p>
                     </div>
                   ) : normalizedPostsByArea.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
@@ -1852,8 +1907,8 @@ const DashboardPage = () => {
                         data={normalizedPostsByArea}
                         margin={{
                           top: 5,
-                          right: 30,
-                          left: 20,
+                          right: 5,
+                          left: 0,
                           bottom: 5,
                         }}
                         layout="vertical"
@@ -1864,12 +1919,12 @@ const DashboardPage = () => {
                           vertical={false}
                           opacity={0.2}
                         />
-                        <XAxis type="number" fontSize={12} />
+                        <XAxis type="number" fontSize={10} tickMargin={5} />
                         <YAxis
                           dataKey="name"
                           type="category"
-                          fontSize={12}
-                          width={120}
+                          fontSize={10}
+                          width={80}
                           tick={{ fill: "#666" }}
                         />
                         <Tooltip
@@ -1877,14 +1932,22 @@ const DashboardPage = () => {
                             `${value} bài đăng`,
                             "Số lượng",
                           ]}
+                          contentStyle={{
+                            fontSize: "12px",
+                          }}
                         />
-                        <Legend />
+                        <Legend
+                          wrapperStyle={{
+                            fontSize: "10px",
+                            paddingTop: "5px",
+                          }}
+                        />
                         <Bar
                           dataKey="posts"
                           name="Số bài đăng"
                           fill="#8884d8"
                           radius={[0, 4, 4, 0]}
-                          barSize={30}
+                          barSize={20}
                         >
                           {normalizedPostsByArea?.map((entry, index) => (
                             <Cell
@@ -1896,7 +1959,7 @@ const DashboardPage = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="text-center py-6 text-sm text-muted-foreground">
+                    <div className="text-center py-4 md:py-6 text-xs md:text-sm text-muted-foreground">
                       Chưa có dữ liệu về bài đăng theo khu vực
                     </div>
                   )}
@@ -1905,19 +1968,21 @@ const DashboardPage = () => {
             </Card>
 
             {/* Thông tin chi tiết về khu vực */}
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               <Card className="shadow-sm">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-sm md:text-base">
+                <CardHeader className="p-2 md:p-4 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm lg:text-base">
                     Giá trung bình
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-amber-500" />
-                    <span className="text-xl font-bold">1.800.000 ₫</span>
+                <CardContent className="p-2 md:p-4">
+                  <div className="flex items-center gap-1 md:gap-2">
+                    <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
+                    <span className="text-base md:text-lg lg:text-xl font-bold">
+                      1.800.000 ₫
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
                     Giá trung bình phòng trọ
                   </p>
                 </CardContent>
@@ -1929,16 +1994,18 @@ const DashboardPage = () => {
 
       {/* Dialog hiển thị chi tiết giao dịch */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[90vw] sm:max-w-md rounded-lg p-4 md:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Chi tiết giao dịch</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base md:text-lg">
+              Chi tiết giao dịch
+            </DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
               Thông tin chi tiết về giao dịch
             </DialogDescription>
           </DialogHeader>
 
           {selectedTransaction && (
-            <div className="space-y-4 py-2">
+            <div className="space-y-3 md:space-y-4 py-2">
               <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div
