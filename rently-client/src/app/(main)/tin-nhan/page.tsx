@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  Suspense,
+  memo,
+  useCallback,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +29,6 @@ import {
   Trash2,
   Pencil,
   MoreVertical,
-  Search,
-  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,6 +46,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { format, isToday, isYesterday } from "date-fns";
+import { vi } from "date-fns/locale/vi";
 
 // Định nghĩa kiểu dữ liệu cho tin nhắn
 interface Message {
@@ -99,7 +106,6 @@ interface MessageImagePreviewProps {
   removeImage: (index: number) => void;
 }
 
-// Component MessageImagePreview đã được cải thiện
 function MessageImagePreview({
   images,
   removeImage,
@@ -107,30 +113,30 @@ function MessageImagePreview({
   if (images.length === 0) return null;
 
   return (
-    <div className="p-3 border rounded-xl mb-2 bg-background/90 backdrop-blur-sm shadow-sm">
-      <div className="text-xs text-muted-foreground mb-2 flex justify-between items-center">
-        <span className="font-medium">Ảnh đính kèm ({images.length})</span>
+    <div className="p-2 border rounded-md mb-2 bg-background">
+      <div className="text-xs text-muted-foreground mb-1 flex justify-between items-center">
+        <span>Ảnh đính kèm ({images.length})</span>
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+          className="h-6 px-2 text-xs"
           onClick={() => images.forEach((_, index) => removeImage(index))}
         >
           Xóa tất cả
         </Button>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+      <div className="flex gap-2 overflow-x-auto pb-2">
         {images.map((image, index) => (
-          <div key={index} className="relative min-w-[100px] h-[100px] group">
+          <div key={index} className="relative min-w-[80px] h-[80px]">
             <img
               src={image.url}
               alt={`Ảnh đính kèm ${index + 1}`}
-              className="w-[100px] h-[100px] object-cover rounded-md transition-all duration-200 group-hover:brightness-90"
+              className="w-[80px] h-[80px] object-cover rounded-md"
             />
             <button
               type="button"
               onClick={() => removeImage(index)}
-              className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-0.5 right-0.5 bg-black bg-opacity-50 text-white rounded-full p-0.5"
             >
               <X className="h-3 w-3" />
             </button>
@@ -148,6 +154,16 @@ interface AttachedImage {
   isUploaded?: boolean; // Đánh dấu ảnh đã được upload hay chưa
   thumbnailUrl?: string;
 }
+
+// Định dạng kích thước file
+const formatFileSize = (bytes?: number): string => {
+  if (!bytes) return "0 B";
+
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+
+  return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+};
 
 // Component chính của trang tin nhắn
 function MessagesContent() {
@@ -218,429 +234,437 @@ function MessagesContent() {
   // Thêm messageInputRef để tham chiếu tới input field
   const messageInputRef = useRef<HTMLInputElement>(null);
 
-  // Thiết lập lắng nghe sự kiện socket
-  useEffect(() => {
-    if (!socket || !userId) return;
+  // Tối ưu các hàm callback bằng useCallback
+  const handleEditMessage = useCallback(
+    async (messageId: number, content: string) => {
+      try {
+        console.log(
+          `DEBUG handleEditMessage: Bắt đầu sửa tin nhắn ${messageId} thành "${content}"`
+        );
 
-    // Lắng nghe sự kiện nhận tin nhắn mới
-    const onNewMessage = (newMessage: Message) => {
-      console.log("Nhận tin nhắn mới từ socket:", newMessage);
-
-      // Tạo ID duy nhất cho tin nhắn để kiểm tra trùng lặp - tạo nhiều dạng ID khác nhau để so sánh
-      const msgUniqueId1 = `${newMessage.id}-${newMessage.senderId}-${newMessage.content}`;
-      const msgUniqueId2 = `${newMessage.senderId}-${
-        newMessage.content
-      }-${new Date(newMessage.createdAt).getTime()}`;
-
-      // Nếu tin nhắn đã được xử lý trước đó, bỏ qua
-      if (
-        processedMessageIds.current.has(msgUniqueId1) ||
-        processedMessageIds.current.has(msgUniqueId2)
-      ) {
-        console.log("Bỏ qua tin nhắn đã xử lý:", msgUniqueId1);
-        return;
-      }
-
-      // Đánh dấu tin nhắn đã được xử lý (cả hai ID)
-      processedMessageIds.current.add(msgUniqueId1);
-      processedMessageIds.current.add(msgUniqueId2);
-
-      // Kiểm tra xem tin nhắn đã tồn tại trong danh sách hiển thị chưa
-      setMessages((prev) => {
-        // Kiểm tra xem tin nhắn có bị trùng không
-        const isDuplicate = prev.some((existingMsg) => {
-          // So sánh ID (nếu ID là số)
-          if (
-            typeof existingMsg.id === "number" &&
-            typeof newMessage.id === "number" &&
-            existingMsg.id === newMessage.id
-          ) {
-            return true;
-          }
-
-          // So sánh nội dung, người gửi và thời gian gần giống nhau
-          if (
-            existingMsg.content === newMessage.content &&
-            existingMsg.senderId === newMessage.senderId &&
-            Math.abs(
-              new Date(existingMsg.createdAt).getTime() -
-                new Date(newMessage.createdAt).getTime()
-            ) < 10000
-          ) {
-            return true;
-          }
-
-          // So sánh ID tạm thời với ID thực từ server (trường hợp đã thêm tin nhắn tạm)
-          if (
-            typeof existingMsg.id === "string" &&
-            existingMsg.id.startsWith("temp-") &&
-            existingMsg.content === newMessage.content &&
-            existingMsg.senderId === newMessage.senderId
-          ) {
-            return true;
-          }
-
-          return false;
-        });
-
-        // Nếu đã có tin nhắn này, cập nhật ID nếu cần và trả về mảng không đổi
-        if (isDuplicate) {
-          // Cập nhật ID từ temp sang ID thực nếu cần
-          if (typeof newMessage.id === "number") {
-            return prev.map((msg) =>
-              typeof msg.id === "string" &&
-              msg.id.startsWith("temp-") &&
-              msg.content === newMessage.content &&
-              msg.senderId === newMessage.senderId
-                ? { ...msg, id: newMessage.id, status: MessageStatus.DELIVERED }
-                : msg
-            );
-          }
-          return prev;
-        }
-
-        // Thêm tin nhắn mới vào đầu mảng (tin nhắn mới nhất lên trên)
-        return [newMessage, ...prev];
-      });
-
-      // Cập nhật danh sách cuộc trò chuyện với tin nhắn mới nhất
-      setConversations((prevConversations) => {
-        const typedConversations: Conversation[] = prevConversations;
-
-        return typedConversations.map((conv) => {
-          if (conv.id === newMessage.conversationId) {
-            // Đảm bảo id luôn là số
-            const messageId =
-              typeof newMessage.id === "string"
-                ? parseInt(newMessage.id.replace(/\D/g, "")) || Date.now()
-                : newMessage.id;
-
-            // Kiểm tra nếu đây là tin nhắn của người khác và người dùng đang ở trong cuộc trò chuyện này
-            // thì không tăng unreadCount
-            const shouldIncrementUnread =
-              userId !== newMessage.senderId &&
-              (!activeConversation ||
-                activeConversation.id !== newMessage.conversationId);
-
-            return {
-              ...conv,
-              latestMessage: {
-                id: messageId,
-                content: newMessage.content,
-                createdAt: newMessage.createdAt,
-                senderId: newMessage.senderId,
-              },
-              unreadCount: shouldIncrementUnread
-                ? (conv.unreadCount || 0) + 1
-                : conv.unreadCount,
-            };
-          }
-          return conv;
-        }) as Conversation[];
-      });
-
-      // Nếu tin nhắn mới thuộc cuộc trò chuyện đang active, đánh dấu đã đọc ngay
-      if (
-        newMessage.senderId !== userId &&
-        activeConversation &&
-        newMessage.conversationId === activeConversation.id
-      ) {
-        // Tự động đánh dấu đã đọc khi đang trong cuộc trò chuyện
-        try {
-          socket?.emit("markMessageAsRead", {
-            messageId: newMessage.id,
-            conversationId: newMessage.conversationId,
-            readerId: userId,
-          });
-
-          // Cập nhật local để hiển thị đã đọc
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === newMessage.id && msg.senderId !== userId
-                ? { ...msg, isRead: true }
-                : msg
-            )
-          );
-
-          // Đồng thời gọi API để cập nhật trạng thái đã đọc
-          conversationApiRequest
-            .markAsRead(newMessage.conversationId)
-            .catch((error) => {
-              console.error("Lỗi khi đánh dấu tin nhắn đã đọc:", error);
-            });
-        } catch (error) {
-          console.error("Lỗi khi đánh dấu tin nhắn đã đọc:", error);
-        }
-      }
-
-      // Cuộn xuống dưới cùng khi nhận tin nhắn mới từ người khác
-      if (
-        newMessage.senderId !== userId &&
-        activeConversation &&
-        activeConversation.id === newMessage.conversationId
-      ) {
-        setTimeout(() => {
-          scrollToBottom();
-        }, 100);
-      }
-
-      // Cập nhật danh sách sự kiện socket (chỉ dùng cho debug, không hiển thị cho người dùng)
-      setSocketEvents((prev) => [
-        ...prev,
-        `Tin nhắn mới: ${newMessage.content} (ID: ${newMessage.id})`,
-      ]);
-    };
-
-    // Lắng nghe sự kiện tin nhắn đã nhận
-    const onMessageDelivered = (data: {
-      messageId: number;
-      conversationId: number;
-    }) => {
-      console.log("Tin nhắn đã được nhận:", data);
-
-      setMessages((prev) =>
-        prev.map((msg) =>
-          (typeof msg.id === "number" && msg.id === data.messageId) ||
-          (typeof msg.id === "string" &&
-            msg.content &&
-            msg.conversationId === data.conversationId)
-            ? { ...msg, status: MessageStatus.DELIVERED }
-            : msg
-        )
-      );
-    };
-
-    // Lắng nghe sự kiện tin nhắn đã đọc
-    const onMessageRead = (data: {
-      messageId: number;
-      conversationId: number;
-      senderId?: number;
-    }) => {
-      console.log("Tin nhắn đã được đọc:", data);
-
-      setMessages((prev) =>
-        prev.map((msg) => {
-          // Cập nhật tin nhắn dựa trên ID nếu có
-          if (typeof msg.id === "number" && msg.id === data.messageId) {
-            return { ...msg, status: MessageStatus.READ, isRead: true };
-          }
-
-          // Nếu không có ID cụ thể, cập nhật theo cuộc trò chuyện và người gửi
-          if (
-            data.senderId &&
-            msg.conversationId === data.conversationId &&
-            msg.senderId === data.senderId
-          ) {
-            return { ...msg, status: MessageStatus.READ, isRead: true };
-          }
-
-          // Nếu tin nhắn trong cuộc trò chuyện và là tin nhắn tạm thời
-          if (
-            typeof msg.id === "string" &&
-            msg.id.startsWith("temp-") &&
-            msg.conversationId === data.conversationId &&
-            msg.senderId === userId
-          ) {
-            return { ...msg, status: MessageStatus.READ, isRead: true };
-          }
-
-          return msg;
-        })
-      );
-    };
-
-    // Lắng nghe sự kiện đánh dấu đã đọc tất cả tin nhắn trong cuộc trò chuyện
-    const onConversationRead = (data: {
-      conversationId: number;
-      readerId: number;
-    }) => {
-      console.log("Cuộc trò chuyện đã được đọc:", data);
-
-      // Chỉ cập nhật trạng thái nếu người đọc không phải là người dùng hiện tại
-      if (data.readerId !== userId) {
+        // Cập nhật UI ngay lập tức
         setMessages((prev) =>
           prev.map((msg) =>
-            // Chỉ cập nhật tin nhắn của người dùng hiện tại trong cuộc trò chuyện này
-            msg.conversationId === data.conversationId &&
-            msg.senderId === userId
-              ? { ...msg, status: MessageStatus.READ, isRead: true }
+            typeof msg.id === "number" && msg.id === messageId
+              ? { ...msg, content, isEdited: true }
               : msg
           )
         );
 
-        // Cập nhật số tin nhắn chưa đọc về 0 cho cuộc trò chuyện này
-        setConversations((prevConversations) => {
-          return prevConversations.map((conv) =>
-            conv.id === data.conversationId ? { ...conv, unreadCount: 0 } : conv
-          );
-        });
+        // Gọi API sửa tin nhắn
+        const response = await conversationApiRequest.editMessage(
+          messageId,
+          content
+        );
+        console.log(`DEBUG handleEditMessage: API đã trả về:`, response);
+
+        // Báo thành công
+        toast.success("Đã sửa tin nhắn");
+
+        // Reset trạng thái chỉnh sửa
+        setEditingMessageId(null);
+        setEditMessageContent("");
+      } catch (error) {
+        console.error("Lỗi khi sửa tin nhắn:", error);
+        toast.error("Không thể sửa tin nhắn");
       }
-    };
+    },
+    []
+  );
 
-    // Lắng nghe sự kiện cuộc trò chuyện mới
-    const onNewConversation = (conversation: Conversation) => {
-      setSocketEvents((prev) => [
-        ...prev,
-        `Cuộc trò chuyện mới: ${conversation.id}`,
-      ]);
-      setConversations((prev) => [conversation, ...prev]);
-    };
+  const confirmDelete = useCallback((messageId: number) => {
+    setMessageToDelete(messageId);
+    setDeleteDialogOpen(true);
+  }, []);
 
-    // Lắng nghe sự kiện tin nhắn đã bị sửa
-    const onMessageEdited = (
-      data:
-        | {
-            messageId: number;
-            content: string;
-            conversationId: number;
-            isEdited?: boolean;
-          }
-        | any
-    ) => {
-      console.log("DEBUG: Nhận sự kiện messageUpdated từ socket:", data);
-
-      // Nếu data là một đối tượng tin nhắn đầy đủ (từ server)
-      const messageId = data.id || data.messageId;
-      const content = data.content;
-      const isEdited = data.isEdited === undefined ? true : data.isEdited;
-      const conversationId = data.conversationId;
-
-      if (!messageId || !content) {
-        console.error("Dữ liệu tin nhắn đã sửa không hợp lệ:", data);
-        return;
-      }
-
-      console.log(
-        `DEBUG: Cập nhật tin nhắn ${messageId} thành: ${content} (isEdited: ${isEdited})`
-      );
-
-      // Cập nhật tin nhắn trong danh sách tin nhắn hiển thị
-      setMessages((prev) =>
-        prev.map((msg) => {
-          if (typeof msg.id === "number" && msg.id === messageId) {
-            console.log(
-              `DEBUG: Tìm thấy tin nhắn cần cập nhật trong UI, ID: ${msg.id}`
-            );
-            return { ...msg, content: content, isEdited: isEdited };
-          }
-          return msg;
-        })
-      );
-
-      // Cập nhật nội dung của tin nhắn gần nhất trong danh sách cuộc trò chuyện nếu cần
-      setConversations((prev) =>
-        prev.map((conv) => {
-          if (
-            conv.id === conversationId &&
-            conv.latestMessage &&
-            typeof conv.latestMessage.id === "number" &&
-            conv.latestMessage.id === messageId
-          ) {
-            console.log(
-              `DEBUG: Cập nhật tin nhắn trong danh sách hội thoại, ID: ${messageId}`
-            );
-            return {
-              ...conv,
-              latestMessage: {
-                ...conv.latestMessage,
-                content: content,
-                isEdited: isEdited,
-              },
-            };
-          }
-          return conv;
-        })
-      );
-    };
-
-    // Lắng nghe sự kiện tin nhắn đã bị xóa
-    const onMessageDeleted = (data: {
-      messageId: number;
-      conversationId: number;
+  // Thêm component MessageItem trong nội bộ MessagesContent để có thể truy cập các hàm của cha
+  const MessageItem = memo(
+    ({
+      msg,
+      userId,
+      setEditingMessageId,
+      setEditMessageContent,
+      confirmDelete,
+      onOpenProfile,
+    }: {
+      msg: Message;
+      userId: number;
+      setEditingMessageId: (id: number | null) => void;
+      setEditMessageContent: (content: string) => void;
+      confirmDelete: (id: number) => void;
+      onOpenProfile?: (id: number) => void;
     }) => {
-      console.log("Tin nhắn đã bị xóa:", data);
+      // Xử lý hiển thị thời gian
+      const formatMessageTime = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return format(date, "H:mm", { locale: vi });
+      };
 
-      setMessages((prev) =>
-        prev.map((msg) =>
-          typeof msg.id === "number" && msg.id === data.messageId
-            ? { ...msg, content: "Tin nhắn đã bị xóa", isDeleted: true }
-            : msg
-        )
-      );
-    };
+      const formatFullTime = (date: Date) =>
+        `${
+          isToday(date)
+            ? "Hôm nay, "
+            : isYesterday(date)
+            ? "Hôm qua, "
+            : format(date, "d MMM, yyyy")
+        } lúc ${format(date, "h:mm:ss a")}`;
 
-    socket.on("newMessage", onNewMessage);
-    socket.on("newConversation", onNewConversation);
-    socket.on("messageDelivered", onMessageDelivered);
-    socket.on("messageRead", onMessageRead);
-    socket.on("conversationRead", onConversationRead);
-    socket.on("messageEdited", onMessageEdited);
-    socket.on("messageUpdated", onMessageEdited);
-    socket.on("messageDeleted", onMessageDeleted);
-
-    // Debugging: Thử đăng ký một sự kiện test để xem socket có hoạt động không
-    socket.on("test", (data: any) => {
-      setSocketEvents((prev) => [
-        ...prev,
-        `Sự kiện test: ${JSON.stringify(data)}`,
-      ]);
-    });
-
-    // Ngay sau khi thiết lập sự kiện, gửi một sự kiện echo
-    socket.emit("echo", { message: "Kiểm tra socket echo", userId });
-
-    // Lắng nghe sự kiện echo phản hồi
-    socket.on("echoResponse", (data: any) => {
-      setSocketEvents((prev) => [...prev, `Echo: ${JSON.stringify(data)}`]);
-    });
-
-    // Tạo thêm sự kiện để lắng nghe khi có thay đổi trong active conversation
-    const handleVisibilityChange = () => {
-      // Khi tab đang hiển thị và đang trong cuộc trò chuyện
-      if (!document.hidden && activeConversation) {
-        // Đánh dấu đã đọc tất cả tin nhắn trong cuộc trò chuyện
-        socket.emit("markConversationAsRead", {
-          conversationId: activeConversation.id,
-          readerId: userId,
-        });
-
-        // Gọi API để cập nhật trạng thái đã đọc
-        try {
-          conversationApiRequest.markAsRead(activeConversation.id).then(() => {
-            // Cập nhật UI - giảm số lượng tin nhắn chưa đọc về 0
-            setConversations((prevConversations) => {
-              return prevConversations.map((conv) =>
-                conv.id === activeConversation.id
-                  ? { ...conv, unreadCount: 0 }
-                  : conv
-              );
-            });
-          });
-        } catch (error) {
-          console.error("Lỗi khi đánh dấu đã đọc:", error);
+      // Xử lý click vào avatar
+      const handleAvatarClick = () => {
+        if (onOpenProfile && msg.senderId !== userId) {
+          onOpenProfile(msg.senderId);
         }
-      }
+      };
+
+      // Xử lý hiển thị tin nhắn dựa trên loại
+      const renderContent = () => {
+        // Nếu tin nhắn đã bị xóa
+        if (msg.isDeleted) {
+          return (
+            <p className="text-sm italic text-muted-foreground">
+              Tin nhắn đã bị xóa
+            </p>
+          );
+        }
+
+        // Nếu đang chỉnh sửa tin nhắn này
+        if (typeof msg.id === "number" && msg.id === editingMessageId) {
+          return (
+            <div className="flex flex-col gap-2 w-full">
+              <Input
+                value={editMessageContent}
+                onChange={(e) => setEditMessageContent(e.target.value)}
+                className="w-full"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (typeof msg.id === "number") {
+                      handleEditMessage(msg.id, editMessageContent);
+                    }
+                  } else if (e.key === "Escape") {
+                    setEditingMessageId(null);
+                    setEditMessageContent("");
+                  }
+                }}
+              />
+              <div className="flex gap-2 text-xs">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (typeof msg.id === "number") {
+                      handleEditMessage(msg.id, editMessageContent);
+                    }
+                  }}
+                  disabled={!editMessageContent.trim()}
+                >
+                  Lưu
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditingMessageId(null);
+                    setEditMessageContent("");
+                  }}
+                >
+                  Hủy
+                </Button>
+              </div>
+            </div>
+          );
+        }
+
+        // Nếu là tin nhắn văn bản
+        if (!msg.type || msg.type === MessageType.TEXT) {
+          return (
+            <div className="relative group">
+              {/* Thanh công cụ sửa/xóa phía trên tin nhắn */}
+              {msg.senderId === userId && !msg.isDeleted && (
+                <div className="absolute top-0 right-0 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mb-1 py-1 px-1.5 rounded-full bg-background/95 backdrop-blur-sm shadow-sm border border-border/30">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full bg-transparent hover:bg-primary/10 text-blue-500 hover:text-blue-600"
+                    onClick={() => {
+                      setEditingMessageId(msg.id as number);
+                      setEditMessageContent(msg.content);
+                    }}
+                    title="Chỉnh sửa tin nhắn"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full bg-transparent hover:bg-rose-50 text-rose-500 hover:text-rose-600"
+                    onClick={() => confirmDelete(msg.id as number)}
+                    title="Xóa tin nhắn"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              <p className="text-sm break-words">
+                {msg.content}
+                {msg.isEdited && !msg.isDeleted && (
+                  <span className="text-[10px] ml-1 opacity-70">
+                    (đã chỉnh sửa)
+                  </span>
+                )}
+              </p>
+            </div>
+          );
+        }
+
+        // Hiển thị tin nhắn dựa trên loại
+        switch (msg.type) {
+          case MessageType.IMAGE:
+            return (
+              <div className="flex flex-col gap-2 relative group">
+                {/* Thanh công cụ xóa phía trên ảnh */}
+                {msg.senderId === userId && !msg.isDeleted && (
+                  <div className="absolute top-0 right-0 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mb-1 py-1 px-1.5 rounded-full bg-background/95 backdrop-blur-sm shadow-sm border border-border/30">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 rounded-full bg-transparent hover:bg-rose-50 text-rose-500 hover:text-rose-600"
+                      onClick={() => confirmDelete(msg.id as number)}
+                      title="Xóa tin nhắn"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                <div className="relative rounded-md overflow-hidden">
+                  <img
+                    src={msg.fileUrl}
+                    alt={msg.fileName || "Hình ảnh"}
+                    className="max-w-[200px] max-h-[200px] rounded-md object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(msg.fileUrl, "_blank")}
+                  />
+                </div>
+                <p className="text-xs opacity-80">
+                  {msg.fileName}
+                  {msg.isEdited && !msg.isDeleted && (
+                    <span className="text-[10px] ml-1 opacity-70">
+                      (đã chỉnh sửa)
+                    </span>
+                  )}
+                </p>
+              </div>
+            );
+
+          case MessageType.VIDEO:
+            return (
+              <div className="flex flex-col gap-2">
+                <div className="relative rounded-md overflow-hidden">
+                  <video
+                    src={msg.fileUrl}
+                    controls
+                    className="max-w-full max-h-[300px] rounded-md"
+                  />
+                </div>
+                <p className="text-xs opacity-80">{msg.fileName}</p>
+              </div>
+            );
+
+          case MessageType.AUDIO:
+            return (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Music className="h-8 w-8" />
+                  <audio src={msg.fileUrl} controls className="max-w-full" />
+                </div>
+                <p className="text-xs opacity-80">{msg.fileName}</p>
+              </div>
+            );
+
+          case MessageType.DOCUMENT:
+            return (
+              <div
+                className="flex items-center gap-2 cursor-pointer hover:bg-opacity-80 transition-opacity"
+                onClick={() => window.open(msg.fileUrl, "_blank")}
+              >
+                <FileText className="h-10 w-10" />
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-sm font-medium truncate">{msg.fileName}</p>
+                  <p className="text-xs opacity-70">
+                    {formatFileSize(msg.fileSize)}
+                  </p>
+                </div>
+              </div>
+            );
+
+          default: // MessageType.FILE và các loại khác
+            return (
+              <div
+                className="flex items-center gap-2 cursor-pointer hover:bg-opacity-80 transition-opacity"
+                onClick={() => window.open(msg.fileUrl, "_blank")}
+              >
+                <File className="h-10 w-10" />
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-sm font-medium truncate">{msg.fileName}</p>
+                  <p className="text-xs opacity-70">
+                    {formatFileSize(msg.fileSize)}
+                  </p>
+                </div>
+              </div>
+            );
+        }
+      };
+
+      const isAuthor = msg.senderId === userId;
+
+      return (
+        <div
+          className={`flex flex-col gap-2 p-1.5 px-3 hover:bg-gray-100/60 dark:hover:bg-slate-800 group relative rounded-lg ${
+            isAuthor ? "items-end" : "items-start"
+          }`}
+        >
+          <div className="flex items-start gap-2">
+            {!isAuthor && (
+              <button onClick={handleAvatarClick}>
+                <Avatar className="rounded-md">
+                  <AvatarImage
+                    className="rounded-md"
+                    src={msg.sender?.avatar || undefined}
+                  />
+                  <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-xs">
+                    {(msg.sender?.name || "U").charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            )}
+
+            <div
+              className={`flex flex-col ${
+                isAuthor ? "items-end" : "items-start"
+              }`}
+            >
+              <div className="flex items-center mb-1 gap-2">
+                <span className="text-sm font-medium">
+                  {isAuthor ? "Bạn" : msg.sender?.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatMessageTime(msg.createdAt)}
+                </span>
+              </div>
+
+              <div
+                className={`max-w-[300px] p-3 rounded-lg ${
+                  isAuthor
+                    ? "bg-primary text-primary-foreground rounded-tr-none"
+                    : "bg-muted rounded-tl-none"
+                }`}
+              >
+                {renderContent()}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  );
+
+  // Thay đổi phần hiển thị tin nhắn trong ScrollArea
+  const renderMessages = () => {
+    if (loadingMessages) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div
+              key={index}
+              className={`flex ${index % 2 === 0 ? "justify-end" : ""}`}
+            >
+              <Skeleton
+                className={`h-12 w-52 rounded-lg ${
+                  index % 2 === 0 ? "bg-primary/20" : "bg-muted"
+                }`}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (messages.length === 0) {
+      return (
+        <div className="text-center py-16 text-muted-foreground">
+          <p>Hãy bắt đầu cuộc trò chuyện...</p>
+        </div>
+      );
+    }
+
+    // Nhóm tin nhắn theo ngày
+    const groupedMessages = messages.reduce(
+      (groups: Record<string, Message[]>, message: Message) => {
+        const date = new Date(message.createdAt);
+        const dateKey = format(date, "yyyy-MM-dd");
+
+        if (!groups[dateKey]) {
+          groups[dateKey] = [];
+        }
+
+        groups[dateKey].push(message);
+        return groups;
+      },
+      {} as Record<string, Message[]>
+    );
+
+    // Format hiển thị ngày
+    const formatDateLabel = (dateStr: string) => {
+      const date = new Date(dateStr);
+      if (isToday(date)) return "Hôm nay";
+      if (isYesterday(date)) return "Hôm qua";
+      return format(date, "EEEE, d MMMM, yyyy", { locale: vi });
     };
 
-    // Đăng ký sự kiện khi tab được focus lại
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Hiển thị tin nhắn theo nhóm ngày
+    return (
+      <div className="space-y-4 w-full pb-1">
+        {Object.entries(groupedMessages)
+          .sort(
+            ([dateA], [dateB]) =>
+              new Date(dateA).getTime() - new Date(dateB).getTime()
+          )
+          .map(([dateKey, messagesInDay]) => (
+            <div key={dateKey}>
+              {/* Hiển thị nhãn ngày */}
+              <div className="text-center my-4 relative">
+                <hr className="absolute top-1/2 left-0 right-0 border-t border-gray-300" />
+                <span className="relative inline-block bg-white dark:bg-slate-700 px-4 py-1 rounded-full text-xs border border-gray-300 shadow-sm">
+                  {formatDateLabel(dateKey)}
+                </span>
+              </div>
 
-    // Cleanup khi component unmount
-    return () => {
-      socket.off("newMessage", onNewMessage);
-      socket.off("newConversation", onNewConversation);
-      socket.off("messageDelivered", onMessageDelivered);
-      socket.off("messageRead", onMessageRead);
-      socket.off("conversationRead", onConversationRead);
-      socket.off("messageEdited", onMessageEdited);
-      socket.off("messageUpdated", onMessageEdited);
-      socket.off("messageDeleted", onMessageDeleted);
-      socket.off("test");
-      socket.off("echoResponse");
-
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [socket, activeConversation, userId]);
+              {/* Hiển thị tin nhắn trong ngày */}
+              <div className="space-y-1">
+                {messagesInDay
+                  .sort(
+                    (a: Message, b: Message) =>
+                      new Date(a.createdAt).getTime() -
+                      new Date(b.createdAt).getTime()
+                  )
+                  .map((msg: Message) => (
+                    <MessageItem
+                      key={`msg-${msg.id}`}
+                      msg={msg}
+                      userId={userId || 0}
+                      setEditingMessageId={setEditingMessageId}
+                      setEditMessageContent={setEditMessageContent}
+                      confirmDelete={confirmDelete}
+                    />
+                  ))}
+              </div>
+            </div>
+          ))}
+        <div ref={messagesEndRef} />
+      </div>
+    );
+  };
 
   // Tải danh sách cuộc trò chuyện
   useEffect(() => {
@@ -1315,206 +1339,55 @@ function MessagesContent() {
     }
   };
 
-  // Hiển thị tin nhắn dựa trên loại
-  const renderMessageContent = (msg: Message) => {
-    // Nếu tin nhắn đã bị xóa
-    if (msg.isDeleted) {
-      return (
-        <p className="text-sm italic text-muted-foreground">
-          Tin nhắn đã bị xóa
-        </p>
+  // Hàm xử lý xóa tin nhắn
+  const handleDeleteMessage = async (messageId: number) => {
+    try {
+      // Đã có Dialog xác nhận từ shadcn, nên bỏ phần này
+      // if (!window.confirm("Bạn có chắc chắn muốn xóa tin nhắn này?")) {
+      //   return;
+      // }
+
+      // Cập nhật UI ngay lập tức
+      setMessages((prev) =>
+        prev.map((msg) =>
+          typeof msg.id === "number" && msg.id === messageId
+            ? { ...msg, content: "Tin nhắn đã bị xóa", isDeleted: true }
+            : msg
+        )
       );
-    }
 
-    // Nếu đang chỉnh sửa tin nhắn này
-    if (editingMessageId === msg.id) {
-      return (
-        <div className="flex flex-col gap-2 w-full">
-          <Input
-            value={editMessageContent}
-            onChange={(e) => setEditMessageContent(e.target.value)}
-            className="w-full"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleEditMessage(msg.id as number, editMessageContent);
-              } else if (e.key === "Escape") {
-                cancelEditMessage();
-              }
-            }}
-          />
-          <div className="flex gap-2 text-xs">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                handleEditMessage(msg.id as number, editMessageContent)
-              }
-              disabled={!editMessageContent.trim()}
-            >
-              Lưu
-            </Button>
-            <Button variant="ghost" size="sm" onClick={cancelEditMessage}>
-              Hủy
-            </Button>
-          </div>
-        </div>
-      );
-    }
+      // Gọi API xóa tin nhắn
+      await conversationApiRequest.deleteMessage(messageId);
 
-    // Nếu là tin nhắn văn bản
-    if (!msg.type || msg.type === MessageType.TEXT) {
-      return (
-        <>
-          <div className="relative group">
-            {/* Thanh công cụ sửa/xóa phía trên tin nhắn */}
-            {msg.senderId === userId && !msg.isDeleted && (
-              <div className="absolute top-0 right-0 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mb-1 py-1 px-1.5 rounded-full bg-background/95 backdrop-blur-sm shadow-sm border border-border/30">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full bg-transparent hover:bg-primary/10 text-blue-500 hover:text-blue-600"
-                  onClick={() => startEditMessage(msg)}
-                  title="Chỉnh sửa tin nhắn"
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full bg-transparent hover:bg-rose-50 text-rose-500 hover:text-rose-600"
-                  onClick={() => confirmDelete(msg.id as number)}
-                  title="Xóa tin nhắn"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
-
-            <p className="text-sm break-words">
-              {msg.content}
-              {msg.isEdited && !msg.isDeleted && (
-                <span className="text-[10px] ml-1 opacity-70">
-                  (đã chỉnh sửa)
-                </span>
-              )}
-            </p>
-          </div>
-          <DeleteConfirmDialog />
-        </>
-      );
-    }
-
-    // Hiển thị tin nhắn dựa trên loại
-    switch (msg.type) {
-      case MessageType.IMAGE:
-        return (
-          <>
-            <div className="flex flex-col gap-2 relative group">
-              {/* Thanh công cụ xóa phía trên ảnh */}
-              {msg.senderId === userId && !msg.isDeleted && (
-                <div className="absolute top-0 right-0 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mb-1 py-1 px-1.5 rounded-full bg-background/95 backdrop-blur-sm shadow-sm border border-border/30">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 rounded-full bg-transparent hover:bg-rose-50 text-rose-500 hover:text-rose-600"
-                    onClick={() => confirmDelete(msg.id as number)}
-                    title="Xóa tin nhắn"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-
-              <div className="relative rounded-md overflow-hidden">
-                <img
-                  src={msg.fileUrl}
-                  alt={msg.fileName || "Hình ảnh"}
-                  className="max-w-[150px] max-h-[150px] rounded-md object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => window.open(msg.fileUrl, "_blank")}
-                />
-              </div>
-              <p className="text-xs opacity-80">
-                {msg.fileName}
-                {msg.isEdited && !msg.isDeleted && (
-                  <span className="text-[10px] ml-1 opacity-70">
-                    (đã chỉnh sửa)
-                  </span>
-                )}
-              </p>
-            </div>
-            <DeleteConfirmDialog />
-          </>
-        );
-
-      case MessageType.VIDEO:
-        return (
-          <div className="flex flex-col gap-2">
-            <div className="relative rounded-md overflow-hidden">
-              <video
-                src={msg.fileUrl}
-                controls
-                className="max-w-full max-h-[300px] rounded-md"
-              />
-            </div>
-            <p className="text-xs opacity-80">{msg.fileName}</p>
-          </div>
-        );
-
-      case MessageType.AUDIO:
-        return (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Music className="h-8 w-8" />
-              <audio src={msg.fileUrl} controls className="max-w-full" />
-            </div>
-            <p className="text-xs opacity-80">{msg.fileName}</p>
-          </div>
-        );
-
-      case MessageType.DOCUMENT:
-        return (
-          <div
-            className="flex items-center gap-2 cursor-pointer hover:bg-opacity-80 transition-opacity"
-            onClick={() => window.open(msg.fileUrl, "_blank")}
-          >
-            <FileText className="h-10 w-10" />
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium truncate">{msg.fileName}</p>
-              <p className="text-xs opacity-70">
-                {formatFileSize(msg.fileSize)}
-              </p>
-            </div>
-          </div>
-        );
-
-      default: // MessageType.FILE và các loại khác
-        return (
-          <div
-            className="flex items-center gap-2 cursor-pointer hover:bg-opacity-80 transition-opacity"
-            onClick={() => window.open(msg.fileUrl, "_blank")}
-          >
-            <File className="h-10 w-10" />
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium truncate">{msg.fileName}</p>
-              <p className="text-xs opacity-70">
-                {formatFileSize(msg.fileSize)}
-              </p>
-            </div>
-          </div>
-        );
+      // Báo thành công
+      toast.success("Đã xóa tin nhắn");
+    } catch (error) {
+      console.error("Lỗi khi xóa tin nhắn:", error);
+      toast.error("Không thể xóa tin nhắn");
     }
   };
 
-  // Định dạng kích thước file
-  const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return "0 B";
+  // Hàm bắt đầu chỉnh sửa tin nhắn
+  const startEditMessage = (message: Message) => {
+    if (typeof message.id !== "number" || message.isDeleted) return;
 
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    setEditingMessageId(message.id);
+    setEditMessageContent(message.content);
+  };
 
-    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+  // Hàm hủy chỉnh sửa tin nhắn
+  const cancelEditMessage = () => {
+    setEditingMessageId(null);
+    setEditMessageContent("");
+  };
+
+  // Hàm xử lý xóa tin nhắn sau khi xác nhận
+  const onConfirmDelete = () => {
+    if (messageToDelete !== null) {
+      handleDeleteMessage(messageToDelete);
+      setDeleteDialogOpen(false);
+      setMessageToDelete(null);
+    }
   };
 
   // Xử lý khi người dùng chọn ảnh đính kèm
@@ -1815,216 +1688,90 @@ function MessagesContent() {
     };
   }, [isLoadingMore, currentPage, totalPages, activeConversation]);
 
-  // Hàm xử lý sửa tin nhắn
-  const handleEditMessage = async (messageId: number, content: string) => {
-    try {
-      console.log(
-        `DEBUG handleEditMessage: Bắt đầu sửa tin nhắn ${messageId} thành "${content}"`
-      );
-
-      // Cập nhật UI ngay lập tức
-      setMessages((prev) =>
-        prev.map((msg) =>
-          typeof msg.id === "number" && msg.id === messageId
-            ? { ...msg, content, isEdited: true }
-            : msg
-        )
-      );
-
-      // Gọi API sửa tin nhắn
-      const response = await conversationApiRequest.editMessage(
-        messageId,
-        content
-      );
-      console.log(`DEBUG handleEditMessage: API đã trả về:`, response);
-
-      // Báo thành công
-      toast.success("Đã sửa tin nhắn");
-
-      // Reset trạng thái chỉnh sửa
-      setEditingMessageId(null);
-      setEditMessageContent("");
-    } catch (error) {
-      console.error("Lỗi khi sửa tin nhắn:", error);
-      toast.error("Không thể sửa tin nhắn");
-    }
-  };
-
-  // Hàm xử lý xóa tin nhắn
-  const handleDeleteMessage = async (messageId: number) => {
-    try {
-      // Đã có Dialog xác nhận từ shadcn, nên bỏ phần này
-      // if (!window.confirm("Bạn có chắc chắn muốn xóa tin nhắn này?")) {
-      //   return;
-      // }
-
-      // Cập nhật UI ngay lập tức
-      setMessages((prev) =>
-        prev.map((msg) =>
-          typeof msg.id === "number" && msg.id === messageId
-            ? { ...msg, content: "Tin nhắn đã bị xóa", isDeleted: true }
-            : msg
-        )
-      );
-
-      // Gọi API xóa tin nhắn
-      await conversationApiRequest.deleteMessage(messageId);
-
-      // Báo thành công
-      toast.success("Đã xóa tin nhắn");
-    } catch (error) {
-      console.error("Lỗi khi xóa tin nhắn:", error);
-      toast.error("Không thể xóa tin nhắn");
-    }
-  };
-
-  // Hàm bắt đầu chỉnh sửa tin nhắn
-  const startEditMessage = (message: Message) => {
-    if (typeof message.id !== "number" || message.isDeleted) return;
-
-    setEditingMessageId(message.id);
-    setEditMessageContent(message.content);
-  };
-
-  // Hàm hủy chỉnh sửa tin nhắn
-  const cancelEditMessage = () => {
-    setEditingMessageId(null);
-    setEditMessageContent("");
-  };
-
-  // Hàm mở dialog xác nhận xóa
-  const confirmDelete = (messageId: number) => {
-    setMessageToDelete(messageId);
-    setDeleteDialogOpen(true);
-  };
-
-  // Hàm xử lý xóa tin nhắn sau khi xác nhận
-  const onConfirmDelete = () => {
-    if (messageToDelete !== null) {
-      handleDeleteMessage(messageToDelete);
-      setDeleteDialogOpen(false);
-      setMessageToDelete(null);
-    }
-  };
-
-  // Phần hiển thị modal xác nhận xóa
-  const DeleteConfirmDialog = () => (
-    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Xác nhận xóa tin nhắn</DialogTitle>
-          <DialogDescription>
-            Bạn có chắc chắn muốn xóa tin nhắn này không? Hành động này không
-            thể hoàn tác.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex flex-row justify-between sm:justify-between">
-          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-            Hủy
-          </Button>
-          <Button variant="destructive" onClick={onConfirmDelete}>
-            Xóa tin nhắn
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-
   return (
-    <div className="max-w-7xl w-full py-4 mx-auto px-4 md:px-8">
-      <Card className="h-[calc(100vh-120px)] shadow-xl border-muted overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 h-full">
-          {/* Danh sách cuộc trò chuyện */}
-          <div className="md:col-span-1 h-full border-r">
-            <div className="h-full flex flex-col">
-              <div className="p-4 pb-3 border-b">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    Tin nhắn
-                  </h2>
-                  <div className="relative">
-                    <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Tìm kiếm..."
-                      className="pl-9 h-9 w-[180px] bg-muted/50 focus:bg-background"
-                    />
-                  </div>
-                </div>
-              </div>
+    <div className="max-w-full w-full py-4 mx-8">
+      {/* Dialog xác nhận xóa tin nhắn */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa tin nhắn</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa tin nhắn này không? Hành động này không
+              thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row justify-between sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={onConfirmDelete}>
+              Xóa tin nhắn
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-120px)]">
+        {/* Danh sách cuộc trò chuyện */}
+        <div className="md:col-span-1 h-full overflow-hidden">
+          <Card className="h-full flex flex-col">
+            <CardContent className="p-3 pb-0 flex-1 overflow-hidden flex flex-col">
+              <h2 className="font-medium mb-3">Cuộc trò chuyện</h2>
 
               {loading ? (
-                <div className="space-y-3 flex-1 p-4">
+                <div className="space-y-3 flex-1">
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 p-2 animate-pulse"
-                    >
-                      <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
-                      <div className="space-y-2 flex-1">
+                    <div key={index} className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-2">
                         <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-40" />
+                        <Skeleton className="h-3 w-24" />
                       </div>
                     </div>
                   ))}
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="text-center py-8 flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <MessageSquare className="h-12 w-12 text-muted-foreground/50" />
+                <div className="text-center py-8 text-muted-foreground flex-1">
                   <p>Bạn chưa có cuộc trò chuyện nào</p>
-                  <Button variant="outline" size="sm" className="mt-2">
-                    Bắt đầu trò chuyện mới
-                  </Button>
                 </div>
               ) : (
-                <ScrollArea className="flex-1 h-0 pr-4 pl-4 py-2">
-                  <div className="space-y-1">
+                <ScrollArea className="flex-1 h-0">
+                  <div className="space-y-2 pr-4">
                     {conversations.map((conversation) => {
                       const displayUser = getDisplayUser(conversation);
                       const isUnread =
                         conversation.unreadCount > 0 &&
                         userId !== conversation.latestMessage?.senderId;
-                      const isActive =
-                        activeConversation?.id === conversation.id;
                       return (
                         <div
                           key={conversation.id}
-                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted ${
-                            isActive
-                              ? "bg-primary/10 border-l-4 border-primary"
-                              : "border-l-4 border-transparent"
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
+                            activeConversation?.id === conversation.id
+                              ? "bg-muted"
+                              : ""
                           } ${isUnread ? "bg-primary/5" : ""}`}
                           onClick={(e) => onSelectConversation(conversation, e)}
                         >
-                          <div className="relative">
-                            <Avatar className="h-12 w-12 border-2 border-background">
-                              <AvatarImage
-                                src={displayUser.avatar || undefined}
-                                className="object-cover"
-                              />
-                              <AvatarFallback className="bg-primary/20 text-primary font-medium">
-                                {displayUser.name?.charAt(0)?.toUpperCase() || (
-                                  <UserCircle className="h-6 w-6" />
-                                )}
-                              </AvatarFallback>
-                            </Avatar>
-                            {isUnread && (
-                              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-white font-bold border-2 border-background">
-                                {conversation.unreadCount > 9
-                                  ? "9+"
-                                  : conversation.unreadCount}
-                              </span>
-                            )}
-                          </div>
+                          <Avatar>
+                            <AvatarImage
+                              src={displayUser.avatar || undefined}
+                            />
+                            <AvatarFallback>
+                              <UserCircle className="h-6 w-6" />
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="flex-1 overflow-hidden">
                             <div className="font-medium truncate flex items-center gap-2">
                               {displayUser.name}
-                              {isUnread && !isActive && (
-                                <span className="h-2 w-2 rounded-full bg-primary inline-block animate-pulse"></span>
+                              {isUnread && (
+                                <span className="h-2 w-2 rounded-full bg-primary inline-block"></span>
                               )}
                             </div>
                             <div
-                              className={`text-sm truncate ${
+                              className={`text-xs truncate ${
                                 isUnread
                                   ? "text-foreground font-medium"
                                   : "text-muted-foreground"
@@ -2034,15 +1781,6 @@ function MessagesContent() {
                                 ? conversation.latestMessage.content
                                 : "Bắt đầu trò chuyện..."}
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {conversation.latestMessage?.createdAt &&
-                                new Date(
-                                  conversation.latestMessage.createdAt
-                                ).toLocaleTimeString("vi-VN", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                            </div>
                           </div>
                         </div>
                       );
@@ -2050,64 +1788,46 @@ function MessagesContent() {
                   </div>
                 </ScrollArea>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Khung chat */}
-          <div className="md:col-span-2 h-full flex flex-col">
+        {/* Khung chat */}
+        <div className="md:col-span-2 h-full overflow-hidden">
+          <Card className="h-full flex flex-col">
             {activeConversation ? (
               <>
                 {/* Header của chat */}
-                <div className="border-b py-3 px-4 flex items-center justify-between gap-3 bg-gradient-to-r from-primary/5 to-background">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border-2 border-background">
+                <div className="border-b py-3 px-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Avatar>
                       <AvatarImage
                         src={
                           getDisplayUser(activeConversation).avatar || undefined
                         }
-                        className="object-cover"
                       />
-                      <AvatarFallback className="bg-primary/20 text-primary font-medium">
-                        {getDisplayUser(activeConversation)
-                          .name?.charAt(0)
-                          ?.toUpperCase() || <UserCircle className="h-6 w-6" />}
+                      <AvatarFallback>
+                        <UserCircle className="h-6 w-6" />
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-semibold">
+                      <div className="font-medium">
                         {getDisplayUser(activeConversation).name}
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <span
-                          className={`h-2 w-2 rounded-full ${
-                            socketConnected ? "bg-green-500" : "bg-amber-500"
-                          }`}
-                        ></span>
-                        {socketConnected ? "Trực tuyến" : "Đang kết nối..."}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {!socketConnected && (
-                      <div className="flex items-center text-xs text-muted-foreground bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
-                        <Loader2 className="animate-spin h-3 w-3 mr-1" />
-                        Đang kết nối...
-                      </div>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full h-8 w-8"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {!socketConnected && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Loader2 className="animate-spin h-3 w-3 mr-1" />
+                      Đang kết nối...
+                    </div>
+                  )}
                 </div>
 
                 {/* Tin nhắn */}
                 <ScrollArea
-                  className="flex-1 px-6 py-4 h-0 w-full bg-[url('/images/chat-pattern.svg')] bg-repeat bg-opacity-5 overflow-auto"
+                  className="flex-1 px-6 py-4 h-0 w-full"
                   id="messages-container"
                   onScroll={handleScroll}
                   ref={scrollAreaComponentRef}
@@ -2127,179 +1847,30 @@ function MessagesContent() {
                           </span>
                         </div>
                       ) : currentPage < totalPages ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs text-muted-foreground flex items-center gap-1"
-                        >
-                          <span>Xem thêm tin nhắn cũ</span>
-                        </Button>
+                        <div className="py-2 px-4 text-xs opacity-50">
+                          Cuộn lên để xem thêm tin nhắn cũ
+                        </div>
                       ) : (
-                        <Badge
-                          variant="outline"
-                          className="bg-background/80 text-xs py-1"
-                        >
+                        <div className="py-2 px-4 text-xs opacity-50">
                           Đã hiển thị tất cả tin nhắn
-                        </Badge>
+                        </div>
                       )}
                     </div>
 
                     {/* Khu vực thông tin debug - để người dùng biết trạng thái hiện tại */}
-                    <div className="text-xs text-muted-foreground mb-4 p-2 rounded-md bg-background/80 backdrop-blur-sm shadow-sm border border-border/30 hidden">
+                    <div className="text-xs text-muted-foreground mb-4 p-2 bg-muted/30 rounded-md">
                       Đã tải: {messages.length} tin nhắn | Trang: {currentPage}/
                       {totalPages}
                       {currentPage >= totalPages && " | Đã tải hết"}
                     </div>
 
-                    {loadingMessages ? (
-                      <div className="space-y-4">
-                        {Array.from({ length: 5 }).map((_, index) => (
-                          <div
-                            key={index}
-                            className={`flex ${
-                              index % 2 === 0 ? "justify-end" : ""
-                            }`}
-                          >
-                            <Skeleton
-                              className={`h-12 w-52 rounded-lg ${
-                                index % 2 === 0 ? "bg-primary/20" : "bg-muted"
-                              }`}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    ) : messages.length === 0 ? (
-                      <div className="text-center py-16 text-muted-foreground flex flex-col items-center gap-3">
-                        <MessageSquare className="h-16 w-16 text-muted-foreground/30" />
-                        <p className="text-lg font-medium">
-                          Hãy bắt đầu cuộc trò chuyện...
-                        </p>
-                        <p className="text-sm max-w-md">
-                          Gửi tin nhắn đầu tiên để bắt đầu cuộc trò chuyện với
-                          người dùng này.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4 w-full pb-1">
-                        {messages.length > 0 &&
-                          /* Messages được lưu theo thứ tự DESC (mới ở đầu) dựa trên API trả về 
-                             Để hiển thị theo thứ tự đúng (cũ ở trên, mới ở dưới), chúng ta đảo ngược mảng */
-                          [...messages]
-                            .reverse()
-                            .map((msg, index, messagesArray) => {
-                              // Kiểm tra xem tin nhắn này và tin nhắn trước đó có cùng người gửi không
-                              const prevMsg =
-                                index > 0 ? messagesArray[index - 1] : null;
-                              const isSameSender =
-                                prevMsg && prevMsg.senderId === msg.senderId;
-
-                              // Kiểm tra xem tin nhắn tiếp theo có cùng người gửi không
-                              const nextMsg =
-                                index < messagesArray.length - 1
-                                  ? messagesArray[index + 1]
-                                  : null;
-                              const isNextSameSender =
-                                nextMsg && nextMsg.senderId === msg.senderId;
-
-                              // Xác định vị trí tin nhắn trong chuỗi (đầu, giữa, cuối)
-                              const messagePosition = !isSameSender
-                                ? "first"
-                                : !isNextSameSender
-                                ? "last"
-                                : "middle";
-
-                              // Tính thời gian giữa các tin nhắn để hiển thị timestamp
-                              const showTimestamp =
-                                !isSameSender ||
-                                (prevMsg &&
-                                  new Date(msg.createdAt).getTime() -
-                                    new Date(prevMsg.createdAt).getTime() >
-                                    5 * 60 * 1000);
-
-                              return (
-                                <div key={`msg-${msg.id}-${index}`}>
-                                  {showTimestamp && (
-                                    <div className="flex justify-center my-2">
-                                      <Badge
-                                        variant="outline"
-                                        className="bg-background/80 text-xs py-1"
-                                      >
-                                        {new Date(msg.createdAt).toLocaleString(
-                                          "vi-VN",
-                                          {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                            day: "2-digit",
-                                            month: "2-digit",
-                                          }
-                                        )}
-                                      </Badge>
-                                    </div>
-                                  )}
-                                  <div
-                                    className={`flex ${
-                                      msg.senderId === userId
-                                        ? "justify-end"
-                                        : "justify-start"
-                                    }`}
-                                  >
-                                    {msg.senderId !== userId &&
-                                      messagePosition === "first" && (
-                                        <Avatar className="h-8 w-8 mr-2 mt-1 hidden sm:block">
-                                          <AvatarImage
-                                            src={msg.sender.avatar || undefined}
-                                          />
-                                          <AvatarFallback className="bg-primary/20 text-primary font-medium">
-                                            {msg.sender.name
-                                              ?.charAt(0)
-                                              ?.toUpperCase() || (
-                                              <UserCircle className="h-4 w-4" />
-                                            )}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                      )}
-                                    {msg.senderId !== userId &&
-                                      messagePosition !== "first" && (
-                                        <div className="w-8 mr-2 mt-1 hidden sm:block"></div>
-                                      )}
-                                    <div
-                                      className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 
-                                    ${
-                                      msg.senderId === userId
-                                        ? `bg-primary text-primary-foreground ${
-                                            messagePosition === "first"
-                                              ? "rounded-tr-none"
-                                              : messagePosition === "last"
-                                              ? "rounded-br-none"
-                                              : "rounded-r-none"
-                                          }`
-                                        : `bg-muted ${
-                                            messagePosition === "first"
-                                              ? "rounded-tl-none"
-                                              : messagePosition === "last"
-                                              ? "rounded-bl-none"
-                                              : "rounded-l-none"
-                                          }`
-                                    } ${
-                                        messagePosition !== "first"
-                                          ? "mt-1"
-                                          : "mt-0"
-                                      }`}
-                                    >
-                                      {renderMessageContent(msg)}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        <div ref={messagesEndRef} />
-                      </div>
-                    )}
+                    {/* Hiển thị tin nhắn theo nhóm */}
+                    {renderMessages()}
                   </div>
                 </ScrollArea>
 
                 {/* Khung nhập tin nhắn */}
-                <div className="border-t py-3 px-4 flex flex-col gap-2 mt-auto bg-gradient-to-b from-background to-muted/10">
+                <div className="border-t py-3 px-4 flex flex-col gap-2 mt-auto">
                   {/* Hiển thị ảnh đính kèm */}
                   {attachedImages.length > 0 && (
                     <MessageImagePreview
@@ -2318,7 +1889,7 @@ function MessagesContent() {
                         placeholder="Nhập tin nhắn..."
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        className="flex-1 rounded-full border-muted-foreground/20 pl-4 pr-12 py-6 focus-visible:ring-primary/30 shadow-sm"
+                        className="flex-1"
                         autoComplete="off"
                         ref={messageInputRef}
                         disabled={
@@ -2335,7 +1906,6 @@ function MessagesContent() {
                           }
                         }}
                       />
-
                       {/* Nút đính kèm file */}
                       <input
                         type="file"
@@ -2356,28 +1926,26 @@ function MessagesContent() {
                         disabled={uploading || sendingImages}
                       />
 
-                      <div className="absolute right-2 flex items-center gap-1">
+                      <div className="flex items-center gap-1">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 rounded-full hover:bg-primary/10"
+                          className="h-8 w-8"
                           type="button"
                           disabled={uploading || sendingImages}
                           onClick={() => imageInputRef.current?.click()}
-                          title="Đính kèm ảnh"
                         >
-                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          <ImageIcon className="h-5 w-5" />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 rounded-full hover:bg-primary/10"
+                          className="h-8 w-8"
                           type="button"
                           disabled={uploading || sendingImages}
                           onClick={() => fileInputRef.current?.click()}
-                          title="Đính kèm tệp tin"
                         >
-                          <Paperclip className="h-4 w-4 text-muted-foreground" />
+                          <Paperclip className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>
@@ -2385,7 +1953,7 @@ function MessagesContent() {
                     <Button
                       type="button"
                       size="icon"
-                      className="rounded-full h-12 w-12 flex-shrink-0 shadow-md transition-all duration-200 hover:shadow-lg active:scale-95"
+                      className="rounded-full h-10 w-10 flex-shrink-0"
                       disabled={
                         (!message.trim() && attachedImages.length === 0) ||
                         isSendingMessage ||
@@ -2410,22 +1978,13 @@ function MessagesContent() {
 
                   {/* Hiển thị trạng thái tải lên/gửi */}
                   {(uploading || sendingImages) && (
-                    <div className="flex-1 flex items-center gap-2 h-10 px-3 py-5 rounded-md border bg-background/95 backdrop-blur-sm shadow-sm animate-pulse">
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      <span className="text-sm font-medium">
+                    <div className="flex-1 flex items-center gap-2 h-10 px-3 rounded-md border bg-background">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">
                         {uploading
                           ? `Đang tải lên ${selectedFile?.name}`
                           : `Đang gửi tin nhắn kèm ảnh...`}
                       </span>
-                      <div className="flex-1 ml-2">
-                        <div className="h-2 bg-muted-foreground/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary"
-                            style={{ width: `${uploadProgress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <span className="text-xs">{uploadProgress}%</span>
                     </div>
                   )}
 
@@ -2433,39 +1992,23 @@ function MessagesContent() {
                   {attachedImages.length > 0 &&
                     !uploading &&
                     !sendingImages && (
-                      <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-primary/5 border border-primary/10">
+                      <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-muted/30">
                         <ImageIcon className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">
                           {attachedImages.length} ảnh đã sẵn sàng
                         </span>
-                        <Badge
-                          variant="secondary"
-                          className="ml-auto bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
-                          onClick={clearAttachedImages}
-                        >
-                          Xóa tất cả
-                        </Badge>
                       </div>
                     )}
                 </div>
               </>
             ) : (
-              <div className="text-center flex flex-col items-center justify-center h-full text-muted-foreground bg-muted/10">
-                <div className="max-w-md p-6 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm border border-muted">
-                  <MessageSquare className="h-16 w-16 mx-auto mb-4 text-primary/30" />
-                  <h3 className="text-xl font-medium mb-2">Tin nhắn của bạn</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Chọn một cuộc trò chuyện từ danh sách để bắt đầu nhắn tin
-                  </p>
-                  <Button variant="outline" className="mx-auto">
-                    Bắt đầu cuộc trò chuyện mới
-                  </Button>
-                </div>
+              <div className="text-center py-16 text-muted-foreground">
+                <p>Hãy chọn một cuộc trò chuyện để bắt đầu trò chuyện...</p>
               </div>
             )}
-          </div>
+          </Card>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -2474,12 +2017,7 @@ export default function MessagesPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-8 flex justify-center items-center h-[80vh]">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-lg font-medium">Đang tải ứng dụng tin nhắn...</p>
-          </div>
-        </div>
+        <div className="p-8 text-center">Đang tải ứng dụng tin nhắn...</div>
       }
     >
       <MessagesContent />
