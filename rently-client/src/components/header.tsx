@@ -332,7 +332,7 @@ export function Header() {
               isAuth ? (
                 <>
                   <NotificationPopover />
-                  <DropdownAvatar />
+                <DropdownAvatar />
                 </>
               ) : (
                 <div className="flex space-x-2">

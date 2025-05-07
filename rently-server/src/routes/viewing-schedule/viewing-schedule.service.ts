@@ -444,7 +444,9 @@ export class ViewingScheduleService {
     }
   }
 
-  @Cron('0 */1 * * * *') // Chạy mỗi 1 phút
+  @Cron('0 21 * * *', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
   async handleScheduleReminders() {
     try {
       const currentDate = new Date()

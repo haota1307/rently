@@ -443,11 +443,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <NotificationSocketProvider>
-        <ConfirmProvider>
-          {children}
-          <RefreshToken />
-          {mounted && <ListenRoleUpdateSocket />}
-        </ConfirmProvider>
+      <ConfirmProvider>
+        {children}
+        <RefreshToken />
+        {mounted && <ListenRoleUpdateSocket />}
+      </ConfirmProvider>
       </NotificationSocketProvider>
     </QueryClientProvider>
   );

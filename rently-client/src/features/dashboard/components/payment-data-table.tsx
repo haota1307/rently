@@ -56,7 +56,7 @@ export function PaymentDataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mx-4">
       <div className="flex items-center py-4">
         <div className="relative max-w-sm">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />

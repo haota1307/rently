@@ -79,14 +79,14 @@ export default function ProfileTab({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Thông tin cơ bản */}
         <div className="md:col-span-2">
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
-                <User className="h-5 w-5" />
+          <Card className="shadow-sm">
+            <CardContent className="p-4 sm:pt-6">
+              <h3 className="text-base sm:text-lg font-medium flex items-center gap-2 mb-3 sm:mb-4">
+                <User className="h-4 w-4 sm:h-5 sm:w-5" />
                 Thông tin cá nhân
               </h3>
 
@@ -95,17 +95,17 @@ export default function ProfileTab({
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-4"
                 >
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Họ và tên</FormLabel>
+                          <FormLabel className="text-sm">Họ và tên</FormLabel>
                           <FormControl>
                             <Input placeholder="Nhập họ và tên" {...field} />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-xs" />
                         </FormItem>
                       )}
                     />
@@ -114,14 +114,16 @@ export default function ProfileTab({
                       name="phoneNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Số điện thoại</FormLabel>
+                          <FormLabel className="text-sm">
+                            Số điện thoại
+                          </FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Nhập số điện thoại"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-xs" />
                         </FormItem>
                       )}
                     />
@@ -129,16 +131,16 @@ export default function ProfileTab({
                       control={form.control}
                       name="address"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Địa chỉ</FormLabel>
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel className="text-sm">Địa chỉ</FormLabel>
                           <FormControl>
                             <Textarea
                               placeholder="Nhập địa chỉ của bạn"
-                              className="resize-none"
+                              className="resize-none min-h-[80px]"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-xs" />
                         </FormItem>
                       )}
                     />
@@ -146,25 +148,29 @@ export default function ProfileTab({
                       control={form.control}
                       name="bio"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Giới thiệu</FormLabel>
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel className="text-sm">Giới thiệu</FormLabel>
                           <FormControl>
                             <Textarea
                               placeholder="Giới thiệu ngắn về bạn"
-                              className="resize-none"
+                              className="resize-none min-h-[80px]"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-xs" />
                         </FormItem>
                       )}
                     />
                   </div>
 
                   <div className="flex justify-end">
-                    <Button type="submit" disabled={isLoading}>
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm"
+                    >
                       {isLoading && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                       )}
                       Lưu thay đổi
                     </Button>
@@ -177,23 +183,23 @@ export default function ProfileTab({
 
         {/* Sidebar thông tin tài khoản */}
         <div>
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
-                <Shield className="h-5 w-5" />
+          <Card className="shadow-sm">
+            <CardContent className="p-4 sm:pt-6">
+              <h3 className="text-base sm:text-lg font-medium flex items-center gap-2 mb-3 sm:mb-4">
+                <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
                 Thông tin tài khoản
               </h3>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4 text-sm">
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">
+                  <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">
                     Email
                   </h4>
                   <p className="mt-1">{user?.email}</p>
                 </div>
                 <Separator />
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">
+                  <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">
                     Vai trò
                   </h4>
                   <p className="mt-1">
@@ -202,7 +208,7 @@ export default function ProfileTab({
                 </div>
                 <Separator />
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">
+                  <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">
                     Ngày tham gia
                   </h4>
                   <p className="mt-1">
@@ -213,20 +219,20 @@ export default function ProfileTab({
                 </div>
                 <Separator />
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">
+                  <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">
                     Trạng thái
                   </h4>
                   <div className="mt-1">
                     {user?.status === "ACTIVE" ? (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
                         Hoạt động
                       </span>
                     ) : user?.status === "INACTIVE" ? (
-                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
                         Chưa kích hoạt
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
                         Bị khóa
                       </span>
                     )}

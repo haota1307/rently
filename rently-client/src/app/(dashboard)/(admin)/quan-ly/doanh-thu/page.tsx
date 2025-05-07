@@ -4,7 +4,15 @@ import React, { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Search } from "lucide-react";
+import {
+  Download,
+  Search,
+  RefreshCcw,
+  CreditCard,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+} from "lucide-react";
 import { revenueColumns } from "@/features/dashboard/components/columns/revenue-columns";
 import { formatPrice } from "@/lib/utils";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -15,6 +23,7 @@ import { format } from "date-fns";
 import { PaymentRevenueFilters } from "@/features/dashboard/components/filters/payment-revenue-filters";
 import { ApiTransaction, Transaction } from "@/schemas/payment.schema";
 import { PaymentDataTable } from "@/features/dashboard/components/payment-data-table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const DashboardRevenuePage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -40,16 +49,14 @@ const DashboardRevenuePage = () => {
     label: "",
   });
   const [loadingBankInfo, setLoadingBankInfo] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const fetchBankInfo = async () => {
       setLoadingBankInfo(true);
       try {
         const response = await paymentApiRequest.getBankInfo();
-        console.log("Response đầy đủ:", response);
-        console.log("Response payload:", response.payload);
         if (response.payload?.bankInfo) {
-          console.log("Bank info:", response.payload.bankInfo);
           setBankInfo(response.payload.bankInfo);
         }
       } catch (err) {
@@ -173,6 +180,7 @@ const DashboardRevenuePage = () => {
       setError("Không thể tải dữ liệu giao dịch. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -200,6 +208,12 @@ const DashboardRevenuePage = () => {
 
   const handleEndDateChange = (date: Date | undefined) => {
     setEndDate(date);
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchTransactions(activeFilter, activeStatus, startDate, endDate);
+    toast.success("Đang làm mới dữ liệu...");
   };
 
   // Function to clear date range filter
@@ -300,21 +314,78 @@ const DashboardRevenuePage = () => {
 
   return (
     <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 w-full">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 w-full bg-white sticky top-0 z-10">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4 " />
         <h1 className="text-lg font-semibold">Quản lý doanh thu</h1>
       </header>
 
-      <div className="flex flex-col gap-5 p-4">
+      <div className="flex flex-col gap-5 p-4 md:p-6 bg-gray-50 min-h-screen">
         {/* Header và tiêu đề */}
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-bold tracking-tight">
-            Giao dịch tài chính
-          </h2>
-          <p className="text-muted-foreground">
-            Quản lý và theo dõi các giao dịch tiền tệ trong hệ thống
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 bg-white p-4 rounded-lg shadow-sm">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Giao dịch tài chính
+            </h2>
+            <p className="text-muted-foreground">
+              Quản lý và theo dõi các giao dịch tiền tệ trong hệ thống
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1"
+          >
+            <RefreshCcw
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Làm mới
+          </Button>
+        </div>
+
+        {/* Thống kê tổng quan */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-green-100 p-3 rounded-full">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tổng tiền vào</p>
+                <h3 className="text-2xl font-bold text-green-600">
+                  {formatPrice(totalAmount.income)}
+                </h3>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-red-100 p-3 rounded-full">
+                <TrendingDown className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tổng tiền ra</p>
+                <h3 className="text-2xl font-bold text-red-600">
+                  {formatPrice(totalAmount.expense)}
+                </h3>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-blue-100 p-3 rounded-full">
+                <DollarSign className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Số dư hiện tại</p>
+                <h3 className="text-2xl font-bold text-blue-600">
+                  {formatPrice(totalAmount.balance)}
+                </h3>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Khu vực thẻ ngân hàng và bộ lọc */}
@@ -322,29 +393,18 @@ const DashboardRevenuePage = () => {
           {/* Bank Card */}
           <div>
             {loadingBankInfo ? (
-              <div className="bg-gray-200 animate-pulse rounded-xl shadow-lg h-56 w-full"></div>
+              <div className="rounded-xl shadow-lg h-56 w-full overflow-hidden">
+                <Skeleton className="h-full w-full" />
+              </div>
             ) : bankInfo.accountNumber ? (
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-6 text-white w-full">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-6 text-white w-full hover:shadow-xl transition-shadow">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-xl font-bold">{bankInfo.bankName}</h3>
                     <p className="text-sm opacity-80">Tài khoản thanh toán</p>
                   </div>
                   <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-8 w-8 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                      />
-                    </svg>
+                    <CreditCard className="h-8 w-8 text-white" />
                   </div>
                 </div>
 
@@ -379,27 +439,83 @@ const DashboardRevenuePage = () => {
             )}
           </div>
 
-          {/* Khu vực bộ lọc và tổng hợp */}
-          <div className="space-y-5">
-            <div className="bg-white rounded-xl shadow-sm p-6 border">
-              <h3 className="text-sm font-medium text-gray-600 mb-3">
-                Lọc giao dịch
-              </h3>
-              <PaymentRevenueFilters
-                onFilterChange={handleFilterChange}
-                startDate={startDate}
-                endDate={endDate}
-                onStartDateChange={handleStartDateChange}
-                onEndDateChange={handleEndDateChange}
-                activeFilter={activeFilter}
-                activeStatus={activeStatus}
-                onStatusChange={handleStatusChange}
-              />
-              <div className="flex justify-end mt-3">
-                {(activeFilter !== "all" ||
-                  activeStatus !== "all" ||
-                  startDate ||
-                  endDate) && (
+          {/* Khu vực bộ lọc */}
+          <div>
+            <Card className="shadow-sm h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Lọc giao dịch</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PaymentRevenueFilters
+                  onFilterChange={handleFilterChange}
+                  startDate={startDate}
+                  endDate={endDate}
+                  onStartDateChange={handleStartDateChange}
+                  onEndDateChange={handleEndDateChange}
+                  activeFilter={activeFilter}
+                  activeStatus={activeStatus}
+                  onStatusChange={handleStatusChange}
+                />
+                <div className="flex justify-end mt-4 gap-2">
+                  {(activeFilter !== "all" ||
+                    activeStatus !== "all" ||
+                    startDate ||
+                    endDate) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearFilters}
+                    >
+                      Xóa bộ lọc
+                    </Button>
+                  )}
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleExportReport}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Xuất báo cáo
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Bảng dữ liệu */}
+        <Card className="shadow-sm">
+          <CardHeader className="px-6 py-4 border-b flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Danh sách giao dịch</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {transactions.length} giao dịch
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex flex-col gap-2 p-6">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-80">
+                <div className="text-center">
+                  <p className="text-red-500 mb-2">{error}</p>
+                  <Button variant="outline" size="sm" onClick={handleRefresh}>
+                    <RefreshCcw className="mr-2 h-4 w-4" />
+                    Thử lại
+                  </Button>
+                </div>
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="flex items-center justify-center h-80">
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-2">
+                    Không có giao dịch nào
+                  </p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -407,62 +523,7 @@ const DashboardRevenuePage = () => {
                   >
                     Xóa bộ lọc
                   </Button>
-                )}
-                <Button className="ml-2" size="sm" onClick={handleExportReport}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Xuất báo cáo
-                </Button>
-              </div>
-            </div>
-
-            {/* Thống kê tóm tắt */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border">
-              <div className="space-y-5">
-                <div className="flex justify-between items-center border-b pb-2">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Tổng tiền vào
-                  </h3>
-                  <span className="text-xl font-bold text-green-600">
-                    {formatPrice(totalAmount.income)}
-                  </span>
                 </div>
-                {totalAmount.income > 0 && (
-                  <div className="flex justify-between items-center border-b pb-2">
-                    <h3 className="text-sm font-medium text-gray-600">
-                      Tổng tiền ra
-                    </h3>
-                    <span className="text-xl font-bold text-red-600">
-                      {formatPrice(
-                        totalAmount.income -
-                          parseFloat(bankInfo.accumulated || "0")
-                      )}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-gray-600">Số dư</h3>
-                  <span className="text-xl font-bold">
-                    {formatPrice(totalAmount.balance)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bảng dữ liệu */}
-        <Card className="border-none shadow-sm">
-          <CardHeader className="px-6 py-4 border-b">
-            <CardTitle className="text-base">Danh sách giao dịch</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="flex items-center justify-center h-80">
-                <p>Đang tải dữ liệu...</p>
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-80">
-                <p className="text-red-500">{error}</p>
               </div>
             ) : (
               <PaymentDataTable columns={revenueColumns} data={transactions} />

@@ -97,7 +97,7 @@ export default function AccountForm() {
   if (!user) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
-        <Loader2 className="h-12 w-12 text-primary animate-spin" />
+        <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 text-primary animate-spin" />
       </div>
     );
   }
@@ -108,13 +108,13 @@ export default function AccountForm() {
 
   return (
     <Card className="overflow-hidden border-none shadow-md">
-      <CardHeader className="bg-primary text-primary-foreground p-6">
-        <div className="flex flex-col lg:flex-row gap-6">
+      <CardHeader className="bg-primary text-primary-foreground p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* Phần Avatar */}
-          <div className="relative group">
-            <Avatar className="w-24 h-24 border-4 border-primary-foreground shadow-lg">
+          <div className="relative group mx-auto lg:mx-0">
+            <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-primary-foreground shadow-lg">
               <AvatarImage src={watchedAvatar} alt="Avatar" />
-              <AvatarFallback className="bg-primary-foreground text-primary text-xl">
+              <AvatarFallback className="bg-primary-foreground text-primary text-lg sm:text-xl">
                 {watchedName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -130,31 +130,31 @@ export default function AccountForm() {
               onClick={() => avatarInputRef.current?.click()}
             >
               {isLoading ? (
-                <Loader2 className="h-6 w-6 text-white animate-spin" />
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 text-white animate-spin" />
               ) : (
-                <Upload className="h-6 w-6 text-white" />
+                <Upload className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               )}
             </div>
           </div>
 
           {/* Thông tin cơ bản */}
-          <div className="flex-1">
+          <div className="flex-1 mt-3 lg:mt-0 text-center lg:text-left">
             <div className="flex flex-col md:flex-row justify-between">
               <div>
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <User className="h-5 w-5" />
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center justify-center lg:justify-start gap-2">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5" />
                   {watchedName || "Tên người dùng"}
                 </h2>
-                <p className="text-primary-foreground/80 flex items-center gap-2 mt-1">
-                  <Mail className="h-4 w-4" />
+                <p className="text-primary-foreground/80 flex items-center justify-center lg:justify-start gap-2 mt-1 text-sm sm:text-base">
+                  <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
                   {user.email || "abc@gmail.com"}
                 </p>
-                <p className="text-primary-foreground/80 flex items-center gap-2 mt-1">
-                  <Phone className="h-4 w-4" />
+                <p className="text-primary-foreground/80 flex items-center justify-center lg:justify-start gap-2 mt-1 text-sm sm:text-base">
+                  <Phone className="h-3 w-3 sm:h-4 sm:w-4" />
                   {user.phoneNumber || "Chưa cập nhật"}
                 </p>
-                <p className="text-primary-foreground/80 flex items-center gap-2 mt-1">
-                  <Calendar className="h-4 w-4" />
+                <p className="text-primary-foreground/80 flex items-center justify-center lg:justify-start gap-2 mt-1 text-sm sm:text-base">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                   Tham gia:{" "}
                   {format(new Date(user.createdAt), "dd MMMM, yyyy", {
                     locale: vi,
@@ -162,30 +162,30 @@ export default function AccountForm() {
                 </p>
               </div>
 
-              <div className="mt-4 md:mt-0 flex flex-col items-start md:items-end">
+              <div className="mt-4 md:mt-0 flex flex-col items-center md:items-end">
                 <div className="flex items-center gap-2 bg-primary-foreground/10 rounded-md px-3 py-2">
-                  <Wallet className="h-5 w-5" />
+                  <Wallet className="h-4 w-4 sm:h-5 sm:w-5" />
                   <div>
                     <p className="text-xs text-primary-foreground/90">Số dư</p>
-                    <p className="font-bold">
+                    <p className="font-bold text-sm sm:text-base">
                       {user.balance?.toLocaleString()} VNĐ
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-wrap justify-center md:justify-end gap-2">
                   {user?.role.name === Role.Admin && (
-                    <Badge className="bg-purple-500 hover:bg-purple-500/95">
+                    <Badge className="bg-purple-500 hover:bg-purple-500/95 text-xs sm:text-sm">
                       Quản trị viên
                     </Badge>
                   )}
                   {user?.role.name === Role.Landlord && (
-                    <Badge className="bg-green-500 hover:bg-green-500/95">
+                    <Badge className="bg-green-500 hover:bg-green-500/95 text-xs sm:text-sm">
                       Người cho thuê
                     </Badge>
                   )}
                   {user?.role.name === Role.Client && (
-                    <Badge className="bg-blue-500 hover:bg-blue-500/95">
+                    <Badge className="bg-blue-500 hover:bg-blue-500/95 text-xs sm:text-sm">
                       Người dùng
                     </Badge>
                   )}
@@ -195,7 +195,7 @@ export default function AccountForm() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-3 sm:p-6">
         <AccountTabs
           form={form}
           isLoading={isLoading}
