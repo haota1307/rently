@@ -27,7 +27,7 @@ export function AccountTabs({
 }: AccountTabsProps) {
   return (
     <Tabs defaultValue="profile" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 gap-1 sm:gap-2 md:grid-cols-3 lg:grid-cols-5 mb-4 sm:mb-6 overflow-x-auto">
+      <TabsList className="grid w-full h-28 sm:h-auto grid-cols-2 gap-1 sm:gap-2 md:grid-cols-3 lg:grid-cols-5 mb-4 sm:mb-6 overflow-x-auto">
         <TabsTrigger
           value="profile"
           className="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm whitespace-nowrap"

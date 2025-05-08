@@ -18,7 +18,7 @@ export function ViewingScheduleTab() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="grid grid-cols-5 mb-8">
+          <TabsList className="grid w-full h-28 sm:h-auto grid-cols-3 gap-1 sm:gap-2 md:grid-cols-3 lg:grid-cols-5 mb-4 sm:mb-6 overflow-x-auto">
             <TabsTrigger value="all">Tất cả</TabsTrigger>
             <TabsTrigger value="pending">Chờ duyệt</TabsTrigger>
             <TabsTrigger value="approved">Đã duyệt</TabsTrigger>

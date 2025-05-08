@@ -27,7 +27,6 @@ export const NotificationPopover = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [open, setOpen] = useState(false);
 
-  // Lấy danh sách thông báo từ API
   const { data, isLoading } = useQuery({
     queryKey: ["notifications"],
     queryFn: () =>
@@ -182,7 +181,7 @@ export const NotificationPopover = () => {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[350px] sm:w-[450px] p-0 shadow-lg border border-border/40 rounded-xl"
+        className="w-[350px] sm:w-[450px] z-[99999] p-0 shadow-lg border border-border/40 rounded-xl"
         align="end"
         sideOffset={5}
       >

@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetTrigger,
@@ -29,15 +28,6 @@ import DropdownAvatar from "@/components/dropdown-avatar";
 import { normalizePath, cn } from "@/lib/utils";
 import { Role } from "@/constants/type";
 import { ModeToggle } from "@/components/mode-toggle";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
 import {
   Popover,
   PopoverContent,
@@ -225,7 +215,7 @@ export function Header() {
     );
 
     return (
-      <div className="relative" key={categoryKey}>
+      <div className="relative z-40" key={categoryKey}>
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -241,7 +231,7 @@ export function Header() {
               <ChevronDown className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-1" align="end">
+          <PopoverContent className="w-56 p-1 z-[99999]" align="end">
             <div className="grid gap-1">
               {links.map((link) => {
                 const isActive =
@@ -332,7 +322,7 @@ export function Header() {
               isAuth ? (
                 <>
                   <NotificationPopover />
-                <DropdownAvatar />
+                  <DropdownAvatar />
                 </>
               ) : (
                 <div className="flex space-x-2">
