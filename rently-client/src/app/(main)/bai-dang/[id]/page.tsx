@@ -240,7 +240,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   );
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background min-h-screen mx-auto">
       <div className="container mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6">
         {/* Back link */}
         <div className="mb-3 sm:mb-4">
@@ -963,15 +963,6 @@ function RelatedPostsSection({
   const hasSimilarPosts = similarPosts?.data && similarPosts.data.length > 0;
   const hasSameRentalPosts =
     sameRentalPosts?.data && sameRentalPosts.data.length > 0;
-
-  if (
-    !hasSimilarPosts &&
-    !hasSameRentalPosts &&
-    !loadingSimilar &&
-    !loadingSameRental
-  ) {
-    return null;
-  }
 
   return (
     <div className="mt-6 sm:mt-10">

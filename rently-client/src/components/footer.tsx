@@ -1,3 +1,4 @@
+"use client";
 import {
   Clock,
   Facebook,
@@ -7,8 +8,23 @@ import {
   MapPinned,
   Phone,
   Youtube,
+  Home,
+  BarChart2,
+  Building,
+  FileText,
+  Bookmark,
+  User,
+  Settings,
+  MessageCircle,
+  CalendarIcon,
 } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Import động cho bản đồ để tránh lỗi SSR
+const RentalsMap = dynamic(() => import("@/features/map/rentals-map"), {
+  ssr: false,
+});
 
 const contactInfo = [
   { icon: MapPinned, title: "Địa chỉ", content: "Cần Thơ, Việt Nam" },
@@ -21,25 +37,34 @@ const contactInfo = [
   { icon: Mail, title: "Email", content: "trananhhao1307@gmail.com" },
 ];
 
-// Dữ liệu liên kết Footer
+// Dữ liệu liên kết Footer - Đồng bộ với header
 const footerLinks = [
   {
-    title: "Liên kết",
+    title: "Chung",
+    links: [
+      { name: "Trang chủ", href: "/", icon: Home },
+      { name: "Nhà trọ", href: "/nha-tro", icon: Building },
+      { name: "Bài đăng", href: "/bai-dang", icon: FileText },
+      { name: "So sánh phòng trọ", href: "/so-sanh", icon: BarChart2 },
+    ],
+  },
+  {
+    title: "Cá nhân",
+    links: [
+      { name: "Tin nhắn", href: "/tin-nhan", icon: MessageCircle },
+      { name: "Yêu thích", href: "/tin-da-luu", icon: Bookmark },
+      { name: "Lịch xem phòng", href: "/lich-xem-phong", icon: CalendarIcon },
+      { name: "Phòng đã thuê", href: "/phong-da-thue", icon: Building },
+    ],
+  },
+  {
+    title: "Công ty",
     links: [
       { name: "Về chúng tôi", href: "/ve-chung-toi" },
       { name: "Liên hệ", href: "/lien-he" },
       { name: "Điều khoản và điều kiện", href: "/dieu-khoan-va-dieu-kien" },
       { name: "Chính sách bảo mật", href: "/chinh-sach-bao-mat" },
       { name: "Câu hỏi thường gặp", href: "/cau-hoi-thuong-gap" },
-    ],
-  },
-  {
-    title: "Danh mục",
-    links: [
-      { name: "Nhà trọ", href: "/" },
-      { name: "Mini House", href: "/" },
-      { name: "Yêu thích", href: "/" },
-      { name: "Đánh dấu", href: "/" },
     ],
   },
 ];
@@ -58,7 +83,7 @@ const FooterLinkSection = ({
   links,
 }: {
   title: string;
-  links: { name: string; href: string }[];
+  links: { name: string; href: string; icon?: React.ComponentType<any> }[];
 }) => (
   <div>
     <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 text-base">
@@ -69,8 +94,9 @@ const FooterLinkSection = ({
         <li key={link.name}>
           <Link
             href={link.href}
-            className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm"
+            className="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm flex items-center gap-2"
           >
+            {link.icon && <link.icon className="h-3.5 w-3.5" />}
             {link.name}
           </Link>
         </li>
@@ -103,8 +129,21 @@ export const Footer = () => {
           ))}
         </div>
 
+        {/* Bản đồ nhà trọ */}
+        <div className="pt-8 pb-4 border-b dark:border-gray-800">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Khám phá nhà trọ trên bản đồ
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+              Tìm kiếm nhà trọ phù hợp tại các vị trí bạn mong muốn
+            </p>
+          </div>
+          <RentalsMap />
+        </div>
+
         {/* Nội dung chính của Footer */}
-        <div className="py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-8">
           {/* Logo & Mạng xã hội */}
           <div className="space-y-4">
             <Link href={"/"}>

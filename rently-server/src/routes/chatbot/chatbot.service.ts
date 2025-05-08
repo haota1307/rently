@@ -606,6 +606,9 @@ export class ChatbotService {
           - "distance": (object | null) thông tin khoảng cách với 2 trường: "max" (số km tối đa) và "location" (địa điểm tham chiếu). Ví dụ: { "max": 1, "location": "Đại học Nam Cần Thơ" }.
           - "userType": (string | null) đối tượng người thuê, ví dụ "sinh viên", "người đi làm", "gia đình".
           - "roomType": (string | null) loại phòng, ví dụ "phòng trọ", "căn hộ mini", "nhà nguyên căn".
+          - "sortBy": (string | null) tiêu chí sắp xếp kết quả, ví dụ "price" nếu sắp xếp theo giá.
+          - "sortOrder": (string | null) thứ tự sắp xếp, "asc" (tăng dần) hoặc "desc" (giảm dần). Nếu người dùng muốn giá cao nhất/đắt nhất, sử dụng "desc". Nếu muốn giá thấp nhất/rẻ nhất, sử dụng "asc".
+          - "onlyTopResult": (boolean) đặt true nếu người dùng chỉ muốn kết quả cao nhất/thấp nhất. Ví dụ: "Tìm phòng có giá cao nhất" hoặc "Cho tôi xem phòng rẻ nhất" hoặc các yêu cầu chỉ lấy 1 kết quả duy nhất.
 
     Tin nhắn: "${message}"
 
@@ -675,6 +678,53 @@ export class ChatbotService {
 
     // Chuyển tin nhắn về chữ thường để dễ so sánh
     const lowerMessage = message.toLowerCase()
+
+    // Xác định yêu cầu sắp xếp kết quả
+    if (
+      lowerMessage.includes('cao nhất') ||
+      lowerMessage.includes('đắt nhất') ||
+      lowerMessage.includes('giá cao') ||
+      lowerMessage.includes('giá đắt')
+    ) {
+      criteria.sortBy = 'price'
+      criteria.sortOrder = 'desc' // Giảm dần - giá cao nhất trước
+
+      // Nếu yêu cầu chỉ lấy cao nhất
+      if (
+        lowerMessage.includes('chỉ') ||
+        lowerMessage.includes('lấy ra') ||
+        lowerMessage.includes('duy nhất') ||
+        lowerMessage.includes('một phòng') ||
+        lowerMessage.includes('1 phòng') ||
+        lowerMessage.match(/phòng\s+có\s+giá\s+cao\s+nhất/) ||
+        lowerMessage.match(/phòng\s+có\s+giá\s+đắt\s+nhất/) ||
+        lowerMessage.match(/phòng\s+giá\s+cao\s+nhất\s+thôi/)
+      ) {
+        criteria.onlyTopResult = true
+      }
+    } else if (
+      lowerMessage.includes('thấp nhất') ||
+      lowerMessage.includes('rẻ nhất') ||
+      lowerMessage.includes('giá thấp') ||
+      lowerMessage.includes('giá rẻ')
+    ) {
+      criteria.sortBy = 'price'
+      criteria.sortOrder = 'asc' // Tăng dần - giá thấp nhất trước
+
+      // Nếu yêu cầu chỉ lấy thấp nhất
+      if (
+        lowerMessage.includes('chỉ') ||
+        lowerMessage.includes('lấy ra') ||
+        lowerMessage.includes('duy nhất') ||
+        lowerMessage.includes('một phòng') ||
+        lowerMessage.includes('1 phòng') ||
+        lowerMessage.match(/phòng\s+có\s+giá\s+thấp\s+nhất/) ||
+        lowerMessage.match(/phòng\s+có\s+giá\s+rẻ\s+nhất/) ||
+        lowerMessage.match(/phòng\s+giá\s+rẻ\s+nhất\s+thôi/)
+      ) {
+        criteria.onlyTopResult = true
+      }
+    }
 
     // Nhận diện cụm từ về khoảng cách - mở rộng regex để bắt nhiều trường hợp hơn
     const distanceRegex =
@@ -944,36 +994,106 @@ export class ChatbotService {
   }
 
   /**
-   * Kết hợp kết quả từ phân tích cơ bản và phân tích AI
+   * Kết hợp kết quả tiêu chí từ phân tích cơ bản và phân tích AI
    */
   private mergeCriteria(basicCriteria: any, aiCriteria: any): any {
-    const result = { ...aiCriteria }
+    const result = { ...basicCriteria }
 
-    // Nếu AI không trích xuất được giá, sử dụng kết quả phân tích cơ bản
-    if (!aiCriteria.price && basicCriteria.price) {
-      result.price = basicCriteria.price
+    // Xử lý giá
+    if (aiCriteria.price) {
+      if (!result.price) {
+        result.price = {}
+      }
+      if (
+        aiCriteria.price.min &&
+        (!result.price.min || aiCriteria.price.min > result.price.min)
+      ) {
+        result.price.min = aiCriteria.price.min
+      }
+      if (
+        aiCriteria.price.max &&
+        (!result.price.max || aiCriteria.price.max < result.price.max)
+      ) {
+        result.price.max = aiCriteria.price.max
+      }
     }
 
-    // Nếu AI không trích xuất được diện tích, sử dụng kết quả phân tích cơ bản
-    if (!aiCriteria.area && basicCriteria.area) {
-      result.area = basicCriteria.area
+    // Xử lý diện tích
+    if (aiCriteria.area) {
+      if (!result.area) {
+        result.area = {}
+      }
+      if (
+        aiCriteria.area.min &&
+        (!result.area.min || aiCriteria.area.min > result.area.min)
+      ) {
+        result.area.min = aiCriteria.area.min
+      }
+      if (
+        aiCriteria.area.max &&
+        (!result.area.max || aiCriteria.area.max < result.area.max)
+      ) {
+        result.area.max = aiCriteria.area.max
+      }
     }
 
-    // Kết hợp danh sách tiện ích từ cả hai nguồn
-    const amenities = new Set<string>([
-      ...(aiCriteria.amenities || []),
-      ...(basicCriteria.amenities || []),
-    ])
-    result.amenities = Array.from(amenities)
-
-    // Nếu AI không trích xuất được địa chỉ, sử dụng kết quả phân tích cơ bản
-    if (!aiCriteria.address && basicCriteria.address) {
-      result.address = basicCriteria.address
+    // Xử lý tiện ích
+    if (aiCriteria.amenities && aiCriteria.amenities.length > 0) {
+      if (!result.amenities) {
+        result.amenities = []
+      }
+      // Kết hợp và loại bỏ trùng lặp
+      const mergedAmenities = [...result.amenities, ...aiCriteria.amenities]
+      result.amenities = [...new Set(mergedAmenities)]
     }
 
-    // Nếu AI không trích xuất được khoảng cách, sử dụng kết quả phân tích cơ bản
-    if (!aiCriteria.distance && basicCriteria.distance) {
-      result.distance = basicCriteria.distance
+    // Xử lý địa chỉ
+    if (
+      aiCriteria.address &&
+      (!result.address || aiCriteria.address.length > result.address.length)
+    ) {
+      result.address = aiCriteria.address
+    }
+
+    // Xử lý khoảng cách
+    if (aiCriteria.distance) {
+      if (!result.distance) {
+        result.distance = {}
+      }
+      if (aiCriteria.distance.max) {
+        result.distance.max = aiCriteria.distance.max
+      }
+      if (aiCriteria.distance.location) {
+        result.distance.location = aiCriteria.distance.location
+      }
+    }
+
+    // Xử lý đối tượng người thuê
+    if (aiCriteria.userType) {
+      result.userType = aiCriteria.userType
+    }
+
+    // Xử lý loại phòng
+    if (aiCriteria.roomType) {
+      result.roomType = aiCriteria.roomType
+    }
+
+    // Xử lý tiêu chí sắp xếp
+    if (aiCriteria.sortBy) {
+      result.sortBy = aiCriteria.sortBy
+    }
+
+    // Xử lý thứ tự sắp xếp
+    if (aiCriteria.sortOrder) {
+      result.sortOrder = aiCriteria.sortOrder
+    }
+
+    // Xử lý yêu cầu chỉ lấy một kết quả cao nhất/thấp nhất
+    if (
+      aiCriteria.onlyTopResult === true ||
+      basicCriteria.onlyTopResult === true
+    ) {
+      result.onlyTopResult = true
     }
 
     return result
@@ -1103,6 +1223,20 @@ export class ChatbotService {
         }
       }
 
+      // Xác định cách sắp xếp kết quả
+      let orderBy = { createdAt: 'desc' } as any
+
+      // Kiểm tra có yêu cầu sắp xếp theo giá không
+      if (criteria.sortBy === 'price') {
+        if (criteria.sortOrder === 'desc') {
+          // Sắp xếp theo giá cao nhất trước
+          orderBy = { room: { price: 'desc' } }
+        } else {
+          // Sắp xếp theo giá thấp nhất trước (mặc định)
+          orderBy = { room: { price: 'asc' } }
+        }
+      }
+
       // Lấy các bài đăng phù hợp với tiêu chí cơ bản
       const posts = await this.prisma.rentalPost.findMany({
         where: {
@@ -1146,9 +1280,7 @@ export class ChatbotService {
             },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: orderBy,
       })
 
       // Map kết quả trả về dạng dễ đọc và sắp xếp theo distance nếu có
@@ -1177,6 +1309,17 @@ export class ChatbotService {
         }
       })
 
+      // Nếu có yêu cầu sắp xếp nhưng không thể áp dụng trong truy vấn Prisma, sắp xếp lại kết quả
+      if (criteria.sortBy === 'price' && !orderBy.room) {
+        results.sort((a, b) => {
+          if (criteria.sortOrder === 'desc') {
+            return Number(b.price) - Number(a.price) // Sắp xếp giá cao đến thấp
+          } else {
+            return Number(a.price) - Number(b.price) // Sắp xếp giá thấp đến cao
+          }
+        })
+      }
+
       // Lọc kết quả theo khoảng cách nếu cần (chỉ để đảm bảo an toàn)
       if (criteria.distance && criteria.distance.max) {
         results = results.filter(item => {
@@ -1191,8 +1334,25 @@ export class ChatbotService {
         )
       }
 
-      // Giới hạn kết quả để không quá lớn
-      results = results.slice(0, 10)
+      // Nếu người dùng yêu cầu chỉ lấy phòng giá cao nhất/rẻ nhất
+      if (criteria.sortBy === 'price' && criteria.onlyTopResult === true) {
+        if (results.length > 0) {
+          if (criteria.sortOrder === 'desc') {
+            // Sắp xếp lại một lần nữa để đảm bảo đúng thứ tự (phòng có giá cao nhất)
+            results.sort((a, b) => Number(b.price) - Number(a.price))
+            // Chỉ giữ lại 1 kết quả đầu tiên (phòng giá cao nhất)
+            results = [results[0]]
+          } else {
+            // Sắp xếp lại một lần nữa để đảm bảo đúng thứ tự (phòng có giá thấp nhất)
+            results.sort((a, b) => Number(a.price) - Number(b.price))
+            // Chỉ giữ lại 1 kết quả đầu tiên (phòng giá thấp nhất)
+            results = [results[0]]
+          }
+        }
+      } else {
+        // Giới hạn kết quả để không quá lớn
+        results = results.slice(0, 10)
+      }
 
       // Lưu kết quả vào cache
       this.saveToCache(this.searchResultsCache, cacheKey, results)
@@ -1323,6 +1483,18 @@ export class ChatbotService {
       if (searchResults.length === 0) {
         // Sử dụng RAG để đưa ra phản hồi thông minh khi không tìm thấy kết quả
         summary = await this.generateNoResultsResponse(message, criteria)
+      } else if (searchResults.length === 1 && criteria.onlyTopResult) {
+        // Nếu người dùng yêu cầu lấy kết quả cao nhất/thấp nhất và chỉ có 1 kết quả
+        if (criteria.sortBy === 'price' && criteria.sortOrder === 'desc') {
+          summary = `Đã tìm thấy phòng có giá cao nhất là ${searchResults[0].price.toLocaleString('vi-VN')} VND.`
+        } else if (
+          criteria.sortBy === 'price' &&
+          criteria.sortOrder === 'asc'
+        ) {
+          summary = `Đã tìm thấy phòng có giá thấp nhất là ${searchResults[0].price.toLocaleString('vi-VN')} VND.`
+        } else {
+          summary = `Đã tìm thấy 1 bài đăng phù hợp với yêu cầu của bạn.`
+        }
       } else {
         summary = `Tìm thấy ${searchResults.length} bài đăng phù hợp với yêu cầu của bạn.`
       }

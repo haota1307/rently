@@ -101,7 +101,11 @@ export class RentalRepo {
         include: {
           landlord: true,
           rentalImages: true,
-          rooms: true,
+          rooms: {
+            include: {
+              roomImages: true,
+            },
+          },
         },
       })
       return rental ? this.formatRental(rental) : null
