@@ -127,40 +127,6 @@ export default function ProfileTab({
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
-                          <FormLabel className="text-sm">Địa chỉ</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Nhập địa chỉ của bạn"
-                              className="resize-none min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="bio"
-                      render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
-                          <FormLabel className="text-sm">Giới thiệu</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Giới thiệu ngắn về bạn"
-                              className="resize-none min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      )}
-                    />
                   </div>
 
                   <div className="flex justify-end">

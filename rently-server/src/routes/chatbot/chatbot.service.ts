@@ -41,7 +41,7 @@ export class ChatbotService {
   // Kho lưu trữ kiến thức cho RAG
   private knowledgeBase: KnowledgeChunk[] = []
   // Đường dẫn đến thư mục lưu trữ kiến thức
-  private readonly KNOWLEDGE_DIR = path.join(process.cwd(), 'knowledge')
+  private readonly KNOWLEDGE_DIR = path.join(__dirname, '../../../knowledge')
   // Danh sách các tiện ích có trong hệ thống
   private amenities: { id: number; name: string }[] = []
 
@@ -94,30 +94,27 @@ export class ChatbotService {
    */
   private async initializeKnowledgeBase() {
     try {
+      console.log(`Đang đọc kho kiến thức từ: ${this.KNOWLEDGE_DIR}`)
+
       // Đảm bảo thư mục tồn tại
       if (!fs.existsSync(this.KNOWLEDGE_DIR)) {
+        console.log(
+          `Thư mục knowledge không tồn tại, tạo thư mục mới: ${this.KNOWLEDGE_DIR}`
+        )
         fs.mkdirSync(this.KNOWLEDGE_DIR, { recursive: true })
 
-        // Tạo các file kiến thức mặc định
+        // Tạo các file kiến thức mặc định khi thư mục knowledge chưa tồn tại
         this.createDefaultKnowledgeFiles()
       } else {
-        // Kiểm tra xem các file kiến thức mặc định đã tồn tại chưa
-        const defaultFiles = [
-          'rental_process.json',
-          'advice.json',
-          'posting_guide.json',
-        ]
-        let needCreateDefaults = false
-
-        for (const file of defaultFiles) {
-          if (!fs.existsSync(path.join(this.KNOWLEDGE_DIR, file))) {
-            needCreateDefaults = true
-            break
-          }
-        }
-
-        if (needCreateDefaults) {
+        // Chỉ tạo các file mặc định nếu thư mục rỗng hoàn toàn
+        const files = fs.readdirSync(this.KNOWLEDGE_DIR)
+        if (files.length === 0) {
+          console.log('Thư mục knowledge rỗng, tạo file mặc định')
           this.createDefaultKnowledgeFiles()
+        } else {
+          console.log(
+            `Đã tìm thấy ${files.length} file trong thư mục knowledge, bỏ qua việc tạo file mặc định`
+          )
         }
       }
 
