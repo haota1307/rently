@@ -41,7 +41,13 @@ export class ChatbotService {
   // Kho lưu trữ kiến thức cho RAG
   private knowledgeBase: KnowledgeChunk[] = []
   // Đường dẫn đến thư mục lưu trữ kiến thức
-  private readonly KNOWLEDGE_DIR = path.join(__dirname, '../../../knowledge')
+  // private readonly KNOWLEDGE_DIR = path.join(__dirname, '../../../knowledge')
+
+  // Sử dụng đường dẫn tuyệt đối và cố định để tránh tạo nhiều thư mục
+  private readonly ROOT_DIR = process.cwd().includes('dist')
+    ? path.join(process.cwd(), '..')
+    : process.cwd()
+  private readonly KNOWLEDGE_DIR = path.join(this.ROOT_DIR, 'knowledge')
   // Danh sách các tiện ích có trong hệ thống
   private amenities: { id: number; name: string }[] = []
 
@@ -96,161 +102,70 @@ export class ChatbotService {
     try {
       console.log(`Đang đọc kho kiến thức từ: ${this.KNOWLEDGE_DIR}`)
 
-      // Đảm bảo thư mục tồn tại
+      // Kiểm tra xem thư mục knowledge có tồn tại không
       if (!fs.existsSync(this.KNOWLEDGE_DIR)) {
-        console.log(
-          `Thư mục knowledge không tồn tại, tạo thư mục mới: ${this.KNOWLEDGE_DIR}`
-        )
-        fs.mkdirSync(this.KNOWLEDGE_DIR, { recursive: true })
+        console.error(`Thư mục knowledge không tồn tại: ${this.KNOWLEDGE_DIR}`)
+        console.log(`Sử dụng thư mục knowledge built-in trong thư mục src`)
 
-        // Tạo các file kiến thức mặc định khi thư mục knowledge chưa tồn tại
-        this.createDefaultKnowledgeFiles()
-      } else {
-        // Chỉ tạo các file mặc định nếu thư mục rỗng hoàn toàn
-        const files = fs.readdirSync(this.KNOWLEDGE_DIR)
-        if (files.length === 0) {
-          console.log('Thư mục knowledge rỗng, tạo file mặc định')
-          this.createDefaultKnowledgeFiles()
-        } else {
-          console.log(
-            `Đã tìm thấy ${files.length} file trong thư mục knowledge, bỏ qua việc tạo file mặc định`
-          )
-        }
-      }
+        // Sử dụng thư mục knowledge có sẵn trong source code
+        const builtInKnowledgeDir = path.join(__dirname, 'knowledge')
 
-      // Đọc các file trong thư mục
-      const files = fs.readdirSync(this.KNOWLEDGE_DIR)
+        if (fs.existsSync(builtInKnowledgeDir)) {
+          // Đọc từ thư mục knowledge có sẵn trong source code
+          const files = fs.readdirSync(builtInKnowledgeDir)
 
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          const filePath = path.join(this.KNOWLEDGE_DIR, file)
-          const content = fs.readFileSync(filePath, 'utf8')
-          const chunks = JSON.parse(content) as KnowledgeChunk[]
+          for (const file of files) {
+            if (file.endsWith('.json')) {
+              const filePath = path.join(builtInKnowledgeDir, file)
+              const content = fs.readFileSync(filePath, 'utf8')
+              const chunks = JSON.parse(content) as KnowledgeChunk[]
 
-          // Tạo embeddings cho các chunk mới
-          for (const chunk of chunks) {
-            if (!chunk.embedding) {
-              chunk.embedding = await this.createEmbedding(chunk.content)
+              // Tạo embeddings cho các chunk mới
+              for (const chunk of chunks) {
+                if (!chunk.embedding) {
+                  chunk.embedding = await this.createEmbedding(chunk.content)
+                }
+              }
+
+              this.knowledgeBase.push(...chunks)
             }
           }
 
-          this.knowledgeBase.push(...chunks)
+          console.log(
+            `Đã tải ${this.knowledgeBase.length} đoạn kiến thức từ thư mục built-in`
+          )
+        } else {
+          console.error(
+            `Không tìm thấy thư mục knowledge built-in, khởi tạo kho kiến thức rỗng`
+          )
         }
-      }
+      } else {
+        // Nếu thư mục knowledge tồn tại, đọc từ thư mục đó
+        const files = fs.readdirSync(this.KNOWLEDGE_DIR)
 
-      console.log(
-        `Đã tải ${this.knowledgeBase.length} đoạn kiến thức vào kho RAG`
-      )
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            const filePath = path.join(this.KNOWLEDGE_DIR, file)
+            const content = fs.readFileSync(filePath, 'utf8')
+            const chunks = JSON.parse(content) as KnowledgeChunk[]
+
+            // Tạo embeddings cho các chunk mới
+            for (const chunk of chunks) {
+              if (!chunk.embedding) {
+                chunk.embedding = await this.createEmbedding(chunk.content)
+              }
+            }
+
+            this.knowledgeBase.push(...chunks)
+          }
+        }
+
+        console.log(
+          `Đã tải ${this.knowledgeBase.length} đoạn kiến thức từ ${this.KNOWLEDGE_DIR}`
+        )
+      }
     } catch (error) {
       console.error('Lỗi khởi tạo kho kiến thức:', error)
-    }
-  }
-
-  /**
-   * Tạo các file kiến thức mặc định
-   */
-  private createDefaultKnowledgeFiles() {
-    try {
-      console.log('Tạo các file kiến thức mặc định...')
-
-      // Kiểm tra và tạo file rental_process.json nếu chưa tồn tại
-      const rentalProcessPath = path.join(
-        this.KNOWLEDGE_DIR,
-        'rental_process.json'
-      )
-      if (!fs.existsSync(rentalProcessPath)) {
-        // Sử dụng file từ thư mục knowledge đã được tạo trước đó
-        if (
-          fs.existsSync(
-            path.join(__dirname, 'knowledge', 'rental_process.json')
-          )
-        ) {
-          fs.copyFileSync(
-            path.join(__dirname, 'knowledge', 'rental_process.json'),
-            rentalProcessPath
-          )
-        } else {
-          // Nếu file mẫu không tồn tại, tạo file với nội dung cơ bản
-          const rentalProcessKnowledge = [
-            {
-              id: '1',
-              content:
-                'Quy trình thuê phòng trọ thông thường bao gồm: 1) Tìm kiếm và lựa chọn phòng phù hợp, 2) Liên hệ chủ trọ, 3) Xem phòng trực tiếp, 4) Đàm phán giá cả và điều kiện, 5) Ký hợp đồng thuê phòng, 6) Đóng tiền cọc và tiền phòng, 7) Nhận phòng.',
-              metadata: {
-                source: 'default',
-                category: 'rental_process',
-                createdAt: new Date(),
-              },
-            },
-          ]
-          fs.writeFileSync(
-            rentalProcessPath,
-            JSON.stringify(rentalProcessKnowledge, null, 2)
-          )
-        }
-      }
-
-      // Kiểm tra và tạo file advice.json nếu chưa tồn tại
-      const advicePath = path.join(this.KNOWLEDGE_DIR, 'advice.json')
-      if (!fs.existsSync(advicePath)) {
-        if (fs.existsSync(path.join(__dirname, 'knowledge', 'advice.json'))) {
-          fs.copyFileSync(
-            path.join(__dirname, 'knowledge', 'advice.json'),
-            advicePath
-          )
-        } else {
-          const adviceKnowledge = [
-            {
-              id: '1',
-              content:
-                'Khi thuê phòng trọ, bạn nên kiểm tra kỹ các vấn đề sau: an ninh khu vực, hệ thống điện nước, chất lượng thiết bị trong phòng, độ ẩm và mốc, tiếng ồn, và các quy định của chủ trọ.',
-              metadata: {
-                source: 'default',
-                category: 'advice',
-                createdAt: new Date(),
-              },
-            },
-          ]
-          fs.writeFileSync(advicePath, JSON.stringify(adviceKnowledge, null, 2))
-        }
-      }
-
-      // Kiểm tra và tạo file posting_guide.json nếu chưa tồn tại
-      const postingGuidePath = path.join(
-        this.KNOWLEDGE_DIR,
-        'posting_guide.json'
-      )
-      if (!fs.existsSync(postingGuidePath)) {
-        if (
-          fs.existsSync(path.join(__dirname, 'knowledge', 'posting_guide.json'))
-        ) {
-          fs.copyFileSync(
-            path.join(__dirname, 'knowledge', 'posting_guide.json'),
-            postingGuidePath
-          )
-        } else {
-          const postingGuideKnowledge = [
-            {
-              id: '1',
-              content:
-                'Quy trình đăng bài cho thuê phòng trọ trên Rently gồm 3 bước chính: 1) Tạo nhà trọ (Rental), 2) Tạo phòng (Room), 3) Tạo bài đăng (Post). Bạn phải hoàn thành từng bước theo thứ tự, không thể bỏ qua bước nào.',
-              metadata: {
-                source: 'default',
-                category: 'posting_guide',
-                createdAt: new Date(),
-              },
-            },
-          ]
-          fs.writeFileSync(
-            postingGuidePath,
-            JSON.stringify(postingGuideKnowledge, null, 2)
-          )
-        }
-      }
-
-      console.log('Đã tạo xong các file kiến thức mặc định.')
-    } catch (error) {
-      console.error('Lỗi khi tạo file kiến thức mặc định:', error)
     }
   }
 
@@ -1402,7 +1317,10 @@ export class ChatbotService {
    * Chuyển đổi từ tin nhắn người dùng sang kết quả tìm kiếm
    * Với cơ chế retry, fallback và tích hợp RAG
    */
-  async search(message: string): Promise<{
+  async search(
+    message: string,
+    userId?: number
+  ): Promise<{
     criteria?: any
     summary: string
     results: any[]
@@ -1415,21 +1333,31 @@ export class ChatbotService {
 
       // Nếu là câu hỏi toán học hoặc câu hỏi chung
       if (analysis.intent === 'math' || analysis.intent === 'general') {
-        return {
+        const result = {
           summary: analysis.content,
           results: [],
           totalFound: 0,
         }
+
+        // Lưu cuộc hội thoại vào database
+        await this.saveChatMessage(message, result.summary, null, [], userId)
+
+        return result
       }
 
       // Nếu là yêu cầu tư vấn - sử dụng RAG để trả lời chi tiết hơn
       if (analysis.intent === 'advice') {
         const adviceResponse = await this.generateAdviceResponse(message)
-        return {
+        const result = {
           summary: adviceResponse,
           results: [],
           totalFound: 0,
         }
+
+        // Lưu cuộc hội thoại vào database
+        await this.saveChatMessage(message, result.summary, null, [], userId)
+
+        return result
       }
 
       // Nếu là hướng dẫn đăng bài
@@ -1438,11 +1366,16 @@ export class ChatbotService {
           message,
           'posting_guide'
         )
-        return {
+        const result = {
           summary: postingGuideResponse,
           results: [],
           totalFound: 0,
         }
+
+        // Lưu cuộc hội thoại vào database
+        await this.saveChatMessage(message, result.summary, null, [], userId)
+
+        return result
       }
 
       // Với ý định tìm kiếm, tiếp tục xử lý với RAG để cải thiện kết quả
@@ -1496,20 +1429,76 @@ export class ChatbotService {
         summary = `Tìm thấy ${searchResults.length} bài đăng phù hợp với yêu cầu của bạn.`
       }
 
-      return {
+      const result = {
         criteria,
         summary,
         results: searchResults,
         totalFound: searchResults.length,
       }
+
+      // Lưu cuộc hội thoại vào database
+      await this.saveChatMessage(
+        message,
+        summary,
+        criteria,
+        searchResults,
+        userId
+      )
+
+      return result
     } catch (error: any) {
       console.error('Lỗi search:', error)
+      const errorMessage = 'Đã xảy ra lỗi khi xử lý tin nhắn của bạn.'
+
+      // Lưu cuộc hội thoại lỗi vào database
+      await this.saveChatMessage(message, errorMessage, null, [], userId)
+
       return {
         error: error.message,
-        summary: 'Đã xảy ra lỗi khi xử lý tin nhắn của bạn.',
+        summary: errorMessage,
         results: [],
         totalFound: 0,
       }
+    }
+  }
+
+  /**
+   * Lưu tin nhắn của người dùng và phản hồi của chatbot vào database
+   */
+  private async saveChatMessage(
+    message: string,
+    response: string,
+    criteria: any | null,
+    results: any[],
+    userId?: number
+  ): Promise<void> {
+    try {
+      // Chỉ lưu tin nhắn khi người dùng đã đăng nhập (có userId)
+      if (!userId) {
+        console.log('Không lưu tin nhắn vì người dùng chưa đăng nhập')
+        return
+      }
+
+      // Sử dụng try-catch để bảo vệ luồng chính nếu schema chưa được cập nhật
+      try {
+        // Lưu vào database
+        await this.prisma.$executeRaw`
+          INSERT INTO "ChatbotMessage" ("message", "response", "criteria", "results", "userId", "createdAt", "isRead")
+          VALUES (${message}, ${response}, ${
+            criteria ? JSON.stringify(criteria) : null
+          }::jsonb, ${
+            results.length > 0 ? JSON.stringify(results) : null
+          }::jsonb, ${userId}, now(), true)
+        `
+      } catch (dbError) {
+        console.error(
+          'Lỗi khi lưu tin nhắn chatbot (có thể schema chưa được cập nhật):',
+          dbError
+        )
+      }
+    } catch (error) {
+      console.error('Lỗi khi lưu tin nhắn chatbot:', error)
+      // Không throw lỗi để không làm ảnh hưởng đến luồng chính
     }
   }
 
@@ -1748,6 +1737,14 @@ Hãy đưa ra phản hồi ngắn gọn, thân thiện với người dùng, bao
    */
   private saveKnowledgeToFile(category: string): void {
     try {
+      // Đảm bảo thư mục knowledge tồn tại
+      if (!fs.existsSync(this.KNOWLEDGE_DIR)) {
+        console.log(
+          `Thư mục knowledge không tồn tại, tạo thư mục: ${this.KNOWLEDGE_DIR}`
+        )
+        fs.mkdirSync(this.KNOWLEDGE_DIR, { recursive: true })
+      }
+
       // Lọc kiến thức theo danh mục
       const categoryChunks = this.knowledgeBase.filter(
         chunk => chunk.metadata.category === category
@@ -1756,6 +1753,9 @@ Hãy đưa ra phản hồi ngắn gọn, thân thiện với người dùng, bao
       // Lưu vào file
       const filePath = path.join(this.KNOWLEDGE_DIR, `${category}.json`)
       fs.writeFileSync(filePath, JSON.stringify(categoryChunks, null, 2))
+      console.log(
+        `Đã lưu ${categoryChunks.length} đoạn kiến thức vào ${filePath}`
+      )
     } catch (error) {
       console.error('Lỗi khi lưu kiến thức vào file:', error)
     }
@@ -1918,6 +1918,55 @@ Hãy đưa ra phản hồi ngắn gọn, thân thiện với người dùng, bao
     } catch (error) {
       console.error('Lỗi khi tìm kiếm kiến thức:', error)
       return { chunks: [], total: 0 }
+    }
+  }
+
+  /**
+   * Lấy lịch sử chat của người dùng
+   */
+  async getChatHistory(userId: number, limit: number = 10, offset: number = 0) {
+    try {
+      // Truy vấn raw SQL để lấy lịch sử chat
+      const query = `
+        SELECT id, message, response, "createdAt"
+        FROM "ChatbotMessage"
+        WHERE "userId" = $1
+        ORDER BY "createdAt" DESC
+        LIMIT $2 OFFSET $3
+      `
+
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM "ChatbotMessage"
+        WHERE "userId" = $1
+      `
+
+      // Thực hiện truy vấn
+      const messages = await this.prisma.$queryRawUnsafe(
+        query,
+        userId,
+        limit,
+        offset
+      )
+      const totalResult = await this.prisma.$queryRawUnsafe<
+        Array<{ total: string }>
+      >(countQuery, userId)
+
+      const total = parseInt(totalResult[0]?.total || '0')
+      const hasMore = offset + limit < total
+
+      return {
+        messages,
+        hasMore,
+        total,
+      }
+    } catch (error) {
+      console.error('Lỗi khi lấy lịch sử chat:', error)
+      return {
+        messages: [],
+        hasMore: false,
+        total: 0,
+      }
     }
   }
 }

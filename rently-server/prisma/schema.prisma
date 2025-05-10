@@ -126,7 +126,8 @@ model User {
   tenantRentalRequests   RentalRequest[] @relation("TenantRentalRequests")
   landlordRentalRequests RentalRequest[] @relation("LandlordRentalRequests")
 
-  notifications Notification[]
+  notifications  Notification[]
+  ChatbotMessage ChatbotMessage[]
 
   @@index([name])
   @@index([status])
@@ -561,4 +562,20 @@ model Notification {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model ChatbotMessage {
+  id        Int      @id @default(autoincrement())
+  message   String   @db.Text
+  response  String   @db.Text
+  criteria  Json? // Lưu tiêu chí tìm kiếm
+  results   Json? // Lưu kết quả tìm kiếm
+  isRead    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
 }
