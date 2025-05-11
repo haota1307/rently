@@ -6,8 +6,19 @@ import { Role } from "@/constants/type";
 const adminPaths = ["/quan-ly"];
 const landlordPaths = ["/cho-thue"];
 
+// Các route yêu cầu đăng nhập nhưng không yêu cầu vai trò cụ thể
+const userPrivatePaths = [
+  "/tai-khoan",
+  "/dang-tin",
+  "/rut-tien",
+  "/nap-tien",
+  "/tin-da-luu",
+  "/lich-xem-phong",
+  "/tin-nhan",
+];
+
 // Tất cả các tuyến đường bảo vệ cần xác thực
-const privatePaths = [...adminPaths, ...landlordPaths];
+const privatePaths = [...adminPaths, ...landlordPaths, ...userPrivatePaths];
 
 // Các tuyến đường công khai không cần xác thực
 const publicPaths = [
@@ -16,6 +27,16 @@ const publicPaths = [
   "/refresh-token",
   "/quen-mat-khau",
   "/oauth-google-callback",
+  "/cau-hoi-thuong-gap",
+  "/chinh-sach-bao-mat",
+  "/dieu-khoan-va-dieu-kien",
+  "/lien-he",
+  "/ve-chung-toi",
+  "/phong-tro",
+  "/nha-tro",
+  "/thue-phong",
+  "/so-sanh",
+  "/bai-dang",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -26,7 +47,10 @@ export async function middleware(request: NextRequest) {
   // Nếu là các tuyến đường công khai, cho phép truy cập
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     // Nếu đã đăng nhập mà truy cập các trang auth -> redirect về trang chủ
-    if (refreshToken) {
+    if (
+      refreshToken &&
+      (pathname.startsWith("/dang-nhap") || pathname.startsWith("/dang-ky"))
+    ) {
       return NextResponse.redirect(new URL("/", request.url));
     }
     return NextResponse.next();
@@ -74,6 +98,12 @@ export async function middleware(request: NextRequest) {
           // Nếu không phải Landlord hoặc Admin mà truy cập trang Landlord -> chuyển về trang chủ
           return NextResponse.redirect(new URL("/", request.url));
         }
+        return NextResponse.next();
+      }
+
+      // Kiểm tra quyền truy cập vào trang yêu cầu đăng nhập (cho tất cả các vai trò)
+      if (userPrivatePaths.some((path) => pathname.startsWith(path))) {
+        // Tất cả người dùng đã đăng nhập đều có thể truy cập
         return NextResponse.next();
       }
     } catch (error) {

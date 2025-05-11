@@ -17,23 +17,19 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-// Import components
 import { ConversationList } from "@/features/conversation/components/conversation-list";
 import { ChatHeader } from "@/features/conversation/components/chat-header";
 import { MessageItem } from "@/features/conversation/components/message-item";
 import { MessageInput } from "@/features/conversation/components/message-input";
+import { Conversation, Message } from "@/features/conversation/message.types";
 
-// Import types
-import {
-  Conversation,
-  Message,
-} from "../../../features/conversation/message.types";
-
-// Import hooks
 import { useMessageSocket } from "@/features/conversation/use-message-socket";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, isToday, isYesterday } from "date-fns";
 import { vi } from "date-fns/locale/vi";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 // Component chính của trang tin nhắn
 function MessagesContent() {
@@ -51,6 +47,9 @@ function MessagesContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  // State cho mobile sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // State và refs cho chức năng tải lên tệp tin
   const [uploading, setUploading] = useState(false);
@@ -110,50 +109,97 @@ function MessagesContent() {
 
   // Xử lý cuộn
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollElement = e.currentTarget;
-    const viewport = scrollElement.querySelector(
-      "[data-radix-scroll-area-viewport]"
-    );
+    try {
+      const scrollElement = e.currentTarget;
+      const viewport = scrollElement.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      );
 
-    if (!viewport) {
-      console.log("Không tìm thấy viewport của ScrollArea");
-      return;
-    }
+      if (!viewport) {
+        return;
+      }
 
-    const { scrollTop, scrollHeight, clientHeight } = viewport as HTMLElement;
-    const now = Date.now();
+      const { scrollTop, scrollHeight, clientHeight } = viewport as HTMLElement;
+      const now = Date.now();
 
-    // Xác định hướng cuộn
-    const isScrollingUp = scrollTop < lastScrollPositionRef.current;
-    lastScrollPositionRef.current = scrollTop;
-    scrollingUpRef.current = isScrollingUp;
+      // Xác định hướng cuộn
+      const isScrollingUp = scrollTop < lastScrollPositionRef.current;
+      lastScrollPositionRef.current = scrollTop;
+      scrollingUpRef.current = isScrollingUp;
 
-    // Tin nhắn đầu tiên hiển thị (top = 0) khi cuộn lên đầu trang
-    // Giảm ngưỡng xuống 30px để phát hiện sớm hơn
-    const isNearTop = scrollTop < 30;
+      // Tính toán phần trăm đã cuộn từ trên xuống
+      const scrollPercentage =
+        (scrollTop / (scrollHeight - clientHeight)) * 100;
+      const isNearTop = scrollPercentage < 25 || scrollTop < 100;
 
-    // Kích hoạt tải thêm tin nhắn khi:
-    if (
-      isScrollingUp &&
-      isNearTop &&
-      !isLoadingMore &&
-      currentPage < totalPages
-    ) {
-      if (now - lastLoadTime.current > 1000) {
-        console.log(">> KÍCH HOẠT TẢI TIN NHẮN CŨ QUA CUỘN...", {
-          scrollTop,
-          currentPage,
-          totalPages,
-        });
+      // Kích hoạt tải thêm tin nhắn khi: gần đầu trang và không đang tải
+      if (
+        isScrollingUp &&
+        isNearTop &&
+        !isLoadingMore &&
+        currentPage < totalPages &&
+        now - lastLoadTime.current > 1000
+      ) {
         lastLoadTime.current = now;
         loadMoreMessages();
       }
+
+      // Đánh dấu nếu đã cuộn xuống dưới cùng
+      const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 50;
+      setHasScrolledToBottom(isAtBottom);
+    } catch (error) {
+      console.error("Lỗi khi xử lý sự kiện cuộn:", error);
+    }
+  };
+
+  // Thêm useEffect để thiết lập sự kiện scroll trực tiếp
+  useEffect(() => {
+    const scrollContainer = document.getElementById("messages-container");
+    const viewport = scrollContainer?.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    ) as HTMLElement | null;
+
+    if (!viewport) {
+      return;
     }
 
-    // Đánh dấm nếu đã cuộn xuống dưới cùng
-    const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 50;
-    setHasScrolledToBottom(isAtBottom);
-  };
+    const directScrollHandler = (e: Event) => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      const now = Date.now();
+
+      // Xác định hướng cuộn
+      const isScrollingUp = scrollTop < lastScrollPositionRef.current;
+      lastScrollPositionRef.current = scrollTop;
+      scrollingUpRef.current = isScrollingUp;
+
+      // Tính toán phần trăm đã cuộn từ trên xuống
+      const scrollPercentage =
+        (scrollTop / (scrollHeight - clientHeight)) * 100;
+      const isNearTop = scrollPercentage < 25 || scrollTop < 100;
+
+      // Kích hoạt tải thêm tin nhắn khi: gần đầu trang và không đang tải
+      if (
+        isScrollingUp &&
+        isNearTop &&
+        !isLoadingMore &&
+        currentPage < totalPages &&
+        now - lastLoadTime.current > 1000
+      ) {
+        lastLoadTime.current = now;
+        loadMoreMessages();
+      }
+
+      // Đánh dấu nếu đã cuộn xuống dưới cùng
+      const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 50;
+      setHasScrolledToBottom(isAtBottom);
+    };
+
+    viewport.addEventListener("scroll", directScrollHandler);
+
+    return () => {
+      viewport.removeEventListener("scroll", directScrollHandler);
+    };
+  }, [currentPage, isLoadingMore, totalPages]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -168,91 +214,75 @@ function MessagesContent() {
   // Hàm tải thêm tin nhắn cũ khi cuộn lên trên (infinite scroll)
   const loadMoreMessages = async () => {
     if (!activeConversation || isLoadingMore || currentPage >= totalPages) {
-      console.log("Không thể tải tin nhắn:", {
-        hasActiveConversation: !!activeConversation,
-        isLoadingMore,
-        currentPage,
-        totalPages,
-      });
       return;
     }
 
     try {
       setIsLoadingMore(true);
-      console.log(
-        `===== ĐANG TẢI TRANG ${currentPage + 1}/${totalPages} =====`
-      );
 
-      // Lấy danh sách tin nhắn hiện tại để so sánh sau này
-      const currentMessageIds = new Set(
-        messages.map((msg) =>
-          typeof msg.id === "string" ? msg.id : msg.id.toString()
-        )
-      );
+      // Lấy viewport để đo kích thước ban đầu
+      const scrollContainer = document.getElementById("messages-container");
+      const viewport = scrollContainer?.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      ) as HTMLElement | null;
 
+      // Lưu chiều cao trước khi thêm tin nhắn mới
+      const initialHeight = viewport?.scrollHeight || 0;
+
+      // Gọi API để lấy tin nhắn cũ hơn
       const response = await conversationApiRequest.getMessages(
         activeConversation.id,
         { page: currentPage + 1, limit: 15 }
       );
 
-      if (response.payload.data && response.payload.data.length > 0) {
-        // Lưu vị trí cuộn hiện tại trước khi thêm tin nhắn mới
-        const scrollElement = document.getElementById("messages-container");
-        const viewport = scrollElement?.querySelector(
-          "[data-radix-scroll-area-viewport]"
-        );
-
-        if (!viewport) return;
-
-        const prevHeight = viewport.scrollHeight;
-        const prevScrollTop = viewport.scrollTop;
-
-        // Lọc ra những tin nhắn mới (chưa có trong danh sách hiện tại)
-        const newMessages = response.payload.data.filter(
-          (msg) => !currentMessageIds.has(msg.id.toString())
-        );
-
-        console.log(
-          `Đã nhận ${response.payload.data.length} tin nhắn, ${newMessages.length} tin nhắn mới`
-        );
-
-        if (newMessages.length > 0) {
-          setMessages((prevMessages) => [...prevMessages, ...newMessages]);
-
-          // Cập nhật trang hiện tại
-          setCurrentPage((prev) => prev + 1);
-
-          // Sử dụng setTimeout để đợi DOM cập nhật
-          setTimeout(() => {
-            try {
-              if (viewport) {
-                const newHeight = viewport.scrollHeight;
-                const heightDiff = newHeight - prevHeight;
-
-                // Điều chỉnh vị trí cuộn để giữ người dùng ở cùng vị trí tương đối
-                viewport.scrollTop = prevScrollTop + heightDiff;
-
-                console.log("Đã điều chỉnh vị trí cuộn:", {
-                  prevHeight,
-                  newHeight,
-                  heightDiff,
-                  newScrollTop: viewport.scrollTop,
-                });
-              }
-            } catch (error) {
-              console.error("Lỗi khi điều chỉnh vị trí cuộn:", error);
-            }
-          }, 100);
-        } else {
-          console.log("Không có tin nhắn mới (tất cả đã tồn tại)");
-          // Nếu không có tin nhắn mới nhưng vẫn còn trang, tiếp tục tăng trang
-          if (currentPage < totalPages) {
-            setCurrentPage((prev) => prev + 1);
-          }
-        }
-      } else {
-        console.log("Không còn tin nhắn cũ để tải");
+      if (!response?.payload?.data?.length) {
+        setTotalPages(currentPage);
+        setIsLoadingMore(false);
+        return;
       }
+
+      // Lấy danh sách ID tin nhắn hiện tại
+      const existingMsgIds = new Set(
+        messages.map((msg) =>
+          typeof msg.id === "string" ? msg.id : String(msg.id)
+        )
+      );
+
+      // Lọc ra những tin nhắn chưa có trong danh sách hiện tại
+      const newMessages = response.payload.data.filter(
+        (msg) => !existingMsgIds.has(String(msg.id))
+      );
+
+      if (newMessages.length === 0) {
+        // Vẫn tăng trang vì chúng ta đã kiểm tra trang này
+        setCurrentPage((prev) => prev + 1);
+        setIsLoadingMore(false);
+        return;
+      }
+
+      // Tăng số trang đã tải
+      setCurrentPage((prev) => prev + 1);
+
+      // Thêm tin nhắn mới vào TRƯỚC những tin nhắn hiện tại
+      setMessages((prevMsgs) => [...newMessages, ...prevMsgs]);
+
+      // Đợi DOM cập nhật
+      setTimeout(() => {
+        const updatedViewport = document
+          .getElementById("messages-container")
+          ?.querySelector(
+            "[data-radix-scroll-area-viewport]"
+          ) as HTMLElement | null;
+
+        if (updatedViewport) {
+          // Tính toán sự khác biệt về chiều cao
+          const newHeight = updatedViewport.scrollHeight;
+          const heightDiff = newHeight - initialHeight;
+
+          // Đặt vị trí cuộn để người dùng vẫn ở vị trí tương đối như trước
+          updatedViewport.scrollTop = heightDiff + 50; // +50px để có một chút không gian
+        }
+      }, 100);
     } catch (error) {
       console.error("Lỗi khi tải thêm tin nhắn:", error);
     } finally {
@@ -298,7 +328,7 @@ function MessagesContent() {
       };
 
       // Thêm tin nhắn vào UI trước
-      setMessages((prev) => [newMessage, ...prev]);
+      setMessages((prev) => [...prev, newMessage]);
 
       // Đánh dấu tin nhắn để không xử lý lại (khi nhận từ socket)
       const msgUniqueId = `${tempId}-${userId}-${messageContent}`;
@@ -405,7 +435,6 @@ function MessagesContent() {
 
         // Tham gia vào phòng chat qua socket
         if (socket && socket.connected && activeConversation.id) {
-          console.log(`Tham gia phòng chat: ${activeConversation.id}`);
           socket.emit("joinChat", activeConversation.id);
 
           // Đánh dấu đã đọc khi tham gia phòng chat
@@ -438,13 +467,14 @@ function MessagesContent() {
         );
 
         // Lưu tổng số trang
-        setTotalPages(response.payload.totalPages || 1);
+        const totalPages = response.payload.totalPages || 1;
+        setTotalPages(totalPages);
 
-        // Đặt tin nhắn (tin nhắn mới nhất ở trên đầu mảng)
-        setMessages(response.payload.data);
-
-        // Đánh dấu là chưa cuộn xuống dưới cùng
-        setHasScrolledToBottom(false);
+        // Kiểm tra dữ liệu tin nhắn trả về
+        if (response && response.payload && response.payload.data) {
+          // Đặt tin nhắn
+          setMessages(response.payload.data);
+        }
 
         // Đảm bảo rằng sau khi tải tin nhắn sẽ cuộn xuống dưới cùng (tin nhắn mới nhất)
         setTimeout(() => {
@@ -453,6 +483,7 @@ function MessagesContent() {
           setHasScrolledToBottom(true);
         }, 300);
       } catch (error) {
+        console.error("Lỗi khi tải tin nhắn:", error);
       } finally {
         setLoadingMessages(false);
       }
@@ -907,7 +938,7 @@ function MessagesContent() {
                 </span>
               </div>
 
-              {/* Hiển thị tin nhắn trong ngày */}
+              {/* Hiển thị tin nhắn trong ngày - sắp xếp từ cũ đến mới */}
               <div className="space-y-1">
                 {messagesInDay
                   .sort(
@@ -936,8 +967,75 @@ function MessagesContent() {
     );
   };
 
+  // Chỉnh sửa ChatHeader component để thêm nút hiện/ẩn sidebar
+  const ChatHeaderWithSidebar = ({
+    activeConversation,
+    socketConnected,
+    userId,
+  }: {
+    activeConversation: Conversation | null;
+    socketConnected: boolean;
+    userId: number | null;
+  }) => {
+    // Kiểm tra xem cần hiển thị thông tin của người dùng nào
+    const getDisplayUser = (conversation: Conversation) => {
+      return userId === conversation.userOneId
+        ? conversation.userTwo
+        : conversation.userOne;
+    };
+
+    if (!activeConversation) return null;
+
+    const displayUser = getDisplayUser(activeConversation);
+
+    return (
+      <div className="border-b py-3 px-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {/* Nút toggle sidebar trên mobile */}
+          <button
+            className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label="Toggle conversation list"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+
+          <Avatar>
+            <AvatarImage src={displayUser.avatar || undefined} />
+            <AvatarFallback>
+              <UserCircle className="h-6 w-6" />
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium">{displayUser.name}</div>
+          </div>
+        </div>
+
+        {!socketConnected && (
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Loader2 className="animate-spin h-3 w-3 mr-1" />
+            Đang kết nối...
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="max-w-full w-full py-4 mx-8">
+    <div className="max-w-full w-full p-0 sm:p-4 mx-auto">
       {/* Dialog xác nhận xóa tin nhắn */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -962,33 +1060,86 @@ function MessagesContent() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-120px)]">
-        {/* Danh sách cuộc trò chuyện */}
-        <div className="md:col-span-1 h-full overflow-hidden">
-          <ConversationList
-            loading={loading}
-            conversations={conversations}
-            activeConversation={activeConversation}
-            userId={userId}
-            onSelectConversation={handleConversationClick}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-0 md:gap-4 h-[calc(100vh-80px)] md:h-[calc(100vh-120px)] relative">
+        {/* Overlay để đóng sidebar khi nhấp bên ngoài trên mobile */}
+        {sidebarOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/30 z-40 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setSidebarOpen(false)}
           />
+        )}
+
+        {/* Danh sách cuộc trò chuyện */}
+        <div
+          className={`
+            md:col-span-1 h-full overflow-hidden 
+            fixed md:relative inset-y-0 left-0 
+            w-[85%] sm:w-3/4 md:w-auto 
+            z-50 md:z-auto
+            bg-background
+            shadow-lg md:shadow-none
+            transition-all duration-300 ease-in-out
+            ${
+              sidebarOpen
+                ? "translate-x-0"
+                : "-translate-x-full md:translate-x-0"
+            }
+          `}
+        >
+          <div className="h-full flex flex-col">
+            <div className="p-3 border-b md:hidden flex items-center justify-between">
+              <h2 className="font-semibold text-lg">Tin nhắn</h2>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-1 rounded-full hover:bg-muted"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <ConversationList
+              loading={loading}
+              conversations={conversations}
+              activeConversation={activeConversation}
+              userId={userId}
+              onSelectConversation={(conversation, e) => {
+                handleConversationClick(conversation, e);
+                // Đóng sidebar sau khi chọn cuộc trò chuyện trên mobile
+                if (window.innerWidth < 768) {
+                  setSidebarOpen(false);
+                }
+              }}
+            />
+          </div>
         </div>
 
         {/* Khung chat */}
         <div className="md:col-span-2 h-full overflow-hidden">
-          <Card className="h-full flex flex-col">
+          <Card className="h-full flex flex-col rounded-none md:rounded-md border-0 md:border">
             {activeConversation ? (
               <>
                 {/* Header của chat */}
-                <ChatHeader
+                <ChatHeaderWithSidebar
                   activeConversation={activeConversation}
                   socketConnected={socketConnected}
-                  userId={userId}
+                  userId={userId || null}
                 />
 
                 {/* Tin nhắn */}
                 <ScrollArea
-                  className="flex-1 px-6 py-4 h-0 w-full"
+                  className="flex-1 px-3 sm:px-6 py-4 h-0 w-full"
                   id="messages-container"
                   onScroll={handleScroll}
                 >
@@ -1013,13 +1164,6 @@ function MessagesContent() {
                           Đã hiển thị tất cả tin nhắn
                         </div>
                       )}
-                    </div>
-
-                    {/* Khu vực thông tin debug - để người dùng biết trạng thái hiện tại */}
-                    <div className="text-xs text-muted-foreground mb-4 p-2 bg-muted/30 rounded-md">
-                      Đã tải: {messages.length} tin nhắn | Trang: {currentPage}/
-                      {totalPages}
-                      {currentPage >= totalPages && " | Đã tải hết"}
                     </div>
 
                     {/* Hiển thị tin nhắn theo nhóm */}
@@ -1064,8 +1208,28 @@ function MessagesContent() {
                 />
               </>
             ) : (
-              <div className="text-center py-16 text-muted-foreground">
-                <p>Hãy chọn một cuộc trò chuyện để bắt đầu trò chuyện...</p>
+              <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center h-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-12 w-12 text-muted-foreground/50 mb-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                <p className="mb-2">Hãy chọn một cuộc trò chuyện để bắt đầu</p>
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors"
+                >
+                  Mở danh sách tin nhắn
+                </button>
               </div>
             )}
           </Card>
