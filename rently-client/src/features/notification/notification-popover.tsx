@@ -110,20 +110,6 @@ export const NotificationPopover = () => {
             notifications={data?.payload?.data || []}
             isLoading={false}
           />
-
-          {data?.payload?.data?.length === 0 && (
-            <div className="p-8 sm:p-12 text-center">
-              <div className="bg-muted/40 p-4 sm:p-5 rounded-full inline-flex items-center justify-center mb-3 sm:mb-4 shadow-sm">
-                <BellOff className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-medium text-base sm:text-lg">
-                Không có thông báo
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2 max-w-[280px] mx-auto">
-                Bạn sẽ nhận thông báo khi có lịch hẹn, tin nhắn hoặc yêu cầu mới
-              </p>
-            </div>
-          )}
         </>
       )}
     </>

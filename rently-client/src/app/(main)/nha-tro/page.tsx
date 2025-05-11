@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -37,7 +37,47 @@ const RentalsMap = dynamic(() => import("@/features/map/rentals-map"), {
   ssr: false,
 });
 
-const RentalListingPage = () => {
+// Component để loading
+const RentalListingPageSkeleton = () => {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <Skeleton className="h-6 w-24" />
+        <span>/</span>
+        <Skeleton className="h-6 w-24" />
+      </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+          <Skeleton className="h-10 w-64 mb-2" />
+          <Skeleton className="h-6 w-96" />
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <Skeleton className="h-48 w-full" />
+              <CardContent className="p-4">
+                <Skeleton className="h-8 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-2/3 mb-4" />
+                <Skeleton className="h-8 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+      </div>
+      <Skeleton className="h-10 w-full" />
+    </div>
+  );
+};
+
+// Component chính được bọc trong Suspense
+const RentalListingContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [rentals, setRentals] = useState<RentalType[]>([]);
@@ -199,190 +239,224 @@ const RentalListingPage = () => {
         </div>
       </div>
 
-      {/* Bản đồ */}
-      {showMap && (
-        <div className="mb-8 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold">Bản đồ nhà trọ</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Nhấp vào marker để xem chi tiết nhà trọ
-            </p>
+      {/* Bộ lọc và tìm kiếm */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm mb-8">
+        <form onSubmit={handleSearch} className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="col-span-1 md:col-span-2">
+              <div className="relative">
+                <Input
+                  placeholder="Tìm kiếm nhà trọ..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Select value={sortOption} onValueChange={handleSortChange}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Sắp xếp theo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Mặc định</SelectItem>
+                  <SelectItem value="price-asc">Giá thấp - cao</SelectItem>
+                  <SelectItem value="price-desc">Giá cao - thấp</SelectItem>
+                  <SelectItem value="newest">Mới nhất</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="submit" className="gap-1">
+                <Search className="h-4 w-4" />
+                <span className="hidden sm:inline">Tìm kiếm</span>
+              </Button>
+            </div>
           </div>
-          <div className="h-[500px] rounded-lg overflow-hidden">
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              <Bed className="h-3 w-3 mr-1" /> Phòng trọ
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              <DollarSign className="h-3 w-3 mr-1" /> Dưới 3 triệu
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              <MapPin className="h-3 w-3 mr-1" /> Gần trường học
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              <Ruler className="h-3 w-3 mr-1" /> Trên 20m²
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1"
+            >
+              <Sliders className="h-3 w-3" /> Thêm bộ lọc
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* Hiển thị bản đồ nếu được bật */}
+      {showMap && (
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+          <div className="h-[500px] w-full">
             <RentalsMap />
           </div>
         </div>
       )}
 
-      {/* Bộ lọc và tìm kiếm */}
-      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-              <Input
-                type="text"
-                placeholder="Tìm kiếm nhà trọ..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Button type="submit">Tìm kiếm</Button>
-          </form>
-
-          <div className="flex gap-2">
-            <div className="w-40">
-              <Select value={sortOption} onValueChange={handleSortChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sắp xếp theo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Mặc định</SelectItem>
-                  <SelectItem value="price-asc">Giá: Thấp - Cao</SelectItem>
-                  <SelectItem value="price-desc">Giá: Cao - Thấp</SelectItem>
-                  <SelectItem value="newest">Mới nhất</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button variant="outline" size="icon">
-              <Sliders className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Danh sách nhà trọ */}
-      <div className="mb-8">
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, index) => (
-              <div key={index} className="border rounded-lg overflow-hidden">
-                <Skeleton className="w-full h-48" />
-                <div className="p-4">
-                  <Skeleton className="h-6 w-3/4 mb-2" />
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {Array(6)
+            .fill(0)
+            .map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="h-48 w-full" />
+                <CardContent className="p-4">
+                  <Skeleton className="h-8 w-3/4 mb-2" />
                   <Skeleton className="h-4 w-full mb-2" />
                   <Skeleton className="h-4 w-2/3 mb-4" />
-                  <div className="flex justify-between">
-                    <Skeleton className="h-8 w-20" />
-                    <Skeleton className="h-8 w-20" />
-                  </div>
-                </div>
-              </div>
+                  <Skeleton className="h-8 w-full" />
+                </CardContent>
+              </Card>
             ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <House className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-            <h2 className="text-xl font-semibold mb-2">
-              Không tìm thấy nhà trọ
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
-            <Button onClick={() => router.push("/")}>Quay lại trang chủ</Button>
-          </div>
-        ) : rentals.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <House className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-            <h2 className="text-xl font-semibold mb-2">
-              Không tìm thấy nhà trọ
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Không có nhà trọ nào phù hợp với tìm kiếm của bạn
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rentals.map((rental) => (
-              <Card
-                key={rental.id}
-                className="overflow-hidden hover:shadow-md transition-shadow"
-              >
-                <Link href={`/nha-tro/${rental.id}`} className="block">
-                  <div className="relative aspect-[4/3] w-full overflow-hidden">
-                    {rental.rentalImages && rental.rentalImages.length > 0 ? (
-                      <Image
-                        src={rental.rentalImages[0].imageUrl}
-                        alt={rental.title}
-                        fill
-                        className="object-cover transition-transform hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center">
-                        <House className="h-12 w-12 text-gray-400 mb-2" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">
-                          Không có hình ảnh
-                        </p>
-                      </div>
-                    )}
-                    {rental.rooms && rental.rooms.length > 0 && (
-                      <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
-                        {rental.rooms.filter((r) => r.isAvailable).length} phòng
-                        trống
-                      </div>
-                    )}
-                  </div>
-                </Link>
+        </div>
+      ) : error ? (
+        <div className="text-center p-8">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            size="sm"
+          >
+            Thử lại
+          </Button>
+        </div>
+      ) : rentals.length === 0 ? (
+        <div className="text-center p-8">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
+            Không tìm thấy nhà trọ nào phù hợp với tìm kiếm của bạn
+          </p>
+          <Button
+            onClick={() => {
+              setSearchTerm("");
+              router.push("/nha-tro");
+            }}
+            variant="outline"
+            size="sm"
+          >
+            Xóa bộ lọc
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {rentals.map((rental) => (
+            <Link
+              href={`/nha-tro/${rental.id}`}
+              key={rental.id}
+              className="block"
+            >
+              <Card className="overflow-hidden h-full hover:shadow-md transition-shadow">
+                <div className="relative h-48">
+                  {rental.rentalImages && rental.rentalImages.length > 0 ? (
+                    <Image
+                      src={rental.rentalImages[0].imageUrl}
+                      alt={rental.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-gray-200 dark:bg-gray-700">
+                      <Home className="h-12 w-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
                 <CardContent className="p-4">
-                  <Link href={`/nha-tro/${rental.id}`} className="block">
-                    <h2 className="font-semibold text-lg mb-1 line-clamp-1 hover:text-primary transition-colors">
-                      {rental.title}
-                    </h2>
-                  </Link>
-                  <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="line-clamp-1">{rental.address}</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mt-3 mb-4">
+                  <h3 className="font-semibold text-lg mb-1 line-clamp-1">
+                    {rental.title}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-2 line-clamp-2">
+                    {rental.address}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm mb-3">
                     {rental.rooms && rental.rooms.length > 0 && (
                       <>
-                        <div className="flex items-center gap-1 text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                          <Bed className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-1">
+                          <Bed className="h-4 w-4 text-gray-400" />
                           <span>{rental.rooms.length} phòng</span>
                         </div>
-                        <div className="flex items-center gap-1 text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                          <DollarSign className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-1">
+                          <Ruler className="h-4 w-4 text-gray-400" />
                           <span>
-                            {Math.min(
-                              ...rental.rooms.map((r) => r.price)
-                            ).toLocaleString("vi-VN")}
-                            {rental.rooms.length > 1 ? "+ VNĐ" : " VNĐ"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                          <Ruler className="h-3.5 w-3.5" />
-                          <span>
-                            {Math.min(...rental.rooms.map((r) => r.area))} m²
-                            {rental.rooms.length > 1 ? "+" : ""}
+                            {Math.min(...rental.rooms.map((r) => r.area))} -{" "}
+                            {Math.max(...rental.rooms.map((r) => r.area))} m²
                           </span>
                         </div>
                       </>
                     )}
                   </div>
-
-                  <div className="flex justify-end mt-2">
-                    <Button asChild>
-                      <Link href={`/nha-tro/${rental.id}`}>Xem chi tiết</Link>
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-lg text-primary">
+                      {rental.rooms && rental.rooms.length > 0
+                        ? new Intl.NumberFormat("vi-VN", {
+                            style: "currency",
+                            currency: "VND",
+                            maximumFractionDigits: 0,
+                          }).format(
+                            Math.min(...rental.rooms.map((r) => r.price))
+                          ) + "/tháng"
+                        : "Liên hệ"}
+                    </div>
+                    <Button size="sm" variant="outline">
+                      Chi tiết
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Phân trang */}
-      {!loading && !error && totalPages > 1 && (
-        <div className="flex justify-center mt-6">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+            </Link>
+          ))}
         </div>
       )}
+
+      {/* Phân trang */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
+  );
+};
+
+const RentalListingPage = () => {
+  return (
+    <Suspense fallback={<RentalListingPageSkeleton />}>
+      <RentalListingContent />
+    </Suspense>
   );
 };
 
