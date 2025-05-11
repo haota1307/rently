@@ -41,7 +41,7 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { useAppStore } from "@/components/app-provider";
 import { Role } from "@/constants/type";
-import { useConversation } from "@/features/conversation/useConversation";
+import { useConversation } from "@/features/conversation/use-conversation";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { RentalRequestButton } from "@/features/rental-request/components/rental-request-button";

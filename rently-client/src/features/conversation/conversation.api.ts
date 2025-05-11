@@ -31,14 +31,6 @@ export interface CreateConversationResponse {
   created: boolean;
 }
 
-export interface UploadedFile {
-  url: string;
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  thumbnailUrl?: string;
-}
-
 export enum MessageType {
   TEXT = "TEXT",
   IMAGE = "IMAGE",
@@ -46,6 +38,15 @@ export enum MessageType {
   DOCUMENT = "DOCUMENT",
   AUDIO = "AUDIO",
   FILE = "FILE",
+}
+
+interface UploadedFile {
+  url: string;
+  downloadUrl?: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  thumbnailUrl?: string;
 }
 
 export interface MessageData {
@@ -102,7 +103,11 @@ const conversationApiRequest = {
     ),
 
   // Gửi tin nhắn mới
-  sendMessage: (data: MessageData) => http.post<any>(`${prefix}/send`, data),
+  sendMessage: (data: MessageData) => {
+    // Đảm bảo không gửi trường downloadUrl
+    const { downloadUrl, ...validData } = data as any;
+    return http.post<any>(`${prefix}/send`, validData);
+  },
 
   // Sửa tin nhắn
   editMessage: (messageId: number, content: string) =>
@@ -117,21 +122,62 @@ const conversationApiRequest = {
     http.put<any>(`${prefix}/conversations/${conversationId}/mark-as-read`, {}),
 
   uploadMessageFile: (formData: FormData) =>
-    http.post<UploadedFile>(`${prefix}/upload`, formData),
+    http.post<UploadedFile>(`/upload/message-file`, formData),
 
   uploadMultipleFiles: async (
     files: File[],
     conversationId: number
   ): Promise<UploadedFile[]> => {
-    const uploadPromises = files.map((file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("conversationId", conversationId.toString());
-      return http.post<UploadedFile>(`${prefix}/upload`, formData);
-    });
+    // Kiểm tra kích thước file
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const invalidFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
 
-    const responses = await Promise.all(uploadPromises);
-    return responses.map((response) => response.payload);
+    if (invalidFiles.length > 0) {
+      throw new Error(
+        `Các file sau vượt quá kích thước tối đa (10MB): ${invalidFiles
+          .map((f) => f.name)
+          .join(", ")}`
+      );
+    }
+
+    // Hạn chế số lượng file gửi cùng lúc
+    if (files.length > 5) {
+      throw new Error("Chỉ có thể tải lên tối đa 5 file cùng lúc");
+    }
+
+    try {
+      // Log thông tin để debug
+      console.log(
+        "Bắt đầu upload file:",
+        files.map((f) => ({ name: f.name, size: f.size, type: f.type }))
+      );
+
+      // Tạo mảng promises cho việc upload song song
+      const uploadPromises = files.map((file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("conversationId", conversationId.toString());
+
+        // Log để kiểm tra
+        console.log(
+          `Chuẩn bị upload file: ${file.name}, kích thước: ${file.size}, loại: ${file.type}`
+        );
+
+        return http.post<UploadedFile>(`/upload/message-file`, formData);
+      });
+
+      console.log(`Đang upload ${files.length} file...`);
+      const responses = await Promise.all(uploadPromises);
+      console.log(
+        "Kết quả upload:",
+        responses.map((res) => res.payload)
+      );
+
+      return responses.map((response) => response.payload);
+    } catch (error) {
+      console.error("Lỗi khi tải nhiều file:", error);
+      throw error;
+    }
   },
 
   sendMessageWithFiles: async (
@@ -140,10 +186,48 @@ const conversationApiRequest = {
     conversationId: number
   ) => {
     try {
-      const uploadedFiles = await conversationApiRequest.uploadMultipleFiles(
-        files,
-        conversationId
-      );
+      // Kiểm tra xem có file nào không
+      if (files.length === 0) {
+        if (message.trim()) {
+          const result = await conversationApiRequest.sendMessage({
+            conversationId,
+            content: message,
+            type: MessageType.TEXT,
+          });
+          return {
+            success: true,
+            uploadedFiles: [],
+            messages: [result.payload],
+          };
+        }
+        throw new Error("Không có tin nhắn hoặc file để gửi");
+      }
+
+      // Log để debug
+      console.log("Bắt đầu quá trình gửi tin nhắn kèm file");
+
+      // Upload từng file một thay vì đồng thời
+      const uploadedFiles: UploadedFile[] = [];
+      for (const file of files) {
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("conversationId", conversationId.toString());
+
+          console.log(`Đang upload file: ${file.name}`);
+          const response = await http.post<UploadedFile>(
+            `/upload/message-file`,
+            formData
+          );
+          uploadedFiles.push(response.payload);
+          console.log(`Upload thành công file: ${file.name}`);
+        } catch (error) {
+          console.error(`Lỗi khi upload file ${file.name}:`, error);
+          throw error;
+        }
+      }
+
+      console.log("Tất cả file đã được upload:", uploadedFiles);
 
       const imageFiles = uploadedFiles.filter((file) =>
         file.fileType.startsWith("image/")
@@ -153,31 +237,44 @@ const conversationApiRequest = {
         (file) => !file.fileType.startsWith("image/")
       );
 
-      const messagePromises = [];
-
+      // Gửi tin nhắn văn bản trước nếu có
+      let messageResults = [];
       if (message.trim()) {
-        messagePromises.push(
-          conversationApiRequest.sendMessage({
+        try {
+          const textResult = await conversationApiRequest.sendMessage({
             conversationId,
             content: message,
             type: MessageType.TEXT,
-          })
-        );
+          });
+          messageResults.push(textResult.payload);
+          console.log("Đã gửi tin nhắn văn bản");
+        } catch (error) {
+          console.error("Lỗi khi gửi tin nhắn văn bản:", error);
+        }
       }
 
+      // Gửi từng file không phải ảnh
       for (const file of otherFiles) {
-        const fileType = file.fileType.startsWith("video/")
-          ? MessageType.VIDEO
-          : file.fileType.startsWith("audio/")
-          ? MessageType.AUDIO
-          : file.fileType.includes("pdf") ||
-            file.fileType.includes("doc") ||
-            file.fileType.includes("xls")
-          ? MessageType.DOCUMENT
-          : MessageType.FILE;
+        try {
+          const fileType = file.fileType.startsWith("video/")
+            ? MessageType.VIDEO
+            : file.fileType.startsWith("audio/")
+            ? MessageType.AUDIO
+            : file.fileType.includes("pdf") ||
+              file.fileType.includes("doc") ||
+              file.fileType.includes("xls")
+            ? MessageType.DOCUMENT
+            : MessageType.FILE;
 
-        messagePromises.push(
-          conversationApiRequest.sendMessage({
+          console.log(
+            `Đang gửi tin nhắn cho file: ${file.fileName}, loại: ${fileType}`
+          );
+
+          // Lưu downloadUrl để hiển thị trong client, nhưng không gửi lên server
+          const downloadUrl = file.downloadUrl;
+
+          // Tạo đối tượng tin nhắn không có trường downloadUrl
+          const messageData = {
             conversationId,
             content: `Đã gửi ${
               fileType === MessageType.DOCUMENT ? "tài liệu" : "tệp tin"
@@ -188,27 +285,45 @@ const conversationApiRequest = {
             fileSize: file.fileSize,
             fileType: file.fileType,
             thumbnailUrl: file.thumbnailUrl,
-          })
-        );
+          };
+
+          const result = await conversationApiRequest.sendMessage(messageData);
+
+          // Thêm lại downloadUrl cho phía client sử dụng
+          const messageWithDownloadUrl = {
+            ...result.payload,
+            downloadUrl: downloadUrl || file.url,
+          };
+
+          messageResults.push(messageWithDownloadUrl);
+          console.log(`Đã gửi tin nhắn file thành công: ${file.fileName}`);
+        } catch (error) {
+          console.error(
+            `Lỗi khi gửi tin nhắn cho file ${file.fileName}:`,
+            error
+          );
+        }
       }
 
       // Gửi tất cả ảnh trong một tin nhắn nếu có
       if (imageFiles.length > 0) {
-        // Tạo nội dung mô tả cho ảnh
-        const imageContent = message.trim()
-          ? `[${
-              imageFiles.length > 1
-                ? `${imageFiles.length} hình ảnh`
-                : "Hình ảnh"
-            }] ${message}`
-          : `Đã gửi ${
-              imageFiles.length > 1
-                ? `${imageFiles.length} hình ảnh`
-                : "hình ảnh"
-            }`;
+        try {
+          // Tạo nội dung mô tả cho ảnh
+          const imageContent = message.trim()
+            ? `[${
+                imageFiles.length > 1
+                  ? `${imageFiles.length} hình ảnh`
+                  : "Hình ảnh"
+              }] ${message}`
+            : `Đã gửi ${
+                imageFiles.length > 1
+                  ? `${imageFiles.length} hình ảnh`
+                  : "hình ảnh"
+              }`;
 
-        messagePromises.push(
-          conversationApiRequest.sendMessage({
+          console.log(`Đang gửi tin nhắn kèm ${imageFiles.length} ảnh`);
+
+          const result = await conversationApiRequest.sendMessage({
             conversationId,
             content: imageContent,
             type: MessageType.IMAGE,
@@ -217,16 +332,19 @@ const conversationApiRequest = {
             fileSize: imageFiles[0].fileSize,
             fileType: imageFiles[0].fileType,
             thumbnailUrl: imageFiles[0].thumbnailUrl,
-          })
-        );
+          });
+
+          messageResults.push(result.payload);
+          console.log("Đã gửi tin nhắn ảnh thành công");
+        } catch (error) {
+          console.error("Lỗi khi gửi tin nhắn ảnh:", error);
+        }
       }
 
-      // Chờ tất cả tin nhắn được gửi
-      const results = await Promise.all(messagePromises);
       return {
         success: true,
         uploadedFiles,
-        messages: results.map((res) => res.payload),
+        messages: messageResults,
       };
     } catch (error) {
       console.error("Lỗi khi gửi tin nhắn kèm file:", error);

@@ -153,6 +153,23 @@ const request = async <Response>(
   let body: FormData | string | undefined = undefined;
   if (options?.body instanceof FormData) {
     body = options.body;
+    // Thêm log để debug FormData
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `FormData for ${url}:`,
+        Array.from(body.entries()).map(([key, value]) => {
+          if (value instanceof File) {
+            return {
+              key,
+              fileName: value.name,
+              fileType: value.type,
+              fileSize: value.size,
+            };
+          }
+          return { key, value };
+        })
+      );
+    }
   } else if (options?.body) {
     body = JSON.stringify(options.body);
   }
@@ -180,6 +197,11 @@ const request = async <Response>(
   const fullUrl = `${baseUrl}/${normalizePath(url)}`;
 
   try {
+    console.log(
+      `[HTTP ${method}] ${fullUrl}`,
+      options?.body instanceof FormData ? "FormData" : options?.body
+    );
+
     const res = await fetch(fullUrl, {
       ...options,
       headers: {
@@ -196,9 +218,17 @@ const request = async <Response>(
       payload,
     };
 
+    console.log(
+      `[HTTP Response ${method}] ${fullUrl} - Status: ${res.status}`,
+      payload
+    );
+
     // Xử lý response errors
     if (!res.ok) {
       if (res.status === ENTITY_ERROR_STATUS) {
+        console.error(
+          `[EntityError] Lỗi xác thực dữ liệu: ${JSON.stringify(data.payload)}`
+        );
         throw new EntityError(
           data as {
             status: 422;

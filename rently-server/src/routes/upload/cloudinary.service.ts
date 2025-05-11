@@ -95,39 +95,92 @@ export class UploadService {
     try {
       // Xác định loại file dựa trên MIME type
       const resourceType = this.getResourceType(file.mimetype)
+      const isDocument =
+        file.mimetype === 'application/pdf' ||
+        file.mimetype.includes('word') ||
+        file.mimetype.includes('excel') ||
+        file.mimetype.includes('powerpoint') ||
+        file.mimetype.includes('openxmlformats')
+
+      // Lấy phần mở rộng file từ tên file gốc
+      let fileExtension = ''
+      if (file.originalname) {
+        const parts = file.originalname.split('.')
+        if (parts.length > 1) {
+          fileExtension = parts.pop() || ''
+        }
+      }
+
+      // Nếu không có phần mở rộng, thử xác định từ MIME type
+      if (!fileExtension) {
+        if (file.mimetype.includes('pdf')) fileExtension = 'pdf'
+        else if (file.mimetype.includes('word')) fileExtension = 'docx'
+        else if (file.mimetype.includes('excel')) fileExtension = 'xlsx'
+        else if (file.mimetype.includes('powerpoint')) fileExtension = 'pptx'
+      }
+
+      console.log(
+        `Uploading file: ${file.originalname}, MIME: ${file.mimetype}, Type: ${resourceType}, Extension: ${fileExtension}`
+      )
 
       // Upload file lên Cloudinary
       const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+        const uploadOptions = {
+          folder,
+          resource_type: resourceType as 'image' | 'video' | 'raw',
+          // Thêm tùy chọn cho file document để đảm bảo tên file gốc được giữ nguyên
+          ...(isDocument && {
+            use_filename: true,
+            unique_filename: true,
+            // Thêm format để đảm bảo định dạng file được giữ nguyên
+            format: fileExtension || 'raw',
+            type: 'upload',
+            // Thay thế access_mode: 'authenticated' bằng public
+            access_mode: 'public',
+            // Thêm các tùy chọn để tránh xử lý file
+            raw_transformation: 'fl_attachment',
+          }),
+          // Nếu là hình ảnh, áp dụng transformation
+          ...(resourceType === 'image' && {
+            transformation: [{ quality: 'auto', fetch_format: 'auto' }],
+          }),
+          // Nếu là video, áp dụng transformation riêng
+          ...(resourceType === 'video' && {
+            transformation: [
+              {
+                quality: 'auto:low',
+                video_codec: 'h264',
+                fetch_format: 'mp4',
+              },
+            ],
+          }),
+        }
+
+        console.log('Upload options:', uploadOptions)
+
         const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder,
-            resource_type: resourceType as 'image' | 'video' | 'raw',
-            // Nếu là hình ảnh, áp dụng transformation
-            ...(resourceType === 'image' && {
-              transformation: [{ quality: 'auto', fetch_format: 'auto' }],
-            }),
-            // Nếu là video, áp dụng transformation riêng
-            ...(resourceType === 'video' && {
-              transformation: [
-                {
-                  quality: 'auto:low',
-                  video_codec: 'h264',
-                  fetch_format: 'mp4',
-                },
-              ],
-            }),
-          },
+          uploadOptions,
           (error: UploadApiErrorResponse, result: UploadApiResponse) => {
             if (error) {
+              console.error('Cloudinary upload error:', error)
               return reject(error)
             }
+            console.log('Cloudinary upload success:', {
+              public_id: result.public_id,
+              format: result.format,
+              url: result.url,
+              secure_url: result.secure_url,
+            })
             resolve(result)
           }
         )
+
         streamifier.createReadStream(file.buffer).pipe(uploadStream)
       })
+
       return result
     } catch (error) {
+      console.error('Error in uploadMessageFile:', error)
       throw new InternalServerErrorException((error as Error).message)
     }
   }

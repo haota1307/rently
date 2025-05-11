@@ -130,7 +130,7 @@ export const Footer = () => {
         </div>
 
         {/* Bản đồ nhà trọ */}
-        <div className="pt-8 pb-4 border-b dark:border-gray-800">
+        {/* <div className="pt-8 pb-4 border-b dark:border-gray-800">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Khám phá nhà trọ trên bản đồ
@@ -140,7 +140,7 @@ export const Footer = () => {
             </p>
           </div>
           <RentalsMap />
-        </div>
+        </div> */}
 
         {/* Nội dung chính của Footer */}
         <div className="py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-8">
