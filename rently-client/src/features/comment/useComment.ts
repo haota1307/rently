@@ -7,6 +7,7 @@ export function useComments(postId: number) {
   const isAuth = useAppStore((state) => state.isAuth);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [editingComment, setEditingComment] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -74,6 +75,7 @@ export function useComments(postId: number) {
     if (!newComment.trim()) return;
 
     try {
+      setIsSubmitting(true);
       const response = await commentApiRequest.createComment({
         content: newComment,
         postId,
@@ -88,6 +90,9 @@ export function useComments(postId: number) {
 
         // Cập nhật danh sách ID đã tải
         setLoadedCommentIds((prev) => new Set([...prev, newCommentData.id]));
+
+        // Cập nhật tổng số bình luận
+        setTotalComments((prev) => prev + 1);
       }
 
       setNewComment("");
@@ -95,6 +100,8 @@ export function useComments(postId: number) {
     } catch (error) {
       console.error("Lỗi khi thêm bình luận:", error);
       toast.error("Không thể thêm bình luận");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -117,6 +124,7 @@ export function useComments(postId: number) {
     if (!replyContent.trim()) return;
 
     try {
+      setIsSubmitting(true);
       const response = await commentApiRequest.createComment({
         content: replyContent,
         postId,
@@ -147,12 +155,17 @@ export function useComments(postId: number) {
         })
       );
 
+      // Cập nhật tổng số bình luận
+      setTotalComments((prev) => prev + 1);
+
       setReplyingTo(null);
       setReplyContent("");
       toast.success("Đã trả lời bình luận thành công");
     } catch (error) {
       console.error("Lỗi khi trả lời bình luận:", error);
       toast.error("Không thể trả lời bình luận");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -171,6 +184,7 @@ export function useComments(postId: number) {
     if (!editContent.trim()) return;
 
     try {
+      setIsSubmitting(true);
       const response = await commentApiRequest.updateComment(commentId, {
         content: editContent,
       });
@@ -204,6 +218,8 @@ export function useComments(postId: number) {
     } catch (error) {
       console.error("Lỗi khi cập nhật bình luận:", error);
       toast.error("Không thể cập nhật bình luận");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -211,6 +227,7 @@ export function useComments(postId: number) {
     if (!isAuth) return;
 
     try {
+      setIsSubmitting(true);
       await commentApiRequest.deleteComment(commentId);
 
       // Xóa comment khỏi danh sách
@@ -232,10 +249,15 @@ export function useComments(postId: number) {
         });
       });
 
+      // Cập nhật tổng số bình luận
+      setTotalComments((prev) => Math.max(0, prev - 1));
+
       toast.success("Đã xóa bình luận thành công");
     } catch (error) {
       console.error("Lỗi khi xóa bình luận:", error);
       toast.error("Không thể xóa bình luận");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -247,6 +269,7 @@ export function useComments(postId: number) {
   return {
     comments,
     loading,
+    isSubmitting,
     newComment,
     setNewComment,
     editingComment,

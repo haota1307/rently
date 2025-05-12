@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background overflow-x-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased w-auto min-h-screen bg-background overflow-x-hidden`}
       >
         <NextTopLoader
           color="hsl(var(--secondary-foreground))"

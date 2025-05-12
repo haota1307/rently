@@ -3,10 +3,11 @@
 @tailwind utilities;
 
 html,
-body,
-:root {
-  height: 100%;
+body {
+  overflow-x: hidden;
+  position: relative;
   width: 100%;
+  max-width: 100%;
 }
 
 @layer utilities {

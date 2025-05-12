@@ -24,6 +24,7 @@ const rentalApiRequest = {
             price: params.price,
             amenityIds: params.amenityIds,
             landlordId: params.landlordId,
+            roomTypes: params.roomTypes,
           },
           { arrayFormat: "comma" }
         )

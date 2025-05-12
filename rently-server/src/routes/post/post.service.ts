@@ -9,6 +9,7 @@ import {
   CreatePostBodyType,
   GetPostsQueryType,
   UpdatePostBodyType,
+  RentalPostStatus,
 } from 'src/routes/post/post.model'
 import { PostRepo } from 'src/routes/post/post.repo'
 import { PrismaService } from 'src/shared/services/prisma.service'
@@ -73,6 +74,21 @@ export class PostService {
           `Số dư tài khoản không đủ để đăng bài. Cần ít nhất ${this.POST_FEE} VNĐ. Vui lòng nạp thêm tiền vào tài khoản.`
         )
       }
+    }
+
+    // Kiểm tra ngày bắt đầu bài đăng
+    const currentDate = new Date()
+    currentDate.setHours(0, 0, 0, 0) // Đặt giờ về đầu ngày để so sánh chỉ theo ngày
+
+    const startDate = new Date(data.startDate)
+    startDate.setHours(0, 0, 0, 0)
+
+    // Nếu ngày bắt đầu lớn hơn ngày hiện tại, thiết lập trạng thái là INACTIVE
+    if (startDate > currentDate) {
+      data.status = RentalPostStatus.INACTIVE
+      this.logger.log(
+        `Bài đăng được đặt trạng thái INACTIVE vì ngày bắt đầu (${startDate.toISOString()}) > ngày hiện tại (${currentDate.toISOString()})`
+      )
     }
 
     // Thực hiện transaction để đảm bảo tính nhất quán của dữ liệu
@@ -224,6 +240,48 @@ export class PostService {
     } catch (error) {
       this.logger.error(
         `Lỗi khi cập nhật bài đăng hết hạn: ${error.message}`,
+        error.stack
+      )
+    }
+  }
+
+  /**
+   * Cron job chạy mỗi phút để kích hoạt các bài đăng có startDate đến thời điểm hiện tại
+   * Chỉ xử lý các bài đăng mà startDate <= thời gian hiện tại và status là INACTIVE
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async activateScheduledPosts() {
+    try {
+      this.logger.log('Bắt đầu kích hoạt các bài đăng đến thời điểm bắt đầu')
+
+      // Lấy thời gian hiện tại
+      const now = new Date()
+
+      // Tìm và cập nhật các bài đăng có startDate <= thời gian hiện tại và có trạng thái INACTIVE
+      const result = await this.prismaService.rentalPost.updateMany({
+        where: {
+          startDate: {
+            lte: now,
+          },
+          endDate: {
+            gt: now, // Đảm bảo bài đăng chưa hết hạn
+          },
+          status: 'INACTIVE',
+        },
+        data: {
+          status: 'ACTIVE',
+        },
+      })
+
+      // Log chi tiết kết quả
+      if (result.count > 0) {
+        this.logger.log(
+          `Đã kích hoạt ${result.count} bài đăng thành ACTIVE (thời gian hiện tại: ${now.toISOString()})`
+        )
+      }
+    } catch (error) {
+      this.logger.error(
+        `Lỗi khi kích hoạt bài đăng: ${error.message}`,
         error.stack
       )
     }

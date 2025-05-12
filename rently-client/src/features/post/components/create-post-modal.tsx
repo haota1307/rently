@@ -74,15 +74,21 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   const allRooms = roomsData?.data || [];
 
   useEffect(() => {
-    if (formData.rentalId && allRooms.length > 0) {
-      const availableRooms = allRooms.filter(
-        (room) =>
-          room.rentalId === parseInt(formData.rentalId) && room.isAvailable
-      );
-      setFilteredRooms(availableRooms);
-    } else {
+    // Chỉ thực hiện khi có rentalId và allRooms đã được tải
+    if (formData.rentalId && allRooms && allRooms.length > 0) {
+      const rentalId = parseInt(formData.rentalId);
+      // Kiểm tra xem rentalId có phải là số hợp lệ không
+      if (!isNaN(rentalId)) {
+        const availableRooms = allRooms.filter(
+          (room) => room.rentalId === rentalId && room.isAvailable
+        );
+        setFilteredRooms(availableRooms);
+      }
+    } else if (formData.rentalId === "" || !allRooms || allRooms.length === 0) {
+      // Chỉ set mảng rỗng khi chưa chọn rentalId hoặc chưa có dữ liệu phòng
       setFilteredRooms([]);
     }
+    // Không thực hiện gì nếu không thỏa điều kiện
   }, [formData.rentalId, allRooms]);
 
   // Cập nhật phòng đã chọn khi người dùng chọn phòng

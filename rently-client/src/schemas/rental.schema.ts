@@ -61,6 +61,7 @@ export const GetRentalsQuerySchema = z
     price: z.string().optional(),
     amenityIds: z.array(z.number()).optional(),
     landlordId: z.number().optional(),
+    roomTypes: z.string().optional(),
   })
   .strict();
 

@@ -148,7 +148,7 @@ export default function RentalPostsPage() {
           statusText = "Đang hoạt động";
         } else if (status === "INACTIVE") {
           statusClass = "bg-yellow-100 text-yellow-800";
-          statusText = "Đang chờ duyệt";
+          statusText = "Đang chờ";
         } else if (status === "DELETED") {
           statusClass = "bg-red-100 text-red-800";
           statusText = "Đã xóa";
@@ -274,7 +274,7 @@ export default function RentalPostsPage() {
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                   <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
-                  <SelectItem value="INACTIVE">Đang chờ duyệt</SelectItem>
+                  <SelectItem value="INACTIVE">Đang chờ</SelectItem>
                   <SelectItem value="DELETED">Đã xóa</SelectItem>
                 </SelectContent>
               </Select>

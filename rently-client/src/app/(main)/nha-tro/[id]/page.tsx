@@ -141,30 +141,6 @@ const RentalDetailPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Đường dẫn điều hướng */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-          <Link
-            href="/"
-            className="hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"
-          >
-            <Home className="h-3.5 w-3.5" />
-            <span>Trang chủ</span>
-          </Link>
-          <span>/</span>
-          <Link
-            href="/nha-tro"
-            className="hover:text-gray-700 dark:hover:text-gray-300"
-          >
-            Nhà trọ
-          </Link>
-          <span>/</span>
-          <span className="text-gray-700 dark:text-gray-300 line-clamp-1">
-            {rental.title}
-          </span>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2">
           {/* Hình ảnh */}
