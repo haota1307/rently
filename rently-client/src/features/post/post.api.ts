@@ -1,4 +1,3 @@
-// rently-client/src/features/post/post.api.ts
 import http from "@/lib/http";
 import {
   CreatePostBodyType,
@@ -6,6 +5,7 @@ import {
   GetPostsResType,
   PostType,
   UpdatePostBodyType,
+  UpdatePostStatusType,
 } from "@/schemas/post.schema";
 import queryString from "query-string";
 
@@ -19,6 +19,7 @@ const postApiRequest = {
           limit: params.limit,
           page: params.page,
           title: params.title,
+          status: params.status,
         })
     ),
 
@@ -43,7 +44,12 @@ const postApiRequest = {
   update: (postId: number, body: UpdatePostBodyType) =>
     http.put<PostType>(`${prefix}/${postId}`, body),
 
-  delete: (postId: number) => http.delete<PostType>(`${prefix}/${postId}`),
+  // Cập nhật trạng thái bài đăng
+  updateStatus: (postId: number, body: UpdatePostStatusType) =>
+    http.patch<{ message: string }>(`${prefix}/${postId}/status`, body),
+
+  delete: (postId: number) =>
+    http.delete<{ message: string }>(`${prefix}/${postId}`),
 
   // Lấy danh sách phòng trọ có mức giá tương tự
   getSimilarByPrice: (postId: number, limit = 4) =>

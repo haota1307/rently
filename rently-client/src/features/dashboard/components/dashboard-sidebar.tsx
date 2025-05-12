@@ -14,6 +14,8 @@ import {
   Building2Icon,
   NotebookPen,
   CalendarIcon as Calendar,
+  Flag,
+  FileText,
 } from "lucide-react";
 
 import {
@@ -61,6 +63,11 @@ const defaultData = {
       icon: Map,
     },
     {
+      title: "Quản lý bài viết",
+      url: "/quan-ly/bai-viet",
+      icon: FileText,
+    },
+    {
       title: "Quản lý tiện ích",
       url: "/quan-ly/tien-ich",
       icon: Building2Icon,
@@ -69,6 +76,11 @@ const defaultData = {
       title: "Quản lý quyền",
       url: "/quan-ly/quyen",
       icon: Shield,
+    },
+    {
+      title: "Quản lý báo cáo",
+      url: "/quan-ly/bao-cao",
+      icon: Flag,
     },
     {
       title: "Yêu cầu nâng cấp",

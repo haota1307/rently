@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, AlertTriangle, InfoIcon } from "lucide-react";
 import { Role } from "@/constants/type";
 import { addDays, format } from "date-fns";
+import React from "react";
 
 import {
   Dialog,
@@ -73,6 +74,9 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   const rentalOptions = rentalsData?.data || [];
   const allRooms = roomsData?.data || [];
 
+  // Sử dụng useMemo để lưu trữ mảng rỗng
+  const emptyArray = React.useMemo(() => [], []);
+
   useEffect(() => {
     // Chỉ thực hiện khi có rentalId và allRooms đã được tải
     if (formData.rentalId && allRooms && allRooms.length > 0) {
@@ -85,19 +89,22 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
         setFilteredRooms(availableRooms);
       }
     } else if (formData.rentalId === "" || !allRooms || allRooms.length === 0) {
-      // Chỉ set mảng rỗng khi chưa chọn rentalId hoặc chưa có dữ liệu phòng
-      setFilteredRooms([]);
+      // Sử dụng mảng rỗng đã useMemo để tránh tạo reference mới
+      setFilteredRooms(emptyArray);
     }
     // Không thực hiện gì nếu không thỏa điều kiện
-  }, [formData.rentalId, allRooms]);
+  }, [formData.rentalId, allRooms, emptyArray]);
 
   // Cập nhật phòng đã chọn khi người dùng chọn phòng
   useEffect(() => {
     if (formData.roomId && filteredRooms.length > 0) {
-      const room = filteredRooms.find(
-        (room) => room.id === parseInt(formData.roomId)
-      );
-      setSelectedRoom(room || null);
+      const roomId = parseInt(formData.roomId);
+      if (!isNaN(roomId)) {
+        const room = filteredRooms.find((room) => room.id === roomId);
+        setSelectedRoom(room || null);
+      } else {
+        setSelectedRoom(null);
+      }
     } else {
       setSelectedRoom(null);
     }
@@ -112,12 +119,15 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       // Format ngày theo định dạng YYYY-MM-DD cho input type="date"
       const formattedEndDate = format(endDate, "yyyy-MM-dd");
 
-      setFormData((prev) => ({
-        ...prev,
-        endDate: formattedEndDate,
-      }));
+      // Chỉ cập nhật nếu khác với giá trị hiện tại
+      if (formData.endDate !== formattedEndDate) {
+        setFormData((prev) => ({
+          ...prev,
+          endDate: formattedEndDate,
+        }));
+      }
     }
-  }, [formData.startDate]);
+  }, [formData.startDate, formData.endDate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<

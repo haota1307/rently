@@ -6,6 +6,7 @@ import {
   GetPostsQuerySchema,
   GetPostsResSchema,
   UpdatePostBodySchema,
+  UpdatePostStatusSchema,
 } from 'src/routes/post/post.model'
 
 export class GetPostsResDTO extends createZodDto(GetPostsResSchema) {}
@@ -14,3 +15,4 @@ export class GetPostParamsDTO extends createZodDto(GetPostParamsSchema) {}
 export class GetPostDetailResDTO extends createZodDto(GetPostDetailResSchema) {}
 export class CreatePostBodyDTO extends createZodDto(CreatePostBodySchema) {}
 export class UpdatePostBodyDTO extends createZodDto(UpdatePostBodySchema) {}
+export class UpdatePostStatusDTO extends createZodDto(UpdatePostStatusSchema) {}

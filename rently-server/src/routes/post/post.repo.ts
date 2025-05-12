@@ -38,10 +38,9 @@ export class PostRepo {
       const skip = (pagination.page - 1) * pagination.limit
       const take = pagination.limit
       const whereClause: any = {
-        // Chỉ lấy các bài đăng còn hạn (endDate >= ngày hiện tại)
-        endDate: { gte: new Date() },
-        // Chỉ lấy các bài đăng có trạng thái ACTIVE
-        status: 'ACTIVE',
+        // Chỉ lấy các bài đăng còn hạn (endDate >= ngày hiện tại) khi không có filter riêng
+        // endDate: { gte: new Date() },
+        // Không hardcode status: 'ACTIVE' ở đây
       }
 
       if (pagination.title) {
@@ -59,6 +58,7 @@ export class PostRepo {
         whereClause.endDate = { lte: new Date(pagination.endDate) }
       }
 
+      // Chỉ thêm điều kiện status khi được chỉ định trong query
       if (pagination.status) {
         whereClause.status = pagination.status
       }
@@ -217,7 +217,12 @@ export class PostRepo {
   }): Promise<PostType> {
     try {
       const post = await this.prismaService.rentalPost.create({
-        data: { ...data, landlordId, createdAt: new Date() },
+        data: {
+          ...data,
+          status: data.status as any,
+          landlordId,
+          createdAt: new Date(),
+        },
         include: {
           rental: {
             include: {
@@ -253,7 +258,7 @@ export class PostRepo {
     try {
       const post = await this.prismaService.rentalPost.update({
         where: { id },
-        data,
+        data: { ...data, status: data.status as any },
         include: {
           rental: {
             include: {

@@ -10,6 +10,7 @@ import {
   GetPostsQueryType,
   UpdatePostBodyType,
   RentalPostStatus,
+  UpdatePostStatusType,
 } from 'src/routes/post/post.model'
 import { PostRepo } from 'src/routes/post/post.repo'
 import { PrismaService } from 'src/shared/services/prisma.service'
@@ -149,6 +150,51 @@ export class PostService {
     }
 
     await this.rentalPostRepo.delete({ id })
+
+    return {
+      message: 'Xóa bài đăng thành công',
+    }
+  }
+
+  // Hàm cập nhật trạng thái bài đăng
+  async updateStatus({
+    id,
+    data,
+    updatedById,
+  }: {
+    id: number
+    data: UpdatePostStatusType
+    updatedById: number
+  }) {
+    // Lấy thông tin bài đăng
+    const post = await this.rentalPostRepo.findById(id)
+    if (!post) {
+      throw new NotFoundException('Không tìm thấy bài đăng')
+    }
+
+    // Kiểm tra quyền cập nhật
+    const user = await this.prismaService.user.findUnique({
+      where: { id: updatedById },
+      include: { role: true },
+    })
+
+    // Chỉ cho phép chủ bài đăng hoặc admin cập nhật trạng thái
+    if (
+      post.landlordId !== updatedById &&
+      user?.role?.name !== RoleName.Admin
+    ) {
+      throw new ForbiddenException('Bạn không có quyền cập nhật bài đăng này')
+    }
+
+    // Cập nhật trạng thái bài đăng
+    await this.prismaService.rentalPost.update({
+      where: { id },
+      data: { status: data.status as any },
+    })
+
+    return {
+      message: `Cập nhật trạng thái bài đăng thành ${data.status} thành công`,
+    }
   }
 
   async getSimilarByPrice(postId: number, limit: number = 4) {

@@ -5,6 +5,7 @@ import {
   PostType,
   CreatePostBodyType,
   UpdatePostBodyType,
+  UpdatePostStatusType,
 } from "@/schemas/post.schema";
 
 export const useGetPosts = (queryParams: GetPostsQueryType) => {
@@ -80,10 +81,10 @@ export const useUpdatePost = () => {
 
 export const useDeletePost = () => {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useMutation<{ message: string }, unknown, number>({
     mutationFn: async (postId: number) => {
       const res = await postApiRequest.delete(postId);
-      return res.payload as PostType;
+      return res.payload;
     },
     onSuccess: (_, postId) => {
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
@@ -120,5 +121,29 @@ export const useGetSameRentalPosts = (
       return res.payload;
     },
     enabled: !!rentalId && !!currentPostId,
+  });
+};
+
+export const useUpdatePostStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { message: string },
+    unknown,
+    {
+      postId: number;
+      body: UpdatePostStatusType;
+    }
+  >({
+    mutationFn: async ({ postId, body }) => {
+      const res = await postApiRequest.updateStatus(postId, body);
+      return res.payload;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["post", variables.postId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+    },
   });
 };

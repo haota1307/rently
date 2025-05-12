@@ -20,7 +20,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGetMyPosts, useDeletePost } from "@/features/post/usePost";
+import {
+  useGetMyPosts,
+  useDeletePost,
+  useUpdatePostStatus,
+} from "@/features/post/usePost";
 import {
   Select,
   SelectContent,
@@ -38,6 +42,7 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CommonFilterLayout } from "@/features/dashboard/components/filters/common-filter-layout";
+import { RentalPostStatus } from "@/schemas/post.schema";
 
 // Custom hook debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -67,6 +72,8 @@ export default function RentalPostsPage() {
   const [selectedPost, setSelectedPost] = useState<any>(null);
 
   const { mutateAsync: deletePost, isPending } = useDeletePost();
+  const { mutateAsync: updateStatus, isPending: isUpdating } =
+    useUpdatePostStatus();
 
   const debouncedSearch = useDebounce(searchInput, 300);
   const limit = 5;
@@ -102,6 +109,34 @@ export default function RentalPostsPage() {
   const handleDeletePost = (post: any) => {
     setSelectedPost(post);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleStatusToggle = async (postId: number, currentStatus: string) => {
+    try {
+      let newStatus;
+      let actionText;
+
+      if (currentStatus === RentalPostStatus.ACTIVE) {
+        newStatus = RentalPostStatus.SUSPENDED;
+        actionText = "tạm ngưng";
+      } else if (currentStatus === RentalPostStatus.SUSPENDED) {
+        newStatus = RentalPostStatus.ACTIVE;
+        actionText = "kích hoạt";
+      } else {
+        newStatus = RentalPostStatus.ACTIVE;
+        actionText = "kích hoạt";
+      }
+
+      await updateStatus({
+        postId,
+        body: { status: newStatus },
+      });
+
+      toast.success(`Đã ${actionText} bài đăng thành công`);
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi cập nhật trạng thái bài đăng");
+      console.error(error);
+    }
   };
 
   const confirmDelete = async () => {
@@ -148,10 +183,13 @@ export default function RentalPostsPage() {
           statusText = "Đang hoạt động";
         } else if (status === "INACTIVE") {
           statusClass = "bg-yellow-100 text-yellow-800";
-          statusText = "Đang chờ";
+          statusText = "Chưa bắt đầu/Hết hạn";
         } else if (status === "DELETED") {
           statusClass = "bg-red-100 text-red-800";
           statusText = "Đã xóa";
+        } else if (status === "SUSPENDED") {
+          statusClass = "bg-orange-100 text-orange-800";
+          statusText = "Đã tạm ngưng";
         }
 
         return (
@@ -195,6 +233,15 @@ export default function RentalPostsPage() {
       header: "Hành động",
       cell: ({ row }: any) => {
         const post = row.original;
+
+        // Xác định nhãn nút dựa trên trạng thái
+        const toggleButtonText =
+          post.status === RentalPostStatus.ACTIVE
+            ? "Tạm ngưng"
+            : post.status === RentalPostStatus.SUSPENDED
+            ? "Kích hoạt"
+            : "Kích hoạt";
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -216,6 +263,14 @@ export default function RentalPostsPage() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleEditPost(post)}>
                 Chỉnh sửa
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleStatusToggle(post.id, post.status)}
+                disabled={
+                  isUpdating || post.status === RentalPostStatus.DELETED
+                }
+              >
+                {toggleButtonText}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleDeletePost(post)}
@@ -276,6 +331,7 @@ export default function RentalPostsPage() {
                   <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
                   <SelectItem value="INACTIVE">Đang chờ</SelectItem>
                   <SelectItem value="DELETED">Đã xóa</SelectItem>
+                  <SelectItem value="SUSPENDED">Đã tạm ngưng</SelectItem>
                 </SelectContent>
               </Select>
 

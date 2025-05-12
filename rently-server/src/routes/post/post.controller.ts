@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -16,6 +17,7 @@ import {
   GetPostsQueryDTO,
   GetPostsResDTO,
   UpdatePostBodyDTO,
+  UpdatePostStatusDTO,
 } from 'src/routes/post/post.dto'
 import { PostService } from 'src/routes/post/post.service'
 
@@ -82,6 +84,20 @@ export class PostController {
     @ActiveUser('userId') userId: number
   ) {
     return this.rentalPostService.delete(params.rentalPostId, userId)
+  }
+
+  @Patch(':rentalPostId/status')
+  @ZodSerializerDto(MessageResDTO)
+  updateStatus(
+    @Param() params: GetPostParamsDTO,
+    @Body() body: UpdatePostStatusDTO,
+    @ActiveUser('userId') userId: number
+  ) {
+    return this.rentalPostService.updateStatus({
+      id: params.rentalPostId,
+      data: body,
+      updatedById: userId,
+    })
   }
 
   @Get(':rentalPostId/similar-price')

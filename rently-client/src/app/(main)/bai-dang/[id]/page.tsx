@@ -59,6 +59,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import { ReportPostButton } from "@/features/post-report/components";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -288,16 +289,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     if (rental?.id) {
       router.push(`/nha-tro/${rental.id}`);
     }
-  };
-
-  const handleReportPost = () => {
-    if (!isAuth) {
-      toast.error("Bạn cần đăng nhập để báo cáo bài đăng");
-      return;
-    }
-
-    toast.info("Tính năng báo cáo đang được phát triển");
-    // Implement báo cáo bài đăng ở đây
   };
 
   const postActions = (
@@ -941,13 +932,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     Đăng tin ngay
                   </Button>
                 </Link>
-                <Button
-                  variant="outline"
-                  className="w-full h-8 sm:h-10 text-xs sm:text-sm mt-2"
-                  onClick={handleReportPost}
-                >
-                  Báo cáo bài đăng
-                </Button>
+                {/* Chỉ hiển thị nút báo cáo khi người dùng đã đăng nhập và không phải chủ bài đăng */}
+                {isAuth && !isLandlord && (
+                  <div className="mt-2">
+                    <ReportPostButton
+                      postId={postId}
+                      variant="outline"
+                      className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

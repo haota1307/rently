@@ -52,6 +52,7 @@ enum RentalPostStatus {
   ACTIVE
   INACTIVE
   DELETED
+  SUSPENDED
 }
 
 enum RentalRequestStatus {
@@ -68,6 +69,12 @@ enum NotificationType {
   VIEWING_SCHEDULE
   POST
   SYSTEM
+}
+
+enum ReportStatus {
+  PENDING
+  PROCESSED
+  REJECTED
 }
 
 model User {
@@ -126,8 +133,11 @@ model User {
   tenantRentalRequests   RentalRequest[] @relation("TenantRentalRequests")
   landlordRentalRequests RentalRequest[] @relation("LandlordRentalRequests")
 
-  notifications  Notification[]
-  ChatbotMessage ChatbotMessage[]
+  notifications    Notification[]
+  ChatbotMessage   ChatbotMessage[]
+  PostReport       PostReport[]
+  reportedPosts    PostReport[]     @relation("UserReports")
+  processedReports PostReport[]     @relation("ProcessedReports")
 
   @@index([name])
   @@index([status])
@@ -330,6 +340,7 @@ model RentalPost {
 
   viewingSchedules ViewingSchedule[]
   rentalRequests   RentalRequest[]
+  PostReport       PostReport[]
 
   @@index([rentalId])
   @@index([landlordId])
@@ -577,5 +588,31 @@ model ChatbotMessage {
   user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([createdAt])
+}
+
+model PostReport {
+  id          Int          @id @default(autoincrement())
+  reason      String
+  description String?
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  processedAt DateTime?
+
+  post   RentalPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId Int
+
+  reportedBy   User @relation("UserReports", fields: [reportedById], references: [id], onDelete: Cascade)
+  reportedById Int
+
+  processedBy   User? @relation("ProcessedReports", fields: [processedById], references: [id], onDelete: SetNull)
+  processedById Int?
+  User          User? @relation(fields: [userId], references: [id])
+  userId        Int?
+
+  @@index([postId])
+  @@index([reportedById])
+  @@index([status])
   @@index([createdAt])
 }

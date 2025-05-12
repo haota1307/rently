@@ -6,6 +6,7 @@ export enum RentalPostStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   DELETED = 'DELETED',
+  SUSPENDED = 'SUSPENDED', // Trạng thái riêng cho tạm ngưng bài đăng
 }
 
 // Schema cho thông tin bất động sản (Rental)
@@ -128,6 +129,13 @@ export const CreatePostBodySchema = z
 
 export const UpdatePostBodySchema = CreatePostBodySchema
 
+// Schema cho cập nhật trạng thái bài đăng
+export const UpdatePostStatusSchema = z
+  .object({
+    status: z.nativeEnum(RentalPostStatus),
+  })
+  .strict()
+
 export type PostType = z.infer<typeof PostDetailSchema>
 export type GetPostsResType = z.infer<typeof GetPostsResSchema>
 export type GetPostsQueryType = z.infer<typeof GetPostsQuerySchema>
@@ -135,3 +143,4 @@ export type GetPostParamsType = z.infer<typeof GetPostParamsSchema>
 export type GetPostDetailResType = z.infer<typeof GetPostDetailResSchema>
 export type CreatePostBodyType = z.infer<typeof CreatePostBodySchema>
 export type UpdatePostBodyType = z.infer<typeof UpdatePostBodySchema>
+export type UpdatePostStatusType = z.infer<typeof UpdatePostStatusSchema>
