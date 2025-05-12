@@ -31,7 +31,7 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
           backgroundImage: "url('/hero_img.jpg?height=600&width=1200')",
         }}
       >
-        <div className="container mx-auto px-8 h-full flex items-center relative z-20">
+        <div className=" mx-auto px-8 h-full flex items-center relative z-20">
           <div className="max-w-2xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 animate-fade-in">
               Tìm phòng trọ gần Đại học Nam Cần Thơ

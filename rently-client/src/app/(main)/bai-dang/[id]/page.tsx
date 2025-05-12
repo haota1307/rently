@@ -147,7 +147,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   if (error || !post) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className=" mx-auto px-4 py-8">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
             Không tìm thấy bài đăng
@@ -319,7 +319,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   return (
     <div className="bg-background min-h-screen mx-auto">
-      <div className="container mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+      <div className=" mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6">
         {/* Back link */}
         <div className="mb-3 sm:mb-4">
           <Button
@@ -1064,7 +1064,7 @@ function RelatedPostsSection({
 
 function PostDetailSkeleton() {
   return (
-    <div className="container mx-auto px-4 py-4 sm:py-8">
+    <div className=" mx-auto px-4 py-4 sm:py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <div>

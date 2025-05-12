@@ -38,7 +38,7 @@ export default function ViewingSchedulePage() {
   const [activeTab, setActiveTab] = useState<TabType>("ALL");
 
   return (
-    <div className="container mx-8 py-6 space-y-6">
+    <div className=" mx-8 py-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Lịch Xem Phòng</h1>

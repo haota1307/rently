@@ -176,7 +176,7 @@ export default function RentedRoomsPage() {
   };
 
   return (
-    <div className="container mx-8 py-6 space-y-6">
+    <div className=" mx-8 py-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Phòng Đã Thuê</h1>

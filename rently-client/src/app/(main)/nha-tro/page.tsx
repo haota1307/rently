@@ -83,7 +83,7 @@ interface FilterSidebarProps {
 // Component để loading
 const RentalListingPageSkeleton = () => {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className=" mx-auto px-4 py-8">
       <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
         <Skeleton className="h-6 w-24" />
         <span>/</span>
@@ -634,7 +634,7 @@ const RentalListingContent = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className=" mx-auto px-4 py-8">
       {/* Tiêu đề và công cụ tìm kiếm - Thêm PageHeader để đồng bộ UI */}
       <div className="mb-8">
         <PageHeader

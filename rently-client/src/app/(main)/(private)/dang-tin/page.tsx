@@ -73,7 +73,7 @@ const CreatePostPage = () => {
 
   return (
     <div className="w-full">
-      <div className="container mx-auto px-8 py-12">
+      <div className=" mx-auto px-8 py-12">
         <PageHeader
           title="Các bài viết đã lưu"
           description="Danh sách các bài viết cho thuê bạn đã lưu."

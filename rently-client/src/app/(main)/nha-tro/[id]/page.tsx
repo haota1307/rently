@@ -77,7 +77,7 @@ const RentalDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className=" mx-auto px-4 py-8">
         <div className="flex items-center gap-2 mb-6">
           <Skeleton className="h-9 w-24" />
           <Skeleton className="h-9 w-60" />
@@ -111,7 +111,7 @@ const RentalDetailPage = () => {
 
   if (error || !rental) {
     return (
-      <div className="container mx-auto px-4 py-12">
+      <div className=" mx-auto px-4 py-12">
         <div className="bg-gray-50 dark:bg-gray-900 p-8 rounded-lg text-center max-w-2xl mx-auto">
           <XCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
           <h1 className="text-2xl font-bold mb-2">Không tìm thấy nhà trọ</h1>
@@ -140,7 +140,7 @@ const RentalDetailPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className=" mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2">
           {/* Hình ảnh */}

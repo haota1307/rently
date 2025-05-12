@@ -156,7 +156,7 @@ export default function PaymentPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className=" mx-auto py-8 space-y-6">
       {error && (
         <Alert
           variant="destructive"

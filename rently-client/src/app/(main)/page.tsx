@@ -64,7 +64,7 @@ export default function Home() {
       ></div>
 
       <HeroSection onSearch={handleSearch} />
-      <div className="container mx-auto px-4 md:px-8 py-16 relative">
+      <div className=" mx-auto px-4 md:px-8 py-16 relative">
         <div className="absolute inset-0 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] -z-10" />
 
         <motion.div

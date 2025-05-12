@@ -72,7 +72,7 @@ export default function PostListingPage() {
   const [area, setArea] = useState("");
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className=" mx-auto px-4 py-6">
       <div className="mb-6">
         <Link
           href="/"

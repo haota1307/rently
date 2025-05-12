@@ -459,7 +459,7 @@ const DashboardPage = () => {
 
           // Kiểm tra container
           if (!mapContainerRef.current) {
-            console.error("Container không tồn tại");
+            console.error(" không tồn tại");
             return;
           }
 
