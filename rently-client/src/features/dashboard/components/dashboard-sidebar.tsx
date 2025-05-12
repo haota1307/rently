@@ -87,6 +87,11 @@ const defaultData = {
       url: "/quan-ly/yeu-cau-nang-cap",
       icon: Users,
     },
+    {
+      title: "Cài đặt hệ thống",
+      url: "/quan-ly/cai-dat",
+      icon: Shield,
+    },
   ],
 };
 

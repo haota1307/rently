@@ -101,16 +101,16 @@ export class RentalRequestService {
       // Gửi email thông báo cho chủ nhà
       if (landlord && tenant && postInfo) {
         try {
-          await this.emailService.send({
-            to: landlord.email,
-            subject: 'Yêu cầu thuê mới',
-            html: `
-            <p>Chào ${landlord.name},</p>
-            <p>Bạn vừa nhận được một yêu cầu thuê mới từ ${tenant.name} cho tin đăng "${postInfo.title}".</p>
-            <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và phản hồi yêu cầu.</p>
-            <p>Trân trọng,</p>
-            <p>Đội ngũ Rently</p>
-          `,
+          await this.emailService.sendRentalRequest({
+            email: landlord.email,
+            landlordName: landlord.name,
+            tenantName: tenant.name,
+            postTitle: postInfo.title,
+            startDate: new Date(data.expectedMoveDate).toLocaleDateString(
+              'vi-VN'
+            ),
+            duration: data.duration,
+            note: data.note,
           })
         } catch (error) {
           console.error('Failed to send email notification:', error)
@@ -275,6 +275,12 @@ export class RentalRequestService {
           [RentalRequestStatus.CANCELED]: 'đã bị hủy',
         }
 
+        const statusColors = {
+          [RentalRequestStatus.APPROVED]: '#4caf50', // xanh lá
+          [RentalRequestStatus.REJECTED]: '#f44336', // đỏ
+          [RentalRequestStatus.CANCELED]: '#9e9e9e', // xám
+        }
+
         const notificationTarget =
           data.status === RentalRequestStatus.CANCELED
             ? await this.rentalRequestRepo.findUserById(
@@ -295,24 +301,14 @@ export class RentalRequestService {
 
         if (notificationTarget && sender && post) {
           try {
-            await this.emailService.send({
-              to: notificationTarget.email,
-              subject: `Cập nhật trạng thái yêu cầu thuê: ${statusMessages[data.status]}`,
-              html: `
-              <p>Chào ${notificationTarget.name},</p>
-              <p>Yêu cầu thuê của bạn cho tin đăng "${post.title}" ${
-                statusMessages[data.status]
-              } bởi ${sender.name}.</p>
-              ${
-                data.status === RentalRequestStatus.REJECTED &&
-                data.rejectionReason
-                  ? `<p>Lý do: ${data.rejectionReason}</p>`
-                  : ''
-              }
-              <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
-              <p>Trân trọng,</p>
-              <p>Đội ngũ Rently</p>
-            `,
+            await this.emailService.sendRentalStatusUpdate({
+              email: notificationTarget.email,
+              receiverName: notificationTarget.name,
+              senderName: sender.name,
+              postTitle: post.title,
+              statusMessage: statusMessages[data.status],
+              statusColor: statusColors[data.status],
+              rejectionReason: data.rejectionReason,
             })
           } catch (error) {
             console.error('Failed to send email notification:', error)

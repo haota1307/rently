@@ -11,6 +11,7 @@ import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { EmailService } from 'src/shared/services/email.service'
 import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 import { SharedPaymentRepository } from 'src/shared/repositories/shared-payment.repo'
+import { SystemSettingRepository } from 'src/shared/repositories/system-setting.repo'
 
 @Global()
 @Module({
@@ -23,6 +24,7 @@ import { SharedPaymentRepository } from 'src/shared/repositories/shared-payment.
     SharedUserRepository,
     SharedRoleRepository,
     SharedPaymentRepository,
+    SystemSettingRepository,
     EmailService,
     {
       provide: APP_GUARD,
@@ -36,6 +38,7 @@ import { SharedPaymentRepository } from 'src/shared/repositories/shared-payment.
     SharedUserRepository,
     SharedRoleRepository,
     SharedPaymentRepository,
+    SystemSettingRepository,
     EmailService,
   ],
   imports: [JwtModule],

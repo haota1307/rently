@@ -133,21 +133,37 @@ export class AuthService {
 
     // Tạo mã OTP
     const code = generateOTP()
+    const expiryTime = ms(envConfig.OTP_EXPIRES_IN) // Thời gian hết hạn tính bằng milli giây
+
     this.authRepository.createVerificationCode({
       email: body.email,
       code,
       type: body.type,
-      expiresAt: addMilliseconds(new Date(), ms(envConfig.OTP_EXPIRES_IN)),
+      expiresAt: addMilliseconds(new Date(), expiryTime),
     })
 
     // Gửi mã OTP qua email
-    const { error } = await this.emailService.sendOTP({
-      email: body.email,
-      code,
-    })
-    if (error) {
+    let result
+
+    if (body.type === TypeOfVerificationCode.FORGOT_PASSWORD) {
+      // Sử dụng template reset password
+      result = await this.emailService.sendResetPassword({
+        email: body.email,
+        code,
+        expiry: Math.floor(expiryTime / 60000), // Chuyển đổi từ ms sang phút
+      })
+    } else {
+      // Sử dụng template OTP thông thường
+      result = await this.emailService.sendOTP({
+        email: body.email,
+        code,
+      })
+    }
+
+    if (result?.error) {
       throw FailedToSendOTPException
     }
+
     return { message: 'Gửi mã OTP thành công' }
   }
 

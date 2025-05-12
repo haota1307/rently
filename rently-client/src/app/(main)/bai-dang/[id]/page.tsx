@@ -937,7 +937,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   <div className="mt-2">
                     <ReportPostButton
                       postId={postId}
-                      variant="outline"
+                  variant="outline"
                       className="w-full h-8 sm:h-10 text-xs sm:text-sm"
                     />
                   </div>

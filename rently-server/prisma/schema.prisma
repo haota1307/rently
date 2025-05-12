@@ -139,6 +139,9 @@ model User {
   reportedPosts    PostReport[]     @relation("UserReports")
   processedReports PostReport[]     @relation("ProcessedReports")
 
+  createdSettings SystemSetting[] @relation("SettingCreatedBy")
+  updatedSettings SystemSetting[] @relation("SettingUpdatedBy")
+
   @@index([name])
   @@index([status])
   @@index([phoneNumber])
@@ -615,4 +618,23 @@ model PostReport {
   @@index([reportedById])
   @@index([status])
   @@index([createdAt])
+}
+
+model SystemSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String   @db.Text
+  type        String   @default("string") // string, number, boolean, json, file
+  group       String // interface, email, pricing
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById Int?
+  createdBy   User? @relation("SettingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById Int?
+  updatedBy   User? @relation("SettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([key])
+  @@index([group])
 }

@@ -7,15 +7,15 @@ import {
   Img,
   Section,
   Text,
-} from '@react-email/components';
-import * as React from 'react';
+} from '@react-email/components'
+import * as React from 'react'
 
 interface OTPEmailProps {
-  otpCode: string;
-  title: string;
+  otpCode: string
+  title: string
 }
 
-const logoUrl = '';
+const logoUrl = ''
 
 export const OTPEmail = ({ otpCode, title }: OTPEmailProps) => (
   <Html>
@@ -23,7 +23,7 @@ export const OTPEmail = ({ otpCode, title }: OTPEmailProps) => (
       <title>{title}</title>
       <style>
         {`
-          @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
         `}
       </style>
     </Head>
@@ -47,90 +47,89 @@ export const OTPEmail = ({ otpCode, title }: OTPEmailProps) => (
       <Text style={footer}>Từ Rently.top</Text>
     </Body>
   </Html>
-);
+)
 
 OTPEmail.PreviewProps = {
   otpCode: '144833',
   title: 'Mã OTP',
-} as OTPEmailProps;
+} as OTPEmailProps
 
-export default OTPEmail;
+export default OTPEmail
 
 const main = {
-  background: 'linear-gradient(135deg, #f0f4ff, #d9e4ff)',
+  backgroundColor: '#f5f5f5',
   fontFamily: "'Poppins', sans-serif",
   padding: '20px',
-};
+}
 
 const container = {
   backgroundColor: '#ffffff',
-  borderRadius: '12px',
-  boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
+  borderRadius: '8px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
   margin: '0 auto',
   maxWidth: '450px',
   padding: '40px 30px',
   textAlign: 'center' as const,
-};
+}
 
 const introText = {
-  color: '#3498db',
-  fontSize: '16px',
+  color: '#3366FF',
+  fontSize: '15px',
   fontWeight: 600,
   textTransform: 'uppercase' as const,
   letterSpacing: '1px',
-  marginBottom: '10px',
-};
+  marginBottom: '8px',
+}
 
 const heading = {
-  color: '#2c3e50',
-  fontSize: '26px',
+  color: '#333333',
+  fontSize: '24px',
   fontWeight: 700,
   marginBottom: '25px',
-};
+}
 
 const codeSection = {
-  background: 'linear-gradient(90deg, #ff9a9e, #fad0c4)',
-  borderRadius: '10px',
+  backgroundColor: '#f8f9fa',
+  border: '1px solid #e9ecef',
+  borderRadius: '8px',
   margin: '20px auto',
   padding: '20px',
-  width: '320px',
-  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
-};
+  width: '280px',
+}
 
 const otpCodeStyle = {
-  color: '#ffffff',
+  color: '#333333',
   fontFamily: 'monospace',
-  fontSize: '42px',
+  fontSize: '38px',
   fontWeight: 700,
-  letterSpacing: '10px',
+  letterSpacing: '8px',
   margin: 0,
-};
+}
 
 const instruction = {
-  color: '#7f8c8d',
-  fontSize: '16px',
+  color: '#555555',
+  fontSize: '15px',
   lineHeight: '1.5',
   marginTop: '20px',
-};
+}
 
 const note = {
-  color: '#95a5a6',
-  fontSize: '14px',
+  color: '#777777',
+  fontSize: '13px',
   lineHeight: '1.4',
-  marginTop: '10px',
-};
+  marginTop: '15px',
+}
 
 const footer = {
-  color: '#bdc3c7',
+  color: '#999999',
   fontSize: '12px',
   marginTop: '30px',
   textAlign: 'center' as const,
-};
+}
 
 // Nếu sử dụng logo, có thể định nghĩa style cho logo như sau:
 // const logo = {
 //   margin: '0 auto 20px',
 //   width: '80px',
 //   height: '80px',
-//   borderRadius: '50%',
 // };
