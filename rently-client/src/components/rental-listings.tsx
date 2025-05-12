@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Grid3X3, LayoutList, X } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
 import { useGetPosts } from "@/features/post/usePost";
-import { PostType } from "@/schemas/post.schema";
+import { PostType, RentalPostStatus } from "@/schemas/post.schema";
 import { useSearchParams } from "next/navigation";
 import { FilterValues } from "./search-filters";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +53,6 @@ function RentalListingsContent({
   filters = {},
   onFiltersChange,
 }: RentalListingsProps) {
-  const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOption, setSortOption] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -63,6 +62,7 @@ function RentalListingsContent({
     page: currentPage,
     limit: 10,
     title: filters.title || undefined,
+    status: RentalPostStatus.ACTIVE,
     distance: filters.distance,
     area: filters.area,
     price: filters.price,
