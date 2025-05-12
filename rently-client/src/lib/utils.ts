@@ -189,3 +189,16 @@ export function generateSocketInstance(accessToken: string): Socket | null {
     return null;
   }
 }
+
+/**
+ * Lấy chữ cái đầu tiên của mỗi từ trong tên để tạo initials
+ * Ví dụ: "Nguyen Van A" -> "NVA"
+ */
+export function getInitials(name: string): string {
+  if (!name) return "";
+
+  return name
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
