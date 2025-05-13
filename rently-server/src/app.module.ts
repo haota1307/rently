@@ -14,7 +14,6 @@ import { UserModule } from 'src/routes/user/user.module'
 import { UploadModule } from 'src/routes/upload/upload.module'
 import { PostModule } from 'src/routes/post/post.module'
 import { RentalModule } from 'src/routes/rental/rental.module'
-import { AddressModule } from 'src/routes/address/address.module'
 import { RoomModule } from 'src/routes/room/room.module'
 import { ChatbotModule } from 'src/routes/chatbot/chatbot.module'
 import { StatisticsModule } from 'src/routes/statistics/statistics.module'
@@ -51,7 +50,6 @@ import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
     UploadModule,
     PostModule,
     RentalModule,
-    AddressModule,
     RoomModule,
     ChatbotModule,
     AmenityModule,

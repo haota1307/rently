@@ -1,0 +1,22 @@
+# Các thư mục và file không cần thiết
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.git
+.gitignore
+.github
+.vscode
+.idea
+.env
+.env.*
+*.md
+!README.md
+**/dist
+**/coverage
+**/logs
+**/*.log
+**/.DS_Store
+**/.npm
+Dockerfile
+docker-compose* 

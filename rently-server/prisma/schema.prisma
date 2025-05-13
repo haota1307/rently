@@ -101,8 +101,8 @@ model User {
   deletedUsers User[] @relation("DeletorUsers")
 
   deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
 
   role Role @relation(fields: [roleId], references: [id])
 
@@ -164,8 +164,8 @@ model Role {
   deletedBy   User? @relation("RoledeletedByIdBy", fields: [deletedById], references: [id], onDelete: SetNull)
 
   deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
 
   @@index([name])
 }
@@ -187,8 +187,8 @@ model Permission {
   deletedBy   User? @relation("PermissionDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
   User      User?     @relation(fields: [userId], references: [id])
   userId    Int?
 
@@ -200,8 +200,8 @@ model Permission {
 model RefreshToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  expiresAt DateTime @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
@@ -216,8 +216,8 @@ model VerificationCode {
   code  String               @db.VarChar(50)
   type  VerificationCodeType
 
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  expiresAt DateTime @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   @@index([email, code, type])
   @@index([expiresAt])
@@ -231,8 +231,8 @@ model Rental {
   lat         Decimal
   lng         Decimal
   distance    Decimal?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
 
   landlord   User @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade)
   landlordId Int
@@ -253,8 +253,8 @@ model Room {
   price       Decimal
   area        Int
   isAvailable Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
@@ -272,7 +272,7 @@ model Room {
 model RentalImage {
   id        Int      @id @default(autoincrement())
   imageUrl  String
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
   order     Int
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
@@ -286,7 +286,7 @@ model RentalImage {
 model RoomImage {
   id        Int      @id @default(autoincrement())
   imageUrl  String
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
   order     Int
 
   room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
@@ -300,7 +300,7 @@ model RoomImage {
 model Amenity {
   id        Int      @id @default(autoincrement())
   name      String   @unique
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   roomAmenities RoomAmenity[]
 
@@ -328,7 +328,7 @@ model RentalPost {
   pricePaid   Decimal
   deposit     Decimal          @default(0)
   status      RentalPostStatus @default(ACTIVE)
-  createdAt   DateTime         @default(now())
+  createdAt   DateTime         @default(now()) @db.Timestamptz
 
   rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   rentalId Int
@@ -356,8 +356,8 @@ model Payment {
   status      PaymentStatus
   description String?
   metadata    Json?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime      @default(now()) @db.Timestamptz
+  updatedAt   DateTime      @updatedAt @db.Timestamptz
 
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -373,7 +373,7 @@ model Payment {
 model PaymentTransaction {
   id                 Int      @id @default(autoincrement())
   gateway            String   @db.VarChar(100)
-  transactionDate    DateTime @default(now())
+  transactionDate    DateTime @default(now()) @db.Timestamptz
   accountNumber      String?  @db.VarChar(100)
   subAccount         String?  @db.VarChar(250)
   amountIn           Int      @default(0)
@@ -383,7 +383,7 @@ model PaymentTransaction {
   transactionContent String?  @db.Text
   referenceNumber    String?  @db.VarChar(255)
   body               String?  @db.Text
-  createdAt          DateTime @default(now())
+  createdAt          DateTime @default(now()) @db.Timestamptz
 
   userId Int?
   user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -398,7 +398,7 @@ model PaymentTransaction {
 
 model Conversation {
   id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   userOne   User @relation("UserOneConversations", fields: [userOneId], references: [id], onDelete: Cascade)
   userOneId Int
@@ -416,7 +416,7 @@ model ConversationMessage {
   id        Int      @id @default(autoincrement())
   content   String
   isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
   isDeleted Boolean  @default(false)
   isEdited  Boolean  @default(false)
 
@@ -444,7 +444,7 @@ model Review {
   id        Int      @id @default(autoincrement())
   rating    Int
   comment   String
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   roomId Int
@@ -458,7 +458,7 @@ model Review {
 
 model Favorite {
   id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   Int
@@ -471,8 +471,8 @@ model Favorite {
 model Comment {
   id        Int       @id @default(autoincrement())
   content   String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
   deletedAt DateTime?
 
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -498,8 +498,8 @@ model RoleUpgradeRequest {
   note       String?
   frontImage String
   backImage  String
-  createdAt  DateTime                 @default(now())
-  updatedAt  DateTime                 @updatedAt
+  createdAt  DateTime                 @default(now()) @db.Timestamptz
+  updatedAt  DateTime                 @updatedAt @db.Timestamptz
 
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
@@ -517,13 +517,13 @@ model ViewingSchedule {
   postId                    Int
   tenantId                  Int
   landlordId                Int
-  viewingDate               DateTime
+  viewingDate               DateTime  @db.Timestamptz
   status                    String    @default("PENDING")
-  rescheduledDate           DateTime?
+  rescheduledDate           DateTime? @db.Timestamptz
   note                      String?
   requireTenantConfirmation Boolean   @default(false)
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
+  createdAt                 DateTime  @default(now()) @db.Timestamptz
+  updatedAt                 DateTime  @updatedAt @db.Timestamptz
 
   post     RentalPost @relation(fields: [postId], references: [id])
   tenant   User       @relation("TenantViewingSchedules", fields: [tenantId], references: [id])
@@ -541,13 +541,13 @@ model RentalRequest {
   landlordId       Int
   status           RentalRequestStatus @default(PENDING)
   note             String?
-  expectedMoveDate DateTime
+  expectedMoveDate DateTime            @db.Timestamptz
   duration         Int // Số tháng thuê
   depositAmount    Decimal?
   contractSigned   Boolean             @default(false)
   rejectionReason  String?
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  createdAt        DateTime            @default(now()) @db.Timestamptz
+  updatedAt        DateTime            @updatedAt @db.Timestamptz
 
   post     RentalPost @relation(fields: [postId], references: [id])
   tenant   User       @relation("TenantRentalRequests", fields: [tenantId], references: [id])
@@ -570,8 +570,8 @@ model Notification {
   relatedId   Int?
   relatedType String?
   deepLink    String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime         @default(now()) @db.Timestamptz
+  updatedAt   DateTime         @updatedAt @db.Timestamptz
 
   user User @relation(fields: [userId], references: [id])
 
@@ -585,7 +585,7 @@ model ChatbotMessage {
   criteria  Json? // Lưu tiêu chí tìm kiếm
   results   Json? // Lưu kết quả tìm kiếm
   isRead    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   userId Int?
   user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -599,9 +599,9 @@ model PostReport {
   reason      String
   description String?
   status      ReportStatus @default(PENDING)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  processedAt DateTime?
+  createdAt   DateTime     @default(now()) @db.Timestamptz
+  updatedAt   DateTime     @updatedAt @db.Timestamptz
+  processedAt DateTime?    @db.Timestamptz
 
   post   RentalPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId Int
@@ -627,8 +627,8 @@ model SystemSetting {
   type        String   @default("string") // string, number, boolean, json, file
   group       String // interface, email, pricing
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
 
   createdById Int?
   createdBy   User? @relation("SettingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
