@@ -42,11 +42,19 @@ export class StatisticsController {
 
     // Nếu là admin, cho phép xem tất cả hoặc lọc theo landlordId
     if (roleName === 'ADMIN') {
-      return this.statisticsService.getRevenueData(days, query.landlordId)
+      return this.statisticsService.getRevenueData(
+        days,
+        query.landlordId,
+        query.transaction_content
+      )
     }
 
     // Nếu không phải admin, chỉ cho xem doanh thu của chính mình
-    return this.statisticsService.getRevenueData(days, userId)
+    return this.statisticsService.getRevenueData(
+      days,
+      userId,
+      query.transaction_content
+    )
   }
 
   @Get('room-distribution')

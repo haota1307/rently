@@ -440,6 +440,30 @@ export class PaymentService {
    * @private
    */
   private mapToTransactionResponse(t: any) {
+    // Xác định loại giao dịch để tạo code phù hợp
+    let transactionCode = t.transaction?.code || ''
+    if (!transactionCode) {
+      const transactionContent =
+        t.transaction?.transactionContent || t.description || ''
+      if (
+        transactionContent.includes('NAP') ||
+        transactionContent.includes('Nạp tiền')
+      ) {
+        transactionCode = `NAP${t.id}`
+      } else if (
+        transactionContent.includes('RUT') ||
+        transactionContent.includes('Rút tiền')
+      ) {
+        transactionCode = `RUT${t.id}`
+      } else if (transactionContent.includes('Phí đăng bài')) {
+        transactionCode = `PHI${t.id}`
+      } else if (transactionContent.includes('Đặt cọc')) {
+        transactionCode = `COC${t.id}`
+      } else {
+        transactionCode = `TRANS${t.id}`
+      }
+    }
+
     return {
       id: t.id.toString(),
       bank_brand_name: this.bankName,
@@ -452,7 +476,7 @@ export class PaymentService {
       accumulated: t.transaction?.accumulated.toString() || '0',
       transaction_content: t.transaction?.transactionContent || t.description,
       reference_number: t.transaction?.referenceNumber || null,
-      code: t.transaction?.code || `NAP${t.id}`,
+      code: transactionCode,
       sub_account: t.transaction?.subAccount || null,
       bank_account_id: '1',
       status: t.status,
@@ -541,20 +565,50 @@ export class PaymentService {
     let totalExpense = 0
 
     transactions.forEach(t => {
-      if (t.transaction) {
-        if (t.transaction.amountIn > 0) {
-          totalIncome += t.transaction.amountIn
-        }
-        if (t.transaction.amountOut > 0) {
-          totalExpense += t.transaction.amountOut
-        }
-      } else if (t.amount > 0 && t.status === PaymentStatus.COMPLETED) {
-        // Nếu là thanh toán thành công không có transaction, coi là tiền vào
-        totalIncome += t.amount
+      // Kiểm tra nội dung giao dịch để phân biệt rõ ràng hơn
+      const transactionContent = t.transaction?.transactionContent || ''
+
+      console.log('Transaction Content:', transactionContent)
+
+      // Giao dịch nạp tiền - CHỈ khi có nội dung rõ ràng chứa SEVQR NAP
+      if (
+        t.transaction &&
+        transactionContent.includes('SEVQR NAP') &&
+        t.transaction.amountIn &&
+        t.transaction.amountIn > 0
+      ) {
+        console.log('Adding to income:', t.transaction.amountIn)
+        totalIncome += t.transaction.amountIn
       }
+
+      // Giao dịch rút tiền - CHỈ xử lý giao dịch rút thực sự
+      else if (
+        t.transaction &&
+        (transactionContent.includes('RUT') ||
+          transactionContent.includes('Rút tiền')) &&
+        !transactionContent.includes('Phí') &&
+        t.transaction.amountOut &&
+        t.transaction.amountOut > 0
+      ) {
+        console.log('Adding to expense:', t.transaction.amountOut)
+        totalExpense += t.transaction.amountOut
+      }
+
+      // Không tính các loại giao dịch khác vào thống kê tài chính tổng thể
     })
 
-    // Tính balance từ accumulated trong bankInfo
+    console.log(
+      'Summary calculation - totalIncome:',
+      totalIncome,
+      'totalExpense:',
+      totalExpense
+    )
+
+    // Tính balance là chênh lệch giữa số tiền nạp và rút đã lọc
+    const balance = totalIncome - totalExpense
+
+    // Không dùng balance từ bankInfo vì nó phản ánh tất cả giao dịch, không chỉ là nạp/rút
+    /*
     let balance = 0
     try {
       const bankInfoResponse = await this.getBankInfo()
@@ -568,6 +622,7 @@ export class PaymentService {
       console.error('Error getting bank info:', error)
       balance = totalIncome - totalExpense
     }
+    */
 
     return this.createSuccessResponse({
       summary: {

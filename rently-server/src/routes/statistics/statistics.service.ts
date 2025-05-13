@@ -18,9 +18,14 @@ export class StatisticsService {
 
   async getRevenueData(
     days: number,
-    landlordId?: number
+    landlordId?: number,
+    transaction_content?: string
   ): Promise<RevenueDataType[]> {
-    return this.statisticsRepo.getRevenueData(days, landlordId)
+    return this.statisticsRepo.getRevenueData(
+      days,
+      landlordId,
+      transaction_content
+    )
   }
 
   async getRoomDistribution(

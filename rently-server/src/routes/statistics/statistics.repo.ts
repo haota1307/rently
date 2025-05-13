@@ -111,7 +111,8 @@ export class StatisticsRepo {
    */
   async getRevenueData(
     days: number = 7,
-    landlordId?: number
+    landlordId?: number,
+    transaction_content?: string
   ): Promise<RevenueDataType[]> {
     try {
       const result: RevenueDataType[] = []
@@ -130,15 +131,32 @@ export class StatisticsRepo {
         const displayDate = format(date, 'dd/MM', { locale: vi })
 
         // Query giao dịch trong ngày từ database
+        const whereCondition: any = {
+          transactionDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        }
+
+        // Thêm điều kiện lọc theo người dùng nếu có
+        if (landlordId) {
+          whereCondition.userId = landlordId
+        }
+
+        // Thêm điều kiện lọc theo nội dung giao dịch nếu có
+        if (transaction_content) {
+          const contents = transaction_content.split('|')
+          whereCondition.OR = contents.map(content => ({
+            transactionContent: {
+              contains: content,
+            },
+          }))
+        }
+
+        // Query giao dịch trong ngày từ database
         const transactions =
           await this.prismaService.paymentTransaction.findMany({
-            where: {
-              transactionDate: {
-                gte: startOfDay,
-                lte: endOfDay,
-              },
-              ...(landlordId ? { userId: landlordId } : {}),
-            },
+            where: whereCondition,
           })
 
         // Tổng hợp số tiền nạp và rút trong ngày
@@ -146,13 +164,24 @@ export class StatisticsRepo {
         let totalWithdraw = 0
 
         transactions.forEach(transaction => {
-          // Tiền nạp vào (amountIn)
-          if (transaction.amountIn > 0) {
+          // Xác định loại giao dịch dựa vào nội dung
+          const transactionContent = transaction.transactionContent || ''
+
+          // Tiền nạp vào (amountIn) - chỉ tính khi nội dung là nạp tiền
+          if (
+            (transactionContent.includes('NAP') ||
+              transactionContent.includes('Nạp tiền')) &&
+            transaction.amountIn > 0
+          ) {
             totalDeposit += transaction.amountIn
           }
 
-          // Tiền rút ra (amountOut)
-          if (transaction.amountOut > 0) {
+          // Tiền rút ra (amountOut) - chỉ tính khi nội dung là rút tiền
+          if (
+            (transactionContent.includes('RUT') ||
+              transactionContent.includes('Rút tiền')) &&
+            transaction.amountOut > 0
+          ) {
             totalWithdraw += transaction.amountOut
           }
         })

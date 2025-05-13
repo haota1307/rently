@@ -17,7 +17,7 @@ export const useGetStatisticsOverview = () => {
 export const useGetRevenueData = (days: number = 7) => {
   return useQuery({
     queryKey: ["statistics", "revenue", days],
-    queryFn: () => getRevenueData(days),
+    queryFn: () => getRevenueData(days, "SEVQR NAP"),
   });
 };
 

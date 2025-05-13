@@ -200,17 +200,17 @@ export class PaymentRepo {
     }
 
     // Nếu có từ ngày đến ngày, lọc theo ngày tạo
-    if (query.transaction_date_min) {
+    if (query.startDate) {
       where.createdAt = {
         ...where.createdAt,
-        gte: new Date(query.transaction_date_min),
+        gte: new Date(query.startDate),
       }
     }
 
-    if (query.transaction_date_max) {
+    if (query.endDate) {
       where.createdAt = {
         ...where.createdAt,
-        lte: new Date(query.transaction_date_max),
+        lte: new Date(query.endDate + 'T23:59:59.999Z'),
       }
     }
 
@@ -227,19 +227,45 @@ export class PaymentRepo {
       }
     }
 
+    // Lọc theo nội dung giao dịch (NAP|RUT)
+    if (query.transaction_content) {
+      const contentFilters = query.transaction_content
+        .split('|')
+        .map((content: string) => ({
+          OR: [
+            {
+              transactionContent: {
+                contains: content,
+              },
+            },
+            {
+              description: {
+                contains: content,
+              },
+            },
+          ],
+        }))
+
+      // Thêm điều kiện OR cho nhiều loại giao dịch
+      if (contentFilters.length > 0) {
+        transactionWhere.OR = contentFilters
+      }
+    }
+
     // Giới hạn số lượng bản ghi
     const limit = query.limit ? parseInt(query.limit, 10) : 20
+
+    // Sử dụng prisma transaction where khi có điều kiện
+    const transactionInclude =
+      Object.keys(transactionWhere).length > 0
+        ? { where: transactionWhere }
+        : true
 
     return this.prismaService.payment.findMany({
       where,
       include: {
         user: true,
-        transaction: {
-          where:
-            Object.keys(transactionWhere).length > 0
-              ? transactionWhere
-              : undefined,
-        },
+        transaction: transactionInclude,
       },
       orderBy: {
         createdAt: 'desc',

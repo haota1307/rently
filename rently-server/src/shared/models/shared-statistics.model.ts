@@ -20,6 +20,7 @@ export const StatisticsQuerySchema = z
     landlordId: z.coerce.number().optional(),
     days: z.coerce.number().optional().default(7),
     limit: z.coerce.number().optional().default(5),
+    transaction_content: z.string().optional(),
   })
   .strict()
 

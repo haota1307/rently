@@ -42,10 +42,17 @@ export const getStatisticsOverview = async () => {
   return payload;
 };
 
-export const getRevenueData = async (days: number = 7) => {
-  const { payload } = await http.get<RevenueDataPoint[]>(
-    `statistics/revenue?days=${days}`
-  );
+export const getRevenueData = async (
+  days: number = 7,
+  transaction_content?: string
+) => {
+  let url = `statistics/revenue?days=${days}`;
+
+  if (transaction_content) {
+    url += `&transaction_content=${transaction_content}`;
+  }
+
+  const { payload } = await http.get<RevenueDataPoint[]>(url);
   return payload;
 };
 

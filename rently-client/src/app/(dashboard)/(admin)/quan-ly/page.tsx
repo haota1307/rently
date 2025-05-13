@@ -135,6 +135,8 @@ const DashboardPage = () => {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
+  console.log({ transactionSummary });
+
   // State cho bộ lọc giao dịch
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showUserFilter, setShowUserFilter] = useState(false);
@@ -168,7 +170,13 @@ const DashboardPage = () => {
     const fetchTransactionSummary = async () => {
       try {
         setLoadingSummary(true);
-        const response = await paymentApiRequest.getTransactionSummary();
+
+        // Thêm tham số để lọc CHÍNH XÁC giao dịch nạp tiền
+        const params = {
+          transaction_content: "SEVQR NAP",
+        };
+
+        const response = await paymentApiRequest.getTransactionSummary(params);
 
         if (response.status === 200 && response.payload?.summary) {
           setTransactionSummary({
@@ -210,37 +218,52 @@ const DashboardPage = () => {
           params.userId = userFilter;
         }
 
+        // Thêm tham số để chỉ lọc giao dịch nạp tiền và rút tiền
+        params.transaction_content = "NAP|RUT";
+
         // Gọi API với tham số đã lọc
         const response = await paymentApiRequest.getTransactions(params);
 
         if (response.status === 200 && response.payload?.transactions) {
           // Chuyển đổi dữ liệu API thành định dạng cần hiển thị
-          const transactions: Transaction[] = response.payload.transactions
+          const filteredTransactions = response.payload.transactions
             .map((transaction: any) => {
               const isDeposit = parseFloat(transaction.amount_in) > 0;
-              return {
-                id: transaction.id,
-                userId: transaction.user?.id || "0",
-                userName: transaction.user?.name || "Người dùng ẩn danh",
-                userEmail: transaction.user?.email,
-                amount: isDeposit
-                  ? parseFloat(transaction.amount_in)
-                  : parseFloat(transaction.amount_out),
-                isDeposit: isDeposit,
-                transactionDate: new Date(transaction.transaction_date),
-                description:
-                  transaction.transaction_content ||
-                  (isDeposit
-                    ? "Nạp tiền vào tài khoản"
-                    : "Rút tiền từ tài khoản"),
-              };
+              const transactionContent = transaction.transaction_content || "";
+
+              // Chỉ lấy giao dịch nạp tiền hoặc rút tiền
+              if (
+                transactionContent.includes("Nạp tiền") ||
+                transactionContent.includes("Rút tiền") ||
+                transactionContent.includes("NAP") ||
+                transactionContent.includes("RUT")
+              ) {
+                return {
+                  id: transaction.id,
+                  userId: transaction.user?.id || "0",
+                  userName: transaction.user?.name || "Người dùng ẩn danh",
+                  userEmail: transaction.user?.email,
+                  amount: isDeposit
+                    ? parseFloat(transaction.amount_in)
+                    : parseFloat(transaction.amount_out),
+                  isDeposit: isDeposit,
+                  transactionDate: new Date(transaction.transaction_date),
+                  description:
+                    transaction.transaction_content ||
+                    (isDeposit
+                      ? "Nạp tiền vào tài khoản"
+                      : "Rút tiền từ tài khoản"),
+                };
+              }
+              return null;
             })
+            .filter((item): item is NonNullable<typeof item> => item !== null)
             .sort(
               (a, b) =>
                 b.transactionDate.getTime() - a.transactionDate.getTime()
             ); // Sắp xếp mới nhất lên đầu
 
-          setRecentTransactions(transactions);
+          setRecentTransactions(filteredTransactions);
         }
       } catch (error) {
         console.error("Lỗi khi tải giao dịch gần đây:", error);
@@ -763,7 +786,7 @@ const DashboardPage = () => {
               <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-amber-50 to-yellow-50">
                   <CardTitle className="text-xs md:text-sm font-medium">
-                    Doanh thu
+                    Thống kê tài chính
                   </CardTitle>
                   <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-amber-100 flex items-center justify-center">
                     <DollarSign className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-700" />
@@ -778,7 +801,7 @@ const DashboardPage = () => {
                         <div className="flex items-center gap-1 text-green-600">
                           <TrendingUp className="h-3 w-3" />
                           <span className="text-[10px] md:text-xs">
-                            Doanh thu vào:
+                            Tổng tiền nạp:
                           </span>
                         </div>
                         <span className="text-[10px] md:text-xs font-medium text-green-600">
@@ -790,7 +813,7 @@ const DashboardPage = () => {
                         <div className="flex items-center gap-1 text-red-600">
                           <TrendingDown className="h-3 w-3" />
                           <span className="text-[10px] md:text-xs">
-                            Doanh thu ra:
+                            Tổng tiền rút:
                           </span>
                         </div>
                         <span className="text-[10px] md:text-xs font-medium text-red-600">
@@ -857,8 +880,8 @@ const DashboardPage = () => {
                               value >= 1000000
                                 ? `${(value / 1000000).toFixed(0)}tr`
                                 : value >= 1000
-                                ? `${(value / 1000).toFixed(0)}k`
-                                : value.toString()
+                                  ? `${(value / 1000).toFixed(0)}k`
+                                  : value.toString()
                             }
                             fontSize={10}
                             width={35}
@@ -883,7 +906,7 @@ const DashboardPage = () => {
                           <Area
                             type="monotone"
                             dataKey="nạp"
-                            name="Doanh thu vào"
+                            name="Tổng tiền nạp"
                             stackId="1"
                             stroke="#10b981"
                             fill="#10b981"
@@ -892,7 +915,7 @@ const DashboardPage = () => {
                           <Area
                             type="monotone"
                             dataKey="rút"
-                            name="Doanh thu ra"
+                            name="Tổng tiền rút"
                             stackId="2"
                             stroke="#ef4444"
                             fill="#ef4444"
@@ -929,7 +952,7 @@ const DashboardPage = () => {
                     </Button>
                   </div>
                   <CardDescription className="text-[10px] md:text-xs mt-1">
-                    Các giao dịch mới nhất trong hệ thống
+                    Các giao dịch nạp/rút tiền mới nhất trong hệ thống
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -1369,10 +1392,10 @@ const DashboardPage = () => {
               <Card className="shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm md:text-base">
-                    Tổng doanh thu
+                    Số dư hệ thống
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Tổng số tiền trong hệ thống
+                    Tổng tiền còn lại trong hệ thống
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1463,7 +1486,7 @@ const DashboardPage = () => {
                 <CardHeader className="p-4">
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-sm md:text-base">
-                      Doanh thu theo thời gian
+                      Thống kê nạp/rút tiền theo thời gian
                     </CardTitle>
                     <div className="flex gap-2">
                       <Button
@@ -1512,8 +1535,8 @@ const DashboardPage = () => {
                               value >= 1000000
                                 ? `${(value / 1000000).toFixed(0)}tr`
                                 : value >= 1000
-                                ? `${(value / 1000).toFixed(0)}k`
-                                : value.toString()
+                                  ? `${(value / 1000).toFixed(0)}k`
+                                  : value.toString()
                             }
                             fontSize={12}
                           />
@@ -1533,7 +1556,7 @@ const DashboardPage = () => {
                           <Area
                             type="monotone"
                             dataKey="nạp"
-                            name="Doanh thu vào"
+                            name="Tổng tiền nạp"
                             stackId="1"
                             stroke="#10b981"
                             fill="#10b981"
@@ -1542,7 +1565,7 @@ const DashboardPage = () => {
                           <Area
                             type="monotone"
                             dataKey="rút"
-                            name="Doanh thu ra"
+                            name="Tổng tiền rút"
                             stackId="2"
                             stroke="#ef4444"
                             fill="#ef4444"
