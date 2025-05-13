@@ -31,6 +31,7 @@ import { EmailTemplateGallery } from "./email-template-gallery";
 import { SettingTemplate } from "./system-setting-templates";
 import { LibrarySquare, Mail } from "lucide-react";
 import { SYSTEM_SETTING_GROUPS } from "./system-setting-constants";
+import { ImageUpload } from "./image-upload";
 
 const formSchema = z.object({
   key: z.string().min(1, "Vui lòng nhập khóa"),
@@ -70,7 +71,17 @@ export function SystemSettingForm({
   });
 
   const currentGroup = form.watch("group");
+  const currentType = form.watch("type");
+  const currentKey = form.watch("key");
+  const currentValue = form.watch("value");
+
   const isEmailGroup = currentGroup === SYSTEM_SETTING_GROUPS.EMAIL;
+  const isImageSetting =
+    currentGroup === SYSTEM_SETTING_GROUPS.INTERFACE &&
+    currentType === "string" &&
+    (currentKey === "site_logo" ||
+      currentKey === "site_favicon" ||
+      currentKey === "hero_image");
 
   useEffect(() => {
     if (initialData) {
@@ -84,6 +95,10 @@ export function SystemSettingForm({
       });
     }
   }, [initialData, form]);
+
+  const handleImageUploaded = (imageUrl: string) => {
+    form.setValue("value", imageUrl);
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -129,7 +144,7 @@ export function SystemSettingForm({
   };
 
   return (
-    <div className="space-y-4 py-2 pb-4">
+    <div className="py-2 pb-4 w-full mx-auto">
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-bold">
@@ -166,7 +181,10 @@ export function SystemSettingForm({
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-4 max-h-[70vh] overflow-y-auto pr-2"
+        >
           <FormField
             control={form.control}
             name="key"
@@ -191,84 +209,103 @@ export function SystemSettingForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Giá trị</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Nhập giá trị cài đặt"
-                    className="min-h-[100px]"
-                    {...field}
-                  />
-                </FormControl>
+                {isImageSetting ? (
+                  <>
+                    <ImageUpload
+                      currentValue={field.value}
+                      imageType={
+                        currentKey as
+                          | "site_logo"
+                          | "site_favicon"
+                          | "hero_image"
+                      }
+                      onImageUploaded={handleImageUploaded}
+                    />
+                    <div className="mt-2">
+                      <FormControl>
+                        <Input
+                          placeholder="URL hình ảnh"
+                          {...field}
+                          className="text-xs font-mono"
+                        />
+                      </FormControl>
+                    </div>
+                  </>
+                ) : (
+                  <FormControl>
+                    <Textarea
+                      placeholder="Nhập giá trị cài đặt"
+                      className="min-h-[100px] max-h-[300px]"
+                      {...field}
+                    />
+                  </FormControl>
+                )}
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <div className="flex gap-4">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>Loại</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn loại" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="string">Chuỗi</SelectItem>
-                      <SelectItem value="number">Số</SelectItem>
-                      <SelectItem value="boolean">Boolean</SelectItem>
-                      <SelectItem value="json">JSON</SelectItem>
-                      <SelectItem value="file">File</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Loại</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn loại dữ liệu" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="string">Chuỗi</SelectItem>
+                    <SelectItem value="number">Số</SelectItem>
+                    <SelectItem value="boolean">Boolean</SelectItem>
+                    <SelectItem value="json">JSON</SelectItem>
+                    <SelectItem value="file">Tệp tin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="group"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>Nhóm</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      // Hiển thị/ẩn nút chọn mẫu email dựa trên nhóm đã chọn
-                    }}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn nhóm" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={SYSTEM_SETTING_GROUPS.INTERFACE}>
-                        Giao diện
-                      </SelectItem>
-                      <SelectItem value={SYSTEM_SETTING_GROUPS.EMAIL}>
-                        Mẫu Email
-                      </SelectItem>
-                      <SelectItem value={SYSTEM_SETTING_GROUPS.PRICING}>
-                        Giá dịch vụ
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="group"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nhóm</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn nhóm cài đặt" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={SYSTEM_SETTING_GROUPS.INTERFACE}>
+                      Giao diện
+                    </SelectItem>
+                    <SelectItem value={SYSTEM_SETTING_GROUPS.EMAIL}>
+                      Mẫu Email
+                    </SelectItem>
+                    <SelectItem value={SYSTEM_SETTING_GROUPS.PRICING}>
+                      Giá dịch vụ
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
@@ -278,7 +315,7 @@ export function SystemSettingForm({
                 <FormLabel>Mô tả</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Mô tả cài đặt (không bắt buộc)"
+                    placeholder="Mô tả ngắn về cài đặt (tùy chọn)"
                     {...field}
                   />
                 </FormControl>
@@ -287,41 +324,54 @@ export function SystemSettingForm({
             )}
           />
 
-          <div className="pt-6 space-x-2 flex items-center justify-end">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="submit" disabled={isCreating || isUpdating}>
-              {isEditing ? "Cập nhật" : "Thêm mới"}
+              {isCreating || isUpdating
+                ? "Đang xử lý..."
+                : isEditing
+                  ? "Cập nhật"
+                  : "Tạo mới"}
             </Button>
           </div>
         </form>
       </Form>
 
-      {/* Dialog chọn mẫu local */}
       <Dialog open={showTemplateGallery} onOpenChange={setShowTemplateGallery}>
-        <DialogContent className="max-w-3xl">
-          <DialogTitle>Thư viện mẫu cài đặt</DialogTitle>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogTitle>Chọn mẫu cài đặt</DialogTitle>
           <SystemSettingTemplateGallery
-            group={currentGroup}
             onSelectTemplate={handleSelectTemplate}
+            onSelect={handleSelectTemplate}
             onClose={() => setShowTemplateGallery(false)}
           />
         </DialogContent>
       </Dialog>
 
-      {/* Dialog chọn mẫu email từ server */}
       <Dialog open={showEmailTemplates} onOpenChange={setShowEmailTemplates}>
-        <DialogContent className="max-w-3xl">
-          <DialogTitle>Mẫu Email từ Server</DialogTitle>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogTitle>Chọn mẫu email từ server</DialogTitle>
           <EmailTemplateGallery
             onSelectTemplate={(template) => {
-              form.setValue("key", template.key);
               form.setValue("value", template.content);
-              form.setValue("type", "string");
-              form.setValue("group", SYSTEM_SETTING_GROUPS.EMAIL);
-              form.setValue("description", `Email template: ${template.name}`);
-              setShowEmailTemplates(false);
-              toast.success(
-                `Đã áp dụng mẫu email "${template.name}" từ server`
+              form.setValue("key", template.key);
+              form.setValue("type", "file");
+              form.setValue(
+                "description",
+                `Mẫu email ${template.name} (React Email Component)`
               );
+              setShowEmailTemplates(false);
+              toast.success("Đã áp dụng mẫu email thành công");
+            }}
+            onSelect={(template) => {
+              form.setValue("value", template.content);
+              form.setValue("key", template.key);
+              form.setValue("type", "file");
+              form.setValue(
+                "description",
+                `Mẫu email ${template.name} (React Email Component)`
+              );
+              setShowEmailTemplates(false);
+              toast.success("Đã áp dụng mẫu email thành công");
             }}
             onClose={() => setShowEmailTemplates(false)}
           />

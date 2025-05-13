@@ -89,7 +89,7 @@ export async function seedSystemSettings(prisma: PrismaClient) {
     update: {},
     create: {
       key: 'site_logo',
-      value: 'https://example.com/logo.png',
+      value: '/logo.svg',
       type: SYSTEM_SETTING_TYPES.STRING,
       group: SYSTEM_SETTING_GROUPS.INTERFACE,
       description: 'Logo của trang web',
@@ -101,7 +101,7 @@ export async function seedSystemSettings(prisma: PrismaClient) {
     update: {},
     create: {
       key: 'site_favicon',
-      value: 'https://example.com/favicon.ico',
+      value: '/logo.svg',
       type: SYSTEM_SETTING_TYPES.STRING,
       group: SYSTEM_SETTING_GROUPS.INTERFACE,
       description: 'Favicon của trang web',

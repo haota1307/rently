@@ -37,6 +37,8 @@
     "@tanstack/react-table": "^8.21.2",
     "@types/mapbox__mapbox-gl-geocoder": "^5.0.0",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.6.1",
+    "cloudinary-core": "^2.13.1",
     "clsx": "^2.1.1",
     "cmdk": "^0.1.22",
     "date-fns": "^3.6.0",

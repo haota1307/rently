@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { NotificationPopover } from "@/features/notification/notification-popover";
+import { useUiSettings } from "@/features/system-setting/hooks/useUiSettings";
 
 // Định nghĩa interface cho một link
 interface NavLink {
@@ -142,6 +144,7 @@ export function Header() {
   const normalizedPathname = normalizePath(pathname || "");
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
+  const { settings, isLoading, defaultSettings } = useUiSettings();
 
   // Đánh dấu hydration đã hoàn tất
   useEffect(() => {
@@ -270,10 +273,24 @@ export function Header() {
         <div className="flex items-center">
           {/* Logo */}
           <Link href="/">
-            <h2 className="text-2xl font-black uppercase tracking-wider text-primary dark:text-primary relative group">
-              RENTLY
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300"></span>
-            </h2>
+            <div className="flex items-center gap-2">
+              {isLoading ? (
+                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+              ) : settings.siteLogo ? (
+                <Image
+                  src={settings.siteLogo}
+                  alt="Rently Logo"
+                  width={32}
+                  height={32}
+                  className="h-8 w-auto"
+                />
+              ) : (
+                <h2 className="text-2xl font-black uppercase tracking-wider text-primary dark:text-primary relative group">
+                  RENTLY
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300"></span>
+                </h2>
+              )}
+            </div>
           </Link>
         </div>
 

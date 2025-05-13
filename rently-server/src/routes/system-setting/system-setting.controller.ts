@@ -17,6 +17,7 @@ import {
   UpdateSystemSettingDTO,
 } from './system-setting.dto'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
 
 @Controller('system-settings')
 export class SystemSettingController {
@@ -35,6 +36,7 @@ export class SystemSettingController {
   }
 
   @Get('group')
+  @IsPublic()
   @ZodSerializerDto(SystemSettingDTO)
   getSettingsByGroup(@Query() query: GetSystemSettingByGroupDTO) {
     return this.systemSettingService.getSettingsByGroup(query)

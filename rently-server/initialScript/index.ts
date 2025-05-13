@@ -144,6 +144,97 @@ const main = async () => {
     `Pricing settings: ${pricingSettingsCreated} created, ${pricingSettingsUpdated} updated`
   )
 
+  // Tạo dữ liệu cài đặt giao diện mặc định
+  console.log('Checking and creating interface settings...')
+  let interfaceSettingsCreated = 0
+  let interfaceSettingsUpdated = 0
+
+  // Danh sách các cài đặt giao diện cần tạo
+  const interfaceSettings = [
+    {
+      key: 'site_logo',
+      value: '/logo.svg',
+      type: SYSTEM_SETTING_TYPES.STRING,
+      group: SYSTEM_SETTING_GROUPS.INTERFACE,
+      description: 'Logo trang web',
+    },
+    {
+      key: 'site_favicon',
+      value: '/favicon.ico',
+      type: SYSTEM_SETTING_TYPES.STRING,
+      group: SYSTEM_SETTING_GROUPS.INTERFACE,
+      description: 'Favicon trang web',
+    },
+    {
+      key: 'hero_image',
+      value: '/hero_img.jpg?height=600&width=1200',
+      type: SYSTEM_SETTING_TYPES.STRING,
+      group: SYSTEM_SETTING_GROUPS.INTERFACE,
+      description: 'Hình ảnh hero section trang chủ',
+    },
+    {
+      key: 'primary_color',
+      value: '#1890ff',
+      type: SYSTEM_SETTING_TYPES.STRING,
+      group: SYSTEM_SETTING_GROUPS.INTERFACE,
+      description: 'Màu chủ đạo của trang web',
+    },
+    {
+      key: 'site_name',
+      value: 'Rently',
+      type: SYSTEM_SETTING_TYPES.STRING,
+      group: SYSTEM_SETTING_GROUPS.INTERFACE,
+      description: 'Tên trang web',
+    },
+    {
+      key: 'site_description',
+      value: 'Nền tảng kết nối chủ trọ và người thuê',
+      type: SYSTEM_SETTING_TYPES.STRING,
+      group: SYSTEM_SETTING_GROUPS.INTERFACE,
+      description: 'Mô tả ngắn về trang web',
+    },
+    {
+      key: 'footer_copyright',
+      value: '© 2024 Rently. Đã đăng ký bản quyền.',
+      type: SYSTEM_SETTING_TYPES.STRING,
+      group: SYSTEM_SETTING_GROUPS.INTERFACE,
+      description: 'Thông tin bản quyền ở footer',
+    },
+  ]
+
+  // Tạo hoặc cập nhật từng cài đặt giao diện
+  for (const setting of interfaceSettings) {
+    const existingSetting = await prisma.systemSetting.findUnique({
+      where: { key: setting.key },
+    })
+
+    if (existingSetting) {
+      // Chỉ cập nhật nếu giá trị là rỗng
+      if (!existingSetting.value || existingSetting.value === '') {
+        await prisma.systemSetting.update({
+          where: { key: setting.key },
+          data: setting,
+        })
+        interfaceSettingsUpdated++
+        console.log(`Updated interface setting: ${setting.key}`)
+      } else {
+        console.log(
+          `Skipping interface setting: ${setting.key} (already has value)`
+        )
+      }
+    } else {
+      await prisma.systemSetting.create({
+        data: setting,
+      })
+      interfaceSettingsCreated++
+      console.log(`Created interface setting: ${setting.key}`)
+    }
+  }
+
+  console.log(
+    `Interface settings: ${interfaceSettingsCreated} created, ${interfaceSettingsUpdated} updated`
+  )
+
   // Tạo mẫu email templates
   console.log('Creating email templates...')
   let emailTemplatesCount = 0
@@ -222,6 +313,8 @@ const main = async () => {
     emailTemplatesCount,
     pricingSettingsCreated,
     pricingSettingsUpdated,
+    interfaceSettingsCreated,
+    interfaceSettingsUpdated,
   }
 }
 
@@ -234,6 +327,8 @@ main()
       emailTemplatesCount,
       pricingSettingsCreated,
       pricingSettingsUpdated,
+      interfaceSettingsCreated,
+      interfaceSettingsUpdated,
     }) => {
       if (createdRoleCount > 0) {
         console.log(`Created ${createdRoleCount} roles`)
@@ -247,6 +342,9 @@ main()
       console.log(`Created/Updated ${emailTemplatesCount} email templates`)
       console.log(
         `Pricing settings: ${pricingSettingsCreated} created, ${pricingSettingsUpdated} updated`
+      )
+      console.log(
+        `Interface settings: ${interfaceSettingsCreated} created, ${interfaceSettingsUpdated} updated`
       )
       console.log('Script completed successfully')
     }

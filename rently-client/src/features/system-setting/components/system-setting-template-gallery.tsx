@@ -26,16 +26,23 @@ import {
 type SystemSettingTemplateGalleryProps = {
   group?: string;
   onSelectTemplate: (template: SettingTemplate) => void;
+  onSelect?: (template: SettingTemplate) => void;
   onClose: () => void;
 };
 
 export function SystemSettingTemplateGallery({
   group,
   onSelectTemplate,
+  onSelect,
   onClose,
 }: SystemSettingTemplateGalleryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState(group || "all");
+
+  const handleSelect = (template: SettingTemplate) => {
+    if (onSelect) onSelect(template);
+    else if (onSelectTemplate) onSelectTemplate(template);
+  };
 
   // Lọc mẫu theo nhóm và từ khóa tìm kiếm
   const getFilteredTemplates = (groupName?: string): SettingTemplate[] => {
@@ -105,28 +112,28 @@ export function SystemSettingTemplateGallery({
         <TabsContent value="all" className="mt-0">
           <TemplateGrid
             templates={getFilteredTemplates()}
-            onSelectTemplate={onSelectTemplate}
+            onSelectTemplate={handleSelect}
           />
         </TabsContent>
 
         <TabsContent value={SYSTEM_SETTING_GROUPS.INTERFACE} className="mt-0">
           <TemplateGrid
             templates={getFilteredTemplates(SYSTEM_SETTING_GROUPS.INTERFACE)}
-            onSelectTemplate={onSelectTemplate}
+            onSelectTemplate={handleSelect}
           />
         </TabsContent>
 
         <TabsContent value={SYSTEM_SETTING_GROUPS.EMAIL} className="mt-0">
           <TemplateGrid
             templates={getFilteredTemplates(SYSTEM_SETTING_GROUPS.EMAIL)}
-            onSelectTemplate={onSelectTemplate}
+            onSelectTemplate={handleSelect}
           />
         </TabsContent>
 
         <TabsContent value={SYSTEM_SETTING_GROUPS.PRICING} className="mt-0">
           <TemplateGrid
             templates={getFilteredTemplates(SYSTEM_SETTING_GROUPS.PRICING)}
-            onSelectTemplate={onSelectTemplate}
+            onSelectTemplate={handleSelect}
           />
         </TabsContent>
       </Tabs>
@@ -155,7 +162,7 @@ function TemplateGrid({ templates, onSelectTemplate }: TemplateGridProps) {
   }
 
   return (
-    <ScrollArea className="h-[400px]">
+    <ScrollArea className="h-[60vh] w-full">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
         {templates.map((template) => (
           <TemplateCard

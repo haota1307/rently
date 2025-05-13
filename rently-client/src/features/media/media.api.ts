@@ -5,13 +5,16 @@ const prefix = "/upload";
 
 const mediaApiRequest = {
   uploadImage: (formData: FormData) =>
-    http.post<UploadMediaResType>(`${prefix}/image`, formData),
+    http.post<{ url: string; public_id: string }>(`${prefix}/image`, formData),
 
   uploadImages: (formData: FormData) =>
-    http.post<UploadMediaResType[]>(`${prefix}/images`, formData),
+    http.post<{ url: string; public_id: string }[]>(
+      `${prefix}/images`,
+      formData
+    ),
 
   uploadVideo: (formData: FormData) =>
-    http.post<UploadMediaResType>(`${prefix}/video`, formData),
+    http.post<{ url: string; public_id: string }>(`${prefix}/video`, formData),
 };
 
 export default mediaApiRequest;

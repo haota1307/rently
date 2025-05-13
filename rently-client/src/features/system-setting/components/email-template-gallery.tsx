@@ -23,15 +23,22 @@ import { Code } from "@/components/ui/code";
 
 type EmailTemplateGalleryProps = {
   onSelectTemplate: (template: EmailTemplate) => void;
+  onSelect?: (template: EmailTemplate) => void;
   onClose: () => void;
 };
 
 export function EmailTemplateGallery({
   onSelectTemplate,
+  onSelect,
   onClose,
 }: EmailTemplateGalleryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: templates, isLoading, error } = useGetEmailTemplates();
+
+  const handleSelect = (template: EmailTemplate) => {
+    if (onSelect) onSelect(template);
+    else if (onSelectTemplate) onSelectTemplate(template);
+  };
 
   // Lọc mẫu theo từ khóa tìm kiếm
   const filteredTemplates = templates
@@ -98,13 +105,13 @@ export function EmailTemplateGallery({
             ))}
         </div>
       ) : filteredTemplates.length > 0 ? (
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="h-[60vh]">
           <div className="grid grid-cols-1 gap-4 pb-4">
             {filteredTemplates.map((template) => (
               <EmailTemplateCard
                 key={template.name}
                 template={template}
-                onClick={() => onSelectTemplate(template)}
+                onClick={() => handleSelect(template)}
               />
             ))}
           </div>
@@ -164,7 +171,10 @@ function EmailTemplateCard({ template, onClick }: EmailTemplateCardProps) {
 
       <CardContent className="p-4 pt-0">
         {showPreview ? (
-          <Code language="tsx" className="text-xs max-h-[200px] overflow-auto">
+          <Code
+            language="tsx"
+            className="text-xs max-h-[250px] overflow-auto w-full"
+          >
             {previewContent}...
           </Code>
         ) : (

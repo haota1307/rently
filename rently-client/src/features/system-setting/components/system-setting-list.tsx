@@ -160,13 +160,6 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
                 : "Quản lý tất cả các cài đặt hệ thống"}
             </CardDescription>
           </div>
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            size="sm"
-            className="gap-1"
-          >
-            <Plus className="h-4 w-4" /> Thêm mới
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
