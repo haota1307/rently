@@ -2,7 +2,10 @@ import envConfig from 'src/shared/config'
 import { RoleName } from 'src/shared/constants/role.constant'
 import { HashingService } from 'src/shared/services/hashing.service'
 import { PrismaService } from 'src/shared/services/prisma.service'
-import { SYSTEM_SETTING_GROUPS } from 'src/routes/system-setting/system-setting.model'
+import {
+  SYSTEM_SETTING_GROUPS,
+  SYSTEM_SETTING_TYPES,
+} from 'src/routes/system-setting/system-setting.model'
 import * as fs from 'fs'
 import * as path from 'path'
 import { User } from '@prisma/client'
@@ -92,6 +95,55 @@ const main = async () => {
     console.log('Amenities already exist, skipping amenities creation')
   }
 
+  // Tạo dữ liệu cài đặt giá đăng bài và thời gian
+  console.log('Checking and creating pricing settings...')
+  let pricingSettingsCreated = 0
+  let pricingSettingsUpdated = 0
+
+  // Danh sách các cài đặt giá cần tạo - chỉ dùng một tùy chọn duy nhất
+  const pricingSettings = [
+    {
+      key: 'post_price',
+      value: '10000',
+      type: SYSTEM_SETTING_TYPES.NUMBER,
+      group: SYSTEM_SETTING_GROUPS.PRICING,
+      description: 'Giá đăng bài (VND)',
+    },
+    {
+      key: 'post_duration_days',
+      value: '30',
+      type: SYSTEM_SETTING_TYPES.NUMBER,
+      group: SYSTEM_SETTING_GROUPS.PRICING,
+      description: 'Thời gian hiển thị bài đăng (ngày)',
+    },
+  ]
+
+  // Tạo hoặc cập nhật từng cài đặt giá
+  for (const setting of pricingSettings) {
+    const existingSetting = await prisma.systemSetting.findUnique({
+      where: { key: setting.key },
+    })
+
+    if (existingSetting) {
+      await prisma.systemSetting.update({
+        where: { key: setting.key },
+        data: setting,
+      })
+      pricingSettingsUpdated++
+      console.log(`Updated pricing setting: ${setting.key}`)
+    } else {
+      await prisma.systemSetting.create({
+        data: setting,
+      })
+      pricingSettingsCreated++
+      console.log(`Created pricing setting: ${setting.key}`)
+    }
+  }
+
+  console.log(
+    `Pricing settings: ${pricingSettingsCreated} created, ${pricingSettingsUpdated} updated`
+  )
+
   // Tạo mẫu email templates
   console.log('Creating email templates...')
   let emailTemplatesCount = 0
@@ -168,6 +220,8 @@ const main = async () => {
     adminUser,
     createdAmenitiesCount,
     emailTemplatesCount,
+    pricingSettingsCreated,
+    pricingSettingsUpdated,
   }
 }
 
@@ -178,6 +232,8 @@ main()
       adminUser,
       createdAmenitiesCount,
       emailTemplatesCount,
+      pricingSettingsCreated,
+      pricingSettingsUpdated,
     }) => {
       if (createdRoleCount > 0) {
         console.log(`Created ${createdRoleCount} roles`)
@@ -189,6 +245,9 @@ main()
         console.log(`Created ${createdAmenitiesCount} amenities`)
       }
       console.log(`Created/Updated ${emailTemplatesCount} email templates`)
+      console.log(
+        `Pricing settings: ${pricingSettingsCreated} created, ${pricingSettingsUpdated} updated`
+      )
       console.log('Script completed successfully')
     }
   )

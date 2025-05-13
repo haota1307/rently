@@ -16,18 +16,46 @@ import { PostRepo } from 'src/routes/post/post.repo'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import { RoleName } from 'src/shared/constants/role.constant'
 import { Cron, CronExpression } from '@nestjs/schedule'
+import { SystemSettingRepository } from 'src/shared/repositories/system-setting.repo'
 
 import { NotFoundRecordException } from 'src/shared/error'
 
 @Injectable()
 export class PostService {
-  private POST_FEE = 10000 // Phí đăng bài: 10,000 VNĐ
   private readonly logger = new Logger(PostService.name)
 
   constructor(
     private readonly rentalPostRepo: PostRepo,
-    private readonly prismaService: PrismaService
+    private readonly prismaService: PrismaService,
+    private readonly systemSettingRepo: SystemSettingRepository
   ) {}
+
+  private async getPostFee(): Promise<number> {
+    try {
+      const setting = await this.systemSettingRepo.findByKey('post_price')
+      if (setting) {
+        return parseInt(setting.value, 10)
+      }
+      return 10000
+    } catch (error) {
+      this.logger.error('Lỗi khi lấy giá đăng bài:', error)
+      return 10000
+    }
+  }
+
+  private async getPostDuration(): Promise<number> {
+    try {
+      const setting =
+        await this.systemSettingRepo.findByKey('post_duration_days')
+      if (setting) {
+        return parseInt(setting.value, 10)
+      }
+      return 30
+    } catch (error) {
+      this.logger.error('Lỗi khi lấy thời hạn đăng bài:', error)
+      return 30
+    }
+  }
 
   async list(pagination: GetPostsQueryType) {
     return this.rentalPostRepo.list(pagination)
@@ -52,7 +80,8 @@ export class PostService {
     data: CreatePostBodyType
     landlordId: number
   }) {
-    // Kiểm tra thông tin người dùng, bao gồm số dư và vai trò
+    const postFee = await this.getPostFee()
+
     const user = await this.prismaService.user.findUnique({
       where: { id: landlordId },
       include: {
@@ -64,27 +93,22 @@ export class PostService {
       throw new NotFoundException('Không tìm thấy thông tin người dùng')
     }
 
-    // Kiểm tra xem người dùng có phải là admin hay không
     const isAdmin = user.role?.name === RoleName.Admin
 
-    // Chỉ kiểm tra số dư và trừ phí nếu không phải là admin
     if (!isAdmin) {
-      // Kiểm tra xem số dư có đủ để trừ phí đăng bài không
-      if (user.balance < this.POST_FEE) {
+      if (user.balance < postFee) {
         throw new BadRequestException(
-          `Số dư tài khoản không đủ để đăng bài. Cần ít nhất ${this.POST_FEE} VNĐ. Vui lòng nạp thêm tiền vào tài khoản.`
+          `Số dư tài khoản không đủ để đăng bài. Cần ít nhất ${postFee} VNĐ. Vui lòng nạp thêm tiền vào tài khoản.`
         )
       }
     }
 
-    // Kiểm tra ngày bắt đầu bài đăng
     const currentDate = new Date()
-    currentDate.setHours(0, 0, 0, 0) // Đặt giờ về đầu ngày để so sánh chỉ theo ngày
+    currentDate.setHours(0, 0, 0, 0)
 
     const startDate = new Date(data.startDate)
     startDate.setHours(0, 0, 0, 0)
 
-    // Nếu ngày bắt đầu lớn hơn ngày hiện tại, thiết lập trạng thái là INACTIVE
     if (startDate > currentDate) {
       data.status = RentalPostStatus.INACTIVE
       this.logger.log(
@@ -92,22 +116,26 @@ export class PostService {
       )
     }
 
-    // Thực hiện transaction để đảm bảo tính nhất quán của dữ liệu
+    const postDuration = await this.getPostDuration()
+
+    if (!data.endDate) {
+      const endDate = new Date(startDate)
+      endDate.setDate(endDate.getDate() + postDuration)
+      data.endDate = endDate
+    }
+
     const result = await this.prismaService.$transaction(async prisma => {
-      // Nếu không phải admin thì trừ phí và tạo bản ghi thanh toán
       if (!isAdmin) {
-        // Trừ phí từ tài khoản người dùng
         await prisma.user.update({
           where: { id: landlordId },
           data: {
-            balance: { decrement: this.POST_FEE },
+            balance: { decrement: postFee },
           },
         })
 
-        // Tạo bản ghi thanh toán
         await prisma.payment.create({
           data: {
-            amount: this.POST_FEE,
+            amount: postFee,
             status: 'COMPLETED',
             description: 'Phí đăng bài',
             userId: landlordId,
@@ -115,7 +143,6 @@ export class PostService {
         })
       }
 
-      // Tạo bài đăng mới
       return this.rentalPostRepo.create({ data, landlordId })
     })
 
@@ -156,7 +183,6 @@ export class PostService {
     }
   }
 
-  // Hàm cập nhật trạng thái bài đăng
   async updateStatus({
     id,
     data,
@@ -166,19 +192,16 @@ export class PostService {
     data: UpdatePostStatusType
     updatedById: number
   }) {
-    // Lấy thông tin bài đăng
     const post = await this.rentalPostRepo.findById(id)
     if (!post) {
       throw new NotFoundException('Không tìm thấy bài đăng')
     }
 
-    // Kiểm tra quyền cập nhật
     const user = await this.prismaService.user.findUnique({
       where: { id: updatedById },
       include: { role: true },
     })
 
-    // Chỉ cho phép chủ bài đăng hoặc admin cập nhật trạng thái
     if (
       post.landlordId !== updatedById &&
       user?.role?.name !== RoleName.Admin
@@ -186,7 +209,6 @@ export class PostService {
       throw new ForbiddenException('Bạn không có quyền cập nhật bài đăng này')
     }
 
-    // Cập nhật trạng thái bài đăng
     await this.prismaService.rentalPost.update({
       where: { id },
       data: { status: data.status as any },
@@ -198,7 +220,6 @@ export class PostService {
   }
 
   async getSimilarByPrice(postId: number, limit: number = 4) {
-    // Lấy thông tin bài đăng
     const post = await this.rentalPostRepo.findById(postId)
 
     if (!post || !post.room) {
@@ -211,12 +232,10 @@ export class PostService {
       }
     }
 
-    // Tính toán phạm vi giá (+/- 20%)
     const originalPrice = post.room.price
-    const minPrice = Math.floor(originalPrice * 0.8) // 20% thấp hơn
-    const maxPrice = Math.ceil(originalPrice * 1.2) // 20% cao hơn
+    const minPrice = Math.floor(originalPrice * 0.8)
+    const maxPrice = Math.ceil(originalPrice * 1.2)
 
-    // Lấy các bài đăng có giá tương tự
     return this.rentalPostRepo.getSimilarByPrice({
       postId,
       minPrice,
@@ -230,7 +249,6 @@ export class PostService {
     excludePostId: number,
     limit: number = 4
   ) {
-    // Lấy các bài đăng khác từ cùng một nhà trọ
     return this.rentalPostRepo.getSameRental({
       rentalId,
       excludePostId,
@@ -238,19 +256,13 @@ export class PostService {
     })
   }
 
-  /**
-   * Cron job chạy mỗi phút để cập nhật trạng thái các bài đăng đã hết hạn
-   * Chỉ xử lý các bài đăng mà endDate nhỏ hơn thời gian hiện tại và vẫn còn ACTIVE
-   */
   @Cron(CronExpression.EVERY_MINUTE)
   async updateExpiredPosts() {
     try {
       this.logger.log('Bắt đầu cập nhật trạng thái các bài đăng đã hết hạn')
 
-      // Lấy thời gian hiện tại UTC
       const now = new Date()
 
-      // Tìm và cập nhật các bài đăng đã hết hạn và có trạng thái ACTIVE
       const result = await this.prismaService.rentalPost.updateMany({
         where: {
           endDate: {
@@ -263,13 +275,11 @@ export class PostService {
         },
       })
 
-      // Log chi tiết hơn để debug
       if (result.count > 0) {
         this.logger.log(
           `Đã cập nhật ${result.count} bài đăng hết hạn thành INACTIVE (thời gian hiện tại: ${now.toISOString()})`
         )
       } else {
-        // Log thêm thông tin để debug
         const expiredPostsCount = await this.prismaService.rentalPost.count({
           where: {
             endDate: {
@@ -291,26 +301,20 @@ export class PostService {
     }
   }
 
-  /**
-   * Cron job chạy mỗi phút để kích hoạt các bài đăng có startDate đến thời điểm hiện tại
-   * Chỉ xử lý các bài đăng mà startDate <= thời gian hiện tại và status là INACTIVE
-   */
   @Cron(CronExpression.EVERY_MINUTE)
   async activateScheduledPosts() {
     try {
       this.logger.log('Bắt đầu kích hoạt các bài đăng đến thời điểm bắt đầu')
 
-      // Lấy thời gian hiện tại
       const now = new Date()
 
-      // Tìm và cập nhật các bài đăng có startDate <= thời gian hiện tại và có trạng thái INACTIVE
       const result = await this.prismaService.rentalPost.updateMany({
         where: {
           startDate: {
             lte: now,
           },
           endDate: {
-            gt: now, // Đảm bảo bài đăng chưa hết hạn
+            gt: now,
           },
           status: 'INACTIVE',
         },
@@ -319,7 +323,6 @@ export class PostService {
         },
       })
 
-      // Log chi tiết kết quả
       if (result.count > 0) {
         this.logger.log(
           `Đã kích hoạt ${result.count} bài đăng thành ACTIVE (thời gian hiện tại: ${now.toISOString()})`

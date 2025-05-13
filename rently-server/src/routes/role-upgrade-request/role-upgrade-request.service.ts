@@ -49,7 +49,32 @@ export class RoleUpgradeRequestService {
       throw new Error('Bạn đã có yêu cầu đang chờ xử lý')
     }
 
-    return this.roleUpgradeRequestRepo.create({ data: { ...data, userId } })
+    // Tạo yêu cầu nâng cấp tài khoản
+    const result = await this.roleUpgradeRequestRepo.create({
+      data: { ...data, userId },
+    })
+
+    // Lấy thông tin chi tiết về người dùng để thông báo cho admin
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true, phoneNumber: true },
+    })
+
+    // Gửi thông báo cho admin
+    if (result && user) {
+      this.eventsGateway.notifyAdmins('newRoleUpgradeRequest', {
+        id: result.id,
+        userId: userId,
+        userName: user.name,
+        userEmail: user.email,
+        userPhone: user.phoneNumber,
+        timestamp: new Date().toISOString(),
+        status: 'PENDING',
+        message: 'Có yêu cầu nâng cấp tài khoản mới',
+      })
+    }
+
+    return result
   }
 
   async update({

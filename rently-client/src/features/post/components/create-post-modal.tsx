@@ -15,6 +15,7 @@ import { AlertCircle, AlertTriangle, InfoIcon } from "lucide-react";
 import { Role } from "@/constants/type";
 import { addDays, format } from "date-fns";
 import React from "react";
+import { useGetSettingByKey } from "@/features/system-setting/useSystemSetting";
 
 import {
   Dialog,
@@ -54,7 +55,19 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   const userBalance = meData?.payload?.balance || 0;
   const userRole = meData?.payload?.role?.name || "";
   const isAdmin = userRole === Role.Admin;
-  const POST_FEE = 10000; // Phí đăng bài 10,000 VNĐ
+
+  // Lấy phí đăng bài từ cài đặt hệ thống
+  const { data: postPriceSetting } = useGetSettingByKey("post_price");
+  const { data: postDurationSetting } =
+    useGetSettingByKey("post_duration_days");
+
+  // Lấy giá trị phí đăng bài và thời gian hiển thị từ cài đặt hệ thống nếu có
+  const POST_FEE = postPriceSetting
+    ? parseInt(postPriceSetting.value, 10)
+    : 10000;
+  const POST_DURATION = postDurationSetting
+    ? parseInt(postDurationSetting.value, 10)
+    : 30;
 
   // Lấy danh sách nhà trọ của người dùng
   const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentalsById(
@@ -114,7 +127,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   useEffect(() => {
     if (formData.startDate) {
       const startDate = new Date(formData.startDate);
-      const endDate = addDays(startDate, 7);
+      const endDate = addDays(startDate, POST_DURATION);
 
       // Format ngày theo định dạng YYYY-MM-DD cho input type="date"
       const formattedEndDate = format(endDate, "yyyy-MM-dd");
@@ -127,7 +140,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
         }));
       }
     }
-  }, [formData.startDate, formData.endDate]);
+  }, [formData.startDate, formData.endDate, POST_DURATION]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -271,7 +284,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
               <>
                 Khi đăng bài, hệ thống sẽ thu phí{" "}
                 <strong>{POST_FEE.toLocaleString()} VNĐ</strong> cho thời hạn{" "}
-                <strong>7 ngày</strong>. Số dư hiện tại của bạn:{" "}
+                <strong>{POST_DURATION} ngày</strong>. Số dư hiện tại của bạn:{" "}
                 <strong>{userBalance.toLocaleString()} VNĐ</strong>.
                 {userBalance < POST_FEE && (
                   <div className="mt-2 text-red-600 font-medium">
@@ -380,10 +393,10 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                     {!formData.rentalId
                       ? "Vui lòng chọn nhà trọ trước"
                       : isRoomsLoading
-                      ? "Đang tải phòng..."
-                      : filteredRooms.length === 0
-                      ? "Không có phòng trống trong nhà trọ này"
-                      : "Chọn phòng trọ"}
+                        ? "Đang tải phòng..."
+                        : filteredRooms.length === 0
+                          ? "Không có phòng trống trong nhà trọ này"
+                          : "Chọn phòng trọ"}
                   </option>
                   {filteredRooms.map((room: any) => (
                     <option key={room.id} value={room.id}>
@@ -412,11 +425,13 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                 />
               </div>
 
-              {/* Ngày kết thúc (tự động cập nhật sau 7 ngày) */}
+              {/* Ngày kết thúc (tự động cập nhật theo thời gian từ cài đặt) */}
               <div className="grid w-full items-center gap-1.5">
                 <label htmlFor="endDate" className="text-sm font-medium">
                   Ngày kết thúc{" "}
-                  <span className="text-text-muted">(Hết hạn sau 7N)</span>
+                  <span className="text-text-muted">
+                    (Hết hạn sau {POST_DURATION}N)
+                  </span>
                 </label>
                 <div className="flex h-10 w-full rounded-md border border-input bg-gray-50 px-3 py-2 text-sm items-center">
                   {formData.endDate

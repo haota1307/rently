@@ -208,25 +208,12 @@ export function RolePermissionsModal({
     }
   };
 
-  // Thêm kiểm tra và hiển thị thông báo nếu là vai trò cơ bản
-  const isBaseRole = role
-    ? ["ADMIN", "CLIENT", "LANDLORD"].includes(role.name)
-    : false;
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[750px] max-h-[80vh] flex flex-col">
         <DialogHeader className="pb-2">
           <DialogTitle>Gán quyền cho vai trò: {role?.name}</DialogTitle>
         </DialogHeader>
-
-        {isBaseRole && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-yellow-800 text-sm">
-              Đây là vai trò cơ bản của hệ thống và không thể sửa đổi quyền.
-            </p>
-          </div>
-        )}
 
         <div className="flex-1 flex flex-col min-h-0 py-2">
           <div className="flex items-center mb-2">
@@ -367,7 +354,7 @@ export function RolePermissionsModal({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={updateRoleMutation.isPending || isBaseRole}
+            disabled={updateRoleMutation.isPending}
             className="ml-2"
             size="sm"
           >

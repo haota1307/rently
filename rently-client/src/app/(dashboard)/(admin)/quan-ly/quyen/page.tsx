@@ -45,6 +45,15 @@ export default function RolesPage() {
   const deleteRoleMutation = useDeleteRole();
 
   const handleEditRole = (role: Role) => {
+    // Kiểm tra xem vai trò có phải là vai trò cơ bản không
+    const baseRoles = ["ADMIN", "CLIENT", "LANDLORD"];
+    if (baseRoles.includes(role.name)) {
+      toast.warning(
+        "Không thể chỉnh sửa vai trò cơ bản của hệ thống. Bạn chỉ có thể thay đổi phân quyền cho vai trò này."
+      );
+      return;
+    }
+
     setSelectedRole(role);
     setIsEditModalOpen(true);
   };

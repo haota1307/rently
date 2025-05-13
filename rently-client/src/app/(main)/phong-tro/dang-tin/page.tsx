@@ -51,7 +51,7 @@ const NumberInput = ({
   };
 
   return (
-    <div className="grid w-full items-center gap-1.5">
+    <div className="grid mx-auto items-center gap-1.5">
       <label htmlFor={id} className="text-sm font-medium">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
