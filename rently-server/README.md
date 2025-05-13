@@ -44,28 +44,6 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-## Cấu hình múi giờ cho Railway.com
-
-Khi triển khai ứng dụng trên Railway.com với region Singapore, có thể gặp vấn đề về múi giờ không khớp với múi giờ Việt Nam (GMT+7). Để khắc phục vấn đề này, thực hiện một trong các cách sau:
-
-### Cách 1: Thiết lập biến môi trường TZ trong Railway
-
-1. Truy cập vào project của bạn trên Railway
-2. Vào phần Variables
-3. Thêm biến môi trường: `TZ=Asia/Ho_Chi_Minh`
-
-### Cách 2: Thêm tham số timezone vào DATABASE_URL
-
-Nếu sử dụng PostgreSQL, thêm tham số timezone vào cuối URL kết nối:
-
-```
-DATABASE_URL=postgresql://username:password@localhost:5432/rently?timezone=Asia/Ho_Chi_Minh
-```
-
-### Cách 3: Khởi động lại ứng dụng
-
-Sau khi cấu hình múi giờ, khởi động lại ứng dụng của bạn trên Railway để áp dụng các thay đổi.
-
 ## Run tests
 
 ```bash
