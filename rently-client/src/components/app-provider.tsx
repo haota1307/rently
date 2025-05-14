@@ -282,30 +282,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }, 30000);
 
       if (socketInstance) {
-        // Lắng nghe sự kiện cập nhật vai trò
-        socketInstance.on(
-          "roleUpdate",
-          (data: { status: string; note?: string }) => {
-            // Làm mới token để cập nhật vai trò
-            checkAndRefreshToken({
-              force: true,
-              onSuccess: () => {
-                if (data.status === "APPROVED") {
-                  toast.success(
-                    "Yêu cầu nâng cấp tài khoản của bạn đã được chấp thuận!"
-                  );
-                } else {
-                  toast.error(
-                    `Yêu cầu nâng cấp tài khoản của bạn đã bị từ chối! ${
-                      data.note ? `Lý do: ${data.note}` : ""
-                    }`
-                  );
-                }
-              },
-            });
-          }
-        );
-
         // Lắng nghe sự kiện khóa tài khoản
         socketInstance.on(
           "accountBlocked",
@@ -428,7 +404,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return () => {
         clearInterval(pingInterval);
         if (socketInstance) {
-          socketInstance.off("roleUpdate");
           socketInstance.off("accountBlocked");
           socketInstance.off("withdraw-confirm");
           socketInstance.off("withdraw-reject");
@@ -443,11 +418,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <NotificationSocketProvider>
-      <ConfirmProvider>
-        {children}
-        <RefreshToken />
-        {mounted && <ListenRoleUpdateSocket />}
-      </ConfirmProvider>
+        <ConfirmProvider>
+          {children}
+          <RefreshToken />
+          {mounted && <ListenRoleUpdateSocket />}
+        </ConfirmProvider>
       </NotificationSocketProvider>
     </QueryClientProvider>
   );

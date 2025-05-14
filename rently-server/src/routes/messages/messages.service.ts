@@ -15,6 +15,10 @@ import { EventsGateway } from 'src/events/events.gateway'
 import { MessageType } from './messages.dto'
 import { NotificationService } from 'src/routes/notification/notification.service'
 
+// Giới hạn kích thước message
+const MAX_MESSAGE_SIZE = 10000 // 10KB
+const DEFAULT_PAGE_SIZE = 20 // Số lượng tin nhắn mặc định mỗi trang
+
 @Injectable()
 export class MessagesService {
   constructor(
@@ -27,7 +31,18 @@ export class MessagesService {
    * Lấy danh sách cuộc trò chuyện của người dùng
    */
   async getConversations(userId: number, query: GetConversationsQueryType) {
-    return this.messagesRepo.getConversations(userId, query)
+    // Đảm bảo có giới hạn số lượng kết quả trả về
+    const limit =
+      query.limit && query.limit > 0
+        ? Math.min(query.limit, 100) // Giới hạn tối đa 100 kết quả
+        : 20 // Mặc định 20 kết quả
+
+    const modifiedQuery = {
+      ...query,
+      limit,
+    }
+
+    return this.messagesRepo.getConversations(userId, modifiedQuery)
   }
 
   /**
@@ -52,7 +67,16 @@ export class MessagesService {
       )
     }
 
-    return this.messagesRepo.getMessages(conversationId, userId, query)
+    // Đảm bảo có giới hạn số lượng tin nhắn trả về
+    const modifiedQuery = {
+      ...query,
+      limit:
+        query.limit && query.limit > 0
+          ? Math.min(query.limit, 50) // Giới hạn tối đa 50 tin nhắn
+          : DEFAULT_PAGE_SIZE, // Mặc định 20 tin nhắn
+    }
+
+    return this.messagesRepo.getMessages(conversationId, userId, modifiedQuery)
   }
 
   /**
@@ -69,6 +93,15 @@ export class MessagesService {
       throw new UnauthorizedException(
         'Bạn không có quyền gửi tin nhắn trong cuộc trò chuyện này'
       )
+    }
+
+    // Giới hạn kích thước nội dung tin nhắn
+    if (
+      data.content &&
+      typeof data.content === 'string' &&
+      data.content.length > MAX_MESSAGE_SIZE
+    ) {
+      data.content = data.content.substring(0, MAX_MESSAGE_SIZE)
     }
 
     // Tạo tin nhắn mới
@@ -126,9 +159,16 @@ export class MessagesService {
 
     // Tạo tin nhắn đầu tiên nếu có
     if (data.initialMessage) {
+      // Giới hạn kích thước tin nhắn đầu tiên
+      const initialMessage =
+        typeof data.initialMessage === 'string' &&
+        data.initialMessage.length > MAX_MESSAGE_SIZE
+          ? data.initialMessage.substring(0, MAX_MESSAGE_SIZE)
+          : data.initialMessage
+
       await this.messagesRepo.createMessage(userId, {
         conversationId: conversation.id,
-        content: data.initialMessage,
+        content: initialMessage,
         type: MessageType.TEXT,
       })
 
@@ -200,6 +240,11 @@ export class MessagesService {
       )
     }
 
+    // Giới hạn kích thước nội dung
+    if (content && content.length > MAX_MESSAGE_SIZE) {
+      content = content.substring(0, MAX_MESSAGE_SIZE)
+    }
+
     // Cập nhật nội dung tin nhắn
     const updatedMessage = await this.messagesRepo.updateMessage(
       messageId,
@@ -264,6 +309,11 @@ export class MessagesService {
 
       if (!conversation) {
         throw new NotFoundException('Cuộc trò chuyện không tồn tại')
+      }
+
+      // Giới hạn kích thước nội dung
+      if (content && content.length > MAX_MESSAGE_SIZE) {
+        content = content.substring(0, MAX_MESSAGE_SIZE)
       }
 
       // Xác định người nhận

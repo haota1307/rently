@@ -13,6 +13,13 @@ import { Server, Socket } from 'socket.io'
 import { Logger, UnauthorizedException } from '@nestjs/common'
 import { TokenService } from 'src/shared/services/token.service'
 import { TypingMessage } from './dto/typing-message.dto'
+import { Interval } from '@nestjs/schedule'
+
+// Giới hạn kích thước cho dữ liệu
+const MAX_RECENT_EVENTS = 50
+const MAX_MESSAGE_SIZE = 10000 // 10KB
+const CLEANUP_INTERVAL = 60000 // 1 phút
+const EVENT_EXPIRE_TIME = 10000 // 10 giây
 
 interface SocketWithUser extends Socket {
   user?: {
@@ -35,6 +42,7 @@ export class EventsGateway
   private userSocketMap: Map<number, string[]> = new Map() // userId -> socketIds[]
   private recentEvents: Map<string, { timestamp: number; data: any }> =
     new Map()
+  private roomLastActivity: Map<string, number> = new Map() // roomId -> lastActivityTimestamp
 
   constructor(private readonly tokenService: TokenService) {}
 
@@ -103,6 +111,107 @@ export class EventsGateway
     } else {
       this.logger.log(`Client disconnected: ${client.id} (Unknown user)`)
     }
+  }
+
+  // Định kỳ dọn dẹp bộ nhớ
+  @Interval(CLEANUP_INTERVAL)
+  cleanupResources() {
+    this.cleanupRecentEvents()
+    this.cleanupInactiveRooms()
+    this.logger.log(`Memory cleanup completed: ${new Date().toISOString()}`)
+  }
+
+  // Dọn dẹp recent events
+  private cleanupRecentEvents() {
+    const now = Date.now()
+    let deletedCount = 0
+
+    // Xóa sự kiện cũ hơn EVENT_EXPIRE_TIME
+    for (const [key, value] of this.recentEvents.entries()) {
+      if (now - value.timestamp > EVENT_EXPIRE_TIME) {
+        this.recentEvents.delete(key)
+        deletedCount++
+      }
+    }
+
+    // Nếu vẫn có quá nhiều, xóa theo thứ tự thời gian
+    if (this.recentEvents.size > MAX_RECENT_EVENTS) {
+      const keysToDelete = [...this.recentEvents.keys()]
+        .sort(
+          (a, b) =>
+            (this.recentEvents.get(a)?.timestamp || 0) -
+            (this.recentEvents.get(b)?.timestamp || 0)
+        )
+        .slice(0, this.recentEvents.size - MAX_RECENT_EVENTS)
+
+      keysToDelete.forEach(key => {
+        this.recentEvents.delete(key)
+        deletedCount++
+      })
+    }
+
+    if (deletedCount > 0) {
+      this.logger.log(`Cleaned up ${deletedCount} recent events`)
+    }
+  }
+
+  // Dọn dẹp rooms không hoạt động
+  private cleanupInactiveRooms() {
+    const now = Date.now()
+    let deletedCount = 0
+
+    for (const [roomId, lastActivity] of this.roomLastActivity.entries()) {
+      if (now - lastActivity > 3600000) {
+        // 1 giờ không hoạt động
+        const room = this.server.sockets.adapter.rooms.get(roomId)
+        if (!room || room.size === 0) {
+          this.roomLastActivity.delete(roomId)
+          deletedCount++
+        }
+      }
+    }
+
+    if (deletedCount > 0) {
+      this.logger.log(`Cleaned up ${deletedCount} inactive rooms`)
+    }
+  }
+
+  // Cập nhật hoạt động cho room
+  private updateRoomActivity(roomId: string) {
+    this.roomLastActivity.set(roomId, Date.now())
+  }
+
+  // Giới hạn kích thước dữ liệu
+  private limitDataSize(data: any): any {
+    if (!data) return data
+
+    // Nếu là chuỗi, giới hạn độ dài
+    if (typeof data === 'string' && data.length > MAX_MESSAGE_SIZE) {
+      return data.substring(0, MAX_MESSAGE_SIZE)
+    }
+
+    // Nếu là object, xử lý đệ quy
+    if (typeof data === 'object' && data !== null) {
+      const result = Array.isArray(data) ? [] : {}
+
+      for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+          if (
+            key === 'content' &&
+            typeof data[key] === 'string' &&
+            data[key].length > MAX_MESSAGE_SIZE
+          ) {
+            result[key] = data[key].substring(0, MAX_MESSAGE_SIZE)
+          } else {
+            result[key] = this.limitDataSize(data[key])
+          }
+        }
+      }
+
+      return result
+    }
+
+    return data
   }
 
   @SubscribeMessage('registerUser')
@@ -188,13 +297,17 @@ export class EventsGateway
     @MessageBody() data: TypingMessage,
     @ConnectedSocket() client: Socket
   ) {
-    client.broadcast.to(data.roomId.toString()).emit('typing', data)
+    const roomId = data.roomId.toString()
+    client.broadcast.to(roomId).emit('typing', data)
+    this.updateRoomActivity(roomId)
     return { event: 'typing', data }
   }
 
   @SubscribeMessage('join')
   handleJoin(@MessageBody() roomId: number, @ConnectedSocket() client: Socket) {
-    client.join(roomId.toString())
+    const roomIdStr = roomId.toString()
+    client.join(roomIdStr)
+    this.updateRoomActivity(roomIdStr)
     return { event: 'join', data: roomId }
   }
 
@@ -218,6 +331,7 @@ export class EventsGateway
 
     const room = `chat:${conversationId}`
     client.join(room)
+    this.updateRoomActivity(room)
     this.logger.log(`User ${client.user.id} joined chat room: ${room}`)
     return { event: 'joinChat', data: conversationId }
   }
@@ -247,6 +361,7 @@ export class EventsGateway
     }
 
     const room = `chat:${data.conversationId}`
+    this.updateRoomActivity(room)
 
     // Phát sự kiện đến tất cả người dùng trong phòng chat, ngoại trừ người gửi
     client.broadcast.to(room).emit('chatTyping', {
@@ -259,15 +374,20 @@ export class EventsGateway
   }
 
   notifyNewMessage(conversationId: number, message: any, receiverId: number) {
-    const userSockets = this.userSocketMap.get(receiverId) || []
     const room = `chat:${conversationId}`
+    this.updateRoomActivity(room)
+
+    // Giới hạn kích thước message
+    const limitedMessage = this.limitDataSize(message)
+
+    const userSockets = this.userSocketMap.get(receiverId) || []
 
     this.logger.log(
       `Gửi tin nhắn mới đến phòng ${room} và receiverId ${receiverId}`
     )
 
     // Gửi tin nhắn đến tất cả người dùng trong phòng chat
-    this.server.to(room).emit('newMessage', message)
+    this.server.to(room).emit('newMessage', limitedMessage)
 
     // Log danh sách các socket trong phòng
     const roomSockets = this.server.sockets.adapter.rooms.get(room)
@@ -284,11 +404,11 @@ export class EventsGateway
       userSockets.forEach(socketId => {
         this.server.to(socketId).emit('messageNotification', {
           conversationId,
-          message,
+          message: limitedMessage,
         })
 
         // Đảm bảo người nhận nhận được tin nhắn mới ngay cả khi không trong phòng chat
-        this.server.to(socketId).emit('newMessage', message)
+        this.server.to(socketId).emit('newMessage', limitedMessage)
       })
 
       return true
@@ -329,11 +449,14 @@ export class EventsGateway
     @MessageBody() data: any,
     @ConnectedSocket() client: SocketWithUser
   ) {
-    this.logger.log(`Received echo request: ${JSON.stringify(data)}`)
+    // Giới hạn kích thước dữ liệu
+    const limitedData = this.limitDataSize(data)
+
+    this.logger.log(`Received echo request: ${JSON.stringify(limitedData)}`)
 
     // Gửi phản hồi trực tiếp cho client
     client.emit('echoResponse', {
-      received: data,
+      received: limitedData,
       timestamp: new Date().toISOString(),
       message: 'Echo từ server',
       socketId: client.id,
@@ -348,9 +471,14 @@ export class EventsGateway
    */
   notifyMessageUpdated(conversationId: number, updatedMessage: any) {
     const room = `chat:${conversationId}`
+    this.updateRoomActivity(room)
+
+    // Giới hạn kích thước dữ liệu
+    const limitedMessage = this.limitDataSize(updatedMessage)
+
     this.logger.log(`Gửi thông báo cập nhật tin nhắn đến phòng ${room}`)
     this.logger.log(
-      `Chi tiết tin nhắn cập nhật: ${JSON.stringify(updatedMessage)}`
+      `Chi tiết tin nhắn cập nhật: ${JSON.stringify(limitedMessage)}`
     )
 
     // Log danh sách các socket trong phòng
@@ -361,11 +489,11 @@ export class EventsGateway
 
     // Gửi thông báo đến tất cả người dùng trong phòng chat với cả hai tên sự kiện
     this.logger.log(`Bắt đầu emit sự kiện 'messageUpdated' đến phòng ${room}`)
-    this.server.to(room).emit('messageUpdated', updatedMessage)
+    this.server.to(room).emit('messageUpdated', limitedMessage)
 
     // Thêm emit sự kiện 'messageEdited' để đảm bảo khả năng tương thích
     this.logger.log(`Bắt đầu emit sự kiện 'messageEdited' đến phòng ${room}`)
-    this.server.to(room).emit('messageEdited', updatedMessage)
+    this.server.to(room).emit('messageEdited', limitedMessage)
 
     this.logger.log(`Đã emit các sự kiện cập nhật tin nhắn đến phòng ${room}`)
 
@@ -412,6 +540,7 @@ export class EventsGateway
    */
   notifyMessageDeleted(conversationId: number, messageId: number) {
     const room = `chat:${conversationId}`
+    this.updateRoomActivity(room)
     this.logger.log(`Gửi thông báo xóa tin nhắn ${messageId} đến phòng ${room}`)
 
     // Log danh sách các socket trong phòng
@@ -475,6 +604,7 @@ export class EventsGateway
     if (client.user && client.user.role === 'ADMIN') {
       this.logger.log(`Admin socket ${client.id} đang tham gia admin-room`)
       client.join('admin-room')
+      this.updateRoomActivity('admin-room')
 
       // Gửi xác nhận tham gia thành công
       client.emit('joinAdminRoomResponse', {
@@ -522,13 +652,16 @@ export class EventsGateway
    * Thêm cơ chế chống trùng lặp
    */
   notifyAdmins(eventName: string, data: any) {
+    // Tối ưu dữ liệu
+    const limitedData = this.limitDataSize(data)
+
     // Thêm timestamp nếu chưa có
-    if (!data.timestamp) {
-      data.timestamp = new Date().toISOString()
+    if (!limitedData.timestamp) {
+      limitedData.timestamp = new Date().toISOString()
     }
 
     // Tạo ID duy nhất cho sự kiện này
-    const eventId = `${eventName}-${data.withdrawId || data.id || 'unknown'}-${data.timestamp}`
+    const eventId = `${eventName}-${limitedData.withdrawId || limitedData.id || 'unknown'}-${limitedData.timestamp}`
 
     // Kiểm tra xem sự kiện này đã được gửi gần đây chưa (trong vòng 5 giây)
     const now = Date.now()
@@ -542,23 +675,12 @@ export class EventsGateway
     }
 
     // Lưu sự kiện này vào danh sách đã gửi
-    this.recentEvents.set(eventId, { timestamp: now, data })
+    this.recentEvents.set(eventId, { timestamp: now, data: limitedData })
 
-    // Xóa các sự kiện cũ (giữ map trong giới hạn 100 mục)
-    if (this.recentEvents.size > 100) {
-      const keysToDelete = [...this.recentEvents.keys()]
-        .sort(
-          (a, b) =>
-            (this.recentEvents.get(a)?.timestamp || 0) -
-            (this.recentEvents.get(b)?.timestamp || 0)
-        )
-        .slice(0, this.recentEvents.size - 100)
-
-      keysToDelete.forEach(key => this.recentEvents.delete(key))
-    }
-
+    // Xóa các sự kiện cũ (đã được di chuyển đến phương thức cleanupRecentEvents)
+    this.updateRoomActivity('admin-room')
     this.logger.log(
-      `Gửi sự kiện "${eventName}" đến admin-room: ${JSON.stringify(data)}`
+      `Gửi sự kiện "${eventName}" đến admin-room: ${JSON.stringify(limitedData)}`
     )
 
     // Lấy danh sách socket trong phòng admin
@@ -568,7 +690,7 @@ export class EventsGateway
     this.logger.log(`Số lượng socket trong admin-room: ${adminSocketCount}`)
 
     // Gửi sự kiện đến room admin
-    this.server.to('admin-room').emit(eventName, data)
+    this.server.to('admin-room').emit(eventName, limitedData)
 
     return adminSocketCount > 0
   }
