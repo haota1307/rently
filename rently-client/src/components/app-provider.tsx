@@ -239,6 +239,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
+  // Hàm xử lý dữ liệu paymentStatusUpdated
+  const processPaymentUpdateData = (updateData: any) => {
+    let paymentId: number | null = null;
+
+    // Trường hợp 1: Dữ liệu có id trực tiếp
+    if (updateData.id) {
+      paymentId = updateData.id;
+    }
+    // Trường hợp 2: Lấy id từ description (mẫu #RUTxx)
+    else if (
+      updateData.description &&
+      typeof updateData.description === "string" &&
+      updateData.description.includes("#RUT")
+    ) {
+      const match = updateData.description.match(/#RUT(\d+)/);
+      if (match && match[1]) {
+        paymentId = parseInt(match[1], 10);
+      }
+    }
+
+    if (paymentId) {
+      notifyPaymentStatusUpdate({
+        id: paymentId,
+        status: updateData.status || "COMPLETED",
+        amount: updateData.amount || 0,
+        description: updateData.description || "",
+      });
+    }
+  };
+
   // Cập nhật socket khi component mount
   useEffect(() => {
     // Tránh chạy trên server
@@ -281,149 +311,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }, 30000);
 
+      // Đăng ký sự kiện payment status update
       if (socketInstance) {
-        // Lắng nghe sự kiện khóa tài khoản
-        socketInstance.on(
-          "accountBlocked",
-          async (data: { message: string; reason?: string }) => {
-            // Hiển thị thông báo rõ ràng cho người dùng
-            toast.error(data.message || "Tài khoản của bạn đã bị khóa", {
-              duration: 10000,
-              position: "top-center",
-              description: data.reason
-                ? `Lý do: ${data.reason}`
-                : "Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.",
-            });
-
-            // Hiển thị thông báo và tự động đăng xuất sau 3 giây
-            setTimeout(async () => {
-              try {
-                // Đăng xuất người dùng với đầy đủ xóa token và cookie
-                await clearAuthData();
-
-                // Ngắt kết nối socket
-                socketInstance.disconnect();
-
-                // Cập nhật state
-                setRole(undefined);
-                setSocket(undefined);
-
-                // Chuyển hướng người dùng đến trang đăng nhập
-                window.location.href = "/dang-nhap?blocked=true";
-              } catch (error) {
-                // Fallback nếu có lỗi
-                removeTokensFromLocalStorage();
-                window.location.href = "/dang-nhap?blocked=true";
-              }
-            }, 0);
-          }
-        );
-
-        // Lắng nghe các sự kiện thanh toán từ server
-        socketInstance.on("withdraw-confirm", (data: any) => {
-          if (data && data.withdrawId) {
-            notifyPaymentStatusUpdate({
-              id: data.withdrawId,
-              status: "COMPLETED",
-              amount: data.amount || 0,
-              description: data.description || "",
-            });
-          }
-        });
-
-        socketInstance.on("withdraw-reject", (data: any) => {
-          if (data && data.withdrawId) {
-            notifyPaymentStatusUpdate({
-              id: data.withdrawId,
-              status: "REJECTED",
-              amount: data.amount || 0,
-              description: data.description || "",
-            });
-          }
-        });
-
-        socketInstance.on("transaction-updated", (data: any) => {
-          if (data && data.id) {
-            notifyPaymentStatusUpdate({
-              id: data.id,
-              status: data.status || "UPDATED",
-              amount: data.amount || 0,
-              description: data.description || "",
-            });
-          }
-        });
-
-        socketInstance.on("paymentStatusUpdated", (data: any) => {
-          try {
-            // Trường hợp 1: Dữ liệu là mảng
-            if (Array.isArray(data) && data.length > 0) {
-              const updateData = data[0];
-              processPaymentUpdateData(updateData);
-            }
-            // Trường hợp 2: Dữ liệu là object đơn
-            else if (data && typeof data === "object") {
-              processPaymentUpdateData(data);
-            }
-          } catch (err) {
-            // Bỏ qua lỗi
-          }
-        });
-
-        // Hàm xử lý dữ liệu paymentStatusUpdated
-        const processPaymentUpdateData = (updateData: any) => {
-          let paymentId: number | null = null;
-
-          // Trường hợp 1: Dữ liệu có id trực tiếp
-          if (updateData.id) {
-            paymentId = updateData.id;
-          }
-          // Trường hợp 2: Lấy id từ description (mẫu #RUTxx)
-          else if (
-            updateData.description &&
-            typeof updateData.description === "string" &&
-            updateData.description.includes("#RUT")
-          ) {
-            const match = updateData.description.match(/#RUT(\d+)/);
-            if (match && match[1]) {
-              paymentId = parseInt(match[1], 10);
-            }
-          }
-
-          if (paymentId) {
-            notifyPaymentStatusUpdate({
-              id: paymentId,
-              status: updateData.status || "COMPLETED",
-              amount: updateData.amount || 0,
-              description: updateData.description || "",
-            });
-          }
-        };
+        // Đảm bảo xóa lắng nghe cũ trước khi đăng ký mới
+        socketInstance.off("paymentStatusUpdated");
+        socketInstance.on("paymentStatusUpdated", processPaymentUpdateData);
       }
 
-      // Cleanup khi component unmount
       return () => {
         clearInterval(pingInterval);
         if (socketInstance) {
-          socketInstance.off("accountBlocked");
-          socketInstance.off("withdraw-confirm");
-          socketInstance.off("withdraw-reject");
-          socketInstance.off("transaction-updated");
           socketInstance.off("paymentStatusUpdated");
           socketInstance.disconnect();
         }
       };
     }
-  }, [setRole, setSocket, notifyPaymentStatusUpdate]);
+
+    return () => {
+      // Nếu không có token, chỉ cần đảm bảo socket không còn
+      setSocket(undefined);
+    };
+  }, [
+    mounted,
+    registerSocketEvent,
+    setRole,
+    setSocket,
+    notifyPaymentStatusUpdate,
+  ]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <NotificationSocketProvider>
+    <>
+      <QueryClientProvider client={queryClient}>
         <ConfirmProvider>
-          {children}
-          <RefreshToken />
-          {mounted && <ListenRoleUpdateSocket />}
+          <NotificationSocketProvider>{children}</NotificationSocketProvider>
+          {mounted && (
+            <>
+              <RefreshToken />
+              <ListenRoleUpdateSocket />
+            </>
+          )}
         </ConfirmProvider>
-      </NotificationSocketProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </>
   );
 }

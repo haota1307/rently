@@ -6,33 +6,103 @@ import {
   removeTokensFromLocalStorage,
   setAccessTokenToLocalStorage,
   checkAndRefreshToken,
+  generateSocketInstance,
 } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAppStore } from "./app-provider";
 import { Role, RoleType } from "@/constants/type";
+import { io, Socket } from "socket.io-client";
 
 export default function ListenRoleUpdateSocket() {
   const socket = useAppStore((state) => state.socket);
   const setRole = useAppStore((state) => state.setRole);
   const handledEvents = useRef(new Set<string>());
   const [isSocketReady, setIsSocketReady] = useState(false);
+  const [localSocket, setLocalSocket] = useState<Socket | null>(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
+  const reconnectInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Hàm thiết lập kết nối socket độc lập
+  const setupLocalSocket = () => {
+    const accessToken = getAccessTokenFromLocalStorage();
+    if (!accessToken) return;
+
+    try {
+      // Tạo một kết nối socket riêng chỉ để lắng nghe sự kiện roleUpdate
+      const socketInstance = io(process.env.NEXT_PUBLIC_API_ENDPOINT || "", {
+        auth: { token: accessToken },
+        reconnection: true,
+        reconnectionAttempts: maxReconnectAttempts,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+      });
+
+      socketInstance.on("connect", () => {
+        console.log(
+          "RoleUpdate socket kết nối thành công. ID:",
+          socketInstance.id
+        );
+        setIsSocketReady(true);
+        reconnectAttempts.current = 0;
+
+        // Đăng ký userId với socket
+        const decoded = decodeAccessToken(accessToken);
+        const userId = decoded?.sub;
+        if (userId) {
+          console.log("RoleUpdate socket: đăng ký userId:", userId);
+          socketInstance.emit("registerUser", userId);
+          socketInstance.emit("join-user-room", { userId });
+        }
+
+        // Thiết lập ping định kỳ để giữ kết nối
+        if (reconnectInterval.current) {
+          clearInterval(reconnectInterval.current);
+        }
+        reconnectInterval.current = setInterval(() => {
+          if (socketInstance.connected) {
+            socketInstance.emit("ping", {
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }, 30000);
+      });
+
+      socketInstance.on("disconnect", (reason) => {
+        console.log("RoleUpdate socket bị ngắt kết nối. Lý do:", reason);
+        setIsSocketReady(false);
+      });
+
+      socketInstance.on("connect_error", (error) => {
+        console.error("RoleUpdate socket kết nối lỗi:", error);
+        reconnectAttempts.current++;
+
+        if (reconnectAttempts.current > maxReconnectAttempts) {
+          console.log("Đã vượt quá số lần thử kết nối lại. Dừng thử lại.");
+          socketInstance.disconnect();
+        }
+      });
+
+      setLocalSocket(socketInstance);
+      return socketInstance;
+    } catch (error) {
+      console.error("Lỗi khi tạo kết nối RoleUpdate socket:", error);
+      return null;
+    }
+  };
 
   // Hàm thiết lập lắng nghe sự kiện
-  const setupRoleUpdateListener = () => {
-    if (!socket || !socket.connected) {
-      console.log("Socket chưa kết nối, không thể lắng nghe sự kiện");
-      return;
-    }
-
+  const setupRoleUpdateListener = (targetSocket: Socket) => {
     try {
       console.log("Thiết lập lắng nghe sự kiện roleUpdate");
 
       // Xóa lắng nghe cũ nếu có để tránh trùng lặp
-      socket.off("roleUpdate");
+      targetSocket.off("roleUpdate");
 
       // Lắng nghe sự kiện cập nhật vai trò
-      socket.on("roleUpdate", async (data) => {
+      targetSocket.on("roleUpdate", async (data) => {
         console.log("Đã nhận sự kiện roleUpdate:", data);
 
         // Tạo id duy nhất cho sự kiện để tránh xử lý trùng lặp
@@ -121,69 +191,53 @@ export default function ListenRoleUpdateSocket() {
     }
   };
 
-  // Lắng nghe trạng thái kết nối socket
+  // Thiết lập kết nối socket độc lập
   useEffect(() => {
-    if (!socket) return;
+    // Khi vừa mount component
+    const socketInstance = setupLocalSocket();
 
-    // Thiết lập khi socket đã kết nối
-    if (socket.connected) {
-      console.log("Socket đã kết nối. ID:", socket.id);
-      setIsSocketReady(true);
-    }
+    // Cleanup khi unmount component
+    return () => {
+      if (localSocket) {
+        localSocket.disconnect();
+        setLocalSocket(null);
+      }
 
-    // Đăng ký người dùng với socket và tham gia room
-    const accessToken = getAccessTokenFromLocalStorage();
-    if (!accessToken) return;
-
-    const decoded = decodeAccessToken(accessToken);
-    const userId = decoded?.sub;
-
-    if (userId) {
-      console.log("Đăng ký userId với socket:", userId);
-      socket.emit("register", { userId });
-      socket.emit("registerUser", userId);
-      socket.emit("join-user-room", { userId });
-    }
-
-    // Xử lý sự kiện kết nối
-    const onConnect = () => {
-      console.log("Socket kết nối thành công. ID:", socket.id);
-      setIsSocketReady(true);
-
-      // Đăng ký lại userId khi kết nối lại
-      if (userId) {
-        socket.emit("register", { userId });
-        socket.emit("registerUser", userId);
-        socket.emit("join-user-room", { userId });
+      if (reconnectInterval.current) {
+        clearInterval(reconnectInterval.current);
+        reconnectInterval.current = null;
       }
     };
+  }, []);
 
-    // Xử lý sự kiện mất kết nối
-    const onDisconnect = (reason: string) => {
-      console.log("Socket bị ngắt kết nối. Lý do:", reason);
-      setIsSocketReady(false);
-    };
-
-    // Lắng nghe sự kiện kết nối
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("roleUpdate");
-    };
-  }, [socket]);
-
-  // Thiết lập lắng nghe sự kiện roleUpdate khi socket đã sẵn sàng
+  // Thiết lập lắng nghe sự kiện trên cả socket chính và socket riêng
   useEffect(() => {
-    if (isSocketReady && socket) {
-      setupRoleUpdateListener();
-
-      // Gửi tin nhắn ping để đảm bảo kết nối ổn định
-      socket.emit("ping", { timestamp: new Date().toISOString() });
+    // Lắng nghe trên socket chính từ AppProvider (để đảm bảo tương thích với code cũ)
+    if (socket && socket.connected) {
+      setupRoleUpdateListener(socket);
     }
-  }, [isSocketReady, socket, setRole]);
+
+    // Lắng nghe trên socket riêng (độc lập với AppProvider)
+    if (localSocket && localSocket.connected) {
+      setupRoleUpdateListener(localSocket);
+    }
+  }, [socket, localSocket, setRole]);
+
+  // Thiết lập kiểm tra và phục hồi kết nối định kỳ
+  useEffect(() => {
+    const checkConnectionInterval = setInterval(() => {
+      // Nếu không có socket nào sẵn sàng, thử khởi tạo lại socket riêng
+      if (
+        (!socket || !socket.connected) &&
+        (!localSocket || !localSocket.connected)
+      ) {
+        console.log("Không có socket nào kết nối. Thử kết nối lại...");
+        setupLocalSocket();
+      }
+    }, 60000); // Kiểm tra mỗi phút
+
+    return () => clearInterval(checkConnectionInterval);
+  }, [socket, localSocket]);
 
   return null;
 }
