@@ -8,14 +8,29 @@ import { PermissionSchema } from "@/schemas/permission.schema";
  */
 export const UserSchema = z.object({
   id: z.number(),
-  email: z.string().email(),
-  name: z.string().min(1).max(100),
-  password: z.string().min(6).max(100),
-  phoneNumber: z.union([z.string().min(9).max(15), z.literal(""), z.null()]),
+  email: z.string().email({ message: "Email không hợp lệ" }),
+  name: z
+    .string()
+    .min(1, { message: "Tên không được để trống" })
+    .max(100, { message: "Tên không vượt quá 100 ký tự" }),
+  password: z
+    .string()
+    .min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" })
+    .max(100, { message: "Mật khẩu không vượt quá 100 ký tự" }),
+  phoneNumber: z.union([
+    z
+      .string()
+      .min(9, { message: "Số điện thoại phải có ít nhất 9 ký tự" })
+      .max(15, { message: "Số điện thoại không vượt quá 15 ký tự" }),
+    z.literal(""),
+    z.null(),
+  ]),
   avatar: z.string().nullable(),
-  status: z.enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BLOCKED]),
-  balance: z.number().int().default(0),
-  roleId: z.number().positive(),
+  status: z.enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BLOCKED], {
+    errorMap: () => ({ message: "Trạng thái người dùng không hợp lệ" }),
+  }),
+  balance: z.number().int({ message: "Số dư phải là số nguyên" }).default(0),
+  roleId: z.number().positive({ message: "ID vai trò phải là số dương" }),
 
   updatedById: z.number().nullable(),
   deletedById: z.number().nullable(),
@@ -85,11 +100,27 @@ export const GetUsersResSchema = z.object({
  */
 export const GetUsersQuerySchema = z
   .object({
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().default(10),
+    page: z.coerce
+      .number()
+      .int({ message: "Trang phải là số nguyên" })
+      .positive({ message: "Trang phải là số dương" })
+      .default(1),
+    limit: z.coerce
+      .number()
+      .int({ message: "Giới hạn phải là số nguyên" })
+      .positive({ message: "Giới hạn phải là số dương" })
+      .default(10),
     name: z.string().optional(),
-    status: z.enum(["ACTIVE", "INACTIVE", "BLOCKED"]).optional(),
-    roleId: z.coerce.number().int().positive().optional(),
+    status: z
+      .enum(["ACTIVE", "INACTIVE", "BLOCKED"], {
+        errorMap: () => ({ message: "Trạng thái không hợp lệ" }),
+      })
+      .optional(),
+    roleId: z.coerce
+      .number()
+      .int({ message: "ID vai trò phải là số nguyên" })
+      .positive({ message: "ID vai trò phải là số dương" })
+      .optional(),
   })
   .strict();
 
@@ -98,7 +129,7 @@ export const GetUsersQuerySchema = z
  */
 export const GetUserParamsSchema = z
   .object({
-    userId: z.coerce.number(),
+    userId: z.coerce.number({ invalid_type_error: "ID người dùng phải là số" }),
   })
   .strict();
 
@@ -107,17 +138,29 @@ export const GetUserParamsSchema = z
  */
 export const CreateUserBodySchema = z
   .object({
-    name: z.string().min(1).max(100),
-    email: z.string().email(),
-    password: z.string().min(6).max(100),
-    phoneNumber: z.string().min(9).max(15).nullable().optional(),
+    name: z
+      .string()
+      .min(1, { message: "Tên không được để trống" })
+      .max(100, { message: "Tên không vượt quá 100 ký tự" }),
+    email: z.string().email({ message: "Email không hợp lệ" }),
+    password: z
+      .string()
+      .min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" })
+      .max(100, { message: "Mật khẩu không vượt quá 100 ký tự" }),
+    phoneNumber: z
+      .string()
+      .min(9, { message: "Số điện thoại phải có ít nhất 9 ký tự" })
+      .max(15, { message: "Số điện thoại không vượt quá 15 ký tự" })
+      .nullable()
+      .optional(),
     avatar: z.string().nullable().optional(),
-    roleId: z.number().positive(),
-    status: z.enum([
-      UserStatus.ACTIVE,
-      UserStatus.INACTIVE,
-      UserStatus.BLOCKED,
-    ]),
+    roleId: z.number().positive({ message: "ID vai trò phải là số dương" }),
+    status: z.enum(
+      [UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BLOCKED],
+      {
+        errorMap: () => ({ message: "Trạng thái người dùng không hợp lệ" }),
+      }
+    ),
   })
   .strict();
 
@@ -133,14 +176,32 @@ export const CreateUserResSchema = GetUserProfileResSchema;
  */
 export const UpdateUserBodySchema = z
   .object({
-    name: z.string().min(1).max(100).optional(),
-    email: z.string().email().optional(),
-    password: z.string().min(6).max(100).optional(),
-    phoneNumber: z.string().min(9).max(15).nullable().optional(),
+    name: z
+      .string()
+      .min(1, { message: "Tên không được để trống" })
+      .max(100, { message: "Tên không vượt quá 100 ký tự" })
+      .optional(),
+    email: z.string().email({ message: "Email không hợp lệ" }).optional(),
+    password: z
+      .string()
+      .min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" })
+      .max(100, { message: "Mật khẩu không vượt quá 100 ký tự" })
+      .optional(),
+    phoneNumber: z
+      .string()
+      .min(9, { message: "Số điện thoại phải có ít nhất 9 ký tự" })
+      .max(15, { message: "Số điện thoại không vượt quá 15 ký tự" })
+      .nullable()
+      .optional(),
     avatar: z.string().nullable().optional(),
-    roleId: z.number().positive().optional(),
+    roleId: z
+      .number()
+      .positive({ message: "ID vai trò phải là số dương" })
+      .optional(),
     status: z
-      .enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BLOCKED])
+      .enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BLOCKED], {
+        errorMap: () => ({ message: "Trạng thái người dùng không hợp lệ" }),
+      })
       .optional(),
   })
   .strict();

@@ -278,10 +278,11 @@ export function Header() {
                 <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
               ) : settings.siteLogo ? (
                 <Image
+                  quality={100}
                   src={settings.siteLogo}
                   alt="Rently Logo"
-                  width={32}
-                  height={32}
+                  width={100}
+                  height={100}
                   className="h-8 w-auto"
                 />
               ) : (

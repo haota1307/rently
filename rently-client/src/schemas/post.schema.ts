@@ -11,20 +11,22 @@ export enum RentalPostStatus {
 // Schema cho thông tin ảnh nhà trọ
 export const RentalImageSchema = z.object({
   id: z.number(),
-  imageUrl: z.string(),
-  order: z.number(),
+  imageUrl: z.string({ invalid_type_error: "URL ảnh phải là chuỗi" }),
+  order: z.number({ invalid_type_error: "Thứ tự phải là số" }),
   createdAt: z.date().nullable(),
 });
 
 // Schema cho thông tin bất động sản (Rental)
 export const RentalSchema = z.object({
   id: z.number(),
-  title: z.string(),
-  description: z.string(),
-  address: z.string(),
-  lat: z.number(),
-  lng: z.number(),
-  distance: z.number().optional(),
+  title: z.string({ invalid_type_error: "Tiêu đề phải là chuỗi" }),
+  description: z.string({ invalid_type_error: "Mô tả phải là chuỗi" }),
+  address: z.string({ invalid_type_error: "Địa chỉ phải là chuỗi" }),
+  lat: z.number({ invalid_type_error: "Vĩ độ phải là số" }),
+  lng: z.number({ invalid_type_error: "Kinh độ phải là số" }),
+  distance: z
+    .number({ invalid_type_error: "Khoảng cách phải là số" })
+    .optional(),
   createdAt: z.date(),
   rentalImages: z.array(RentalImageSchema).optional(),
 });
@@ -32,36 +34,48 @@ export const RentalSchema = z.object({
 // Schema cho thông tin người đăng (Landlord) - dùng thông tin từ model User
 export const LandlordSchema = z.object({
   id: z.number(),
-  name: z.string(),
-  avatar: z.string().nullable(),
-  phoneNumber: z.string().nullable(),
-  email: z.string().email(),
+  name: z.string({ invalid_type_error: "Tên phải là chuỗi" }),
+  avatar: z.string({ invalid_type_error: "Avatar phải là chuỗi" }).nullable(),
+  phoneNumber: z
+    .string({ invalid_type_error: "Số điện thoại phải là chuỗi" })
+    .nullable(),
+  email: z
+    .string({ invalid_type_error: "Email phải là chuỗi" })
+    .email({ message: "Email không hợp lệ" }),
 });
 
 // Schema cơ bản cho Post (bài đăng cho thuê)
 export const PostSchema = z.object({
   id: z.number(),
-  startDate: z.date(),
-  endDate: z.date(),
-  pricePaid: z.preprocess((arg) => {
-    if (typeof arg === "object" && arg !== null && "toNumber" in arg) {
-      return (arg as any).toNumber();
-    }
-    return arg;
-  }, z.number()),
-  deposit: z
-    .preprocess((arg) => {
+  startDate: z.date({ invalid_type_error: "Ngày bắt đầu không hợp lệ" }),
+  endDate: z.date({ invalid_type_error: "Ngày kết thúc không hợp lệ" }),
+  pricePaid: z.preprocess(
+    (arg) => {
       if (typeof arg === "object" && arg !== null && "toNumber" in arg) {
         return (arg as any).toNumber();
       }
       return arg;
-    }, z.number())
+    },
+    z.number({ invalid_type_error: "Giá thuê phải là số" })
+  ),
+  deposit: z
+    .preprocess(
+      (arg) => {
+        if (typeof arg === "object" && arg !== null && "toNumber" in arg) {
+          return (arg as any).toNumber();
+        }
+        return arg;
+      },
+      z.number({ invalid_type_error: "Tiền đặt cọc phải là số" })
+    )
     .default(0),
-  title: z.string(),
-  description: z.string(),
-  status: z.nativeEnum(RentalPostStatus),
-  rentalId: z.number(),
-  landlordId: z.number(),
+  title: z.string({ invalid_type_error: "Tiêu đề phải là chuỗi" }),
+  description: z.string({ invalid_type_error: "Mô tả phải là chuỗi" }),
+  status: z.nativeEnum(RentalPostStatus, {
+    errorMap: () => ({ message: "Trạng thái bài đăng không hợp lệ" }),
+  }),
+  rentalId: z.number({ invalid_type_error: "ID nhà thuê phải là số" }),
+  landlordId: z.number({ invalid_type_error: "ID chủ nhà phải là số" }),
   createdAt: z.date(),
 });
 
@@ -83,22 +97,44 @@ export const GetPostsResSchema = z.object({
 
 export const GetPostsQuerySchema = z
   .object({
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().default(10),
-    title: z.string().optional(),
-    status: z.string().optional(),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
-    distance: z.string().optional(),
-    area: z.string().optional(),
-    price: z.string().optional(),
-    amenityIds: z.array(z.number()).optional(),
+    page: z.coerce
+      .number()
+      .int({ message: "Trang phải là số nguyên" })
+      .positive({ message: "Trang phải là số dương" })
+      .default(1),
+    limit: z.coerce
+      .number()
+      .int({ message: "Giới hạn phải là số nguyên" })
+      .positive({ message: "Giới hạn phải là số dương" })
+      .default(10),
+    title: z.string({ invalid_type_error: "Tiêu đề phải là chuỗi" }).optional(),
+    status: z
+      .string({ invalid_type_error: "Trạng thái phải là chuỗi" })
+      .optional(),
+    startDate: z
+      .string({ invalid_type_error: "Ngày bắt đầu phải là chuỗi" })
+      .optional(),
+    endDate: z
+      .string({ invalid_type_error: "Ngày kết thúc phải là chuỗi" })
+      .optional(),
+    distance: z
+      .string({ invalid_type_error: "Khoảng cách phải là chuỗi" })
+      .optional(),
+    area: z
+      .string({ invalid_type_error: "Diện tích phải là chuỗi" })
+      .optional(),
+    price: z.string({ invalid_type_error: "Giá phải là chuỗi" }).optional(),
+    amenityIds: z
+      .array(z.number({ invalid_type_error: "ID tiện ích phải là số" }))
+      .optional(),
   })
   .strict();
 
 export const GetPostParamsSchema = z
   .object({
-    rentalPostId: z.coerce.number(),
+    rentalPostId: z.coerce.number({
+      invalid_type_error: "ID bài đăng phải là số",
+    }),
   })
   .strict();
 
@@ -107,33 +143,60 @@ export const GetPostDetailResSchema = PostDetailSchema;
 export const CreatePostBodySchema = z
   .object({
     startDate: z
-      .string()
+      .string({ invalid_type_error: "Ngày bắt đầu phải là chuỗi" })
       .refine((val) => !isNaN(Date.parse(val)), {
-        message: "Invalid startDate",
+        message: "Ngày bắt đầu không hợp lệ",
       })
       .transform((val) => new Date(val)),
     endDate: z
-      .string()
-      .refine((val) => !isNaN(Date.parse(val)), { message: "Invalid endDate" })
+      .string({ invalid_type_error: "Ngày kết thúc phải là chuỗi" })
+      .refine((val) => !isNaN(Date.parse(val)), {
+        message: "Ngày kết thúc không hợp lệ",
+      })
       .transform((val) => new Date(val)),
-    title: z.string(),
-    roomId: z.number(),
-    description: z.string(),
+    title: z
+      .string({ invalid_type_error: "Tiêu đề phải là chuỗi" })
+      .min(5, { message: "Tiêu đề phải có ít nhất 5 ký tự" }),
+    roomId: z.number({ invalid_type_error: "ID phòng phải là số" }),
+    description: z
+      .string({ invalid_type_error: "Mô tả phải là chuỗi" })
+      .min(10, { message: "Mô tả phải có ít nhất 10 ký tự" }),
     status: z
-      .nativeEnum(RentalPostStatus)
+      .nativeEnum(RentalPostStatus, {
+        errorMap: () => ({ message: "Trạng thái bài đăng không hợp lệ" }),
+      })
       .optional()
       .default(RentalPostStatus.ACTIVE),
-    pricePaid: z.number(),
-    deposit: z.number().optional().default(0),
-    rentalId: z.number(),
+    pricePaid: z
+      .number({ invalid_type_error: "Giá thuê phải là số" })
+      .min(0, { message: "Giá thuê không được âm" }),
+    deposit: z
+      .number({ invalid_type_error: "Tiền đặt cọc phải là số" })
+      .min(0, { message: "Tiền đặt cọc không được âm" })
+      .optional()
+      .default(0),
+    rentalId: z.number({ invalid_type_error: "ID nhà thuê phải là số" }),
   })
-  .strict();
+  .strict()
+  .refine(
+    (data) => {
+      const startDate = new Date(data.startDate);
+      const endDate = new Date(data.endDate);
+      return startDate < endDate;
+    },
+    {
+      message: "Ngày bắt đầu phải trước ngày kết thúc",
+      path: ["startDate"],
+    }
+  );
 
 export const UpdatePostBodySchema = CreatePostBodySchema;
 
 // Schema cho cập nhật trạng thái bài đăng
 export const UpdatePostStatusSchema = z.object({
-  status: z.nativeEnum(RentalPostStatus),
+  status: z.nativeEnum(RentalPostStatus, {
+    errorMap: () => ({ message: "Trạng thái bài đăng không hợp lệ" }),
+  }),
 });
 
 export type PostType = z.infer<typeof PostDetailSchema>;

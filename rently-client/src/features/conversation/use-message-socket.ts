@@ -52,6 +52,12 @@ export function useMessageSocket({
     const handleNewMessage = (newMessage: Message) => {
       console.log("Nhận tin nhắn mới từ socket:", newMessage);
 
+      // Kiểm tra userId hợp lệ
+      if (!userId || isNaN(userId)) {
+        console.error("userId không hợp lệ:", userId);
+        return;
+      }
+
       // Nếu tin nhắn đang được xử lý (từ api gửi đi), bỏ qua
       if (
         sentMessages.current.has(
@@ -147,11 +153,14 @@ export function useMessageSocket({
       if (activeConversation?.id === newMessage.conversationId) {
         // Đánh dấu đã đọc nếu tin nhắn từ người khác
         if (newMessage.senderId !== userId) {
-          socket.emit("markMessageAsRead", {
-            messageId: newMessage.id,
-            conversationId: newMessage.conversationId,
-            readerId: userId || 0,
-          });
+          // Kiểm tra lại userId trước khi đánh dấu đã đọc
+          if (userId && !isNaN(userId)) {
+            socket.emit("markMessageAsRead", {
+              messageId: newMessage.id,
+              conversationId: newMessage.conversationId,
+              readerId: userId,
+            });
+          }
 
           // Gọi API để cập nhật trạng thái đã đọc
           try {

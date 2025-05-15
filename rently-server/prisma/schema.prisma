@@ -143,6 +143,7 @@ model User {
   updatedSettings SystemSetting[] @relation("SettingUpdatedBy")
 
   @@index([name])
+  @@index([email])
   @@index([status])
   @@index([phoneNumber])
 }

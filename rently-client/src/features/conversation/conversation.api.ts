@@ -259,12 +259,12 @@ const conversationApiRequest = {
           const fileType = file.fileType.startsWith("video/")
             ? MessageType.VIDEO
             : file.fileType.startsWith("audio/")
-            ? MessageType.AUDIO
-            : file.fileType.includes("pdf") ||
-              file.fileType.includes("doc") ||
-              file.fileType.includes("xls")
-            ? MessageType.DOCUMENT
-            : MessageType.FILE;
+              ? MessageType.AUDIO
+              : file.fileType.includes("pdf") ||
+                  file.fileType.includes("doc") ||
+                  file.fileType.includes("xls")
+                ? MessageType.DOCUMENT
+                : MessageType.FILE;
 
           console.log(
             `Đang gửi tin nhắn cho file: ${file.fileName}, loại: ${fileType}`

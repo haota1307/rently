@@ -12,7 +12,7 @@ export type UiSettings = {
 
 // Giá trị mặc định cho các cài đặt giao diện
 const defaultUiSettings: UiSettings = {
-  siteLogo: "/logo.jpg",
+  siteLogo: "/logo.svg",
   siteFavicon: "/favicon.ico",
   heroImage: "/hero_img.jpg?height=600&width=1200",
   primaryColor: "#1890ff",
