@@ -80,35 +80,99 @@ export function useMessageSocket({
         return;
       }
 
-      // Đánh dấu đã xử lý
+      // Đánh dấu đã xử lý ngay lập tức
       processedMessageIds.current.add(msgId);
+
+      // Nếu tin nhắn này là tin nhắn do chính người dùng hiện tại gửi
+      // và có khả năng mới được gửi (trong vòng 5 giây)
+      const isSelfMessageRecent =
+        newMessage.senderId === userId &&
+        Math.abs(
+          new Date().getTime() - new Date(newMessage.createdAt).getTime()
+        ) < 5000;
 
       // Kiểm tra xem tin nhắn đã tồn tại trong danh sách
       setMessages((prev) => {
-        // Kiểm tra xem tin nhắn đã tồn tại chưa
-        const messageExists = prev.some(
+        // Kiểm tra xem tin nhắn đã tồn tại chưa - cách so sánh cải tiến
+        const existingMsgIndex = prev.findIndex(
           (msg) =>
-            // Kiểm tra ID chính xác
+            // So sánh theo ID chính xác
             (typeof msg.id === "number" &&
               typeof newMessage.id === "number" &&
               msg.id === newMessage.id) ||
             (typeof msg.id === "string" &&
               typeof newMessage.id === "string" &&
               msg.id === newMessage.id) ||
-            // Hoặc kiểm tra nếu đó là tin nhắn tạm thời (temp-) có cùng nội dung và người gửi
+            // Hoặc nếu đó là tin nhắn tạm thời (temp-) với cùng người gửi và nội dung, được gửi gần đây
             (typeof msg.id === "string" &&
               msg.id.includes("temp-") &&
               msg.senderId === newMessage.senderId &&
-              msg.content === newMessage.content)
+              msg.content === newMessage.content &&
+              isSelfMessageRecent)
         );
 
-        if (messageExists) {
-          console.log("Tin nhắn đã tồn tại trong danh sách, không thêm vào");
+        // Nếu tin nhắn đã tồn tại, có thể cần cập nhật nó
+        if (existingMsgIndex !== -1) {
+          console.log(
+            "Tin nhắn đã tồn tại trong danh sách, cập nhật ID và trạng thái"
+          );
+
+          // Nếu đây là tin nhắn tạm thời cần được cập nhật với ID thực từ server
+          if (
+            typeof prev[existingMsgIndex].id === "string" &&
+            prev[existingMsgIndex].id.includes("temp-") &&
+            typeof newMessage.id === "number"
+          ) {
+            // Tạo bản sao mới của mảng tin nhắn
+            const updatedMessages = [...prev];
+            // Cập nhật tin nhắn tạm thời với ID thực và trạng thái "SENT"
+            updatedMessages[existingMsgIndex] = {
+              ...updatedMessages[existingMsgIndex],
+              id: newMessage.id,
+              status: "SENT",
+              isRead: newMessage.isRead,
+            };
+
+            return updatedMessages;
+          }
+
           return prev;
         }
 
-        // Thêm tin nhắn mới vào cuối danh sách (để hiển thị theo đúng thứ tự)
-        return [...prev, newMessage];
+        // Thêm tin nhắn mới
+        let updatedMessages = [...prev];
+
+        // Trước khi thêm, kiểm tra lại một lần nữa để đảm bảo không trùng lặp
+        const isDuplicate = updatedMessages.some(
+          (msg) =>
+            (typeof msg.id === "number" &&
+              typeof newMessage.id === "number" &&
+              msg.id === newMessage.id) ||
+            (typeof msg.id === "string" &&
+              typeof newMessage.id === "string" &&
+              msg.id === newMessage.id)
+        );
+
+        if (!isDuplicate) {
+          updatedMessages.push(newMessage);
+        } else {
+          console.log(
+            "Phát hiện tin nhắn trùng lặp khi kiểm tra lần 2, không thêm vào"
+          );
+          return prev;
+        }
+
+        // Sắp xếp lại tin nhắn theo thời gian tạo chính xác
+        updatedMessages = updatedMessages.sort((a, b) => {
+          // Sử dụng getTime() trực tiếp trên Date objects với xử lý giá trị null/undefined
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+          // Sắp xếp từ cũ đến mới
+          return dateA - dateB;
+        });
+
+        return updatedMessages;
       });
 
       // Cập nhật danh sách cuộc trò chuyện
@@ -209,7 +273,13 @@ export function useMessageSocket({
       socket.off("newMessage", handleNewMessage);
       socket.off("messageRead", handleMessageRead);
     };
-  }, [socket, userId, activeConversation?.id, hasScrolledToBottom]);
+  }, [
+    socket,
+    userId,
+    activeConversation?.id,
+    hasScrolledToBottom,
+    scrollToBottom,
+  ]);
 
   // Hàm đánh dấu tin nhắn là đang được gửi (để tránh xử lý duplicate)
   const markMessageAsSending = (messageKey: string) => {

@@ -88,6 +88,11 @@ export const MessageItem = memo(
       return typeof id === "string" ? parseInt(id) : id;
     };
 
+    // Tạo ID duy nhất cho mỗi tin nhắn dựa trên ID và senderId
+    const getUniqueMessageKey = () => {
+      return `msg-${msg.senderId}-${typeof msg.id === "number" ? msg.id : msg.id.replace(/[^a-zA-Z0-9]/g, "")}-${new Date(msg.createdAt || "").getTime()}`;
+    };
+
     // Xử lý click vào avatar
     const handleAvatarClick = () => {
       if (onOpenProfile && msg.senderId !== userId) {
@@ -539,13 +544,16 @@ export const MessageItem = memo(
 
     return (
       <div
-        className={`flex flex-col gap-2 p-1.5 px-3 hover:bg-gray-100/60 dark:hover:bg-slate-800 group relative rounded-lg ${
+        className={`flex flex-col gap-2 p-1.5 px-3 hover:bg-gray-100/60 dark:hover:bg-slate-800 group relative rounded-lg w-full ${
           isAuthor ? "items-end" : "items-start"
         }`}
+        id={getUniqueMessageKey()}
       >
-        <div className="flex items-start gap-2">
+        <div
+          className={`flex items-start gap-2 w-full ${isAuthor ? "justify-end" : ""}`}
+        >
           {!isAuthor && (
-            <button onClick={handleAvatarClick}>
+            <button onClick={handleAvatarClick} className="flex-shrink-0">
               <Avatar className="rounded-md">
                 <AvatarImage
                   className="rounded-md"
@@ -559,11 +567,13 @@ export const MessageItem = memo(
           )}
 
           <div
-            className={`flex flex-col ${
+            className={`flex flex-col max-w-[65%] ${
               isAuthor ? "items-end" : "items-start"
             }`}
           >
-            <div className="flex items-center mb-1 gap-2">
+            <div
+              className={`flex items-center mb-1 gap-2 ${isAuthor ? "flex-row-reverse" : ""}`}
+            >
               <span className="text-sm font-medium">
                 {isAuthor ? "Bạn" : msg.sender?.name}
               </span>
@@ -573,7 +583,7 @@ export const MessageItem = memo(
             </div>
 
             <div
-              className={`max-w-[300px] p-3 rounded-lg ${
+              className={`p-3 rounded-lg w-fit ${
                 isAuthor
                   ? "bg-primary text-primary-foreground rounded-tr-none"
                   : "bg-muted rounded-tl-none"

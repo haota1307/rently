@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useState, Suspense, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  Suspense,
+  useRef,
+  useCallback,
+  useMemo,
+  memo,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,6 +52,83 @@ const normalizeDate = (dateStr: string | null | undefined): Date | null => {
     return null;
   }
 };
+
+// Tối ưu hóa MessageInput với memo
+const MemoizedMessageInput = memo(MessageInput);
+
+// Tối ưu hóa ChatHeader component
+const ChatHeaderWithSidebar = memo(
+  ({
+    activeConversation,
+    socketConnected,
+    userId,
+    toggleSidebar,
+  }: {
+    activeConversation: Conversation | null;
+    socketConnected: boolean;
+    userId: number | null;
+    toggleSidebar: () => void;
+  }) => {
+    // Kiểm tra xem cần hiển thị thông tin của người dùng nào
+    const getDisplayUser = (conversation: Conversation) => {
+      return userId === conversation.userOneId
+        ? conversation.userTwo
+        : conversation.userOne;
+    };
+
+    if (!activeConversation) return null;
+
+    const displayUser = getDisplayUser(activeConversation);
+
+    return (
+      <div className="border-b py-3 px-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {/* Nút toggle sidebar trên mobile */}
+          <button
+            className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
+            onClick={toggleSidebar}
+            aria-label="Toggle conversation list"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+
+          <Avatar>
+            <AvatarImage src={displayUser.avatar || undefined} />
+            <AvatarFallback>
+              <UserCircle className="h-6 w-6" />
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium">{displayUser.name}</div>
+          </div>
+        </div>
+
+        {!socketConnected && (
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Loader2 className="animate-spin h-3 w-3 mr-1" />
+            Đang kết nối...
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+// Tối ưu hóa cho ConversationList
+const MemoizedConversationList = memo(ConversationList);
 
 // Component chính của trang tin nhắn
 function MessagesContent() {
@@ -105,7 +190,7 @@ function MessagesContent() {
   const processedMessageIds = useRef<Set<string>>(new Set<string>());
 
   // Sử dụng custom hook cho Socket
-  const { socketConnected, markMessageAsSending } = useMessageSocket({
+  const { socketConnected } = useMessageSocket({
     socket,
     activeConversation,
     userId: userId || null,
@@ -124,50 +209,445 @@ function MessagesContent() {
     },
   });
 
+  // Bao các hàm xử lý bằng useCallback để tránh tạo lại hàm mỗi lần render
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+  }, []);
+
+  // useCallback cho scrollToBottom
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+        inline: "nearest",
+      });
+    }
+  }, []);
+
   // Xử lý cuộn
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      try {
+        const scrollElement = e.currentTarget;
+        const viewport = scrollElement.querySelector(
+          "[data-radix-scroll-area-viewport]"
+        );
+
+        if (!viewport) {
+          return;
+        }
+
+        const { scrollTop, scrollHeight, clientHeight } =
+          viewport as HTMLElement;
+        const now = Date.now();
+
+        // Xác định hướng cuộn
+        const isScrollingUp = scrollTop < lastScrollPositionRef.current;
+        lastScrollPositionRef.current = scrollTop;
+        scrollingUpRef.current = isScrollingUp;
+
+        // Tính toán phần trăm đã cuộn từ trên xuống
+        const scrollPercentage =
+          (scrollTop / (scrollHeight - clientHeight)) * 100;
+        const isNearTop = scrollPercentage < 25 || scrollTop < 100;
+
+        // Kích hoạt tải thêm tin nhắn khi: gần đầu trang và không đang tải
+        if (
+          isScrollingUp &&
+          isNearTop &&
+          !isLoadingMore &&
+          currentPage < totalPages &&
+          now - lastLoadTime.current > 1000
+        ) {
+          lastLoadTime.current = now;
+          loadMoreMessages();
+        }
+
+        // Đánh dấu nếu đã cuộn xuống dưới cùng
+        const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 50;
+        setHasScrolledToBottom(isAtBottom);
+      } catch (error) {
+        console.error("Lỗi khi xử lý sự kiện cuộn:", error);
+      }
+    },
+    [isLoadingMore, currentPage, totalPages]
+  );
+
+  // Hàm tải thêm tin nhắn cũ khi cuộn lên trên
+  const loadMoreMessages = useCallback(async () => {
+    if (!activeConversation || isLoadingMore || currentPage >= totalPages) {
+      return;
+    }
+
     try {
-      const scrollElement = e.currentTarget;
-      const viewport = scrollElement.querySelector(
+      setIsLoadingMore(true);
+
+      // Lấy viewport để đo kích thước ban đầu
+      const scrollContainer = document.getElementById("messages-container");
+      const viewport = scrollContainer?.querySelector(
         "[data-radix-scroll-area-viewport]"
+      ) as HTMLElement | null;
+
+      // Lưu chiều cao trước khi thêm tin nhắn mới
+      const initialHeight = viewport?.scrollHeight || 0;
+
+      // Gọi API để lấy tin nhắn cũ hơn
+      const response = await conversationApiRequest.getMessages(
+        activeConversation.id,
+        { page: currentPage + 1, limit: 15 }
       );
 
-      if (!viewport) {
+      if (!response?.payload?.data?.length) {
+        setTotalPages(currentPage);
+        setIsLoadingMore(false);
         return;
       }
 
-      const { scrollTop, scrollHeight, clientHeight } = viewport as HTMLElement;
-      const now = Date.now();
+      // Lấy danh sách ID tin nhắn hiện tại
+      const existingMsgIds = new Set(messages.map((msg) => String(msg.id)));
 
-      // Xác định hướng cuộn
-      const isScrollingUp = scrollTop < lastScrollPositionRef.current;
-      lastScrollPositionRef.current = scrollTop;
-      scrollingUpRef.current = isScrollingUp;
+      // Lọc ra những tin nhắn chưa có trong danh sách hiện tại
+      const newMessages = response.payload.data.filter(
+        (msg) => !existingMsgIds.has(String(msg.id))
+      );
 
-      // Tính toán phần trăm đã cuộn từ trên xuống
-      const scrollPercentage =
-        (scrollTop / (scrollHeight - clientHeight)) * 100;
-      const isNearTop = scrollPercentage < 25 || scrollTop < 100;
-
-      // Kích hoạt tải thêm tin nhắn khi: gần đầu trang và không đang tải
-      if (
-        isScrollingUp &&
-        isNearTop &&
-        !isLoadingMore &&
-        currentPage < totalPages &&
-        now - lastLoadTime.current > 1000
-      ) {
-        lastLoadTime.current = now;
-        loadMoreMessages();
+      if (newMessages.length === 0) {
+        // Vẫn tăng trang vì chúng ta đã kiểm tra trang này
+        setCurrentPage((prev) => prev + 1);
+        setIsLoadingMore(false);
+        return;
       }
 
-      // Đánh dấu nếu đã cuộn xuống dưới cùng
-      const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 50;
-      setHasScrolledToBottom(isAtBottom);
+      // Tăng số trang đã tải
+      setCurrentPage((prev) => prev + 1);
+
+      // Thêm tin nhắn mới vào TRƯỚC những tin nhắn hiện tại và sắp xếp
+      setMessages((prevMsgs) => {
+        // Kết hợp tin nhắn cũ và mới
+        const allMessages = [...newMessages, ...prevMsgs];
+
+        // Sắp xếp theo thời gian tăng dần (từ cũ đến mới)
+        return allMessages.sort((a, b) => {
+          // Xử lý tin nhắn null/undefined
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+          // Sắp xếp từ cũ đến mới
+          return dateA - dateB;
+        });
+      });
+
+      // Đợi DOM cập nhật
+      setTimeout(() => {
+        const updatedViewport = document
+          .getElementById("messages-container")
+          ?.querySelector(
+            "[data-radix-scroll-area-viewport]"
+          ) as HTMLElement | null;
+
+        if (updatedViewport) {
+          // Giữ vị trí cuộn tương đối
+          const newHeight = updatedViewport.scrollHeight;
+          const heightDiff = newHeight - initialHeight;
+          updatedViewport.scrollTop = heightDiff + 50;
+        }
+      }, 100);
     } catch (error) {
-      console.error("Lỗi khi xử lý sự kiện cuộn:", error);
+      console.error("Lỗi khi tải thêm tin nhắn:", error);
+    } finally {
+      setIsLoadingMore(false);
     }
-  };
+  }, [activeConversation, isLoadingMore, currentPage, totalPages, messages]);
+
+  const handleSendMessage = useCallback(async (): Promise<void> => {
+    if (!message.trim() || !activeConversation) return Promise.resolve();
+
+    try {
+      setIsSendingMessage(true);
+
+      // Lưu lại nội dung tin nhắn trước khi xóa khỏi input
+      const messageContent = message.trim();
+
+      // Xóa tin nhắn khỏi input trước
+      setMessage("");
+
+      // Tạo một ID tạm thời cho tin nhắn
+      const tempId = `temp-${Date.now()}`;
+
+      // Thêm tin nhắn tạm thời vào UI ngay
+      const newMessage: Message = {
+        id: tempId,
+        content: messageContent,
+        createdAt: new Date().toISOString(),
+        senderId: userId || 0,
+        isRead: false,
+        conversationId: activeConversation.id,
+        sender: {
+          id: userId || 0,
+          name: "Bạn",
+          avatar: null,
+        },
+        type: "TEXT",
+        status: "SENDING",
+      };
+
+      // Tạo key duy nhất cho tin nhắn mới
+      const messageKey = `${newMessage.senderId}-${newMessage.content}-${new Date().getTime()}`;
+      processedMessageIds.current.add(messageKey);
+
+      // Thêm tin nhắn vào danh sách và sắp xếp - lọc trước để tránh trùng lặp
+      setMessages((prev) => {
+        // Kiểm tra xem tin nhắn gần như giống nhau (cùng người gửi, cùng nội dung, cùng thời gian)
+        // đã tồn tại chưa để tránh hiển thị trùng lặp do cập nhật nhanh
+        const existingTempMsg = prev.find(
+          (msg) =>
+            msg.senderId === newMessage.senderId &&
+            msg.content === newMessage.content &&
+            msg.id.toString().includes("temp-") &&
+            Math.abs(
+              new Date(msg.createdAt).getTime() -
+                new Date(newMessage.createdAt).getTime()
+            ) < 5000
+        );
+
+        if (existingTempMsg) {
+          console.log("Bỏ qua tin nhắn tạm thời trùng lặp");
+          return prev;
+        }
+
+        // Thêm tin nhắn mới vào cuối và sắp xếp lại
+        const updatedMessages = [...prev, newMessage].sort((a, b) => {
+          // Xử lý tin nhắn null/undefined
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+          // Sắp xếp từ cũ đến mới
+          return dateA - dateB;
+        });
+
+        return updatedMessages;
+      });
+
+      // Cuộn xuống dưới
+      scrollToBottom();
+
+      // Gửi tin nhắn lên server
+      const response = await conversationApiRequest.sendMessage({
+        conversationId: activeConversation.id,
+        content: messageContent,
+        type: "TEXT",
+      });
+
+      // Cập nhật ID tin nhắn với ID từ server
+      if (response.payload && response.payload.id) {
+        const serverId = response.payload.id;
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempId ? { ...msg, id: serverId, status: "SENT" } : msg
+          )
+        );
+      }
+
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Lỗi gửi tin nhắn:", error);
+      return Promise.reject(error);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  }, [
+    message,
+    activeConversation,
+    userId,
+    scrollToBottom,
+    processedMessageIds,
+  ]);
+
+  // Khi nhấp vào cuộc trò chuyện trong sidebar
+  const handleConversationClick = useCallback(
+    (conversation: Conversation, e: React.MouseEvent) => {
+      // Ngăn sự kiện mặc định để tránh cuộn trang
+      e.preventDefault();
+
+      // Nếu đang chọn cuộc trò chuyện đang active, không làm gì cả
+      if (activeConversation?.id === conversation.id) {
+        return;
+      }
+
+      // Đặt cuộc trò chuyện đã chọn
+      setActiveConversation(conversation);
+
+      // Cập nhật URL mà không làm cuộn trang
+      router.push(`/tin-nhan?id=${conversation.id}`, {
+        scroll: false,
+      });
+    },
+    [activeConversation, router]
+  );
+
+  // Xử lý chọn hình ảnh
+  const handleImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const MAX_IMAGES = 10;
+
+        // Kiểm tra số lượng ảnh
+        if (e.target.files.length > MAX_IMAGES) {
+          alert(`Chỉ có thể chọn tối đa ${MAX_IMAGES} ảnh cùng lúc`);
+          e.target.value = "";
+          return;
+        }
+
+        // Kiểm tra kích thước ảnh
+        const invalidFiles: string[] = [];
+        const validFiles: File[] = [];
+
+        Array.from(e.target.files).forEach((file) => {
+          if (file.size > MAX_FILE_SIZE) {
+            invalidFiles.push(`${file.name} (vượt quá 10MB)`);
+          } else {
+            validFiles.push(file);
+          }
+        });
+
+        // Thông báo các ảnh không hợp lệ
+        if (invalidFiles.length > 0) {
+          alert(`Các ảnh sau không hợp lệ:\n${invalidFiles.join("\n")}`);
+        }
+
+        // Nếu không có ảnh hợp lệ nào, dừng xử lý
+        if (validFiles.length === 0) {
+          e.target.value = "";
+          return;
+        }
+
+        // Giới hạn số lượng ảnh hiện tại + ảnh mới
+        if (attachedImages.length + validFiles.length > MAX_IMAGES) {
+          alert(`Chỉ có thể đính kèm tối đa ${MAX_IMAGES} ảnh cùng lúc`);
+          e.target.value = "";
+          return;
+        }
+
+        const newImages = validFiles.map((file) => ({
+          file,
+          url: URL.createObjectURL(file),
+          isUploaded: false,
+        }));
+
+        setAttachedImages([...attachedImages, ...newImages]);
+
+        // Reset input để có thể chọn lại file đã chọn
+        e.target.value = "";
+      }
+    },
+    [attachedImages]
+  );
+
+  // Xử lý chọn file
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const MAX_FILES = 5;
+
+        // Kiểm tra số lượng file
+        if (e.target.files.length > MAX_FILES) {
+          alert(`Chỉ có thể chọn tối đa ${MAX_FILES} file cùng lúc`);
+          e.target.value = "";
+          return;
+        }
+
+        // Danh sách các loại file được phép
+        const allowedFileTypes = [
+          // Document
+          "application/pdf",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          // Excel
+          "application/vnd.ms-excel",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          // PowerPoint
+          "application/vnd.ms-powerpoint",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          // Text
+          "text/plain",
+          "text/csv",
+          // Cho phép thêm các định dạng ảnh và video phổ biến
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+          "video/mp4",
+          "video/webm",
+          "video/ogg",
+        ];
+
+        // Kiểm tra kích thước file và loại file
+        const invalidFiles: string[] = [];
+        const invalidTypeFiles: string[] = [];
+        const validFiles: File[] = [];
+
+        Array.from(e.target.files).forEach((file) => {
+          // Kiểm tra kích thước
+          if (file.size > MAX_FILE_SIZE) {
+            invalidFiles.push(`${file.name} (vượt quá 10MB)`);
+          }
+          // Kiểm tra loại file
+          else if (!allowedFileTypes.includes(file.type)) {
+            invalidTypeFiles.push(`${file.name} (loại file không được hỗ trợ)`);
+          } else {
+            validFiles.push(file);
+          }
+        });
+
+        // Thông báo các file không hợp lệ về kích thước
+        if (invalidFiles.length > 0) {
+          alert(
+            `Các file sau có kích thước quá lớn:\n${invalidFiles.join("\n")}`
+          );
+        }
+
+        // Thông báo các file không hợp lệ về loại
+        if (invalidTypeFiles.length > 0) {
+          alert(
+            `Các file sau không được hỗ trợ:\n${invalidTypeFiles.join(
+              "\n"
+            )}\n\nChỉ chấp nhận các tệp PDF, Word, Excel, PowerPoint, CSV, TXT, ảnh và video phổ biến.`
+          );
+        }
+
+        // Nếu không có file hợp lệ nào, dừng xử lý
+        if (validFiles.length === 0) {
+          e.target.value = "";
+          return;
+        }
+
+        // Giới hạn số lượng file hiện tại + file mới
+        if (attachedFiles.length + validFiles.length > MAX_FILES) {
+          alert(`Chỉ có thể đính kèm tối đa ${MAX_FILES} file cùng lúc`);
+          e.target.value = "";
+          return;
+        }
+
+        // Tạo preview cho các file hợp lệ
+        const newFiles = validFiles.map((file) => ({
+          file,
+          url: URL.createObjectURL(file),
+          isUploaded: false,
+        }));
+
+        setAttachedFiles([...attachedFiles, ...newFiles]);
+
+        // Reset input để có thể chọn lại file đã chọn
+        e.target.value = "";
+      }
+    },
+    [attachedFiles]
+  );
 
   // Thêm useEffect để thiết lập sự kiện scroll trực tiếp
   useEffect(() => {
@@ -216,188 +696,7 @@ function MessagesContent() {
     return () => {
       viewport.removeEventListener("scroll", directScrollHandler);
     };
-  }, [currentPage, isLoadingMore, totalPages]);
-
-  const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-        inline: "nearest",
-      });
-    }
-  };
-
-  // Hàm tải thêm tin nhắn cũ khi cuộn lên trên (infinite scroll)
-  const loadMoreMessages = async () => {
-    if (!activeConversation || isLoadingMore || currentPage >= totalPages) {
-      return;
-    }
-
-    try {
-      setIsLoadingMore(true);
-
-      // Lấy viewport để đo kích thước ban đầu
-      const scrollContainer = document.getElementById("messages-container");
-      const viewport = scrollContainer?.querySelector(
-        "[data-radix-scroll-area-viewport]"
-      ) as HTMLElement | null;
-
-      // Lưu chiều cao trước khi thêm tin nhắn mới
-      const initialHeight = viewport?.scrollHeight || 0;
-
-      // Gọi API để lấy tin nhắn cũ hơn
-      const response = await conversationApiRequest.getMessages(
-        activeConversation.id,
-        { page: currentPage + 1, limit: 15 }
-      );
-
-      if (!response?.payload?.data?.length) {
-        setTotalPages(currentPage);
-        setIsLoadingMore(false);
-        return;
-      }
-
-      // Lấy danh sách ID tin nhắn hiện tại
-      const existingMsgIds = new Set(
-        messages.map((msg) =>
-          typeof msg.id === "string" ? msg.id : String(msg.id)
-        )
-      );
-
-      // Lọc ra những tin nhắn chưa có trong danh sách hiện tại
-      const newMessages = response.payload.data.filter(
-        (msg) => !existingMsgIds.has(String(msg.id))
-      );
-
-      if (newMessages.length === 0) {
-        // Vẫn tăng trang vì chúng ta đã kiểm tra trang này
-        setCurrentPage((prev) => prev + 1);
-        setIsLoadingMore(false);
-        return;
-      }
-
-      // Tăng số trang đã tải
-      setCurrentPage((prev) => prev + 1);
-
-      // Thêm tin nhắn mới vào TRƯỚC những tin nhắn hiện tại
-      setMessages((prevMsgs) => [...newMessages, ...prevMsgs]);
-
-      // Đợi DOM cập nhật
-      setTimeout(() => {
-        const updatedViewport = document
-          .getElementById("messages-container")
-          ?.querySelector(
-            "[data-radix-scroll-area-viewport]"
-          ) as HTMLElement | null;
-
-        if (updatedViewport) {
-          // Tính toán sự khác biệt về chiều cao
-          const newHeight = updatedViewport.scrollHeight;
-          const heightDiff = newHeight - initialHeight;
-
-          // Đặt vị trí cuộn để người dùng vẫn ở vị trí tương đối như trước
-          updatedViewport.scrollTop = heightDiff + 50; // +50px để có một chút không gian
-        }
-      }, 100);
-    } catch (error) {
-      console.error("Lỗi khi tải thêm tin nhắn:", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  // Xử lý gửi tin nhắn
-  const handleSendMessage = async (): Promise<void> => {
-    if (!message.trim() || !activeConversation) return;
-
-    try {
-      setIsSendingMessage(true);
-      // Lưu lại nội dung tin nhắn trước khi xóa khỏi input
-      const messageContent = message.trim();
-
-      // Xóa tin nhắn khỏi input trước
-      setMessage("");
-
-      // Tạo một ID tạm thời cho tin nhắn
-      const tempId = `temp-${Date.now()}`;
-
-      const newMessage: Message = {
-        id: tempId,
-        content: messageContent,
-        createdAt: new Date().toISOString(),
-        senderId: userId || 0,
-        isRead: false,
-        conversationId: activeConversation.id,
-        sender: {
-          id: userId || 0,
-          name: "Bạn",
-          avatar: null,
-        },
-        type: "TEXT",
-        status: "SENDING",
-      };
-
-      // Thêm tin nhắn vào UI trước
-      setMessages((prev) => [...prev, newMessage]);
-
-      // Đảm bảo cuộn xuống dưới cùng ngay lập tức
-      scrollToBottom();
-
-      // Đặt timeout để cuộn lại sau khi DOM đã cập nhật
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-
-      // Gửi tin nhắn lên server
-      const response = await conversationApiRequest.sendMessage({
-        conversationId: activeConversation.id,
-        content: messageContent,
-        type: "TEXT",
-      });
-
-      // Cập nhật tin nhắn với ID thực từ server (nếu có)
-      if (response.payload && response.payload.id) {
-        const serverId = response.payload.id;
-
-        // Cập nhật trong messages
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempId ? { ...msg, id: serverId, status: "SENT" } : msg
-          )
-        );
-      }
-
-      return Promise.resolve();
-    } catch (error) {
-      console.error("Lỗi gửi tin nhắn:", error);
-      return Promise.reject(error);
-    } finally {
-      setIsSendingMessage(false);
-    }
-  };
-
-  // Khi nhấp vào cuộc trò chuyện trong sidebar
-  const handleConversationClick = (
-    conversation: Conversation,
-    e: React.MouseEvent
-  ) => {
-    // Ngăn sự kiện mặc định để tránh cuộn trang
-    e.preventDefault();
-
-    // Nếu đang chọn cuộc trò chuyện đang active, không làm gì cả
-    if (activeConversation?.id === conversation.id) {
-      return;
-    }
-
-    // Đặt cuộc trò chuyện đã chọn
-    setActiveConversation(conversation);
-
-    // Cập nhật URL mà không làm cuộn trang
-    router.push(`/tin-nhan?id=${conversation.id}`, {
-      scroll: false,
-    });
-  };
+  }, [currentPage, isLoadingMore, totalPages, loadMoreMessages]);
 
   // Tải danh sách cuộc trò chuyện
   useEffect(() => {
@@ -444,24 +743,24 @@ function MessagesContent() {
         if (socket && socket.connected && activeConversation.id) {
           socket.emit("joinChat", activeConversation.id);
 
-          // Đánh dấu đã đọc khi tham gia phòng chat
+          // Đánh dấu đã đọc
           socket.emit("markConversationAsRead", {
             conversationId: activeConversation.id,
             readerId: userId,
           });
 
-          // Gọi API để cập nhật trạng thái đã đọc
+          // Gọi API cập nhật trạng thái đã đọc
           try {
             await conversationApiRequest.markAsRead(activeConversation.id);
 
-            // Cập nhật UI - giảm số lượng tin nhắn chưa đọc về 0
-            setConversations((prevConversations) => {
-              return prevConversations.map((conv) =>
+            // Cập nhật UI - giảm số tin chưa đọc về 0
+            setConversations((prevConversations) =>
+              prevConversations.map((conv) =>
                 conv.id === activeConversation.id
                   ? { ...conv, unreadCount: 0 }
                   : conv
-              );
-            });
+              )
+            );
           } catch (error) {
             console.error("Lỗi khi đánh dấu đã đọc:", error);
           }
@@ -477,13 +776,22 @@ function MessagesContent() {
         const totalPages = response.payload.totalPages || 1;
         setTotalPages(totalPages);
 
-        // Kiểm tra dữ liệu tin nhắn trả về
+        // Kiểm tra và hiển thị tin nhắn
         if (response && response.payload && response.payload.data) {
-          // Đặt tin nhắn
-          setMessages(response.payload.data);
+          // Sắp xếp tin nhắn theo thời gian một cách chính xác
+          const sortedMessages = [...response.payload.data].sort((a, b) => {
+            // Đảm bảo ngày hợp lệ cho cả a và b, xử lý trường hợp giá trị null hoặc undefined
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+            // Sắp xếp từ cũ đến mới
+            return dateA - dateB;
+          });
+
+          setMessages(sortedMessages);
         }
 
-        // Đảm bảo rằng sau khi tải tin nhắn sẽ cuộn xuống dưới cùng (tin nhắn mới nhất)
+        // Cuộn xuống dưới cùng sau khi tải xong
         setTimeout(() => {
           scrollToBottom();
           setInitialScrollDone(true);
@@ -503,11 +811,10 @@ function MessagesContent() {
     // Cleanup: Rời phòng chat khi thay đổi cuộc trò chuyện
     return () => {
       if (socket && socket.connected && activeConversation?.id) {
-        console.log(`Rời phòng chat: ${activeConversation.id}`);
         socket.emit("leaveChat", activeConversation.id);
       }
     };
-  }, [activeConversation, socket]);
+  }, [activeConversation, socket, userId, scrollToBottom]);
 
   // Xử lý cuộn xuống dưới cùng khi tin nhắn thay đổi
   useEffect(() => {
@@ -519,223 +826,10 @@ function MessagesContent() {
       setInitialScrollDone(true);
       setHasScrolledToBottom(true);
     }
-  }, [messages, initialScrollDone, hasScrolledToBottom]);
-
-  // Hàm xử lý xóa tin nhắn
-  const handleDeleteMessage = async (messageId: number) => {
-    try {
-      // Cập nhật UI ngay lập tức
-      setMessages((prev) =>
-        prev.map((msg) =>
-          typeof msg.id === "number" && msg.id === messageId
-            ? { ...msg, content: "Tin nhắn đã bị xóa", isDeleted: true }
-            : msg
-        )
-      );
-
-      // Gọi API xóa tin nhắn
-      await conversationApiRequest.deleteMessage(messageId);
-    } catch (error) {
-      console.error("Lỗi khi xóa tin nhắn:", error);
-    }
-  };
-
-  // Hàm xác nhận xóa tin nhắn
-  const confirmDelete = (messageId: number) => {
-    setMessageToDelete(messageId);
-    setDeleteDialogOpen(true);
-  };
-
-  // Hàm xử lý xóa tin nhắn sau khi xác nhận
-  const onConfirmDelete = () => {
-    if (messageToDelete !== null) {
-      handleDeleteMessage(messageToDelete);
-      setDeleteDialogOpen(false);
-      setMessageToDelete(null);
-    }
-  };
-
-  // Hàm xử lý chỉnh sửa tin nhắn
-  const handleEditMessage = async (messageId: number, content: string) => {
-    try {
-      // Cập nhật UI ngay lập tức
-      setMessages((prev) =>
-        prev.map((msg) =>
-          typeof msg.id === "number" && msg.id === messageId
-            ? { ...msg, content, isEdited: true }
-            : msg
-        )
-      );
-
-      // Gọi API sửa tin nhắn
-      await conversationApiRequest.editMessage(messageId, content);
-
-      // Reset trạng thái chỉnh sửa
-      setEditingMessageId(null);
-      setEditMessageContent("");
-    } catch (error) {
-      console.error("Lỗi khi sửa tin nhắn:", error);
-    }
-  };
-
-  // Xử lý chọn hình ảnh
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-      const MAX_IMAGES = 10;
-
-      // Kiểm tra số lượng ảnh
-      if (e.target.files.length > MAX_IMAGES) {
-        alert(`Chỉ có thể chọn tối đa ${MAX_IMAGES} ảnh cùng lúc`);
-        e.target.value = "";
-        return;
-      }
-
-      // Kiểm tra kích thước ảnh
-      const invalidFiles: string[] = [];
-      const validFiles: File[] = [];
-
-      Array.from(e.target.files).forEach((file) => {
-        if (file.size > MAX_FILE_SIZE) {
-          invalidFiles.push(`${file.name} (vượt quá 10MB)`);
-        } else {
-          validFiles.push(file);
-        }
-      });
-
-      // Thông báo các ảnh không hợp lệ
-      if (invalidFiles.length > 0) {
-        alert(`Các ảnh sau không hợp lệ:\n${invalidFiles.join("\n")}`);
-      }
-
-      // Nếu không có ảnh hợp lệ nào, dừng xử lý
-      if (validFiles.length === 0) {
-        e.target.value = "";
-        return;
-      }
-
-      // Giới hạn số lượng ảnh hiện tại + ảnh mới
-      if (attachedImages.length + validFiles.length > MAX_IMAGES) {
-        alert(`Chỉ có thể đính kèm tối đa ${MAX_IMAGES} ảnh cùng lúc`);
-        e.target.value = "";
-        return;
-      }
-
-      const newImages = validFiles.map((file) => ({
-        file,
-        url: URL.createObjectURL(file),
-        isUploaded: false,
-      }));
-
-      setAttachedImages([...attachedImages, ...newImages]);
-
-      // Reset input để có thể chọn lại file đã chọn
-      e.target.value = "";
-    }
-  };
-
-  // Xử lý chọn file
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-      const MAX_FILES = 5;
-
-      // Kiểm tra số lượng file
-      if (e.target.files.length > MAX_FILES) {
-        alert(`Chỉ có thể chọn tối đa ${MAX_FILES} file cùng lúc`);
-        e.target.value = "";
-        return;
-      }
-
-      // Danh sách các loại file được phép
-      const allowedFileTypes = [
-        // Document
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        // Excel
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        // PowerPoint
-        "application/vnd.ms-powerpoint",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        // Text
-        "text/plain",
-        "text/csv",
-        // Cho phép thêm các định dạng ảnh và video phổ biến
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-        "video/mp4",
-        "video/webm",
-        "video/ogg",
-      ];
-
-      // Kiểm tra kích thước file và loại file
-      const invalidFiles: string[] = [];
-      const invalidTypeFiles: string[] = [];
-      const validFiles: File[] = [];
-
-      Array.from(e.target.files).forEach((file) => {
-        // Kiểm tra kích thước
-        if (file.size > MAX_FILE_SIZE) {
-          invalidFiles.push(`${file.name} (vượt quá 10MB)`);
-        }
-        // Kiểm tra loại file
-        else if (!allowedFileTypes.includes(file.type)) {
-          invalidTypeFiles.push(`${file.name} (loại file không được hỗ trợ)`);
-        } else {
-          validFiles.push(file);
-        }
-      });
-
-      // Thông báo các file không hợp lệ về kích thước
-      if (invalidFiles.length > 0) {
-        alert(
-          `Các file sau có kích thước quá lớn:\n${invalidFiles.join("\n")}`
-        );
-      }
-
-      // Thông báo các file không hợp lệ về loại
-      if (invalidTypeFiles.length > 0) {
-        alert(
-          `Các file sau không được hỗ trợ:\n${invalidTypeFiles.join(
-            "\n"
-          )}\n\nChỉ chấp nhận các tệp PDF, Word, Excel, PowerPoint, CSV, TXT, ảnh và video phổ biến.`
-        );
-      }
-
-      // Nếu không có file hợp lệ nào, dừng xử lý
-      if (validFiles.length === 0) {
-        e.target.value = "";
-        return;
-      }
-
-      // Giới hạn số lượng file hiện tại + file mới
-      if (attachedFiles.length + validFiles.length > MAX_FILES) {
-        alert(`Chỉ có thể đính kèm tối đa ${MAX_FILES} file cùng lúc`);
-        e.target.value = "";
-        return;
-      }
-
-      // Tạo preview cho các file hợp lệ
-      const newFiles = validFiles.map((file) => ({
-        file,
-        url: URL.createObjectURL(file),
-        isUploaded: false,
-      }));
-
-      setAttachedFiles([...attachedFiles, ...newFiles]);
-
-      // Reset input để có thể chọn lại file đã chọn
-      e.target.value = "";
-    }
-  };
+  }, [messages, initialScrollDone, hasScrolledToBottom, scrollToBottom]);
 
   // Gửi tin nhắn kèm file
-  const sendFilesWithMessage = async () => {
+  const sendFilesWithMessage = useCallback(async () => {
     if (!activeConversation) return;
 
     try {
@@ -813,10 +907,10 @@ function MessagesContent() {
     } finally {
       setSendingFiles(false);
     }
-  };
+  }, [activeConversation, message, attachedFiles, scrollToBottom]);
 
   // Gửi tin nhắn kèm ảnh
-  const sendImagesWithMessage = async () => {
+  const sendImagesWithMessage = useCallback(async () => {
     if (!activeConversation) return;
 
     try {
@@ -887,10 +981,92 @@ function MessagesContent() {
     } finally {
       setSendingImages(false);
     }
-  };
+  }, [activeConversation, message, attachedImages, scrollToBottom]);
 
-  // Render các nhóm tin nhắn theo ngày
-  const renderMessages = () => {
+  // Remove attached image with useCallback
+  const removeAttachedImage = useCallback((index: number) => {
+    setAttachedImages((prevImages) => {
+      const newImages = [...prevImages];
+      // Hủy URL.createObjectURL để tránh rò rỉ bộ nhớ
+      URL.revokeObjectURL(newImages[index].url);
+      newImages.splice(index, 1);
+      return newImages;
+    });
+  }, []);
+
+  // Remove attached file with useCallback
+  const removeAttachedFile = useCallback((index: number) => {
+    setAttachedFiles((prevFiles) => {
+      const newFiles = [...prevFiles];
+      // Hủy URL.createObjectURL để tránh rò rỉ bộ nhớ
+      URL.revokeObjectURL(newFiles[index].url);
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
+  }, []);
+
+  // Hàm xử lý xóa tin nhắn
+  const handleDeleteMessage = useCallback(async (messageId: number) => {
+    try {
+      // Cập nhật UI ngay lập tức
+      setMessages((prev) =>
+        prev.map((msg) =>
+          typeof msg.id === "number" && msg.id === messageId
+            ? { ...msg, content: "Tin nhắn đã bị xóa", isDeleted: true }
+            : msg
+        )
+      );
+
+      // Gọi API xóa tin nhắn
+      await conversationApiRequest.deleteMessage(messageId);
+    } catch (error) {
+      console.error("Lỗi khi xóa tin nhắn:", error);
+    }
+  }, []);
+
+  // Hàm xác nhận xóa tin nhắn
+  const confirmDelete = useCallback((messageId: number) => {
+    setMessageToDelete(messageId);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  // Hàm xử lý xóa tin nhắn sau khi xác nhận
+  const onConfirmDelete = useCallback(() => {
+    if (messageToDelete !== null) {
+      handleDeleteMessage(messageToDelete);
+      setDeleteDialogOpen(false);
+      setMessageToDelete(null);
+    }
+  }, [messageToDelete, handleDeleteMessage]);
+
+  // Hàm xử lý chỉnh sửa tin nhắn
+  const handleEditMessage = useCallback(
+    async (messageId: number, content: string) => {
+      try {
+        // Cập nhật UI ngay lập tức
+        setMessages((prev) =>
+          prev.map((msg) =>
+            typeof msg.id === "number" && msg.id === messageId
+              ? { ...msg, content, isEdited: true }
+              : msg
+          )
+        );
+
+        // Gọi API sửa tin nhắn
+        await conversationApiRequest.editMessage(messageId, content);
+
+        // Reset trạng thái chỉnh sửa
+        setEditingMessageId(null);
+        setEditMessageContent("");
+      } catch (error) {
+        console.error("Lỗi khi sửa tin nhắn:", error);
+      }
+    },
+    []
+  );
+
+  // Render các nhóm tin nhắn theo ngày sử dụng useMemo
+  const renderedMessages = useMemo(() => {
     if (loadingMessages) {
       return null;
     }
@@ -903,8 +1079,34 @@ function MessagesContent() {
       );
     }
 
+    // Loại bỏ tin nhắn trùng lặp
+    const uniqueMessages = messages.reduce((acc: Message[], msg: Message) => {
+      // Kiểm tra nếu ID đã có trong danh sách kết quả
+      const isDuplicate = acc.some(
+        (m) =>
+          (typeof m.id === "number" &&
+            typeof msg.id === "number" &&
+            m.id === msg.id) ||
+          (typeof m.id === "string" &&
+            typeof msg.id === "string" &&
+            m.id === msg.id)
+      );
+
+      if (!isDuplicate) {
+        acc.push(msg);
+      }
+      return acc;
+    }, []);
+
+    // Sắp xếp tất cả tin nhắn theo thời gian trước khi nhóm
+    const sortedMessages = [...uniqueMessages].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateA - dateB;
+    });
+
     // Nhóm tin nhắn theo ngày
-    const groupedMessages = messages.reduce(
+    const groupedMessages = sortedMessages.reduce(
       (groups: Record<string, Message[]>, message: Message) => {
         try {
           const normalizedDate = normalizeDate(message.createdAt);
@@ -967,113 +1169,36 @@ function MessagesContent() {
                 </span>
               </div>
 
-              {/* Hiển thị tin nhắn trong ngày - sắp xếp từ cũ đến mới */}
+              {/* Hiển thị tin nhắn trong ngày - đảm bảo sắp xếp từ cũ đến mới */}
               <div className="space-y-1">
-                {messagesInDay
-                  .sort((a: Message, b: Message) => {
-                    try {
-                      const dateA = normalizeDate(a.createdAt);
-                      const dateB = normalizeDate(b.createdAt);
-
-                      // Nếu một trong hai ngày không hợp lệ
-                      if (!dateA && !dateB) return 0;
-                      if (!dateA) return 1;
-                      if (!dateB) return -1;
-
-                      return dateA.getTime() - dateB.getTime();
-                    } catch (error) {
-                      // Xử lý nếu có lỗi
-                      console.error("Lỗi khi sắp xếp tin nhắn:", error);
-                      return 0;
-                    }
-                  })
-                  .map((msg: Message) => (
-                    <MessageItem
-                      key={`msg-${typeof msg.id === "number" ? msg.id : msg.id.replace(/[^a-zA-Z0-9]/g, "")}`}
-                      msg={msg}
-                      userId={userId || 0}
-                      setEditingMessageId={setEditingMessageId}
-                      setEditMessageContent={setEditMessageContent}
-                      confirmDelete={confirmDelete}
-                      handleEditMessage={handleEditMessage}
-                      editingMessageId={editingMessageId}
-                      editMessageContent={editMessageContent}
-                    />
-                  ))}
+                {messagesInDay.map((msg: Message) => (
+                  <MessageItem
+                    key={`msg-${msg.senderId}-${typeof msg.id === "number" ? msg.id : msg.id.replace(/[^a-zA-Z0-9]/g, "")}-${new Date(msg.createdAt || "").getTime()}`}
+                    msg={msg}
+                    userId={userId || 0}
+                    setEditingMessageId={setEditingMessageId}
+                    setEditMessageContent={setEditMessageContent}
+                    confirmDelete={confirmDelete}
+                    handleEditMessage={handleEditMessage}
+                    editingMessageId={editingMessageId}
+                    editMessageContent={editMessageContent}
+                  />
+                ))}
               </div>
             </div>
           ))}
         <div ref={messagesEndRef} />
       </div>
     );
-  };
-
-  // Chỉnh sửa ChatHeader component để thêm nút hiện/ẩn sidebar
-  const ChatHeaderWithSidebar = ({
-    activeConversation,
-    socketConnected,
+  }, [
+    loadingMessages,
+    messages,
     userId,
-  }: {
-    activeConversation: Conversation | null;
-    socketConnected: boolean;
-    userId: number | null;
-  }) => {
-    // Kiểm tra xem cần hiển thị thông tin của người dùng nào
-    const getDisplayUser = (conversation: Conversation) => {
-      return userId === conversation.userOneId
-        ? conversation.userTwo
-        : conversation.userOne;
-    };
-
-    if (!activeConversation) return null;
-
-    const displayUser = getDisplayUser(activeConversation);
-
-    return (
-      <div className="border-b py-3 px-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {/* Nút toggle sidebar trên mobile */}
-          <button
-            className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
-            onClick={() => setSidebarOpen((prev) => !prev)}
-            aria-label="Toggle conversation list"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-
-          <Avatar>
-            <AvatarImage src={displayUser.avatar || undefined} />
-            <AvatarFallback>
-              <UserCircle className="h-6 w-6" />
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="font-medium">{displayUser.name}</div>
-          </div>
-        </div>
-
-        {!socketConnected && (
-          <div className="flex items-center text-xs text-muted-foreground">
-            <Loader2 className="animate-spin h-3 w-3 mr-1" />
-            Đang kết nối...
-          </div>
-        )}
-      </div>
-    );
-  };
+    editingMessageId,
+    editMessageContent,
+    confirmDelete,
+    handleEditMessage,
+  ]);
 
   return (
     <div className="max-w-full w-full p-0 sm:p-4 mx-auto">
@@ -1150,7 +1275,7 @@ function MessagesContent() {
                 </svg>
               </button>
             </div>
-            <ConversationList
+            <MemoizedConversationList
               loading={loading}
               conversations={conversations}
               activeConversation={activeConversation}
@@ -1177,6 +1302,7 @@ function MessagesContent() {
                   activeConversation={activeConversation}
                   socketConnected={socketConnected}
                   userId={userId || null}
+                  toggleSidebar={toggleSidebar}
                 />
 
                 {/* Tin nhắn */}
@@ -1209,12 +1335,11 @@ function MessagesContent() {
                     </div>
 
                     {/* Hiển thị tin nhắn theo nhóm */}
-                    {renderMessages()}
+                    {renderedMessages}
                   </div>
                 </ScrollArea>
 
-                {/* Khung nhập tin nhắn - Sẽ truyền các function và state cần thiết */}
-                <MessageInput
+                <MemoizedMessageInput
                   message={message}
                   setMessage={setMessage}
                   handleSendMessage={handleSendMessage}
@@ -1225,24 +1350,8 @@ function MessagesContent() {
                   sendingImages={sendingImages || sendingFiles}
                   attachedImages={attachedImages}
                   attachedFiles={attachedFiles}
-                  removeAttachedImage={(index) => {
-                    setAttachedImages((prevImages) => {
-                      const newImages = [...prevImages];
-                      // Hủy URL.createObjectURL để tránh rò rỉ bộ nhớ
-                      URL.revokeObjectURL(newImages[index].url);
-                      newImages.splice(index, 1);
-                      return newImages;
-                    });
-                  }}
-                  removeAttachedFile={(index) => {
-                    setAttachedFiles((prevFiles) => {
-                      const newFiles = [...prevFiles];
-                      // Hủy URL.createObjectURL để tránh rò rỉ bộ nhớ
-                      URL.revokeObjectURL(newFiles[index].url);
-                      newFiles.splice(index, 1);
-                      return newFiles;
-                    });
-                  }}
+                  removeAttachedImage={removeAttachedImage}
+                  removeAttachedFile={removeAttachedFile}
                   handleImageSelect={handleImageSelect}
                   handleFileSelect={handleFileSelect}
                   sendImagesWithMessage={sendImagesWithMessage}
@@ -1287,6 +1396,9 @@ function MessagesContent() {
   );
 }
 
+// Chuyển đổi MessagesPage thành React.memo để tránh render không cần thiết
+const MemoizedMessagesContent = memo(MessagesContent);
+
 export default function MessagesPage() {
   return (
     <Suspense
@@ -1294,7 +1406,7 @@ export default function MessagesPage() {
         <div className="p-8 text-center">Đang tải ứng dụng tin nhắn...</div>
       }
     >
-      <MessagesContent />
+      <MemoizedMessagesContent />
     </Suspense>
   );
 }
