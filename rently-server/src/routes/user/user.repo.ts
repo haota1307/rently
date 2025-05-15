@@ -83,6 +83,79 @@ export class UserRepo {
     }
   }
 
+  async search(params: {
+    query: string
+    limit?: number
+    page?: number
+    excludeUserId?: number
+    status?: string
+  }): Promise<GetUsersResType> {
+    const {
+      query,
+      limit = 10,
+      page = 1,
+      excludeUserId,
+      status = 'ACTIVE',
+    } = params
+
+    const skip = (page - 1) * limit
+    const take = limit
+
+    // Tạo điều kiện where cho search
+    const whereClause: any = {
+      deletedAt: null,
+      status,
+      OR: [
+        {
+          name: {
+            contains: query,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        {
+          email: {
+            contains: query,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+      ],
+    }
+
+    // Loại trừ người dùng nếu excludeUserId được cung cấp
+    if (excludeUserId) {
+      whereClause.id = {
+        not: excludeUserId,
+      }
+    }
+
+    const [totalItems, data] = await Promise.all([
+      this.prismaService.user.count({
+        where: whereClause,
+      }),
+      this.prismaService.user.findMany({
+        where: whereClause,
+        skip,
+        take,
+        include: {
+          role: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      }),
+    ])
+
+    return {
+      data,
+      totalItems,
+      page,
+      limit,
+      totalPages: Math.ceil(totalItems / limit),
+    }
+  }
+
   create({
     createdById,
     data,

@@ -16,12 +16,14 @@ import {
   GetUserParamsDTO,
   GetUsersQueryDTO,
   GetUsersResDTO,
+  SearchUsersQueryDTO,
   UpdateUserBodyDTO,
 } from 'src/routes/user/user.dto'
 import { UserService } from 'src/routes/user/user.service'
 import { ActiveRolePermissions } from 'src/shared/decorators/active-role-permission.decorator'
 
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 import {
   GetUserProfileResDTO,
@@ -41,6 +43,19 @@ export class UserController {
       name: query.name,
       status: query.status,
       roleId: query.roleId,
+    })
+  }
+
+  @Get('search')
+  @IsPublic()
+  @ZodSerializerDto(GetUsersResDTO)
+  search(@Query() query: SearchUsersQueryDTO) {
+    return this.userService.search({
+      query: query.query,
+      limit: query.limit || 10,
+      page: query.page || 1,
+      excludeUserId: query.excludeUserId,
+      status: query.status || 'ACTIVE',
     })
   }
 

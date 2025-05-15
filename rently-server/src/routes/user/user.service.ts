@@ -3,6 +3,7 @@ import { UserRepo } from 'src/routes/user/user.repo'
 import {
   CreateUserBodyType,
   GetUsersQueryType,
+  SearchUsersQueryType,
   UpdateUserBodyType,
 } from 'src/routes/user/user.model'
 import { NotFoundRecordException } from 'src/shared/error'
@@ -35,6 +36,16 @@ export class UserService {
 
   list(pagination: GetUsersQueryType) {
     return this.userRepo.list(pagination)
+  }
+
+  async search(params: {
+    query: string
+    limit?: number
+    page?: number
+    excludeUserId?: number
+    status?: string
+  }) {
+    return this.userRepo.search(params)
   }
 
   async findById(id: number) {

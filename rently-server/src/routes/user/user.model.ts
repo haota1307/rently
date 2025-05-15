@@ -53,6 +53,16 @@ export const GetUsersQuerySchema = z
   })
   .strict()
 
+export const SearchUsersQuerySchema = z
+  .object({
+    query: z.string().min(1),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().default(10),
+    excludeUserId: z.coerce.number().int().positive().optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED']).default('ACTIVE'),
+  })
+  .strict()
+
 export const GetUserParamsSchema = z
   .object({
     userId: z.coerce.number().int().positive(),
@@ -83,6 +93,7 @@ export const UpdateUserBodySchema = z
 
 export type GetUsersResType = z.infer<typeof GetUsersResSchema>
 export type GetUsersQueryType = z.infer<typeof GetUsersQuerySchema>
+export type SearchUsersQueryType = z.infer<typeof SearchUsersQuerySchema>
 export type GetUserParamsType = z.infer<typeof GetUserParamsSchema>
 export type CreateUserBodyType = z.infer<typeof CreateUserBodySchema>
 export type UpdateUserBodyType = z.infer<typeof UpdateUserBodySchema>

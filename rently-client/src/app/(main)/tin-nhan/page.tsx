@@ -22,6 +22,7 @@ import { ChatHeader } from "@/features/conversation/components/chat-header";
 import { MessageItem } from "@/features/conversation/components/message-item";
 import { MessageInput } from "@/features/conversation/components/message-input";
 import { Conversation, Message } from "@/features/conversation/message.types";
+import { SearchUserModal } from "@/features/conversation/components/search-user-modal";
 
 import { useMessageSocket } from "@/features/conversation/use-message-socket";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -30,6 +31,19 @@ import { vi } from "date-fns/locale/vi";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { UserCircle } from "lucide-react";
 import { Loader2 } from "lucide-react";
+
+// Hàm chuẩn hóa ngày tháng, trả về null nếu ngày không hợp lệ
+const normalizeDate = (dateStr: string | null | undefined): Date | null => {
+  if (!dateStr) return null;
+
+  try {
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  } catch (error) {
+    console.error("Lỗi khi chuyển đổi ngày:", error);
+    return null;
+  }
+};
 
 // Component chính của trang tin nhắn
 function MessagesContent() {
@@ -47,6 +61,9 @@ function MessagesContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  // State cho modal tìm kiếm người dùng
+  const [openSearchModal, setOpenSearchModal] = useState(false);
 
   // State cho mobile sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -299,12 +316,6 @@ function MessagesContent() {
       // Lưu lại nội dung tin nhắn trước khi xóa khỏi input
       const messageContent = message.trim();
 
-      // Tạo khóa duy nhất cho tin nhắn này
-      const messageKey = `${userId}-${messageContent}-${Date.now()}`;
-
-      // Đánh dấu tin nhắn này đang được xử lý
-      markMessageAsSending(messageKey);
-
       // Xóa tin nhắn khỏi input trước
       setMessage("");
 
@@ -329,10 +340,6 @@ function MessagesContent() {
 
       // Thêm tin nhắn vào UI trước
       setMessages((prev) => [...prev, newMessage]);
-
-      // Đánh dấu tin nhắn để không xử lý lại (khi nhận từ socket)
-      const msgUniqueId = `${tempId}-${userId}-${messageContent}`;
-      processedMessageIds.current.add(msgUniqueId);
 
       // Đảm bảo cuộn xuống dưới cùng ngay lập tức
       scrollToBottom();
@@ -899,14 +906,27 @@ function MessagesContent() {
     // Nhóm tin nhắn theo ngày
     const groupedMessages = messages.reduce(
       (groups: Record<string, Message[]>, message: Message) => {
-        const date = new Date(message.createdAt);
-        const dateKey = format(date, "yyyy-MM-dd");
+        try {
+          const normalizedDate = normalizeDate(message.createdAt);
+          // Sử dụng ngày hiện tại nếu ngày không hợp lệ
+          const date = normalizedDate || new Date();
+          const dateKey = format(date, "yyyy-MM-dd");
 
-        if (!groups[dateKey]) {
-          groups[dateKey] = [];
+          if (!groups[dateKey]) {
+            groups[dateKey] = [];
+          }
+
+          groups[dateKey].push(message);
+        } catch (error) {
+          // Xử lý lỗi khi phân tích ngày
+          console.error("Lỗi khi xử lý tin nhắn:", error, message);
+          // Sử dụng ngày hiện tại thay vì "unknown-date"
+          const todayKey = format(new Date(), "yyyy-MM-dd");
+          if (!groups[todayKey]) {
+            groups[todayKey] = [];
+          }
+          groups[todayKey].push(message);
         }
-
-        groups[dateKey].push(message);
         return groups;
       },
       {} as Record<string, Message[]>
@@ -914,20 +934,29 @@ function MessagesContent() {
 
     // Format hiển thị ngày
     const formatDateLabel = (dateStr: string) => {
-      const date = new Date(dateStr);
-      if (isToday(date)) return "Hôm nay";
-      if (isYesterday(date)) return "Hôm qua";
-      return format(date, "EEEE, d MMMM, yyyy", { locale: vi });
+      try {
+        const date = new Date(dateStr);
+        if (isToday(date)) return "Hôm nay";
+        if (isYesterday(date)) return "Hôm qua";
+        return format(date, "EEEE, d MMMM, yyyy", { locale: vi });
+      } catch (error) {
+        // Nếu có lỗi, hiển thị nhãn "Hôm nay"
+        return "Hôm nay";
+      }
     };
 
     // Hiển thị tin nhắn theo nhóm ngày
     return (
       <div className="space-y-4 w-full pb-1">
         {Object.entries(groupedMessages)
-          .sort(
-            ([dateA], [dateB]) =>
-              new Date(dateA).getTime() - new Date(dateB).getTime()
-          )
+          .sort(([dateA], [dateB]) => {
+            // Đảm bảo "unknown-date" luôn hiển thị ở cuối cùng
+            if (dateA === "unknown-date") return 1;
+            if (dateB === "unknown-date") return -1;
+
+            // So sánh thông thường theo thời gian
+            return new Date(dateA).getTime() - new Date(dateB).getTime();
+          })
           .map(([dateKey, messagesInDay]) => (
             <div key={dateKey}>
               {/* Hiển thị nhãn ngày */}
@@ -941,14 +970,26 @@ function MessagesContent() {
               {/* Hiển thị tin nhắn trong ngày - sắp xếp từ cũ đến mới */}
               <div className="space-y-1">
                 {messagesInDay
-                  .sort(
-                    (a: Message, b: Message) =>
-                      new Date(a.createdAt).getTime() -
-                      new Date(b.createdAt).getTime()
-                  )
+                  .sort((a: Message, b: Message) => {
+                    try {
+                      const dateA = normalizeDate(a.createdAt);
+                      const dateB = normalizeDate(b.createdAt);
+
+                      // Nếu một trong hai ngày không hợp lệ
+                      if (!dateA && !dateB) return 0;
+                      if (!dateA) return 1;
+                      if (!dateB) return -1;
+
+                      return dateA.getTime() - dateB.getTime();
+                    } catch (error) {
+                      // Xử lý nếu có lỗi
+                      console.error("Lỗi khi sắp xếp tin nhắn:", error);
+                      return 0;
+                    }
+                  })
                   .map((msg: Message) => (
                     <MessageItem
-                      key={`msg-${msg.id}-${new Date(msg.createdAt).getTime()}`}
+                      key={`msg-${typeof msg.id === "number" ? msg.id : msg.id.replace(/[^a-zA-Z0-9]/g, "")}`}
                       msg={msg}
                       userId={userId || 0}
                       setEditingMessageId={setEditingMessageId}
@@ -1121,6 +1162,7 @@ function MessagesContent() {
                   setSidebarOpen(false);
                 }
               }}
+              onNewConversation={() => setOpenSearchModal(true)}
             />
           </div>
         </div>
@@ -1235,6 +1277,12 @@ function MessagesContent() {
           </Card>
         </div>
       </div>
+
+      {/* Modal tìm kiếm người dùng */}
+      <SearchUserModal
+        open={openSearchModal}
+        onOpenChange={setOpenSearchModal}
+      />
     </div>
   );
 }

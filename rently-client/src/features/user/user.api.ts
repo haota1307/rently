@@ -26,6 +26,19 @@ const userApiRequest = {
         })
     ),
 
+  // Tìm kiếm người dùng theo tên hoặc email
+  searchUsers: (query: string, excludeUserId?: number) =>
+    http.get<GetUsersResType>(
+      `${prefix}/search?` +
+        queryString.stringify({
+          query,
+          limit: 10,
+          page: 1,
+          status: "ACTIVE",
+          excludeUserId,
+        })
+    ),
+
   // Lấy danh sách chủ trọ
   listLandlords: (
     params: {

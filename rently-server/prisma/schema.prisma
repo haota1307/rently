@@ -8,6 +8,511 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id                       Int                   @id @default(autoincrement())
+  name                     String
+  avatar                   String?
+  phoneNumber              String?
+  email                    String                @unique
+  password                 String
+  status                   UserStatus            @default(INACTIVE)
+  balance                  Int                   @default(0)
+  roleId                   Int
+  deletedAt                DateTime?
+  createdAt                DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt                DateTime              @updatedAt @db.Timestamptz(6)
+  createdById              Int?
+  deletedById              Int?
+  updatedById              Int?
+  ChatbotMessage           ChatbotMessage[]
+  comments                 Comment[]
+  conversationsOne         Conversation[]        @relation("UserOneConversations")
+  conversationsTwo         Conversation[]        @relation("UserTwoConversations")
+  conversationMessages     ConversationMessage[]
+  favorites                Favorite[]
+  notifications            Notification[]
+  payments                 Payment[]
+  paymentTransactions      PaymentTransaction[]
+  PermissionCreatedBy      Permission[]          @relation("PermissionCreatedBy")
+  deletedPermissions       Permission[]          @relation("PermissionDeletedBy")
+  PermissionUpdatedBy      Permission[]          @relation("PermissionUpdatedBy")
+  Permission               Permission[]
+  processedReports         PostReport[]          @relation("ProcessedReports")
+  reportedPosts            PostReport[]          @relation("UserReports")
+  PostReport               PostReport[]
+  refreshTokens            RefreshToken[]
+  rentals                  Rental[]              @relation("LandlordRentals")
+  rentalPosts              RentalPost[]          @relation("LandlordRentalPosts")
+  landlordRentalRequests   RentalRequest[]       @relation("LandlordRentalRequests")
+  tenantRentalRequests     RentalRequest[]       @relation("TenantRentalRequests")
+  reviews                  Review[]              @relation("TenantReviews")
+  RoleCreatedBy            Role[]                @relation("RoleCreatedBy")
+  Role                     Role[]                @relation("RoledeletedByIdBy")
+  RoleUpdatedBy            Role[]                @relation("RoleUpdatedBy")
+  processedRequests        RoleUpgradeRequest[]  @relation("ProcessedRequests")
+  roleUpgradeRequests      RoleUpgradeRequest[]
+  createdSettings          SystemSetting[]       @relation("SettingCreatedBy")
+  updatedSettings          SystemSetting[]       @relation("SettingUpdatedBy")
+  createdBy                User?                 @relation("CreatorUsers", fields: [createdById], references: [id], onUpdate: NoAction)
+  createdUsers             User[]                @relation("CreatorUsers")
+  deletedBy                User?                 @relation("DeletorUsers", fields: [deletedById], references: [id], onUpdate: NoAction)
+  deletedUsers             User[]                @relation("DeletorUsers")
+  role                     Role                  @relation(fields: [roleId], references: [id])
+  updatedBy                User?                 @relation("UpdatorUsers", fields: [updatedById], references: [id], onUpdate: NoAction)
+  updatedUsers             User[]                @relation("UpdatorUsers")
+  landlordViewingSchedules ViewingSchedule[]     @relation("LandlordViewingSchedules")
+  tenantViewingSchedules   ViewingSchedule[]     @relation("TenantViewingSchedules")
+
+  @@index([name])
+  @@index([status])
+  @@index([phoneNumber])
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @db.VarChar(500)
+  description String       @default("")
+  isActive    Boolean      @default(true)
+  createdById Int?
+  updatedById Int?
+  deletedAt   DateTime?
+  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
+  deletedById Int?
+  createdBy   User?        @relation("RoleCreatedBy", fields: [createdById], references: [id])
+  deletedBy   User?        @relation("RoledeletedByIdBy", fields: [deletedById], references: [id])
+  updatedBy   User?        @relation("RoleUpdatedBy", fields: [updatedById], references: [id])
+  users       User[]
+  permissions Permission[] @relation("PermissionToRole")
+
+  @@index([name])
+}
+
+model Permission {
+  id          Int        @id @default(autoincrement())
+  name        String     @db.VarChar(500)
+  description String     @default("")
+  path        String     @db.VarChar(1000)
+  method      HTTPMethod
+  createdById Int?
+  updatedById Int?
+  deletedAt   DateTime?
+  createdAt   DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(6)
+  deletedById Int?
+  userId      Int?
+  module      String     @default("") @db.VarChar(500)
+  createdBy   User?      @relation("PermissionCreatedBy", fields: [createdById], references: [id])
+  deletedBy   User?      @relation("PermissionDeletedBy", fields: [deletedById], references: [id], onUpdate: NoAction)
+  updatedBy   User?      @relation("PermissionUpdatedBy", fields: [updatedById], references: [id])
+  User        User?      @relation(fields: [userId], references: [id])
+  roles       Role[]     @relation("PermissionToRole")
+
+  @@index([name])
+  @@index([path])
+  @@index([deletedAt])
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model VerificationCode {
+  id        Int                  @id @default(autoincrement())
+  email     String               @unique @db.VarChar(500)
+  code      String               @db.VarChar(50)
+  type      VerificationCodeType
+  expiresAt DateTime             @db.Timestamptz(6)
+  createdAt DateTime             @default(now()) @db.Timestamptz(6)
+
+  @@index([email, code, type])
+  @@index([expiresAt])
+}
+
+model Rental {
+  id           Int           @id @default(autoincrement())
+  title        String
+  description  String
+  address      String
+  lat          Decimal
+  lng          Decimal
+  createdAt    DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(6)
+  landlordId   Int
+  distance     Decimal?
+  favorites    Favorite[]
+  landlord     User          @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade)
+  rentalImages RentalImage[]
+  rentalPosts  RentalPost[]
+  rooms        Room[]
+
+  @@index([landlordId])
+  @@index([title])
+  @@index([createdAt])
+}
+
+model Room {
+  id            Int           @id @default(autoincrement())
+  title         String
+  price         Decimal
+  isAvailable   Boolean       @default(true)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
+  rentalId      Int
+  area          Int
+  RentalPost    RentalPost[]
+  reviews       Review[]
+  rental        Rental        @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  roomAmenities RoomAmenity[]
+  roomImages    RoomImage[]
+
+  @@index([rentalId])
+  @@index([isAvailable])
+  @@index([price])
+}
+
+model RentalImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  rentalId  Int
+  order     Int
+  rental    Rental   @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+
+  @@index([rentalId])
+  @@index([createdAt])
+  @@index([order])
+}
+
+model RoomImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  order     Int
+  roomId    Int
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([createdAt])
+  @@index([order])
+}
+
+model Amenity {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  roomAmenities RoomAmenity[]
+
+  @@index([name])
+}
+
+model RoomAmenity {
+  id        Int     @id @default(autoincrement())
+  roomId    Int
+  amenityId Int
+  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+  room      Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, amenityId])
+}
+
+model RentalPost {
+  id               Int               @id @default(autoincrement())
+  startDate        DateTime
+  endDate          DateTime
+  pricePaid        Decimal
+  createdAt        DateTime          @default(now()) @db.Timestamptz(6)
+  rentalId         Int
+  landlordId       Int
+  description      String
+  roomId           Int
+  status           RentalPostStatus  @default(ACTIVE)
+  title            String            @db.VarChar(250)
+  deposit          Decimal           @default(0)
+  comments         Comment[]
+  PostReport       PostReport[]
+  landlord         User              @relation("LandlordRentalPosts", fields: [landlordId], references: [id], onDelete: Cascade)
+  rental           Rental            @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  room             Room              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  rentalRequests   RentalRequest[]
+  viewingSchedules ViewingSchedule[]
+
+  @@index([rentalId])
+  @@index([landlordId])
+  @@index([startDate])
+}
+
+model Payment {
+  id            Int                 @id @default(autoincrement())
+  amount        Int
+  status        PaymentStatus
+  description   String?
+  createdAt     DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime            @updatedAt @db.Timestamptz(6)
+  userId        Int
+  transactionId Int?                @unique
+  metadata      Json?
+  transaction   PaymentTransaction? @relation(fields: [transactionId], references: [id])
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PaymentTransaction {
+  id                 Int      @id @default(autoincrement())
+  gateway            String   @db.VarChar(100)
+  transactionDate    DateTime @default(now()) @db.Timestamptz(6)
+  accountNumber      String?  @db.VarChar(100)
+  subAccount         String?  @db.VarChar(250)
+  amountIn           Int      @default(0)
+  amountOut          Int      @default(0)
+  accumulated        Int      @default(0)
+  code               String?  @db.VarChar(250)
+  transactionContent String?
+  referenceNumber    String?  @db.VarChar(255)
+  body               String?
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  userId             Int?
+  payment            Payment?
+  user               User?    @relation(fields: [userId], references: [id])
+
+  @@index([transactionDate])
+  @@index([gateway])
+  @@index([accountNumber])
+  @@index([userId])
+}
+
+model Conversation {
+  id        Int                   @id @default(autoincrement())
+  createdAt DateTime              @default(now()) @db.Timestamptz(6)
+  userOneId Int
+  userTwoId Int
+  userOne   User                  @relation("UserOneConversations", fields: [userOneId], references: [id], onDelete: Cascade)
+  userTwo   User                  @relation("UserTwoConversations", fields: [userTwoId], references: [id], onDelete: Cascade)
+  messages  ConversationMessage[]
+
+  @@index([userOneId])
+  @@index([userTwoId])
+  @@index([userOneId, userTwoId])
+}
+
+model ConversationMessage {
+  id             Int          @id @default(autoincrement())
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  conversationId Int
+  senderId       Int
+  fileName       String?
+  fileSize       Int?
+  fileType       String?
+  fileUrl        String?
+  thumbnailUrl   String?
+  type           String?      @default("TEXT")
+  isDeleted      Boolean      @default(false)
+  isEdited       Boolean      @default(false)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  roomId    Int
+  tenantId  Int
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenant    User     @relation("TenantReviews", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([tenantId])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  userId    Int
+  rentalId  Int
+  rental    Rental   @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, rentalId])
+}
+
+model Comment {
+  id        Int        @id @default(autoincrement())
+  content   String
+  createdAt DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime?
+  userId    Int
+  postId    Int
+  parentId  Int?
+  parent    Comment?   @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]  @relation("CommentReplies")
+  post      RentalPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([postId])
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+model RoleUpgradeRequest {
+  id            Int                      @id @default(autoincrement())
+  status        RoleUpgradeRequestStatus @default(PENDING)
+  reason        String?
+  createdAt     DateTime                 @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime                 @updatedAt @db.Timestamptz(6)
+  userId        Int
+  processedById Int?
+  frontImage    String
+  backImage     String
+  note          String?
+  processedBy   User?                    @relation("ProcessedRequests", fields: [processedById], references: [id])
+  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ViewingSchedule {
+  id                        Int        @id @default(autoincrement())
+  postId                    Int
+  tenantId                  Int
+  landlordId                Int
+  viewingDate               DateTime   @db.Timestamptz(6)
+  status                    String     @default("PENDING")
+  rescheduledDate           DateTime?  @db.Timestamptz(6)
+  note                      String?
+  requireTenantConfirmation Boolean    @default(false)
+  createdAt                 DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime   @updatedAt @db.Timestamptz(6)
+  landlord                  User       @relation("LandlordViewingSchedules", fields: [landlordId], references: [id])
+  post                      RentalPost @relation(fields: [postId], references: [id])
+  tenant                    User       @relation("TenantViewingSchedules", fields: [tenantId], references: [id])
+
+  @@index([postId])
+  @@index([tenantId])
+  @@index([landlordId])
+}
+
+model RentalRequest {
+  id               Int                 @id @default(autoincrement())
+  postId           Int
+  tenantId         Int
+  landlordId       Int
+  status           RentalRequestStatus @default(PENDING)
+  note             String?
+  expectedMoveDate DateTime            @db.Timestamptz(6)
+  duration         Int
+  depositAmount    Decimal?
+  contractSigned   Boolean             @default(false)
+  rejectionReason  String?
+  createdAt        DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime            @updatedAt @db.Timestamptz(6)
+  landlord         User                @relation("LandlordRentalRequests", fields: [landlordId], references: [id])
+  post             RentalPost          @relation(fields: [postId], references: [id])
+  tenant           User                @relation("TenantRentalRequests", fields: [tenantId], references: [id])
+
+  @@index([postId])
+  @@index([tenantId])
+  @@index([landlordId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  relatedId   Int?
+  relatedType String?
+  deepLink    String?
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+  user        User             @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model ChatbotMessage {
+  id        Int      @id @default(autoincrement())
+  message   String
+  response  String
+  criteria  Json?
+  results   Json?
+  isRead    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model PostReport {
+  id            Int          @id @default(autoincrement())
+  reason        String
+  description   String?
+  status        ReportStatus @default(PENDING)
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(6)
+  processedAt   DateTime?    @db.Timestamptz(6)
+  postId        Int
+  reportedById  Int
+  processedById Int?
+  userId        Int?
+  post          RentalPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  processedBy   User?        @relation("ProcessedReports", fields: [processedById], references: [id])
+  reportedBy    User         @relation("UserReports", fields: [reportedById], references: [id], onDelete: Cascade)
+  User          User?        @relation(fields: [userId], references: [id])
+
+  @@index([postId])
+  @@index([reportedById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  type        String   @default("string")
+  group       String
+  description String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  createdById Int?
+  updatedById Int?
+  createdBy   User?    @relation("SettingCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?    @relation("SettingUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([key])
+  @@index([group])
+}
+
 enum TransactionStatus {
   PENDING
   COMPLETED
@@ -75,567 +580,4 @@ enum ReportStatus {
   PENDING
   PROCESSED
   REJECTED
-}
-
-model User {
-  id          Int        @id @default(autoincrement())
-  name        String
-  avatar      String?
-  phoneNumber String?
-  email       String     @unique
-  password    String
-  status      UserStatus @default(INACTIVE)
-  balance     Int        @default(0)
-  roleId      Int
-
-  createdById  Int?
-  createdBy    User?  @relation("CreatorUsers", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  createdUsers User[] @relation("CreatorUsers")
-
-  updatedById  Int?
-  updatedBy    User?  @relation("UpdatorUsers", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  updatedUsers User[] @relation("UpdatorUsers")
-
-  deletedById  Int?
-  deletedBy    User?  @relation("DeletorUsers", fields: [deletedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  deletedUsers User[] @relation("DeletorUsers")
-
-  deletedAt DateTime?
-  createdAt DateTime  @default(now()) @db.Timestamptz
-  updatedAt DateTime  @updatedAt @db.Timestamptz
-
-  role Role @relation(fields: [roleId], references: [id])
-
-  refreshTokens        RefreshToken[]
-  rentals              Rental[]              @relation("LandlordRentals")
-  rentalPosts          RentalPost[]          @relation("LandlordRentalPosts")
-  conversationsOne     Conversation[]        @relation("UserOneConversations")
-  conversationsTwo     Conversation[]        @relation("UserTwoConversations")
-  conversationMessages ConversationMessage[]
-  reviews              Review[]              @relation("TenantReviews")
-  favorites            Favorite[]
-  comments             Comment[]
-  RoleCreatedBy        Role[]                @relation("RoleCreatedBy")
-  RoleUpdatedBy        Role[]                @relation("RoleUpdatedBy")
-  PermissionCreatedBy  Permission[]          @relation("PermissionCreatedBy")
-  PermissionUpdatedBy  Permission[]          @relation("PermissionUpdatedBy")
-  Permission           Permission[]
-  deletedPermissions   Permission[]          @relation("PermissionDeletedBy")
-  Role                 Role[]                @relation("RoledeletedByIdBy")
-  roleUpgradeRequests  RoleUpgradeRequest[]
-  processedRequests    RoleUpgradeRequest[]  @relation("ProcessedRequests")
-  paymentTransactions  PaymentTransaction[]
-  payments             Payment[]
-
-  tenantViewingSchedules   ViewingSchedule[] @relation("TenantViewingSchedules")
-  landlordViewingSchedules ViewingSchedule[] @relation("LandlordViewingSchedules")
-
-  tenantRentalRequests   RentalRequest[] @relation("TenantRentalRequests")
-  landlordRentalRequests RentalRequest[] @relation("LandlordRentalRequests")
-
-  notifications    Notification[]
-  ChatbotMessage   ChatbotMessage[]
-  PostReport       PostReport[]
-  reportedPosts    PostReport[]     @relation("UserReports")
-  processedReports PostReport[]     @relation("ProcessedReports")
-
-  createdSettings SystemSetting[] @relation("SettingCreatedBy")
-  updatedSettings SystemSetting[] @relation("SettingUpdatedBy")
-
-  @@index([name])
-  @@index([email])
-  @@index([status])
-  @@index([phoneNumber])
-}
-
-model Role {
-  id          Int     @id @default(autoincrement())
-  name        String  @db.VarChar(500)
-  description String  @default("")
-  isActive    Boolean @default(true)
-
-  permissions Permission[]
-  users       User[]
-
-  createdById Int?
-  createdBy   User? @relation("RoleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById Int?
-  updatedBy   User? @relation("RoleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  deletedById Int?
-  deletedBy   User? @relation("RoledeletedByIdBy", fields: [deletedById], references: [id], onDelete: SetNull)
-
-  deletedAt DateTime?
-  createdAt DateTime  @default(now()) @db.Timestamptz
-  updatedAt DateTime  @updatedAt @db.Timestamptz
-
-  @@index([name])
-}
-
-model Permission {
-  id          Int        @id @default(autoincrement())
-  name        String     @db.VarChar(500)
-  description String     @default("")
-  path        String     @db.VarChar(1000)
-  method      HTTPMethod
-  module      String     @default("") @db.VarChar(500)
-  roles       Role[]
-
-  createdById Int?
-  createdBy   User? @relation("PermissionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById Int?
-  updatedBy   User? @relation("PermissionUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  deletedById Int?
-  deletedBy   User? @relation("PermissionDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
-
-  deletedAt DateTime?
-  createdAt DateTime  @default(now()) @db.Timestamptz
-  updatedAt DateTime  @updatedAt @db.Timestamptz
-  User      User?     @relation(fields: [userId], references: [id])
-  userId    Int?
-
-  @@index([name])
-  @@index([path])
-  @@index([deletedAt])
-}
-
-model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  expiresAt DateTime @db.Timestamptz
-  createdAt DateTime @default(now()) @db.Timestamptz
-
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int
-
-  @@index([userId])
-  @@index([expiresAt])
-}
-
-model VerificationCode {
-  id    Int                  @id @default(autoincrement())
-  email String               @unique @db.VarChar(500)
-  code  String               @db.VarChar(50)
-  type  VerificationCodeType
-
-  expiresAt DateTime @db.Timestamptz
-  createdAt DateTime @default(now()) @db.Timestamptz
-
-  @@index([email, code, type])
-  @@index([expiresAt])
-}
-
-model Rental {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  address     String
-  lat         Decimal
-  lng         Decimal
-  distance    Decimal?
-  createdAt   DateTime @default(now()) @db.Timestamptz
-  updatedAt   DateTime @updatedAt @db.Timestamptz
-
-  landlord   User @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade)
-  landlordId Int
-
-  rooms        Room[]
-  rentalImages RentalImage[]
-  rentalPosts  RentalPost[]
-  favorites    Favorite[]
-
-  @@index([landlordId])
-  @@index([title])
-  @@index([createdAt])
-}
-
-model Room {
-  id          Int      @id @default(autoincrement())
-  title       String
-  price       Decimal
-  area        Int
-  isAvailable Boolean  @default(true)
-  createdAt   DateTime @default(now()) @db.Timestamptz
-  updatedAt   DateTime @updatedAt @db.Timestamptz
-
-  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
-  rentalId Int
-
-  roomAmenities RoomAmenity[]
-  roomImages    RoomImage[]
-  reviews       Review[]
-  RentalPost    RentalPost[]
-
-  @@index([rentalId])
-  @@index([isAvailable])
-  @@index([price])
-}
-
-model RentalImage {
-  id        Int      @id @default(autoincrement())
-  imageUrl  String
-  createdAt DateTime @default(now()) @db.Timestamptz
-  order     Int
-
-  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
-  rentalId Int
-
-  @@index([rentalId])
-  @@index([createdAt])
-  @@index([order])
-}
-
-model RoomImage {
-  id        Int      @id @default(autoincrement())
-  imageUrl  String
-  createdAt DateTime @default(now()) @db.Timestamptz
-  order     Int
-
-  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomId Int
-
-  @@index([roomId])
-  @@index([createdAt])
-  @@index([order])
-}
-
-model Amenity {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now()) @db.Timestamptz
-
-  roomAmenities RoomAmenity[]
-
-  @@index([name])
-}
-
-model RoomAmenity {
-  id Int @id @default(autoincrement())
-
-  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomId Int
-
-  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
-  amenityId Int
-
-  @@unique([roomId, amenityId])
-}
-
-model RentalPost {
-  id          Int              @id @default(autoincrement())
-  startDate   DateTime
-  endDate     DateTime
-  title       String           @db.VarChar(250)
-  description String
-  pricePaid   Decimal
-  deposit     Decimal          @default(0)
-  status      RentalPostStatus @default(ACTIVE)
-  createdAt   DateTime         @default(now()) @db.Timestamptz
-
-  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
-  rentalId Int
-
-  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomId Int
-
-  landlord   User @relation("LandlordRentalPosts", fields: [landlordId], references: [id], onDelete: Cascade)
-  landlordId Int
-
-  comments Comment[]
-
-  viewingSchedules ViewingSchedule[]
-  rentalRequests   RentalRequest[]
-  PostReport       PostReport[]
-
-  @@index([rentalId])
-  @@index([landlordId])
-  @@index([startDate])
-}
-
-model Payment {
-  id          Int           @id @default(autoincrement())
-  amount      Int // Số tiền nạp vào tài khoản
-  status      PaymentStatus
-  description String?
-  metadata    Json?
-  createdAt   DateTime      @default(now()) @db.Timestamptz
-  updatedAt   DateTime      @updatedAt @db.Timestamptz
-
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  transaction   PaymentTransaction? @relation(fields: [transactionId], references: [id])
-  transactionId Int?                @unique
-
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model PaymentTransaction {
-  id                 Int      @id @default(autoincrement())
-  gateway            String   @db.VarChar(100)
-  transactionDate    DateTime @default(now()) @db.Timestamptz
-  accountNumber      String?  @db.VarChar(100)
-  subAccount         String?  @db.VarChar(250)
-  amountIn           Int      @default(0)
-  amountOut          Int      @default(0)
-  accumulated        Int      @default(0)
-  code               String?  @db.VarChar(250)
-  transactionContent String?  @db.Text
-  referenceNumber    String?  @db.VarChar(255)
-  body               String?  @db.Text
-  createdAt          DateTime @default(now()) @db.Timestamptz
-
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  payment Payment?
-
-  @@index([transactionDate])
-  @@index([gateway])
-  @@index([accountNumber])
-  @@index([userId])
-}
-
-model Conversation {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now()) @db.Timestamptz
-
-  userOne   User @relation("UserOneConversations", fields: [userOneId], references: [id], onDelete: Cascade)
-  userOneId Int
-  userTwo   User @relation("UserTwoConversations", fields: [userTwoId], references: [id], onDelete: Cascade)
-  userTwoId Int
-
-  messages ConversationMessage[]
-
-  @@index([userOneId])
-  @@index([userTwoId])
-  @@index([userOneId, userTwoId])
-}
-
-model ConversationMessage {
-  id        Int      @id @default(autoincrement())
-  content   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now()) @db.Timestamptz
-  isDeleted Boolean  @default(false)
-  isEdited  Boolean  @default(false)
-
-  // Thêm các trường cho tin nhắn đa phương tiện
-  type         String? @default("TEXT") // TEXT, IMAGE, VIDEO, DOCUMENT, AUDIO, FILE
-  fileUrl      String?
-  fileName     String?
-  fileSize     Int?
-  fileType     String?
-  thumbnailUrl String?
-
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  conversationId Int
-
-  sender   User @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  senderId Int
-
-  @@index([conversationId])
-  @@index([senderId])
-  @@index([isRead])
-  @@index([createdAt])
-}
-
-model Review {
-  id        Int      @id @default(autoincrement())
-  rating    Int
-  comment   String
-  createdAt DateTime @default(now()) @db.Timestamptz
-
-  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomId Int
-
-  tenant   User @relation("TenantReviews", fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId Int
-
-  @@index([roomId])
-  @@index([tenantId])
-}
-
-model Favorite {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now()) @db.Timestamptz
-
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId   Int
-  rental   Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
-  rentalId Int
-
-  @@unique([userId, rentalId])
-}
-
-model Comment {
-  id        Int       @id @default(autoincrement())
-  content   String
-  createdAt DateTime  @default(now()) @db.Timestamptz
-  updatedAt DateTime  @updatedAt @db.Timestamptz
-  deletedAt DateTime?
-
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int
-
-  post   RentalPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId Int
-
-  parentId Int?
-  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies  Comment[] @relation("CommentReplies")
-
-  @@index([userId])
-  @@index([postId])
-  @@index([parentId])
-  @@index([createdAt])
-}
-
-model RoleUpgradeRequest {
-  id         Int                      @id @default(autoincrement())
-  status     RoleUpgradeRequestStatus @default(PENDING)
-  reason     String?
-  note       String?
-  frontImage String
-  backImage  String
-  createdAt  DateTime                 @default(now()) @db.Timestamptz
-  updatedAt  DateTime                 @updatedAt @db.Timestamptz
-
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int
-
-  processedById Int?
-  processedBy   User? @relation("ProcessedRequests", fields: [processedById], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model ViewingSchedule {
-  id                        Int       @id @default(autoincrement())
-  postId                    Int
-  tenantId                  Int
-  landlordId                Int
-  viewingDate               DateTime  @db.Timestamptz
-  status                    String    @default("PENDING")
-  rescheduledDate           DateTime? @db.Timestamptz
-  note                      String?
-  requireTenantConfirmation Boolean   @default(false)
-  createdAt                 DateTime  @default(now()) @db.Timestamptz
-  updatedAt                 DateTime  @updatedAt @db.Timestamptz
-
-  post     RentalPost @relation(fields: [postId], references: [id])
-  tenant   User       @relation("TenantViewingSchedules", fields: [tenantId], references: [id])
-  landlord User       @relation("LandlordViewingSchedules", fields: [landlordId], references: [id])
-
-  @@index([postId])
-  @@index([tenantId])
-  @@index([landlordId])
-}
-
-model RentalRequest {
-  id               Int                 @id @default(autoincrement())
-  postId           Int
-  tenantId         Int
-  landlordId       Int
-  status           RentalRequestStatus @default(PENDING)
-  note             String?
-  expectedMoveDate DateTime            @db.Timestamptz
-  duration         Int // Số tháng thuê
-  depositAmount    Decimal?
-  contractSigned   Boolean             @default(false)
-  rejectionReason  String?
-  createdAt        DateTime            @default(now()) @db.Timestamptz
-  updatedAt        DateTime            @updatedAt @db.Timestamptz
-
-  post     RentalPost @relation(fields: [postId], references: [id])
-  tenant   User       @relation("TenantRentalRequests", fields: [tenantId], references: [id])
-  landlord User       @relation("LandlordRentalRequests", fields: [landlordId], references: [id])
-
-  @@index([postId])
-  @@index([tenantId])
-  @@index([landlordId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model Notification {
-  id          Int              @id @default(autoincrement())
-  userId      Int
-  type        NotificationType
-  title       String
-  message     String
-  isRead      Boolean          @default(false)
-  relatedId   Int?
-  relatedType String?
-  deepLink    String?
-  createdAt   DateTime         @default(now()) @db.Timestamptz
-  updatedAt   DateTime         @updatedAt @db.Timestamptz
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-}
-
-model ChatbotMessage {
-  id        Int      @id @default(autoincrement())
-  message   String   @db.Text
-  response  String   @db.Text
-  criteria  Json? // Lưu tiêu chí tìm kiếm
-  results   Json? // Lưu kết quả tìm kiếm
-  isRead    Boolean  @default(true)
-  createdAt DateTime @default(now()) @db.Timestamptz
-
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model PostReport {
-  id          Int          @id @default(autoincrement())
-  reason      String
-  description String?
-  status      ReportStatus @default(PENDING)
-  createdAt   DateTime     @default(now()) @db.Timestamptz
-  updatedAt   DateTime     @updatedAt @db.Timestamptz
-  processedAt DateTime?    @db.Timestamptz
-
-  post   RentalPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId Int
-
-  reportedBy   User @relation("UserReports", fields: [reportedById], references: [id], onDelete: Cascade)
-  reportedById Int
-
-  processedBy   User? @relation("ProcessedReports", fields: [processedById], references: [id], onDelete: SetNull)
-  processedById Int?
-  User          User? @relation(fields: [userId], references: [id])
-  userId        Int?
-
-  @@index([postId])
-  @@index([reportedById])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model SystemSetting {
-  id          Int      @id @default(autoincrement())
-  key         String   @unique
-  value       String   @db.Text
-  type        String   @default("string") // string, number, boolean, json, file
-  group       String // interface, email, pricing
-  description String?
-  createdAt   DateTime @default(now()) @db.Timestamptz
-  updatedAt   DateTime @updatedAt @db.Timestamptz
-
-  createdById Int?
-  createdBy   User? @relation("SettingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById Int?
-  updatedBy   User? @relation("SettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-
-  @@index([key])
-  @@index([group])
 }

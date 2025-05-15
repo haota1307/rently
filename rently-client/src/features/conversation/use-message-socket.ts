@@ -16,6 +16,19 @@ interface UseMessageSocketProps {
   scrollToBottom: () => void;
 }
 
+// Hàm chuẩn hóa ngày tháng
+const normalizeDate = (dateStr: string | null | undefined): Date | null => {
+  if (!dateStr) return null;
+
+  try {
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  } catch (error) {
+    console.error("Lỗi khi chuyển đổi ngày:", error);
+    return null;
+  }
+};
+
 export function useMessageSocket({
   socket,
   activeConversation,
@@ -58,54 +71,35 @@ export function useMessageSocket({
         return;
       }
 
-      // Nếu tin nhắn đang được xử lý (từ api gửi đi), bỏ qua
-      if (
-        sentMessages.current.has(
-          `${userId}-${newMessage.content}-${new Date(
-            newMessage.createdAt
-          ).getTime()}`
-        )
-      ) {
-        console.log("Bỏ qua tin nhắn (đã xử lý từ API)");
-        return;
-      }
-
       // Tạo ID duy nhất cho tin nhắn
-      const msgId = `${newMessage.id}-${newMessage.senderId}-${newMessage.content}`;
-      const msgUniqueId = `${msgId}-${new Date(
-        newMessage.createdAt
-      ).getTime()}`;
+      const msgId = `${newMessage.id}-${newMessage.senderId}`;
 
       // Kiểm tra xem tin nhắn đã được xử lý trước đó chưa
-      if (
-        processedMessageIds.current.has(msgId) ||
-        processedMessageIds.current.has(msgUniqueId)
-      ) {
+      if (processedMessageIds.current.has(msgId)) {
         console.log("Bỏ qua tin nhắn (đã xử lý từ socket)");
         return;
       }
 
-      // Đánh dấu đã xử lý với cả hai ID
+      // Đánh dấu đã xử lý
       processedMessageIds.current.add(msgId);
-      processedMessageIds.current.add(msgUniqueId);
 
       // Kiểm tra xem tin nhắn đã tồn tại trong danh sách
       setMessages((prev) => {
         // Kiểm tra xem tin nhắn đã tồn tại chưa
         const messageExists = prev.some(
           (msg) =>
+            // Kiểm tra ID chính xác
             (typeof msg.id === "number" &&
               typeof newMessage.id === "number" &&
               msg.id === newMessage.id) ||
             (typeof msg.id === "string" &&
               typeof newMessage.id === "string" &&
               msg.id === newMessage.id) ||
-            (msg.senderId === newMessage.senderId &&
-              msg.content === newMessage.content &&
-              Math.abs(
-                new Date(msg.createdAt).getTime() -
-                  new Date(newMessage.createdAt).getTime()
-              ) < 1000)
+            // Hoặc kiểm tra nếu đó là tin nhắn tạm thời (temp-) có cùng nội dung và người gửi
+            (typeof msg.id === "string" &&
+              msg.id.includes("temp-") &&
+              msg.senderId === newMessage.senderId &&
+              msg.content === newMessage.content)
         );
 
         if (messageExists) {
@@ -113,8 +107,8 @@ export function useMessageSocket({
           return prev;
         }
 
-        // Thêm tin nhắn vào đầu danh sách
-        return [newMessage, ...prev];
+        // Thêm tin nhắn mới vào cuối danh sách (để hiển thị theo đúng thứ tự)
+        return [...prev, newMessage];
       });
 
       // Cập nhật danh sách cuộc trò chuyện

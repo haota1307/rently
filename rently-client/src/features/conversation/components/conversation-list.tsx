@@ -4,8 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { UserCircle } from "lucide-react";
+import { UserCircle, Plus } from "lucide-react";
 import { Conversation } from "@/features/conversation/message.types";
+import { Button } from "@/components/ui/button";
 
 interface ConversationListProps {
   loading: boolean;
@@ -16,6 +17,7 @@ interface ConversationListProps {
     conversation: Conversation,
     e: React.MouseEvent
   ) => void;
+  onNewConversation?: () => void;
 }
 
 export function ConversationList({
@@ -24,6 +26,7 @@ export function ConversationList({
   activeConversation,
   userId,
   onSelectConversation,
+  onNewConversation,
 }: ConversationListProps) {
   // Kiểm tra xem cần hiển thị thông tin của người dùng nào
   const getDisplayUser = (conversation: Conversation) => {
@@ -35,7 +38,20 @@ export function ConversationList({
   return (
     <Card className="h-full flex flex-col">
       <CardContent className="p-3 pb-0 flex-1 overflow-hidden flex flex-col">
-        <h2 className="font-medium mb-3">Cuộc trò chuyện</h2>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="font-medium">Cuộc trò chuyện</h2>
+          {onNewConversation && (
+            <Button
+              onClick={onNewConversation}
+              size="sm"
+              variant="outline"
+              className="h-8 px-2"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              <span className="text-xs">Tạo mới</span>
+            </Button>
+          )}
+        </div>
 
         {loading ? (
           <div className="space-y-3 flex-1">
@@ -50,8 +66,14 @@ export function ConversationList({
             ))}
           </div>
         ) : conversations.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground flex-1">
-            <p>Bạn chưa có cuộc trò chuyện nào</p>
+          <div className="text-center py-8 text-muted-foreground flex-1 flex flex-col items-center justify-center">
+            <p className="mb-4">Bạn chưa có cuộc trò chuyện nào</p>
+            {onNewConversation && (
+              <Button onClick={onNewConversation} className="mt-2">
+                <Plus className="h-4 w-4 mr-2" />
+                Tạo cuộc trò chuyện mới
+              </Button>
+            )}
           </div>
         ) : (
           <ScrollArea className="flex-1 h-0">

@@ -34,20 +34,54 @@ export const MessageItem = memo(
     editingMessageId,
     editMessageContent = "",
   }: MessageItemProps) => {
-    // Xử lý hiển thị thời gian
-    const formatMessageTime = (dateStr: string) => {
-      const date = new Date(dateStr);
-      return format(date, "H:mm", { locale: vi });
+    // Kiểm tra và chuẩn hóa ngày tạo
+    const normalizeDate = (dateStr: string | null | undefined): Date | null => {
+      if (!dateStr) return null;
+
+      try {
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date;
+      } catch (error) {
+        console.error("Lỗi khi chuyển đổi ngày:", error);
+        return null;
+      }
     };
 
-    const formatFullTime = (date: Date) =>
-      `${
-        isToday(date)
-          ? "Hôm nay, "
-          : isYesterday(date)
-          ? "Hôm qua, "
-          : format(date, "d MMM, yyyy", { locale: vi })
-      } lúc ${format(date, "h:mm:ss a", { locale: vi })}`;
+    // Xử lý hiển thị thời gian
+    const formatMessageTime = (dateStr: string | null | undefined) => {
+      try {
+        const date = normalizeDate(dateStr);
+        // Nếu không có ngày hợp lệ, hiển thị thời gian hiện tại
+        if (!date) {
+          return format(new Date(), "H:mm", { locale: vi });
+        }
+
+        return format(date, "H:mm", { locale: vi });
+      } catch (error) {
+        console.error("Lỗi khi định dạng thời gian tin nhắn:", error);
+        return format(new Date(), "H:mm", { locale: vi });
+      }
+    };
+
+    const formatFullTime = (date: Date | null) => {
+      try {
+        if (!date) {
+          // Sử dụng ngày hiện tại thay vì "Thời gian không xác định"
+          return `Hôm nay, lúc ${format(new Date(), "h:mm:ss a", { locale: vi })}`;
+        }
+
+        return `${
+          isToday(date)
+            ? "Hôm nay, "
+            : isYesterday(date)
+              ? "Hôm qua, "
+              : format(date, "d MMM, yyyy", { locale: vi })
+        } lúc ${format(date, "h:mm:ss a", { locale: vi })}`;
+      } catch (error) {
+        console.error("Lỗi khi định dạng thời gian đầy đủ:", error);
+        return `Hôm nay, lúc ${format(new Date(), "h:mm:ss a", { locale: vi })}`;
+      }
+    };
 
     // Hàm chuyển đổi id sang number nếu là string
     const getMsgId = (id: string | number): number => {
@@ -544,6 +578,7 @@ export const MessageItem = memo(
                   ? "bg-primary text-primary-foreground rounded-tr-none"
                   : "bg-muted rounded-tl-none"
               }`}
+              title={formatFullTime(normalizeDate(msg.createdAt))}
             >
               {renderContent()}
             </div>
