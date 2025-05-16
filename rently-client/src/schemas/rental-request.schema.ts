@@ -6,13 +6,6 @@ export enum RentalRequestStatus {
   APPROVED = "APPROVED",
   REJECTED = "REJECTED",
   CANCELED = "CANCELED",
-  COMPLETED = "COMPLETED",
-}
-
-export enum PaymentMethod {
-  CASH = "CASH",
-  BANK_TRANSFER = "BANK_TRANSFER",
-  E_WALLET = "E_WALLET",
 }
 
 // Schema cho thông tin room trong RentalRequest
@@ -58,68 +51,30 @@ export const RentalRequestUserSchema = z.object({
 // Schema cho chi tiết RentalRequest
 export const RentalRequestSchema = z.object({
   id: z.number(),
-  userId: z.number({ invalid_type_error: "ID người dùng phải là số" }),
-  postId: z.number({ invalid_type_error: "ID bài đăng phải là số" }),
-  status: z.nativeEnum(RentalRequestStatus, {
-    errorMap: () => ({ message: "Trạng thái yêu cầu thuê phòng không hợp lệ" }),
-  }),
-  startDate: z.date({ invalid_type_error: "Ngày bắt đầu không hợp lệ" }),
-  endDate: z.date({ invalid_type_error: "Ngày kết thúc không hợp lệ" }),
-  deposit: z.number({ invalid_type_error: "Tiền đặt cọc phải là số" }),
-  monthlyFee: z.number({ invalid_type_error: "Phí hàng tháng phải là số" }),
-  paymentMethod: z.nativeEnum(PaymentMethod, {
-    errorMap: () => ({ message: "Phương thức thanh toán không hợp lệ" }),
-  }),
-  note: z
-    .string({ invalid_type_error: "Ghi chú phải là chuỗi" })
-    .optional()
-    .nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  postId: z.number(),
+  tenantId: z.number(),
+  landlordId: z.number(),
+  status: z.nativeEnum(RentalRequestStatus),
+  note: z.string().nullable(),
+  expectedMoveDate: z.string().or(z.date()),
+  duration: z.number(),
+  depositAmount: z.number().nullable(),
+  contractSigned: z.boolean(),
+  rejectionReason: z.string().nullable(),
+  createdAt: z.string().or(z.date()),
+  updatedAt: z.string().or(z.date()),
   post: RentalRequestPostSchema,
   tenant: RentalRequestUserSchema,
   landlord: RentalRequestUserSchema,
 });
 
 // Schema cho tạo yêu cầu thuê mới
-export const CreateRentalRequestBodySchema = z
-  .object({
-    postId: z.number({ invalid_type_error: "ID bài đăng phải là số" }),
-    startDate: z
-      .string({ invalid_type_error: "Ngày bắt đầu phải là chuỗi" })
-      .refine((val) => !isNaN(Date.parse(val)), {
-        message: "Ngày bắt đầu không hợp lệ",
-      })
-      .transform((val) => new Date(val)),
-    endDate: z
-      .string({ invalid_type_error: "Ngày kết thúc phải là chuỗi" })
-      .refine((val) => !isNaN(Date.parse(val)), {
-        message: "Ngày kết thúc không hợp lệ",
-      })
-      .transform((val) => new Date(val)),
-    deposit: z
-      .number({ invalid_type_error: "Tiền đặt cọc phải là số" })
-      .min(0, { message: "Tiền đặt cọc không được âm" }),
-    monthlyFee: z
-      .number({ invalid_type_error: "Phí hàng tháng phải là số" })
-      .min(0, { message: "Phí hàng tháng không được âm" }),
-    paymentMethod: z.nativeEnum(PaymentMethod, {
-      errorMap: () => ({ message: "Phương thức thanh toán không hợp lệ" }),
-    }),
-    note: z.string({ invalid_type_error: "Ghi chú phải là chuỗi" }).optional(),
-  })
-  .strict()
-  .refine(
-    (data) => {
-      const startDate = new Date(data.startDate);
-      const endDate = new Date(data.endDate);
-      return startDate < endDate;
-    },
-    {
-      message: "Ngày bắt đầu phải trước ngày kết thúc",
-      path: ["startDate"],
-    }
-  );
+export const CreateRentalRequestBodySchema = z.object({
+  postId: z.number(),
+  expectedMoveDate: z.string(),
+  duration: z.number(),
+  note: z.string().optional(),
+});
 
 // Schema cho cập nhật yêu cầu thuê
 export const UpdateRentalRequestBodySchema = z.object({
@@ -131,39 +86,12 @@ export const UpdateRentalRequestBodySchema = z.object({
 });
 
 // Schema cho query lấy danh sách yêu cầu thuê
-export const GetRentalRequestsQuerySchema = z
-  .object({
-    page: z.coerce
-      .number()
-      .int({ message: "Trang phải là số nguyên" })
-      .positive({ message: "Trang phải là số dương" })
-      .default(1),
-    limit: z.coerce
-      .number()
-      .int({ message: "Giới hạn phải là số nguyên" })
-      .positive({ message: "Giới hạn phải là số dương" })
-      .default(10),
-    status: z
-      .nativeEnum(RentalRequestStatus, {
-        errorMap: () => ({
-          message: "Trạng thái yêu cầu thuê phòng không hợp lệ",
-        }),
-      })
-      .optional(),
-    userId: z.coerce
-      .number({ invalid_type_error: "ID người dùng phải là số" })
-      .optional(),
-    postId: z.coerce
-      .number({ invalid_type_error: "ID bài đăng phải là số" })
-      .optional(),
-    startDate: z
-      .string({ invalid_type_error: "Ngày bắt đầu phải là chuỗi" })
-      .optional(),
-    endDate: z
-      .string({ invalid_type_error: "Ngày kết thúc phải là chuỗi" })
-      .optional(),
-  })
-  .strict();
+export const GetRentalRequestsQuerySchema = z.object({
+  limit: z.number().default(10),
+  page: z.number().default(1),
+  status: z.nativeEnum(RentalRequestStatus).optional(),
+  role: z.enum(["TENANT", "LANDLORD"]).optional(),
+});
 
 // Types
 export type RentalRequestType = z.infer<typeof RentalRequestSchema>;

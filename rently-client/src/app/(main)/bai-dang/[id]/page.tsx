@@ -525,96 +525,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </div>
             </div>
 
-            {/* Thông tin đặt cọc */}
-            {post.deposit > 0 && (
-              <div className="mb-4 sm:mb-6 p-3 sm:p-4 border border-amber-200 rounded-lg bg-amber-50">
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-base sm:text-lg font-medium text-amber-800 mb-1 sm:mb-2">
-                      Điều kiện đặt cọc
-                    </h3>
-                    <p className="text-xs sm:text-sm text-amber-700 mb-1.5 sm:mb-2">
-                      Chủ nhà yêu cầu đặt cọc{" "}
-                      <span className="font-semibold">
-                        {new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(post.deposit)}
-                      </span>{" "}
-                      khi thuê phòng này.
-                    </p>
-                    <p className="text-xs sm:text-sm text-amber-700">
-                      Số tiền cọc sẽ được hoàn trả khi kết thúc hợp đồng thuê
-                      nếu không có hư hỏng tài sản và đã thanh toán đầy đủ các
-                      khoản phí liên quan (điện, nước, internet...).
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Nội dung đặt cọc đã được chuyển sang sidebar */}
 
-            {/* Thông tin nhà trọ */}
-            <div className="p-3 sm:p-4 border rounded-lg bg-muted/10 mb-4 sm:mb-6">
-              <div className="flex items-start gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                <Home className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="font-medium text-sm sm:text-base">
-                    Thuộc nhà trọ: {rental?.title || "Không có thông tin"}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                    {rental?.address}
-                  </p>
-                </div>
-              </div>
-              {rental?.description && (
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 sm:mt-2 ml-5 sm:ml-7 line-clamp-2">
-                  {rental.description}
-                </p>
-              )}
-              <div className="mt-2 sm:mt-3 ml-5 sm:ml-7">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 sm:h-9 text-xs sm:text-sm"
-                  onClick={handleViewRental}
-                >
-                  Xem thông tin nhà trọ
-                </Button>
-              </div>
-            </div>
+            {/* Thông tin nhà trọ đã được chuyển sang sidebar */}
 
-            {/* Google Maps location */}
-            {googleMapsUrl && (
-              <div className="mb-4 sm:mb-6">
-                <div className="flex justify-between items-center mb-2 sm:mb-3">
-                  <h3 className="text-base sm:text-lg font-medium">
-                    Vị trí trên bản đồ
-                  </h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowMap(!showMap)}
-                    className="h-7 sm:h-9 text-xs sm:text-sm"
-                  >
-                    {showMap ? "Ẩn bản đồ" : "Hiển thị bản đồ"}
-                  </Button>
-                </div>
-
-                {showMap && (
-                  <div className="aspect-video w-full rounded-md overflow-hidden border mb-2">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      allowFullScreen
-                      src={googleMapsUrl}
-                    ></iframe>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Vị trí bản đồ đã được chuyển sang sidebar */}
 
             {/* Phần bình luận */}
             <div className="mt-6 sm:mt-8">
@@ -797,15 +712,15 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         existingSchedule.status === "PENDING"
                           ? "default"
                           : existingSchedule.status === "APPROVED"
-                          ? "default"
-                          : "default"
+                            ? "default"
+                            : "default"
                       }
                       className={
                         existingSchedule.status === "PENDING"
                           ? "bg-yellow-50 p-2 sm:p-3"
                           : existingSchedule.status === "APPROVED"
-                          ? "bg-green-50 p-2 sm:p-3"
-                          : "bg-blue-50 p-2 sm:p-3"
+                            ? "bg-green-50 p-2 sm:p-3"
+                            : "bg-blue-50 p-2 sm:p-3"
                       }
                     >
                       <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -813,8 +728,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         {existingSchedule.status === "PENDING"
                           ? "Đang chờ xác nhận"
                           : existingSchedule.status === "APPROVED"
-                          ? "Đã xác nhận lịch hẹn"
-                          : "Đã đổi lịch"}
+                            ? "Đã xác nhận lịch hẹn"
+                            : "Đã đổi lịch"}
                       </AlertTitle>
                       <AlertDescription className="text-[10px] sm:text-xs">
                         Bạn đã đặt lịch xem phòng này vào ngày{" "}
@@ -914,35 +829,107 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         {post.status === "ACTIVE"
                           ? "Đang hoạt động"
                           : post.status === "INACTIVE"
-                          ? "Tạm ngưng"
-                          : "Đã xóa"}
+                            ? "Tạm ngưng"
+                            : "Đã xóa"}
                       </Badge>
                     </li>
                   </ul>
                 </CardContent>
               </Card>
 
-              {/* CTA cuối trang */}
-              <div className="text-center p-3 sm:p-4 bg-muted/20 rounded-lg">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">
-                  Bạn có phòng trọ cần cho thuê?
-                </p>
-                <Link href="/dang-tin">
-                  <Button className="w-full h-8 sm:h-10 text-xs sm:text-sm">
-                    Đăng tin ngay
-                  </Button>
-                </Link>
-                {/* Chỉ hiển thị nút báo cáo khi người dùng đã đăng nhập và không phải chủ bài đăng */}
-                {isAuth && !isLandlord && (
-                  <div className="mt-2">
-                    <ReportPostButton
-                      postId={postId}
-                  variant="outline"
-                      className="w-full h-8 sm:h-10 text-xs sm:text-sm"
-                    />
+              {/* Thông tin đặt cọc */}
+              {post.deposit > 0 && (
+                <Card className="mb-4">
+                  <CardContent className="p-3 sm:p-5">
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="text-base sm:text-lg font-medium text-amber-800 mb-1 sm:mb-2">
+                          Điều kiện đặt cọc
+                        </h3>
+                        <p className="text-xs sm:text-sm text-amber-700 mb-1.5 sm:mb-2">
+                          Chủ nhà yêu cầu đặt cọc{" "}
+                          <span className="font-semibold">
+                            {new Intl.NumberFormat("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            }).format(post.deposit)}
+                          </span>{" "}
+                          khi thuê phòng này.
+                        </p>
+                        <p className="text-xs sm:text-sm text-amber-700">
+                          Số tiền cọc sẽ được hoàn trả khi kết thúc hợp đồng
+                          thuê nếu không có hư hỏng tài sản và đã thanh toán đầy
+                          đủ các khoản phí liên quan (điện, nước, internet...).
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Thông tin nhà trọ */}
+              <Card className="mb-4">
+                <CardContent className="p-3 sm:p-5">
+                  <div className="flex items-start gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                    <Home className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-medium text-sm sm:text-base">
+                        Thuộc nhà trọ: {rental?.title || "Không có thông tin"}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                        {rental?.address}
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
+                  {rental?.description && (
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 sm:mt-2 ml-5 sm:ml-7 line-clamp-2">
+                      {rental.description}
+                    </p>
+                  )}
+                  <div className="mt-2 sm:mt-3 ml-5 sm:ml-7">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 sm:h-9 text-xs sm:text-sm"
+                      onClick={handleViewRental}
+                    >
+                      Xem thông tin nhà trọ
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Vị trí trên bản đồ */}
+              {googleMapsUrl && (
+                <Card className="mb-4">
+                  <CardContent className="p-3 sm:p-5">
+                    <h3 className="font-medium text-sm sm:text-base mb-3">
+                      Vị trí trên bản đồ
+                    </h3>
+                    <div className="aspect-video w-full rounded-md overflow-hidden border">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={googleMapsUrl}
+                      ></iframe>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {isAuth && !isLandlord && (
+                <div className="mt-2">
+                  <ReportPostButton
+                    postId={postId}
+                    variant="outline"
+                    className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1058,7 +1045,7 @@ function RelatedPostsSection({
 
 function PostDetailSkeleton() {
   return (
-    <div className=" mx-auto px-4 py-4 sm:py-8">
+    <div className="w-full mx-auto px-4 py-4 sm:py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <div>
