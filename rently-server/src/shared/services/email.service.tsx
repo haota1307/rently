@@ -10,6 +10,8 @@ import ViewingReminderEmail from 'emails/viewing-reminder'
 import RentalRequestEmail from 'emails/rental-request'
 import RentalStatusUpdateEmail from 'emails/rental-status-update'
 import ResetPasswordEmail from 'emails/reset-password'
+import ContactNotificationEmail from 'emails/contact-notification'
+import ContactResponseEmail from 'emails/contact-response'
 import Handlebars from 'handlebars'
 
 @Injectable()
@@ -322,6 +324,119 @@ export class EmailService {
       to: [payload.email],
       subject,
       react: <ResetPasswordEmail code={payload.code} expiry={payload.expiry} />,
+    })
+  }
+
+  // Phương thức gửi thông báo có liên hệ mới cho admin
+  async sendContactNotification(payload: {
+    adminEmail: string
+    fullName: string
+    email: string
+    phoneNumber?: string
+    subject: string
+    message: string
+    adminDashboardUrl?: string
+  }) {
+    const subject = `Liên hệ mới: ${payload.subject}`
+    const templateKey = 'email_contact_notification_template'
+
+    // Thử lấy template từ database trước
+    const dbTemplate = await this.getEmailTemplateFromDB(templateKey)
+
+    // Nếu có template HTML trong database thì dùng
+    if (dbTemplate) {
+      console.log(
+        '[EmailService] Sử dụng HTML template từ database cho thông báo liên hệ mới'
+      )
+      const html = this.renderTemplate(dbTemplate, {
+        full_name: payload.fullName,
+        email: payload.email,
+        phone_number: payload.phoneNumber || 'Không cung cấp',
+        subject: payload.subject,
+        message: payload.message,
+        admin_dashboard_url: payload.adminDashboardUrl || '/quan-ly/lien-he',
+      })
+      return this.resend.emails.send({
+        from: 'Rently <no-reply@rently.top>',
+        to: [payload.adminEmail],
+        subject,
+        html,
+      })
+    }
+
+    // Nếu không có hoặc là template React thì dùng React Component
+    console.log(
+      '[EmailService] Sử dụng React component từ file cho thông báo liên hệ mới'
+    )
+    return this.resend.emails.send({
+      from: 'Rently <no-reply@rently.top>',
+      to: [payload.adminEmail],
+      subject,
+      react: (
+        <ContactNotificationEmail
+          fullName={payload.fullName}
+          email={payload.email}
+          phoneNumber={payload.phoneNumber}
+          subject={payload.subject}
+          message={payload.message}
+          adminDashboardUrl={payload.adminDashboardUrl}
+        />
+      ),
+    })
+  }
+
+  // Phương thức gửi phản hồi liên hệ cho người dùng
+  async sendContactResponse(payload: {
+    to: string
+    userName: string
+    subject: string
+    originalMessage: string
+    responseMessage: string
+    websiteUrl?: string
+  }) {
+    const subject = `Phản hồi: ${payload.subject}`
+    const templateKey = 'email_contact_response_template'
+
+    // Thử lấy template từ database trước
+    const dbTemplate = await this.getEmailTemplateFromDB(templateKey)
+
+    // Nếu có template HTML trong database thì dùng
+    if (dbTemplate) {
+      console.log(
+        '[EmailService] Sử dụng HTML template từ database cho phản hồi liên hệ'
+      )
+      const html = this.renderTemplate(dbTemplate, {
+        user_name: payload.userName,
+        subject: payload.subject,
+        original_message: payload.originalMessage,
+        response_message: payload.responseMessage,
+        website_url: payload.websiteUrl || 'https://rently.top',
+      })
+      return this.resend.emails.send({
+        from: 'Rently <no-reply@rently.top>',
+        to: [payload.to],
+        subject,
+        html,
+      })
+    }
+
+    // Nếu không có hoặc là template React thì dùng React Component
+    console.log(
+      '[EmailService] Sử dụng React component từ file cho phản hồi liên hệ'
+    )
+    return this.resend.emails.send({
+      from: 'Rently <no-reply@rently.top>',
+      to: [payload.to],
+      subject,
+      react: (
+        <ContactResponseEmail
+          userName={payload.userName}
+          subject={payload.subject}
+          originalMessage={payload.originalMessage}
+          responseMessage={payload.responseMessage}
+          websiteUrl={payload.websiteUrl}
+        />
+      ),
     })
   }
 }

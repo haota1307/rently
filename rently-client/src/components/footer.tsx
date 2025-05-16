@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { FooterContactForm } from "@/features/contact/components/contact-form";
 
 // Import động cho bản đồ để tránh lỗi SSR
 const RentalsMap = dynamic(() => import("@/features/map/rentals-map"), {
@@ -143,34 +144,51 @@ export const Footer = () => {
         </div> */}
 
         {/* Nội dung chính của Footer */}
-        <div className="py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-          {/* Logo & Mạng xã hội */}
-          <div className="space-y-4">
-            <Link href={"/"}>
-              <h2 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-gray-900 dark:text-gray-100">
-                Rently
-              </h2>
-            </Link>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Cảm ơn bạn đã tin tưởng và lựa chọn sản phẩm của chúng tôi. Chúng
-              tôi sẽ cố gắng hoàn thiện tốt hơn.
+        <div className="py-8 sm:py-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Cột trái: Liên kết và thông tin */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {/* Logo & Mạng xã hội */}
+            <div className="space-y-4">
+              <Link href={"/"}>
+                <h2 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-gray-900 dark:text-gray-100">
+                  Rently
+                </h2>
+              </Link>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Cảm ơn bạn đã tin tưởng và lựa chọn sản phẩm của chúng tôi.
+                Chúng tôi sẽ cố gắng hoàn thiện tốt hơn.
+              </p>
+              <div className="flex items-center gap-3 text-muted-foreground">
+                {socialLinks.map(({ icon: Icon, href }, index) => (
+                  <Link
+                    key={index}
+                    href={href}
+                    className="border p-1.5 sm:p-2 rounded-full border-black/40 dark:border-white/40 bg-transparent hover:bg-muted dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  >
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+            {/* Các liên kết */}
+            {footerLinks.map(({ title, links }) => (
+              <FooterLinkSection key={title} title={title} links={links} />
+            ))}
+          </div>
+
+          {/* Cột phải: Form liên hệ */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+              Liên hệ với chúng tôi
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 text-xs">
+              Gửi thông tin liên hệ của bạn, chúng tôi sẽ phản hồi sớm nhất có
+              thể.
             </p>
-            <div className="flex items-center gap-3 text-muted-foreground">
-              {socialLinks.map(({ icon: Icon, href }, index) => (
-                <Link
-                  key={index}
-                  href={href}
-                  className="border p-1.5 sm:p-2 rounded-full border-black/40 dark:border-white/40 bg-transparent hover:bg-muted dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                >
-                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Link>
-              ))}
+            <div className="mt-2 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border dark:border-gray-800">
+              <FooterContactForm />
             </div>
           </div>
-          {/* Các liên kết */}
-          {footerLinks.map(({ title, links }) => (
-            <FooterLinkSection key={title} title={title} links={links} />
-          ))}
         </div>
 
         {/* Footer cuối */}

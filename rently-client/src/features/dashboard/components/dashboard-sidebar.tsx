@@ -16,6 +16,7 @@ import {
   CalendarIcon as Calendar,
   Flag,
   FileText,
+  Mail,
 } from "lucide-react";
 
 import {
@@ -71,6 +72,11 @@ const defaultData = {
       title: "Quản lý tiện ích",
       url: "/quan-ly/tien-ich",
       icon: Building2Icon,
+    },
+    {
+      title: "Quản lý liên hệ",
+      url: "/quan-ly/lien-he",
+      icon: Mail,
     },
     {
       title: "Quản lý quyền",

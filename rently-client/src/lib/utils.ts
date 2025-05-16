@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { UseFormSetError } from "react-hook-form";
 import authApiRequest from "@/features/auth/auth.api";
 import { io, Socket } from "socket.io-client";
-import { formatDistance } from "date-fns";
+import { formatDistance, format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Role, RoleType } from "@/constants/type";
 import {
@@ -40,6 +40,19 @@ export function cn(...inputs: ClassValue[]) {
  */
 export const normalizePath = (path: string) => {
   return path.startsWith("/") ? path.slice(1) : path;
+};
+
+/**
+ * Format date to a readable string
+ * @param date - Date to format
+ * @param formatString - Optional format string (default: 'dd/MM/yyyy HH:mm')
+ * @returns Formatted date string in Vietnamese locale
+ */
+export const formatDate = (
+  date: Date,
+  formatString: string = "dd/MM/yyyy HH:mm"
+) => {
+  return format(date, formatString, { locale: vi });
 };
 
 const errorMessageMap: Record<string, string> = {

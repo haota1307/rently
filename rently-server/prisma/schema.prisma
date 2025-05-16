@@ -53,6 +53,7 @@ model User {
   roleUpgradeRequests      RoleUpgradeRequest[]
   createdSettings          SystemSetting[]       @relation("SettingCreatedBy")
   updatedSettings          SystemSetting[]       @relation("SettingUpdatedBy")
+  respondedContacts        Contact[]             @relation("UserRespondedContacts")
   createdBy                User?                 @relation("CreatorUsers", fields: [createdById], references: [id], onUpdate: NoAction)
   createdUsers             User[]                @relation("CreatorUsers")
   deletedBy                User?                 @relation("DeletorUsers", fields: [deletedById], references: [id], onUpdate: NoAction)
@@ -62,6 +63,7 @@ model User {
   updatedUsers             User[]                @relation("UpdatorUsers")
   landlordViewingSchedules ViewingSchedule[]     @relation("LandlordViewingSchedules")
   tenantViewingSchedules   ViewingSchedule[]     @relation("TenantViewingSchedules")
+  Contact                  Contact[]
 
   @@index([name])
   @@index([status])
@@ -513,6 +515,28 @@ model SystemSetting {
   @@index([group])
 }
 
+model Contact {
+  id            Int           @id @default(autoincrement())
+  fullName      String
+  email         String
+  phoneNumber   String?
+  subject       String
+  message       String
+  status        ContactStatus @default(PENDING)
+  response      String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
+  respondedAt   DateTime?     @db.Timestamptz(6)
+  respondedById Int?
+  respondedBy   User?         @relation("UserRespondedContacts", fields: [respondedById], references: [id])
+  User          User?         @relation(fields: [userId], references: [id])
+  userId        Int?
+
+  @@index([status])
+  @@index([email])
+  @@index([createdAt])
+}
+
 enum TransactionStatus {
   PENDING
   COMPLETED
@@ -580,4 +604,10 @@ enum ReportStatus {
   PENDING
   PROCESSED
   REJECTED
+}
+
+enum ContactStatus {
+  PENDING
+  RESPONDED
+  CLOSED
 }
