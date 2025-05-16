@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common'
 import {
   CreateRentalRequestBodyType,
@@ -17,6 +18,8 @@ import { PaymentStatus, Prisma } from '@prisma/client'
 
 @Injectable()
 export class RentalRequestRepo {
+  private readonly logger = new Logger(RentalRequestRepo.name)
+
   constructor(private prismaService: PrismaService) {}
 
   // Hàm chuyển đổi từ database object sang DTO type
@@ -188,6 +191,10 @@ export class RentalRequestRepo {
         totalPages: Math.ceil(totalItems / query.limit),
       }
     } catch (error) {
+      this.logger.error(
+        `Error listing rental requests: ${error.message}`,
+        error.stack
+      )
       throw new InternalServerErrorException(error.message)
     }
   }
@@ -246,6 +253,10 @@ export class RentalRequestRepo {
 
       return this.mapRentalRequestToDto(rentalRequest)
     } catch (error) {
+      this.logger.error(
+        `Error finding rental request by ID: ${error.message}`,
+        error.stack
+      )
       throw new InternalServerErrorException(error.message)
     }
   }
@@ -254,13 +265,18 @@ export class RentalRequestRepo {
   async create({
     data,
     tenantId,
+    prismaTransaction,
   }: {
     data: CreateRentalRequestBodyType
     tenantId: number
+    prismaTransaction?: any
   }): Promise<RentalRequestDetailType> {
     try {
+      // Sử dụng prismaService mặc định hoặc transaction nếu được cung cấp
+      const prisma = prismaTransaction || this.prismaService
+
       // Lấy landlordId từ post
-      const post = await this.prismaService.rentalPost.findUnique({
+      const post = await prisma.rentalPost.findUnique({
         where: { id: data.postId },
         select: { landlordId: true },
       })
@@ -272,7 +288,7 @@ export class RentalRequestRepo {
       const landlordId = post.landlordId
 
       // Tạo yêu cầu thuê
-      const rentalRequest = await this.prismaService.rentalRequest.create({
+      const rentalRequest = await prisma.rentalRequest.create({
         data: {
           postId: data.postId,
           tenantId,
@@ -327,6 +343,10 @@ export class RentalRequestRepo {
 
       return this.mapRentalRequestToDto(rentalRequest)
     } catch (error) {
+      this.logger.error(
+        `Error creating rental request: ${error.message}`,
+        error.stack
+      )
       throw new InternalServerErrorException(error.message)
     }
   }
@@ -335,12 +355,17 @@ export class RentalRequestRepo {
   async update({
     id,
     data,
+    prismaTransaction,
   }: {
     id: number
     data: UpdateRentalRequestBodyType
+    prismaTransaction?: any
   }): Promise<RentalRequestDetailType> {
     try {
-      const rentalRequest = await this.prismaService.rentalRequest.update({
+      // Sử dụng prismaService mặc định hoặc transaction nếu được cung cấp
+      const prisma = prismaTransaction || this.prismaService
+
+      const rentalRequest = await prisma.rentalRequest.update({
         where: { id },
         data: {
           ...(data.status && { status: data.status }),
@@ -400,6 +425,10 @@ export class RentalRequestRepo {
 
       return this.mapRentalRequestToDto(rentalRequest)
     } catch (error) {
+      this.logger.error(
+        `Error updating rental request: ${error.message}`,
+        error.stack
+      )
       throw new InternalServerErrorException(error.message)
     }
   }
@@ -412,8 +441,14 @@ export class RentalRequestRepo {
   }
 
   // Cập nhật trạng thái phòng
-  async updateRoomAvailability(roomId: number, isAvailable: boolean) {
-    return this.prismaService.room.update({
+  async updateRoomAvailability(
+    roomId: number,
+    isAvailable: boolean,
+    prismaTransaction?: any
+  ) {
+    const prisma = prismaTransaction || this.prismaService
+
+    return prisma.room.update({
       where: { id: roomId },
       data: { isAvailable },
     })
@@ -434,9 +469,12 @@ export class RentalRequestRepo {
   async rejectAllPendingRequests(
     postId: number,
     excludeId: number,
-    reason: string
+    reason: string,
+    prismaTransaction?: any
   ) {
-    return this.prismaService.rentalRequest.updateMany({
+    const prisma = prismaTransaction || this.prismaService
+
+    return prisma.rentalRequest.updateMany({
       where: {
         postId,
         status: RentalRequestStatus.PENDING,
@@ -473,6 +511,53 @@ export class RentalRequestRepo {
         },
       },
     })
+  }
+
+  // Lấy thông tin chi tiết của yêu cầu thuê với khóa FOR UPDATE để ngăn race condition
+  async findRequestWithRelationsForUpdate(id: number, prismaTransaction: any) {
+    return prismaTransaction.rentalRequest.findUnique({
+      where: { id },
+      include: {
+        post: true,
+        tenant: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            balance: true,
+          },
+        },
+        landlord: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            balance: true,
+          },
+        },
+      },
+    })
+  }
+
+  // Kiểm tra phòng có sẵn với khóa FOR UPDATE để ngăn race condition
+  async checkRoomAvailabilityWithLock(postId: number, prismaTransaction: any) {
+    const post = await prismaTransaction.rentalPost.findUnique({
+      where: { id: postId },
+      include: {
+        room: {
+          select: {
+            id: true,
+            isAvailable: true,
+          },
+        },
+      },
+    })
+
+    if (!post || !post.room) {
+      return null
+    }
+
+    return post.room
   }
 
   // Tìm bài đăng theo ID
@@ -528,9 +613,10 @@ export class RentalRequestRepo {
     landlordId: number,
     amount: number,
     postTitle: string,
-    tenantName: string
+    tenantName: string,
+    prismaTransaction?: any
   ) {
-    return this.prismaService.$transaction(async prisma => {
+    const executeTransaction = async (prisma: any) => {
       // Trừ tiền cọc từ tài khoản người thuê
       await prisma.user.update({
         where: { id: tenantId },
@@ -592,6 +678,96 @@ export class RentalRequestRepo {
           transactionId: landlordTransaction.id,
         },
       })
-    })
+    }
+
+    // Nếu có prismaTransaction, sử dụng nó, nếu không thì tạo transaction mới
+    if (prismaTransaction) {
+      return executeTransaction(prismaTransaction)
+    } else {
+      return this.prismaService.$transaction(executeTransaction)
+    }
+  }
+
+  // Hoàn lại tiền đặt cọc
+  async refundDeposit(
+    tenantId: number,
+    landlordId: number,
+    amount: number,
+    postTitle: string,
+    tenantName: string,
+    prismaTransaction?: any
+  ) {
+    const executeRefund = async (prisma: any) => {
+      // Trừ tiền từ tài khoản chủ nhà
+      await prisma.user.update({
+        where: { id: landlordId },
+        data: {
+          balance: { decrement: amount },
+        },
+      })
+
+      // Cộng tiền vào tài khoản người thuê
+      await prisma.user.update({
+        where: { id: tenantId },
+        data: {
+          balance: { increment: amount },
+        },
+      })
+
+      // Tạo giao dịch hoàn tiền cho người thuê
+      const tenantTransaction = await prisma.paymentTransaction.create({
+        data: {
+          gateway: 'SYSTEM',
+          transactionDate: new Date(),
+          amountIn: amount,
+          amountOut: 0,
+          transactionContent: `Hoàn tiền đặt cọc cho bài đăng: ${postTitle}`,
+          userId: tenantId,
+        },
+      })
+
+      // Tạo giao dịch hoàn tiền từ chủ nhà
+      const landlordTransaction = await prisma.paymentTransaction.create({
+        data: {
+          gateway: 'SYSTEM',
+          transactionDate: new Date(),
+          amountOut: amount,
+          amountIn: 0,
+          transactionContent: `Hoàn tiền đặt cọc cho ${tenantName} - bài đăng: ${postTitle}`,
+          userId: landlordId,
+        },
+      })
+
+      // Tạo bản ghi thanh toán hoàn tiền cho người thuê
+      await prisma.payment.create({
+        data: {
+          amount: amount,
+          status: PaymentStatus.COMPLETED,
+          description: `Hoàn tiền đặt cọc cho bài đăng: ${postTitle}`,
+          userId: tenantId,
+          transactionId: tenantTransaction.id,
+          metadata: { type: 'DEPOSIT_REFUND' },
+        },
+      })
+
+      // Tạo bản ghi thanh toán hoàn tiền từ chủ nhà
+      await prisma.payment.create({
+        data: {
+          amount: amount,
+          status: PaymentStatus.COMPLETED,
+          description: `Hoàn tiền đặt cọc cho ${tenantName} - bài đăng: ${postTitle}`,
+          userId: landlordId,
+          transactionId: landlordTransaction.id,
+          metadata: { type: 'DEPOSIT_REFUND' },
+        },
+      })
+    }
+
+    // Nếu có prismaTransaction, sử dụng nó, nếu không thì tạo transaction mới
+    if (prismaTransaction) {
+      return executeRefund(prismaTransaction)
+    } else {
+      return this.prismaService.$transaction(executeRefund)
+    }
   }
 }

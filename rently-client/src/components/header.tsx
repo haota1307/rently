@@ -77,7 +77,7 @@ const authLinks: NavLink[] = [
 const clientLinks: NavLink[] = [
   {
     name: "Phòng đã thuê",
-    href: "/phong-da-thue",
+    href: "/thue-phong",
     icon: Building,
     category: "personal",
   },
