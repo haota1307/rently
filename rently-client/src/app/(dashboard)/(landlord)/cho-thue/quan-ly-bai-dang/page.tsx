@@ -239,8 +239,8 @@ export default function RentalPostsPage() {
           post.status === RentalPostStatus.ACTIVE
             ? "Tạm ngưng"
             : post.status === RentalPostStatus.SUSPENDED
-            ? "Kích hoạt"
-            : "Kích hoạt";
+              ? "Kích hoạt"
+              : "Kích hoạt";
 
         return (
           <DropdownMenu>

@@ -118,8 +118,8 @@ export default function LandlordViewingSchedulePage() {
       currentTab === "ALL"
         ? undefined
         : currentTab === "WAITING_TENANT_CONFIRM"
-        ? "RESCHEDULED"
-        : (currentTab as "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED"),
+          ? "RESCHEDULED"
+          : (currentTab as "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED"),
     role: Role.Landlord,
   };
 

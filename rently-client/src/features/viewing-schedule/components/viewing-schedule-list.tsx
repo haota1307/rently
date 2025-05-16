@@ -213,8 +213,8 @@ export function ViewingScheduleList({
         role === Role.Landlord
           ? "chủ nhà"
           : role === Role.Admin
-          ? "quản trị viên"
-          : "người thuê"
+            ? "quản trị viên"
+            : "người thuê"
       }: ${note || "Không có lý do"}`,
     };
 
