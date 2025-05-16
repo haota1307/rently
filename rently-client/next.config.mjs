@@ -18,6 +18,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "qr.sepay.vn",
       },
+      {
+        protocol: "https",
+        hostname: "c1.wallpaperflare.com",
+      },
     ],
   },
 

@@ -48,6 +48,8 @@ const errorMessageMap: Record<string, string> = {
   "Error.EmailAlreadyExists": "Email đã tồn tại trong hệ thống.",
   "Error.UserBlocked":
     "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
+  "Error.InvalidCode": "Mã OTP không hợp lệ hoặc đã hết hạn.",
+  "Error.CodeExpired": "Mã OTP đã hết hạn.",
 };
 
 export const handleErrorApi = ({

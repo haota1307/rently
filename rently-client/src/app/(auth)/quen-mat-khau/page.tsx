@@ -19,7 +19,7 @@ const ForgotPasswordPage = () => {
           <Skeleton className="absolute inset-0 h-full w-full" />
         )}
         <Image
-          src="/placeholder.svg"
+          src="/hero_img.jpg"
           alt="Sign up"
           fill
           className={`absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale transition-opacity duration-500 ${

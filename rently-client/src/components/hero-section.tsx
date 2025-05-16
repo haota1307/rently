@@ -56,7 +56,7 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex-1">
                     <Input
-                      placeholder="Nhập khu vực cụ thể..."
+                      placeholder="Nhập tên bài đăng..."
                       className="h-12"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}

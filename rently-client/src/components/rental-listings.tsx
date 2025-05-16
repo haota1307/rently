@@ -55,12 +55,12 @@ function RentalListingsContent({
 }: RentalListingsProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOption, setSortOption] = useState("newest");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   // Gọi API với các filter
   const { data: postsData, isLoading } = useGetPosts({
     page: currentPage,
-    limit: 10,
+    limit: 6,
     title: filters.title || undefined,
     status: RentalPostStatus.ACTIVE,
     distance: filters.distance,
@@ -71,8 +71,6 @@ function RentalListingsContent({
 
   const posts = postsData?.data || [];
   const totalPages = postsData?.totalPages || 1;
-
-  // Tạo danh sách bài đăng từ dữ liệu post
   const listings: Listing[] = [];
 
   posts.forEach((post: PostType) => {
@@ -81,7 +79,6 @@ function RentalListingsContent({
 
     if (!room || !rental) return;
 
-    // Lấy hình ảnh phòng hoặc nhà trọ
     let images: string[] = ["/placeholder.svg?height=200&width=300"];
 
     if (room.roomImages && room.roomImages.length > 0) {

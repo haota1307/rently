@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useForgotPasswordMutation } from "@/features/auth/useAuth";
+import { handleErrorApi } from "@/lib/utils";
 
 const ResetPasswordSchema = z
   .object({
@@ -56,7 +57,10 @@ const ResetPasswordForm = ({ email }: ResetPasswordFormProps) => {
       toast.success("Đặt lại mật khẩu thành công!");
       router.push("/dang-nhap");
     } catch (error) {
-      toast.error("Có lỗi xảy ra khi đặt lại mật khẩu.");
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
     }
   };
 
@@ -65,7 +69,7 @@ const ResetPasswordForm = ({ email }: ResetPasswordFormProps) => {
       <form
         className="flex flex-col gap-4"
         noValidate
-        onSubmit={form.handleSubmit(onSubmit, (err) => console.log(err))}
+        onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold">Đặt lại mật khẩu</h1>

@@ -1,29 +1,15 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import Link from "next/link";
+import Image from "next/image";
+import { MapPin, Phone, Navigation } from "lucide-react";
+import { cn, formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Heart,
-  MapPin,
-  Maximize2,
-  Home,
-  Phone,
-  Navigation,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
-import { cn, formatPrice } from "@/lib/utils";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RentalType } from "@/schemas/rental.schema";
 import { FavoriteButton } from "@/features/favorite/components/favorite-button";
 import { ComparisonButton } from "@/components/ui/comparison-button";
-import { PostType, RentalPostStatus } from "@/schemas/post.schema";
 
 interface Listing {
   id: string;
@@ -36,8 +22,6 @@ interface Listing {
   distance: number;
   isNew?: boolean;
   isRental?: boolean;
-  rentalId?: string;
-  rentalTitle?: string;
   isAvailable?: boolean;
 }
 
@@ -46,7 +30,6 @@ export interface RentalCardProps {
   rental?: RentalType;
   viewMode?: "grid" | "list";
   onContactClick?: () => void;
-  showFavoriteButton?: boolean;
 }
 
 export const RentalCard = ({
@@ -54,9 +37,7 @@ export const RentalCard = ({
   rental,
   viewMode = "grid",
   onContactClick = () => {},
-  showFavoriteButton = false,
 }: RentalCardProps) => {
-  // Nếu có rental (từ API), chuyển đổi sang định dạng listing
   const processedListing = rental
     ? {
         id: rental.id.toString(),
@@ -80,19 +61,12 @@ export const RentalCard = ({
           rental.rooms && rental.rooms.length > 0
             ? rental.rooms[0].isAvailable
             : true,
-        rentalId: rental.id.toString(),
-        rentalTitle: rental.title,
       }
     : listing;
 
   if (!processedListing) {
     return null;
   }
-
-  // Xử lý trường hợp card là một phòng thuộc nhà trọ
-  const isRoom =
-    !!processedListing.rentalId &&
-    processedListing.id !== processedListing.rentalId;
 
   // Card theo dạng lưới (grid)
   if (viewMode === "grid") {
@@ -106,16 +80,18 @@ export const RentalCard = ({
       >
         <Link href={`/bai-dang/${processedListing.id}`}>
           <CardHeader className="p-0">
-            <div className="relative aspect-[4/3] w-full">
+            <div className="relative aspect-[4/3] w-full overflow-hidden">
               <Image
                 alt={processedListing.title}
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 src={
                   processedListing.images && processedListing.images.length > 0
                     ? processedListing.images[0]
                     : "/placeholder.svg?height=200&width=300"
                 }
+                priority={true}
               />
               {processedListing.isNew && (
                 <Badge
@@ -123,14 +99,6 @@ export const RentalCard = ({
                   variant="destructive"
                 >
                   Mới
-                </Badge>
-              )}
-              {isRoom && (
-                <Badge
-                  className="absolute top-2 right-2 z-10"
-                  variant="outline"
-                >
-                  Phòng trọ
                 </Badge>
               )}
               {processedListing.isAvailable === false && (
@@ -159,14 +127,6 @@ export const RentalCard = ({
                     {processedListing.title}
                   </h3>
                 </Link>
-                {isRoom && (
-                  <Link
-                    href={`/bai-dang/${processedListing.rentalId}`}
-                    className="text-xs text-muted-foreground hover:underline"
-                  >
-                    Thuộc: {processedListing.rentalTitle}
-                  </Link>
-                )}
               </div>
               <div className="flex flex-col items-end">
                 <p className="font-semibold text-blue-600">
@@ -216,24 +176,12 @@ export const RentalCard = ({
               )}
 
             <div className="flex justify-between items-center">
-              {showFavoriteButton && rental ? (
-                <FavoriteButton
-                  rentalId={rental.id}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs px-2"
-                />
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={onContactClick}
-                  className="text-xs px-2"
-                >
-                  <Phone className="h-3 w-3 mr-1" />
-                  Liên hệ
-                </Button>
-              )}
+              <FavoriteButton
+                rentalId={Number(processedListing.id)}
+                variant="outline"
+                size="sm"
+                className="text-xs px-2"
+              />
 
               <div className="flex gap-1">
                 {rental && (
@@ -270,18 +218,20 @@ export const RentalCard = ({
       <div className="flex flex-col sm:flex-row">
         <Link
           href={`/bai-dang/${processedListing.id}`}
-          className="sm:w-[200px]"
+          className="sm:w-[220px] sm:min-w-[220px]"
         >
-          <div className="relative aspect-[4/3] sm:aspect-square w-full">
+          <div className="relative aspect-[4/3] sm:aspect-[4/3] w-full overflow-hidden h-full">
             <Image
               alt={processedListing.title}
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
               fill
+              sizes="(max-width: 768px) 100vw, 220px"
               src={
                 processedListing.images && processedListing.images.length > 0
                   ? processedListing.images[0]
                   : "/placeholder.svg?height=200&width=300"
               }
+              priority={true}
             />
             {processedListing.isNew && (
               <Badge
@@ -289,11 +239,6 @@ export const RentalCard = ({
                 variant="destructive"
               >
                 Mới
-              </Badge>
-            )}
-            {isRoom && (
-              <Badge className="absolute top-2 right-2 z-10" variant="outline">
-                Phòng trọ
               </Badge>
             )}
             {processedListing.isAvailable === false && (
@@ -319,14 +264,6 @@ export const RentalCard = ({
                 >
                   <h3 className="font-semibold">{processedListing.title}</h3>
                 </Link>
-                {isRoom && (
-                  <Link
-                    href={`/bai-dang/${processedListing.rentalId}`}
-                    className="text-xs text-muted-foreground hover:underline"
-                  >
-                    Thuộc: {processedListing.rentalTitle}
-                  </Link>
-                )}
               </div>
               <div className="flex flex-col items-end ml-2">
                 <p className="font-semibold text-blue-600">
@@ -374,18 +311,11 @@ export const RentalCard = ({
               )}
 
             <div className="flex justify-between items-center mt-auto">
-              {showFavoriteButton && rental ? (
-                <FavoriteButton
-                  rentalId={rental.id}
-                  variant="outline"
-                  size="sm"
-                />
-              ) : (
-                <Button size="sm" variant="outline" onClick={onContactClick}>
-                  <Phone className="h-4 w-4 mr-1" />
-                  Liên hệ
-                </Button>
-              )}
+              <FavoriteButton
+                rentalId={Number(processedListing.id)}
+                variant="outline"
+                size="sm"
+              />
 
               <div className="flex gap-1">
                 {rental && (

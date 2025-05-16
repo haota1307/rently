@@ -28,7 +28,6 @@ export function ConversationList({
   onSelectConversation,
   onNewConversation,
 }: ConversationListProps) {
-  // Kiểm tra xem cần hiển thị thông tin của người dùng nào
   const getDisplayUser = (conversation: Conversation) => {
     return userId === conversation.userOneId
       ? conversation.userTwo

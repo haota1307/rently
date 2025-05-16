@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useSendOTPCodeMutation } from "@/features/auth/useAuth";
+import { handleErrorApi } from "@/lib/utils";
 
 const SendOTPSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
@@ -35,7 +36,10 @@ const SendOTPForm = ({ onSuccess }: SendOTPFormProps) => {
       toast.success(`Mã OTP đã được gửi đến email ${data.email}`);
       onSuccess(data.email);
     } catch (error) {
-      toast.error("Có lỗi xảy ra khi gửi mã OTP.");
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
     }
   };
 

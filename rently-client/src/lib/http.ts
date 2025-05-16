@@ -197,10 +197,13 @@ const request = async <Response>(
   const fullUrl = `${baseUrl}/${normalizePath(url)}`;
 
   try {
-    console.log(
-      `[HTTP ${method}] ${fullUrl}`,
-      options?.body instanceof FormData ? "FormData" : options?.body
-    );
+    // Chỉ log request khi không phải môi trường production
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[HTTP ${method}] ${fullUrl}`,
+        options?.body instanceof FormData ? "FormData" : options?.body
+      );
+    }
 
     const res = await fetch(fullUrl, {
       ...options,
@@ -218,17 +221,23 @@ const request = async <Response>(
       payload,
     };
 
-    console.log(
-      `[HTTP Response ${method}] ${fullUrl} - Status: ${res.status}`,
-      payload
-    );
+    // Chỉ log response khi không phải môi trường production
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[HTTP Response ${method}] ${fullUrl} - Status: ${res.status}`,
+        payload
+      );
+    }
 
     // Xử lý response errors
     if (!res.ok) {
       if (res.status === ENTITY_ERROR_STATUS) {
-        console.error(
-          `[EntityError] Lỗi xác thực dữ liệu: ${JSON.stringify(data.payload)}`
-        );
+        // Chỉ log lỗi EntityError khi không phải môi trường production
+        if (process.env.NODE_ENV !== "production") {
+          console.error(
+            `[EntityError] Lỗi xác thực dữ liệu: ${JSON.stringify(data.payload)}`
+          );
+        }
         throw new EntityError(
           data as {
             status: 422;
