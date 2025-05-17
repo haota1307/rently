@@ -87,6 +87,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import RevenueReport from "@/features/statistics/revenue-report";
 
 // Kiểu dữ liệu cho hoạt động giao dịch
 interface Transaction {
@@ -950,6 +951,14 @@ const DashboardPage = () => {
                           </div>
                         </PopoverContent>
                       </Popover>
+                      {revenueData && (
+                        <RevenueReport
+                          data={revenueData}
+                          timeRange={timeRange}
+                          dateFilter={dateFilter}
+                          summaryData={transactionSummary || undefined}
+                        />
+                      )}
                     </div>
                   </div>
                   <CardDescription className="text-[10px] md:text-xs">

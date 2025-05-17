@@ -568,8 +568,6 @@ export class PaymentService {
       // Kiểm tra nội dung giao dịch để phân biệt rõ ràng hơn
       const transactionContent = t.transaction?.transactionContent || ''
 
-      console.log('Transaction Content:', transactionContent)
-
       // Giao dịch nạp tiền - CHỈ khi có nội dung rõ ràng chứa SEVQR NAP
       if (
         t.transaction &&
