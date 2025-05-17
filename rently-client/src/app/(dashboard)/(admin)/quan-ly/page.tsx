@@ -170,6 +170,23 @@ const DashboardPage = () => {
   const [financeCurrentPage, setFinanceCurrentPage] = useState(1);
   const [financeItemsPerPage, setFinanceItemsPerPage] = useState(10);
 
+  // Thêm state gần state timeRange
+  const [transactionTimeFilter, setTransactionTimeFilter] = useState<number>(7);
+
+  // Khởi tạo transactionDateFilter với 7 ngày gần nhất
+  const now = new Date();
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  // Thêm state filter riêng cho phần "Hoạt động gần đây"
+  const [transactionDateFilter, setTransactionDateFilter] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: sevenDaysAgo,
+    to: now,
+  });
+
   // Tính toán phần trăm thay đổi an toàn
   const getPercentage = (value?: number) => {
     if (value === undefined || isNaN(value)) return "0";
@@ -218,12 +235,12 @@ const DashboardPage = () => {
           limit: transactionFilters.limit.toString(),
         };
 
-        if (dateFilter.from) {
-          params.startDate = format(dateFilter.from, "yyyy-MM-dd");
+        if (transactionDateFilter.from) {
+          params.startDate = format(transactionDateFilter.from, "yyyy-MM-dd");
         }
 
-        if (dateFilter.to) {
-          params.endDate = format(dateFilter.to, "yyyy-MM-dd");
+        if (transactionDateFilter.to) {
+          params.endDate = format(transactionDateFilter.to, "yyyy-MM-dd");
         }
 
         if (userFilter) {
@@ -285,7 +302,7 @@ const DashboardPage = () => {
     };
 
     fetchRecentTransactions();
-  }, [dateFilter, userFilter, transactionFilters]);
+  }, [transactionDateFilter, userFilter, transactionFilters]);
 
   // Thêm useEffect để log dữ liệu postsByArea
   useEffect(() => {
@@ -614,6 +631,27 @@ const DashboardPage = () => {
     return (
       <div ref={mapContainerRef} className="h-[400px] w-full rounded-md" />
     );
+  };
+
+  // Sửa lại hàm xử lý lọc thời gian cho transactions
+  const handleTransactionTimeFilterChange = (days: number) => {
+    setTransactionTimeFilter(days);
+    // Cập nhật lọc và fetching dữ liệu
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Sử dụng state filter riêng cho transactions
+    setTransactionDateFilter({
+      from: startDate,
+      to: endDate,
+    });
+
+    // Cập nhật filters và trigger fetching
+    setTransactionFilters((prev) => ({
+      ...prev,
+      limit: "5", // Giữ nguyên limit mặc định
+    }));
   };
 
   return (
@@ -1038,11 +1076,47 @@ const DashboardPage = () => {
               {/* Hoạt động nạp/rút tiền gần đây */}
               <Card className="overflow-hidden shadow-sm">
                 <CardHeader className="p-2 md:p-3 lg:p-6">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-xs md:text-sm lg:text-base flex items-center gap-1 md:gap-2">
-                      <Activity className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
-                      Hoạt động gần đây
-                    </CardTitle>
+                  <CardTitle className="text-xs md:text-sm lg:text-base flex items-center gap-1 md:gap-2">
+                    <Activity className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
+                    Hoạt động gần đây
+                  </CardTitle>
+                  <CardDescription className="text-[10px] md:text-xs mt-1">
+                    Các giao dịch nạp/rút tiền mới nhất trong hệ thống
+                  </CardDescription>
+
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-1 md:gap-2">
+                      <Button
+                        variant={
+                          transactionTimeFilter === 7 ? "default" : "outline"
+                        }
+                        size="sm"
+                        className="h-7 text-[10px] md:text-xs"
+                        onClick={() => handleTransactionTimeFilterChange(7)}
+                      >
+                        7 ngày
+                      </Button>
+                      <Button
+                        variant={
+                          transactionTimeFilter === 30 ? "default" : "outline"
+                        }
+                        size="sm"
+                        className="h-7 text-[10px] md:text-xs"
+                        onClick={() => handleTransactionTimeFilterChange(30)}
+                      >
+                        30 ngày
+                      </Button>
+                      <Button
+                        variant={
+                          transactionTimeFilter === 90 ? "default" : "outline"
+                        }
+                        size="sm"
+                        className="h-7 text-[10px] md:text-xs"
+                        onClick={() => handleTransactionTimeFilterChange(90)}
+                      >
+                        90 ngày
+                      </Button>
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
@@ -1058,9 +1132,6 @@ const DashboardPage = () => {
                       Xem thêm
                     </Button>
                   </div>
-                  <CardDescription className="text-[10px] md:text-xs mt-1">
-                    Các giao dịch nạp/rút tiền mới nhất trong hệ thống
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="space-y-0">

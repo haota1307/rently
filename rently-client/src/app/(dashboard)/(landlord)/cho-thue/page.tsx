@@ -96,6 +96,7 @@ const LandlordPage = () => {
     from: undefined,
     to: undefined,
   });
+  const [transactionTimeFilter, setTransactionTimeFilter] = useState<number>(7);
 
   // Tính toán số trang và dữ liệu hiển thị
   const totalPages = Math.ceil(totalTransactions / itemsPerPage);
@@ -127,14 +128,24 @@ const LandlordPage = () => {
   };
 
   // Hàm lấy giao dịch từ API
-  const fetchTransactions = async (page: number) => {
+  const fetchTransactions = async (
+    page: number,
+    days: number = transactionTimeFilter
+  ) => {
     try {
       setLoadingTransactions(true);
 
-      // Gọi API lấy giao dịch của chính người cho thuê
+      // Tính toán thời gian từ số ngày
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      // Gọi API với tham số thời gian
       const response = await paymentApiRequest.getTransactions({
         current: true,
         limit: 20,
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
       });
 
       if (response.status === 200 && response.payload?.transactions) {
@@ -220,6 +231,10 @@ const LandlordPage = () => {
         );
 
         setTransactions(paginatedTransactions);
+        // Reset trang về 1 nếu thay đổi bộ lọc
+        if (currentPage !== 1) {
+          setCurrentPage(1);
+        }
       }
     } catch (err) {
       console.error("Lỗi lấy dữ liệu giao dịch:", err);
@@ -236,7 +251,7 @@ const LandlordPage = () => {
 
   // Tải dữ liệu lần đầu và khi trang thay đổi
   useEffect(() => {
-    fetchTransactions(currentPage);
+    fetchTransactions(currentPage, transactionTimeFilter);
   }, [currentPage]);
 
   // Hàm thay đổi khoảng thời gian biểu đồ
@@ -306,6 +321,13 @@ const LandlordPage = () => {
     }
   };
 
+  // Thêm hàm xử lý thay đổi bộ lọc thời gian ở sau các hàm hiện có
+  const handleTransactionTimeFilterChange = (days: number) => {
+    setTransactionTimeFilter(days);
+    // Gọi lại API để lấy dữ liệu theo khoảng thời gian mới
+    fetchTransactions(1, days);
+  };
+
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 w-full">
@@ -316,102 +338,180 @@ const LandlordPage = () => {
 
       {/* Thẻ thống kê */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 m-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+        <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardTitle className="text-xs md:text-sm font-medium">
               Tổng số nhà trọ
             </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <HomeIcon className="h-4 w-4 text-blue-700" />
+            <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <HomeIcon className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-700" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 md:p-3 pt-0 md:pt-0">
             {isLoading ? (
-              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl lg:text-2xl font-bold">
                   {statistics?.totalRentals || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {getPercentageChange(statistics?.percentageChanges?.rentals)}%
-                  so với tháng trước
-                </p>
+                <div className="flex items-center mt-1">
+                  <Badge
+                    variant={
+                      statistics?.percentageChanges?.rentals &&
+                      statistics?.percentageChanges?.rentals >= 0
+                        ? "default"
+                        : "destructive"
+                    }
+                    className={cn(
+                      "text-[10px] md:text-xs",
+                      statistics?.percentageChanges?.rentals &&
+                        statistics?.percentageChanges?.rentals >= 0
+                        ? "bg-green-100 text-green-700"
+                        : ""
+                    )}
+                  >
+                    {getPercentageChange(
+                      statistics?.percentageChanges?.rentals
+                    )}
+                    %
+                  </Badge>
+                  <span className="text-[10px] md:text-xs text-muted-foreground ml-1">
+                    so với tháng trước
+                  </span>
+                </div>
               </>
             )}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+        <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-green-50 to-emerald-50">
+            <CardTitle className="text-xs md:text-sm font-medium">
               Tổng số phòng trọ
             </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <Building2 className="h-4 w-4 text-green-700" />
+            <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-green-100 flex items-center justify-center">
+              <Building2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-700" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 md:p-3 pt-0 md:pt-0">
             {isLoading ? (
-              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl lg:text-2xl font-bold">
                   {statistics?.totalRooms || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {getPercentageChange(statistics?.percentageChanges?.rooms)}%
-                  so với tháng trước
-                </p>
+                <div className="flex items-center mt-1">
+                  <Badge
+                    variant={
+                      statistics?.percentageChanges?.rooms &&
+                      statistics?.percentageChanges?.rooms >= 0
+                        ? "default"
+                        : "destructive"
+                    }
+                    className={cn(
+                      "text-[10px] md:text-xs",
+                      statistics?.percentageChanges?.rooms &&
+                        statistics?.percentageChanges?.rooms >= 0
+                        ? "bg-green-100 text-green-700"
+                        : ""
+                    )}
+                  >
+                    {getPercentageChange(statistics?.percentageChanges?.rooms)}%
+                  </Badge>
+                  <span className="text-[10px] md:text-xs text-muted-foreground ml-1">
+                    so với tháng trước
+                  </span>
+                </div>
               </>
             )}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+        <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-purple-50 to-violet-50">
+            <CardTitle className="text-xs md:text-sm font-medium">
               Tổng số bài viết đã đăng
             </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-              <Users className="h-4 w-4 text-purple-700" />
+            <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-purple-100 flex items-center justify-center">
+              <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-purple-700" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 md:p-3 pt-0 md:pt-0">
             {isLoading ? (
-              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl lg:text-2xl font-bold">
                   {statistics?.totalPosts || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {getPercentageChange(statistics?.percentageChanges?.posts)}%
-                  so với tháng trước
-                </p>
+                <div className="flex items-center mt-1">
+                  <Badge
+                    variant={
+                      statistics?.percentageChanges?.posts &&
+                      statistics?.percentageChanges?.posts >= 0
+                        ? "default"
+                        : "destructive"
+                    }
+                    className={cn(
+                      "text-[10px] md:text-xs",
+                      statistics?.percentageChanges?.posts &&
+                        statistics?.percentageChanges?.posts >= 0
+                        ? "bg-green-100 text-green-700"
+                        : ""
+                    )}
+                  >
+                    {getPercentageChange(statistics?.percentageChanges?.posts)}%
+                  </Badge>
+                  <span className="text-[10px] md:text-xs text-muted-foreground ml-1">
+                    so với tháng trước
+                  </span>
+                </div>
               </>
             )}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+        <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 md:p-3 md:pb-2 bg-gradient-to-r from-amber-50 to-yellow-50">
+            <CardTitle className="text-xs md:text-sm font-medium">
               Số dư tài khoản
             </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-amber-700" />
+            <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-amber-100 flex items-center justify-center">
+              <DollarSign className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-700" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 md:p-3 pt-0 md:pt-0">
             {isLoading ? (
-              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl lg:text-2xl font-bold">
                   {formatCurrency(statistics?.accountBalance || 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {getPercentageChange(statistics?.percentageChanges?.balance)}%
-                  so với tháng trước
-                </p>
+                <div className="flex items-center mt-1">
+                  <Badge
+                    variant={
+                      statistics?.percentageChanges?.balance &&
+                      statistics?.percentageChanges?.balance >= 0
+                        ? "default"
+                        : "destructive"
+                    }
+                    className={cn(
+                      "text-[10px] md:text-xs",
+                      statistics?.percentageChanges?.balance &&
+                        statistics?.percentageChanges?.balance >= 0
+                        ? "bg-green-100 text-green-700"
+                        : ""
+                    )}
+                  >
+                    {getPercentageChange(
+                      statistics?.percentageChanges?.balance
+                    )}
+                    %
+                  </Badge>
+                  <span className="text-[10px] md:text-xs text-muted-foreground ml-1">
+                    so với tháng trước
+                  </span>
+                </div>
               </>
             )}
           </CardContent>
@@ -527,17 +627,39 @@ const LandlordPage = () => {
         </Card>
 
         {/* Lịch sử giao dịch */}
-        <Card className="col-span-3">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-blue-600" />
-                  Lịch sử giao dịch của bạn
-                </CardTitle>
-                <CardDescription className="text-xs mt-1">
-                  Các giao dịch gần đây liên quan đến hoạt động cho thuê
-                </CardDescription>
+        <Card className="col-span-3 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="p-3 md:p-4 lg:p-5">
+            <CardTitle className="text-base md:text-lg font-semibold flex items-center gap-1 md:gap-2">
+              <Activity className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
+              Lịch sử giao dịch của bạn
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm mt-1">
+              Các giao dịch gần đây liên quan đến hoạt động cho thuê
+            </CardDescription>
+
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-1 md:gap-2">
+                <Button
+                  variant={transactionTimeFilter === 7 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleTransactionTimeFilterChange(7)}
+                >
+                  7 ngày
+                </Button>
+                <Button
+                  variant={transactionTimeFilter === 30 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleTransactionTimeFilterChange(30)}
+                >
+                  30 ngày
+                </Button>
+                <Button
+                  variant={transactionTimeFilter === 90 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleTransactionTimeFilterChange(90)}
+                >
+                  90 ngày
+                </Button>
               </div>
               <TransactionReport
                 transactions={allTransactions}
@@ -561,26 +683,26 @@ const LandlordPage = () => {
                     {transactions.map((transaction) => (
                       <div
                         key={transaction.id}
-                        className="p-3 hover:bg-muted/30 transition-colors"
+                        className="p-3 md:p-4 hover:bg-muted/20 transition-colors"
                       >
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
                             <div
                               className={cn(
-                                "h-9 w-9 rounded-full flex items-center justify-center",
+                                "h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center",
                                 transaction.isDeposit
                                   ? "bg-green-100"
                                   : "bg-red-100"
                               )}
                             >
                               {transaction.isDeposit ? (
-                                <ArrowDownCircle className="h-5 w-5 text-green-600" />
+                                <ArrowDownCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                               ) : (
-                                <ArrowUpCircle className="h-5 w-5 text-red-600" />
+                                <ArrowUpCircle className="h-4 w-4 md:h-5 md:w-5 text-red-600" />
                               )}
                             </div>
                             <div>
-                              <p className="text-sm font-medium">
+                              <p className="text-sm md:text-base font-medium">
                                 {transaction.isDeposit ? "Tiền vào" : "Tiền ra"}
                               </p>
                               <p className="text-xs text-muted-foreground">
@@ -591,7 +713,7 @@ const LandlordPage = () => {
                           <div className="flex flex-col items-end">
                             <span
                               className={cn(
-                                "text-sm font-medium",
+                                "text-sm md:text-base font-semibold",
                                 transaction.isDeposit
                                   ? "text-green-600"
                                   : "text-red-600"
@@ -609,20 +731,20 @@ const LandlordPage = () => {
                             </span>
                           </div>
                         </div>
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="text-xs text-muted-foreground truncate max-w-[70%]">
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs md:text-sm text-muted-foreground truncate max-w-[60%] sm:max-w-[70%]">
                             {transaction.description}
                           </span>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2"
+                            className="h-8 px-3"
                             onClick={() =>
                               handleViewTransactionDetails(transaction)
                             }
                           >
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            <span className="text-xs">Chi tiết</span>
+                            <Eye className="h-4 w-4 mr-1" />
+                            <span>Chi tiết</span>
                           </Button>
                         </div>
                       </div>
@@ -631,7 +753,7 @@ const LandlordPage = () => {
 
                   {/* Phân trang */}
                   {totalPages > 1 && (
-                    <div className="py-3 border-t">
+                    <div className="py-3 border-t flex justify-center">
                       <Pagination>
                         <PaginationContent>
                           <PaginationItem>
@@ -704,7 +826,7 @@ const LandlordPage = () => {
                   )}
                 </>
               ) : (
-                <div className="text-center py-6 text-sm text-muted-foreground">
+                <div className="text-center py-6 text-sm md:text-base text-muted-foreground">
                   Bạn chưa có giao dịch nào gần đây
                 </div>
               )}

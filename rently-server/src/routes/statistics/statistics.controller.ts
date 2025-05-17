@@ -23,11 +23,10 @@ export class StatisticsController {
     @ActiveUser('roleName') roleName: string
   ) {
     // Nếu là admin, cho phép xem tất cả hoặc lọc theo landlordId
-    if (roleName === 'ADMIN') {
-      return this.statisticsService.getOverview(query.landlordId)
-    }
+    // if (roleName === 'ADMIN') {
+    //   return this.statisticsService.getOverview(userId)
+    // }
 
-    // Nếu không phải admin, chỉ cho xem thống kê của chính mình
     return this.statisticsService.getOverview(userId)
   }
 
