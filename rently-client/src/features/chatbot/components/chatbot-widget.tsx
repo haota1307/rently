@@ -426,6 +426,7 @@ export function ChatbotWidget() {
         addBotMessage({
           content:
             data.summary ||
+            data.content ||
             "Tôi không hiểu câu hỏi của bạn. Bạn có thể hỏi về phòng trọ hoặc nhập yêu cầu tìm kiếm cụ thể hơn.",
           isHtml: false,
         });

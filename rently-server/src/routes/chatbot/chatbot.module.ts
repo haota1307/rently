@@ -8,9 +8,9 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 import { ChatbotCacheService } from './services/cache.service'
 import { ChatbotOpenAIService } from './services/openai.service'
 import { ChatbotKnowledgeService } from './services/knowledge.service'
-import { ChatbotMessageAnalysisService } from './services/message-analysis.service'
 import { ChatbotSearchService } from './services/search.service'
 import { ChatbotHistoryService } from './services/history.service'
+import { ChatbotMessageAnalysisSimplifiedService } from './services/message-analysis-simplified.service'
 
 @Module({
   imports: [RentalModule, RoomModule, PostModule],
@@ -22,7 +22,7 @@ import { ChatbotHistoryService } from './services/history.service'
     ChatbotKnowledgeService,
     ChatbotHistoryService,
     ChatbotSearchService,
-    ChatbotMessageAnalysisService,
+    ChatbotMessageAnalysisSimplifiedService,
     ChatbotService,
   ],
   exports: [ChatbotService],

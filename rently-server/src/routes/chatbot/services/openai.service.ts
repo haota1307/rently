@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import OpenAI from 'openai'
+import { ChatCompletionMessageParam } from 'openai/resources'
 
 @Injectable()
 export class ChatbotOpenAIService {
@@ -53,6 +54,60 @@ export class ChatbotOpenAIService {
     } catch (error) {
       console.error('Lỗi khi tạo câu trả lời:', error)
       return 'Xin lỗi, tôi đang gặp sự cố khi xử lý yêu cầu của bạn. Vui lòng thử lại sau.'
+    }
+  }
+
+  /**
+   * Tạo câu trả lời dựa trên hội thoại nhiều lượt với OpenAI API
+   */
+  async chatCompletion(
+    messages: ChatCompletionMessageParam[],
+    model: string = 'gpt-4o-mini',
+    options: {
+      temperature?: number
+      max_tokens?: number
+    } = {}
+  ) {
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model,
+        messages,
+        temperature: options.temperature || 0.7,
+        max_tokens: options.max_tokens || 1000,
+      })
+
+      return completion
+    } catch (error) {
+      console.error('Lỗi khi tạo chat completion:', error)
+      throw new Error('Không thể tạo chat completion')
+    }
+  }
+
+  /**
+   * Sử dụng OpenAI Function Calling để trích xuất dữ liệu có cấu trúc
+   */
+  async createFunctionCall(options: {
+    messages: ChatCompletionMessageParam[]
+    functions: Array<{
+      name: string
+      description?: string
+      parameters: Record<string, any>
+    }>
+    function_call?: { name: string } | 'auto' | 'none'
+    model?: string
+  }) {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: options.model || 'gpt-4o-mini',
+        messages: options.messages,
+        functions: options.functions,
+        function_call: options.function_call || 'auto',
+      })
+
+      return response.choices[0].message
+    } catch (error) {
+      console.error('Lỗi khi sử dụng function calling:', error)
+      throw new Error('Không thể thực hiện function calling')
     }
   }
 

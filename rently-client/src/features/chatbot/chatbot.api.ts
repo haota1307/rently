@@ -17,6 +17,7 @@ interface ChatbotResponse {
     roomType: string | null;
   };
   summary: string;
+  content: string;
   results: Array<{
     postId: number;
     roomId: number;

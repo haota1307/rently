@@ -1,15 +1,15 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import { ChatbotOpenAIService } from './openai.service'
-import { ChatbotMessageAnalysisService } from './message-analysis.service'
-import { SearchCriteria } from '../interfaces/chatbot.interfaces'
+import { SearchCriteria, SearchResult } from '../interfaces/chatbot.interfaces'
+import { ChatbotMessageAnalysisSimplifiedService } from 'src/routes/chatbot/services/message-analysis-simplified.service'
 
 @Injectable()
 export class ChatbotSearchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly openaiService: ChatbotOpenAIService,
-    private readonly messageAnalysisService: ChatbotMessageAnalysisService
+    private readonly messageAnalysisService: ChatbotMessageAnalysisSimplifiedService
   ) {}
 
   /**
@@ -372,5 +372,54 @@ Hãy đưa ra phản hồi ngắn gọn, thân thiện với người dùng, bao
    */
   private toRadians(degrees: number): number {
     return degrees * (Math.PI / 180)
+  }
+
+  /**
+   * Tìm kiếm phòng theo tiêu chí và trả về kết quả theo định dạng SearchResult
+   */
+  async searchRooms(criteria: SearchCriteria): Promise<SearchResult> {
+    try {
+      // Thực hiện tìm kiếm phòng theo tiêu chí
+      const results = await this.searchPostsByRoomCriteria(criteria)
+
+      // Tạo câu tóm tắt kết quả
+      let summary = ''
+      if (results.length === 0) {
+        // Sử dụng RAG để đưa ra phản hồi thông minh khi không tìm thấy kết quả
+        summary = await this.generateNoResultsResponse(
+          'không tìm thấy phòng phù hợp',
+          criteria
+        )
+      } else if (results.length === 1 && criteria.onlyTopResult) {
+        // Nếu người dùng yêu cầu lấy kết quả cao nhất/thấp nhất và chỉ có 1 kết quả
+        if (criteria.sortBy === 'price' && criteria.sortOrder === 'desc') {
+          summary = `Đã tìm thấy phòng có giá cao nhất là ${results[0].price.toLocaleString('vi-VN')} VND.`
+        } else if (
+          criteria.sortBy === 'price' &&
+          criteria.sortOrder === 'asc'
+        ) {
+          summary = `Đã tìm thấy phòng có giá thấp nhất là ${results[0].price.toLocaleString('vi-VN')} VND.`
+        } else {
+          summary = `Đã tìm thấy 1 bài đăng phù hợp với yêu cầu của bạn.`
+        }
+      } else {
+        summary = `Tìm thấy ${results.length} bài đăng phù hợp với yêu cầu của bạn.`
+      }
+
+      return {
+        criteria,
+        summary,
+        results,
+        totalFound: results.length,
+      }
+    } catch (error) {
+      console.error('Lỗi tìm kiếm phòng:', error)
+      return {
+        summary: 'Đã xảy ra lỗi khi tìm kiếm phòng trọ.',
+        results: [],
+        totalFound: 0,
+        error: error.message,
+      }
+    }
   }
 }

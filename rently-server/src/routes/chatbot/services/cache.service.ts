@@ -13,26 +13,23 @@ export class ChatbotCacheService {
   private searchResultsCache: Map<string, CacheItem<any>> = new Map()
   // Cache cho các câu trả lời từ RAG
   private responsesCache: Map<string, CacheItem<any>> = new Map()
+  // Cache cho các kết quả phân tích ý định
+  private intentsCache: Map<string, CacheItem<any>> = new Map()
 
   /**
    * Lưu dữ liệu vào cache với thời gian hết hạn
-   * @param cacheType Loại cache ('criteria', 'searchResults', 'responses')
+   * @param cacheType Loại cache ('criteria', 'searchResults', 'responses', 'intents')
    * @param key Khóa cache
    * @param value Giá trị cần lưu
    * @param ttlSeconds Thời gian sống của cache (giây), mặc định là 5 phút
    */
   saveToCache<T>(
-    cacheType: 'criteria' | 'searchResults' | 'responses',
+    cacheType: 'criteria' | 'searchResults' | 'responses' | 'intents',
     key: string,
     value: T,
     ttlSeconds: number = 300
   ): void {
-    const cache =
-      cacheType === 'criteria'
-        ? this.criteriaCache
-        : cacheType === 'searchResults'
-          ? this.searchResultsCache
-          : this.responsesCache
+    const cache = this.getCacheMapByType(cacheType)
 
     const item: CacheItem<T> = {
       value,
@@ -51,20 +48,15 @@ export class ChatbotCacheService {
 
   /**
    * Lấy dữ liệu từ cache nếu còn hạn
-   * @param cacheType Loại cache ('criteria', 'searchResults', 'responses')
+   * @param cacheType Loại cache ('criteria', 'searchResults', 'responses', 'intents')
    * @param key Khóa cache
    * @returns Giá trị từ cache hoặc null nếu không tìm thấy/hết hạn
    */
   getFromCache<T>(
-    cacheType: 'criteria' | 'searchResults' | 'responses',
+    cacheType: 'criteria' | 'searchResults' | 'responses' | 'intents',
     key: string
   ): T | null {
-    const cache =
-      cacheType === 'criteria'
-        ? this.criteriaCache
-        : cacheType === 'searchResults'
-          ? this.searchResultsCache
-          : this.responsesCache
+    const cache = this.getCacheMapByType(cacheType)
 
     const item = cache.get(key) as CacheItem<T>
 
@@ -81,11 +73,32 @@ export class ChatbotCacheService {
   }
 
   /**
+   * Lấy đối tượng Map cache dựa trên loại
+   */
+  private getCacheMapByType(
+    cacheType: 'criteria' | 'searchResults' | 'responses' | 'intents'
+  ): Map<string, CacheItem<any>> {
+    switch (cacheType) {
+      case 'criteria':
+        return this.criteriaCache
+      case 'searchResults':
+        return this.searchResultsCache
+      case 'responses':
+        return this.responsesCache
+      case 'intents':
+        return this.intentsCache
+      default:
+        return this.responsesCache
+    }
+  }
+
+  /**
    * Xóa tất cả cache
    */
   clearAllCache(): void {
     this.criteriaCache.clear()
     this.searchResultsCache.clear()
     this.responsesCache.clear()
+    this.intentsCache.clear()
   }
 }

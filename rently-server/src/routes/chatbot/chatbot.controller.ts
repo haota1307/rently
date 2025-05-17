@@ -1,9 +1,7 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, Patch } from '@nestjs/common'
 import { ChatbotService } from './chatbot.service'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { IsPublic } from 'src/shared/decorators/auth.decorator'
-import { ZodSerializerDto } from 'nestjs-zod'
-import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('chatbot')
 export class ChatbotController {
@@ -49,5 +47,23 @@ export class ChatbotController {
       parseInt(limit),
       parseInt(offset)
     )
+  }
+
+  @Patch('version')
+  @IsPublic()
+  async setVersion(@Body() body: { useLegacy: boolean }) {
+    // Kiểm tra xem body có useLegacy không
+    if (typeof body.useLegacy !== 'boolean') {
+      return { error: 'useLegacy phải là giá trị boolean' }
+    }
+
+    // Gọi method để đặt phiên bản
+    this.chatbotService.setAnalysisVersion(body.useLegacy)
+
+    return {
+      success: true,
+      message: `Đã chuyển sang sử dụng phiên bản ${body.useLegacy ? 'đầy đủ' : 'đơn giản hóa'}`,
+      useLegacy: body.useLegacy,
+    }
   }
 }
