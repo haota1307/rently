@@ -165,7 +165,7 @@ async function bootstrap() {
     `Đã cập nhật ${updatedPermissionsInDb.length} quyền cho vai trò ADMIN`
   )
 
-  // === 2. VAI TRÒ CLIENT (NGƯỜI THUÊ) ===
+  // === 2. VÀI TRÒ CLIENT (NGƯỜI THUÊ) ===
   const clientRole = await prisma.role.findFirstOrThrow({
     where: {
       name: RoleName.Client,
@@ -173,56 +173,122 @@ async function bootstrap() {
     },
   })
 
-  // Quy tắc: Client chỉ có quyền liên quan đến người dùng thông thường
+  // Quy tắc: CLIENT chỉ có quyền liên quan đến người dùng thông thường
   const clientPermissions = updatedPermissionsInDb.filter(permission => {
-    // Chức năng người dùng thông thường được phép sử dụng
-    const isAllowedPath =
-      // Quyền xem thông tin bài đăng
-      (permission.path.includes('/post') && permission.method === 'GET') ||
-      // Quyền xem thông tin phòng, nhà trọ
-      (permission.path.includes('/rental') && permission.method === 'GET') ||
-      (permission.path.includes('/room') && permission.method === 'GET') ||
-      // Quyền xem và sử dụng chatbot, chat với chủ trọ
+    // Lọc các quyền dành cho người dùng thông thường
+
+    // Các quyền liên quan đến xác thực và đăng ký/đăng nhập
+    if (permission.path.includes('/auth')) {
+      return true
+    }
+
+    // Quyền xem thông tin bài đăng, phòng, nhà trọ (chỉ đọc)
+    if (
+      (permission.path.includes('/posts') ||
+        permission.path.includes('/rentals') ||
+        permission.path.includes('/rooms')) &&
+      permission.method === 'GET'
+    ) {
+      return true
+    }
+
+    // Quyền yêu cầu xem phòng và thuê phòng
+    if (
+      permission.path.includes('/viewing-schedule') ||
+      permission.path.includes('/rental-request')
+    ) {
+      return true
+    }
+
+    // Quyền tương tác với chatbot và tin nhắn
+    if (
       permission.path.includes('/chatbot') ||
       permission.path.includes('/conversation') ||
-      // Quyền quản lý profile cá nhân
-      permission.path.includes('/profile') ||
-      permission.path.includes('/me') ||
-      // Quyền quản lý yêu cầu xem phòng, thuê phòng
-      permission.path.includes('/viewing-schedule') ||
-      permission.path.includes('/rental-request') ||
-      // Quyền liên quan đến thanh toán
-      (permission.path.includes('/payment') &&
-        !permission.path.includes('/admin') &&
-        !permission.path.includes('/dashboard')) ||
-      // Quyền báo cáo bài viết
-      permission.path.includes('/report') ||
-      // Quyền thêm, xóa, sửa favorite
-      permission.path.includes('/favorite') ||
-      // Quyền liên quan đến xác thực
-      permission.path.includes('/auth') ||
-      // Quyền xem thông báo
-      permission.path.includes('/notification') ||
-      // Quyền tìm kiếm
-      permission.path.includes('/search') ||
-      // Quyền yêu cầu nâng cấp vai trò (từ client lên landlord)
-      permission.path.includes('/role-upgrade-request')
+      permission.path.includes('/messages')
+    ) {
+      return true
+    }
 
-    // Loại bỏ các quyền quản trị hệ thống
-    const isAdminRoute =
+    // Quyền quản lý hồ sơ và thông tin cá nhân
+    if (
+      permission.path.includes('/profile') ||
+      permission.path.includes('/me')
+    ) {
+      return true
+    }
+
+    // Quyền báo cáo bài đăng
+    if (permission.path.includes('/post-report')) {
+      return true
+    }
+
+    // Quyền bình luận và đánh dấu yêu thích
+    if (
+      permission.path.includes('/comment') ||
+      permission.path.includes('/favorite')
+    ) {
+      return true
+    }
+
+    // Quyền thanh toán (nhưng không phải quản lý thanh toán)
+    if (
+      permission.path.includes('/payment') &&
+      !permission.path.includes('/admin') &&
+      !permission.path.includes('/dashboard') &&
+      !permission.path.includes('/statistics')
+    ) {
+      return true
+    }
+
+    // Quyền xem thông báo
+    if (permission.path.includes('/notification')) {
+      return true
+    }
+
+    // Quyền yêu cầu nâng cấp lên vai trò landlord
+    if (permission.path.includes('/role-upgrade-request')) {
+      return true
+    }
+
+    // Quyền tải lên file
+    if (permission.path.includes('/upload')) {
+      return true
+    }
+
+    // Quyền liên hệ
+    if (permission.path.includes('/contact')) {
+      return true
+    }
+
+    // Quyền xem hợp đồng thuê trọ (chỉ xem, không tạo)
+    if (
+      permission.path.includes('/rental-contract') &&
+      permission.method === 'GET'
+    ) {
+      return true
+    }
+
+    // Loại bỏ các quyền quản trị
+    if (
       permission.path.includes('/admin') ||
       permission.path.includes('/dashboard') ||
       permission.module === MODULES.STATISTICS ||
       permission.module === MODULES.ROLE ||
       permission.path.includes('/system-setting')
+    ) {
+      return false
+    }
 
-    // Loại bỏ các quyền thao tác của chủ trọ (quản lý phòng trọ, đăng bài)
-    const isLandlordRoute =
-      (permission.path.includes('/rental') && permission.method !== 'GET') ||
-      (permission.path.includes('/room') && permission.method !== 'GET') ||
-      (permission.path.includes('/post') && permission.method !== 'GET')
+    // Loại bỏ các quyền tạo, sửa, xóa phòng trọ, nhà trọ, đăng bài
+    if (
+      (permission.path.includes('/rentals') && permission.method !== 'GET') ||
+      (permission.path.includes('/rooms') && permission.method !== 'GET') ||
+      (permission.path.includes('/posts') && permission.method !== 'GET')
+    ) {
+      return false
+    }
 
-    return isAllowedPath && !isAdminRoute && !isLandlordRoute
+    return false
   })
 
   await prisma.role.update({
@@ -245,20 +311,61 @@ async function bootstrap() {
     },
   })
 
-  // Quy tắc: Landlord có quyền quản lý phòng trọ, đăng bài, chấp nhận yêu cầu thuê,
-  // nhưng không có quyền quản trị hệ thống
+  // Quy tắc: Landlord có tất cả quyền của CLIENT và thêm quyền quản lý phòng trọ, đăng bài, duyệt yêu cầu thuê...
   const landlordPermissions = updatedPermissionsInDb.filter(permission => {
-    // Loại bỏ các quyền quản trị hệ thống
+    // Loại bỏ các quyền quản trị hệ thống dành cho ADMIN
     const isAdminRoute =
-      permission.path.includes('/admin') ||
-      permission.path.includes('/dashboard') ||
-      permission.module === MODULES.STATISTICS ||
-      permission.module === MODULES.ROLE ||
+      (permission.path.includes('/admin') &&
+        permission.path !== '/admin/rental-contracts') ||
+      permission.path.includes('/dashboard/admin') ||
+      (permission.module === MODULES.ROLE &&
+        !permission.path.includes('/role-upgrade-request')) ||
       permission.path.includes('/system-setting')
 
-    // Nếu không phải quyền quản trị, cho phép các quyền còn lại
-    // Bao gồm các quyền của Client và thêm quyền quản lý phòng trọ
-    return !isAdminRoute
+    // Các quyền thống kê cho landlord (chỉ xem thống kê của mình)
+    const isAllowedStatistics =
+      permission.path.includes('/statistics') &&
+      !permission.path.includes('/admin')
+
+    // Các quyền đặc biệt cho landlord
+    const isLandlordRoute =
+      // Quản lý phòng trọ, nhà trọ
+      permission.path.includes('/rentals') ||
+      permission.path.includes('/rooms') ||
+      // Đăng bài và quản lý bài đăng
+      permission.path.includes('/posts') ||
+      // Quản lý yêu cầu thuê và xem phòng
+      permission.path.includes('/rental-request') ||
+      permission.path.includes('/viewing-schedule') ||
+      // Quản lý hợp đồng
+      permission.path.includes('/rental-contract') ||
+      // Xem thống kê cá nhân
+      isAllowedStatistics
+
+    // Các quyền công khai hoặc quyền cơ bản của người dùng
+    const isCommonRoute =
+      // Xác thực và quản lý tài khoản
+      permission.path.includes('/auth') ||
+      permission.path.includes('/profile') ||
+      permission.path.includes('/me') ||
+      // Chat và tin nhắn
+      permission.path.includes('/chatbot') ||
+      permission.path.includes('/conversation') ||
+      permission.path.includes('/messages') ||
+      // Thanh toán
+      permission.path.includes('/payment') ||
+      // Thông báo
+      permission.path.includes('/notification') ||
+      // Upload file
+      permission.path.includes('/upload') ||
+      // Bình luận và yêu thích
+      permission.path.includes('/comment') ||
+      permission.path.includes('/favorite') ||
+      // Liên hệ
+      permission.path.includes('/contact')
+
+    // Cho phép landlord truy cập tất cả routes NGOẠI TRỪ routes dành riêng cho admin
+    return (isLandlordRoute || isCommonRoute) && !isAdminRoute
   })
 
   await prisma.role.update({

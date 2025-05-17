@@ -255,8 +255,6 @@ export const usePayment = () => {
       return;
     }
 
-    console.log("Đang kiểm tra trạng thái rút tiền cho ID:", withdrawId);
-
     setState((prev) => ({
       ...prev,
       loading: true,
@@ -269,24 +267,17 @@ export const usePayment = () => {
         id: withdrawId,
       });
 
-      console.log("Kết quả API getTransactions:", result);
-
       if (
         result &&
         result.status === 200 &&
         result.payload?.transactions?.length > 0
       ) {
         const transaction = result.payload.transactions[0];
-        console.log("Thông tin giao dịch rút tiền:", transaction);
-        console.log("Trạng thái giao dịch:", transaction.status);
-
         // Xác định trạng thái UI từ trạng thái giao dịch
         const uiStatus =
           transaction.status === "COMPLETED"
             ? "withdraw-completed"
             : "withdraw-requested";
-
-        console.log("Trạng thái UI mới:", uiStatus);
 
         // Cập nhật thông tin rút tiền và trạng thái
         setState((prev) => ({
@@ -307,9 +298,6 @@ export const usePayment = () => {
           status: uiStatus,
         }));
       } else {
-        console.log(
-          "Không tìm thấy thông tin giao dịch rút tiền hoặc API trả về lỗi"
-        );
         setState((prev) => ({
           ...prev,
           loading: false,

@@ -28,14 +28,6 @@ function OAuthHandler() {
   const count = useRef(0);
 
   useEffect(() => {
-    console.log("[DEBUG] OAuth callback params:", {
-      accessToken: !!accessToken,
-      refreshToken: !!refreshToken,
-      error,
-      blocked,
-      blockedRaw: searchParams.get("blocked"),
-    });
-
     if (accessToken && refreshToken) {
       if (count.current === 0) {
         const { roleId } = decodeAccessToken(accessToken);
@@ -57,7 +49,6 @@ function OAuthHandler() {
     } else {
       // Xử lý trường hợp tài khoản bị khóa
       if (blocked || searchParams.get("blocked") === "true") {
-        console.log("[DEBUG] Account is blocked, showing notification");
         toast.error("Tài khoản của bạn đã bị khóa", {
           description:
             "Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.",

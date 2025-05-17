@@ -33,12 +33,10 @@ export default function Home() {
   }, [hasSearched, searchQuery, activeFilters]);
 
   const handleFiltersChange = (newFilters: FilterValues) => {
-    console.log("Filters changed:", newFilters);
     setActiveFilters(newFilters);
   };
 
   const handleSearch = (query: string) => {
-    console.log("Search query:", query);
     setSearchQuery(query);
     // Đánh dấu đã tìm kiếm để trigger scroll
     setHasSearched(true);
@@ -49,7 +47,6 @@ export default function Home() {
         ...prev,
         title: query, // Thay đổi từ search thành title
       };
-      console.log("New filters:", newFilters);
       return newFilters;
     });
   };

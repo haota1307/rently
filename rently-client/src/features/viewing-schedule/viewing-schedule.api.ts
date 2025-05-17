@@ -26,12 +26,10 @@ export interface UpdateViewingScheduleData {
 
 export const viewingScheduleApi = {
   create: (data: { postId: number; viewingDate: string; note?: string }) => {
-    console.log("Sending viewing schedule data to server:", data);
     return http.post<ViewingScheduleResponse>("/viewing-schedules", data);
   },
 
   update: (id: number, data: UpdateViewingScheduleData) => {
-    console.log("Updating viewing schedule data:", { id, data });
     return http.put<ViewingScheduleResponse>(`/viewing-schedules/${id}`, data);
   },
 

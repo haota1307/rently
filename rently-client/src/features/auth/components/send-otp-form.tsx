@@ -48,7 +48,7 @@ const SendOTPForm = ({ onSuccess }: SendOTPFormProps) => {
       <form
         className="flex flex-col gap-4"
         noValidate
-        onSubmit={form.handleSubmit(onSubmit, (err) => console.log(err))}
+        onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold">Quên mật khẩu</h1>

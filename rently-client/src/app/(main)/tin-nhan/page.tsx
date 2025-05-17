@@ -412,7 +412,6 @@ function MessagesContent() {
         );
 
         if (existingTempMsg) {
-          console.log("Bỏ qua tin nhắn tạm thời trùng lặp");
           return prev;
         }
 
@@ -837,11 +836,6 @@ function MessagesContent() {
       // Lấy tất cả các file
       const files = attachedFiles.map((f) => f.file);
 
-      console.log(
-        "Chuẩn bị gửi files:",
-        files.map((f) => ({ name: f.name, size: f.size, type: f.type }))
-      );
-
       // Kiểm tra kích thước file trước khi gửi
       const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
       const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
@@ -869,9 +863,6 @@ function MessagesContent() {
         files,
         activeConversation.id
       );
-
-      console.log("Kết quả gửi tin nhắn:", result);
-
       // Xóa message khỏi input và xóa các file đã đính kèm
       setMessage("");
 
@@ -918,11 +909,6 @@ function MessagesContent() {
       // Lấy tất cả các file ảnh
       const imageFiles = attachedImages.map((img) => img.file);
 
-      console.log(
-        "Chuẩn bị gửi ảnh:",
-        imageFiles.map((f) => ({ name: f.name, size: f.size, type: f.type }))
-      );
-
       // Kiểm tra kích thước file trước khi gửi
       const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
       const oversizedFiles = imageFiles.filter(
@@ -945,8 +931,6 @@ function MessagesContent() {
         imageFiles,
         activeConversation.id
       );
-
-      console.log("Kết quả gửi tin nhắn ảnh:", result);
 
       // Xóa message khỏi input và xóa các ảnh đã đính kèm
       setMessage("");

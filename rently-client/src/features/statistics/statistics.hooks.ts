@@ -21,20 +21,12 @@ export const useGetRevenueData = (
   startDate?: Date,
   endDate?: Date
 ) => {
-  console.log("useGetRevenueData called with:", { days, startDate, endDate });
-
   const startDateStr = startDate ? format(startDate, "yyyy-MM-dd") : undefined;
   const endDateStr = endDate ? format(endDate, "yyyy-MM-dd") : undefined;
 
   return useQuery({
     queryKey: ["statistics", "revenue", days, startDateStr, endDateStr],
     queryFn: async () => {
-      console.log("Fetching revenue data with:", {
-        days,
-        startDate: startDateStr,
-        endDate: endDateStr,
-      });
-
       try {
         const data = await getRevenueData(
           days,
@@ -42,10 +34,8 @@ export const useGetRevenueData = (
           startDateStr,
           endDateStr
         );
-        console.log("Revenue data received:", data);
         return data;
       } catch (error) {
-        console.error("Error fetching revenue data:", error);
         throw error;
       }
     },

@@ -221,8 +221,6 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       status: RentalPostStatus.ACTIVE,
     };
 
-    console.log("Sending payload:", payload);
-
     try {
       await createPost(payload);
       toast.success("Tạo bài đăng thành công");

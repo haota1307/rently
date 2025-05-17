@@ -20,7 +20,6 @@ export function SystemSettingValueDisplay({
   const [previewLoading, setPreviewLoading] = useState<boolean>(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState<string | null>(null);
-  console.log(setting.value);
 
   const groupLabel = (groupName: string) => {
     switch (groupName) {

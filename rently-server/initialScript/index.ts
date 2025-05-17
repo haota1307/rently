@@ -20,8 +20,6 @@ const main = async () => {
   // Kiểm tra và tạo roles nếu chưa tồn tại
   const roleCount = await prisma.role.count()
   if (roleCount === 0) {
-    console.log('Creating roles...')
-    // Tạo roles
     const roles = await prisma.role.createMany({
       data: [
         {

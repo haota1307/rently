@@ -67,8 +67,6 @@ const MapWithGeocode: React.FC<MapWithGeocodeProps> = memo(
             );
             const data = await response.json();
 
-            console.log({ data });
-
             const newAddress = data.display_name;
 
             if (onAddressChange && newAddress) {

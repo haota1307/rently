@@ -104,13 +104,6 @@ export function ViewingScheduleList({
 
   const { updateViewingSchedule } = useViewingSchedule();
 
-  // Thêm log để kiểm tra dữ liệu
-  useEffect(() => {
-    if (data?.data) {
-      console.log("Viewing schedules data:", data.data);
-    }
-  }, [data]);
-
   const handleApprove = async () => {
     if (!selectedSchedule) return;
 
@@ -241,12 +234,6 @@ export function ViewingScheduleList({
     status: ViewingSchedule["status"],
     requireConfirmation = false
   ) => {
-    console.log(
-      "Status badge:",
-      status,
-      "require confirmation:",
-      requireConfirmation
-    );
     switch (status) {
       case "PENDING":
         return (
@@ -475,7 +462,6 @@ export function ViewingScheduleList({
                             variant="default"
                             size="sm"
                             onClick={() => {
-                              console.log("Xác nhận lịch cho:", schedule);
                               setSelectedSchedule(schedule);
 
                               const updateData: UpdateViewingScheduleData = {
@@ -498,8 +484,6 @@ export function ViewingScheduleList({
                                       }`,
                                 requireTenantConfirmation: false,
                               };
-
-                              console.log("Dữ liệu cập nhật:", updateData);
 
                               updateViewingSchedule.mutate(
                                 {

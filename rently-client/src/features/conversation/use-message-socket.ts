@@ -52,19 +52,15 @@ export function useMessageSocket({
 
     // Xử lý kết nối socket
     const handleConnect = () => {
-      console.log("Socket đã kết nối");
       setSocketConnected(true);
     };
 
     const handleDisconnect = () => {
-      console.log("Socket đã ngắt kết nối");
       setSocketConnected(false);
     };
 
     // Xử lý khi nhận tin nhắn mới
     const handleNewMessage = (newMessage: Message) => {
-      console.log("Nhận tin nhắn mới từ socket:", newMessage);
-
       // Kiểm tra userId hợp lệ
       if (!userId || isNaN(userId)) {
         console.error("userId không hợp lệ:", userId);
@@ -76,7 +72,6 @@ export function useMessageSocket({
 
       // Kiểm tra xem tin nhắn đã được xử lý trước đó chưa
       if (processedMessageIds.current.has(msgId)) {
-        console.log("Bỏ qua tin nhắn (đã xử lý từ socket)");
         return;
       }
 
@@ -113,10 +108,6 @@ export function useMessageSocket({
 
         // Nếu tin nhắn đã tồn tại, có thể cần cập nhật nó
         if (existingMsgIndex !== -1) {
-          console.log(
-            "Tin nhắn đã tồn tại trong danh sách, cập nhật ID và trạng thái"
-          );
-
           // Nếu đây là tin nhắn tạm thời cần được cập nhật với ID thực từ server
           if (
             typeof prev[existingMsgIndex].id === "string" &&
@@ -156,9 +147,6 @@ export function useMessageSocket({
         if (!isDuplicate) {
           updatedMessages.push(newMessage);
         } else {
-          console.log(
-            "Phát hiện tin nhắn trùng lặp khi kiểm tra lần 2, không thêm vào"
-          );
           return prev;
         }
 
@@ -242,8 +230,6 @@ export function useMessageSocket({
       conversationId: number;
       readerId: number;
     }) => {
-      console.log("Tin nhắn đã được đọc:", data);
-
       // Cập nhật trạng thái đã đọc trong giao diện
       if (data.readerId !== userId) {
         setMessages((prev) =>

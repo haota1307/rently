@@ -67,21 +67,17 @@ export const getRevenueData = async (
   // Nếu có startDate và endDate, thêm vào params
   if (startDate) {
     params.append("startDate", startDate);
-    console.log("Adding startDate to URL:", startDate);
   }
 
   if (endDate) {
     params.append("endDate", endDate);
-    console.log("Adding endDate to URL:", endDate);
   }
 
   if (transaction_content) {
     params.append("transaction_content", transaction_content);
   }
 
-  // Log URL cuối cùng để debug
   const finalUrl = `statistics/revenue?${params.toString()}`;
-  console.log("Fetching revenue data from URL:", finalUrl);
 
   const { payload } = await http.get<RevenueDataPoint[]>(finalUrl);
   return payload;

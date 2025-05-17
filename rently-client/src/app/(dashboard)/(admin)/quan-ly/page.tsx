@@ -87,7 +87,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import RevenueReport from "@/features/statistics/revenue-report";
+import RevenueReport from "@/features/statistics/components/revenue-report";
 
 // Kiểu dữ liệu cho hoạt động giao dịch
 interface Transaction {
@@ -152,8 +152,6 @@ const DashboardPage = () => {
     useState<TransactionSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
-
-  console.log({ transactionSummary });
 
   // State cho bộ lọc giao dịch
   const [showDateFilter, setShowDateFilter] = useState(false);
@@ -304,13 +302,6 @@ const DashboardPage = () => {
     fetchRecentTransactions();
   }, [transactionDateFilter, userFilter, transactionFilters]);
 
-  // Thêm useEffect để log dữ liệu postsByArea
-  useEffect(() => {
-    if (postsByArea) {
-      console.log("Dữ liệu postsByArea:", postsByArea);
-    }
-  }, [postsByArea]);
-
   // Tính thời gian hiển thị cho giao dịch
   const getTimeAgo = (date: Date) => {
     const now = new Date();
@@ -332,7 +323,6 @@ const DashboardPage = () => {
 
   // Handler for changing time range
   const handleTimeRangeChange = (days: number) => {
-    console.log("Changing time range to:", days);
     setTimeRange(days);
 
     // Reset date filter when switching to preset time ranges
@@ -938,13 +928,6 @@ const DashboardPage = () => {
                                   from: range.from,
                                   to: range.to,
                                 });
-
-                                // Log để debug
-                                console.log("Calendar date range selected:", {
-                                  from: range.from,
-                                  to: range.to,
-                                  calculatedDays: daysDiff + 1,
-                                });
                               }
                             }}
                             initialFocus
@@ -974,12 +957,6 @@ const DashboardPage = () => {
                                       (1000 * 60 * 60 * 24)
                                   );
                                   const newTimeRange = daysDiff + 1;
-                                  console.log("Applying custom date range:", {
-                                    from: dateFilter.from,
-                                    to: dateFilter.to,
-                                    calculatedDays: newTimeRange,
-                                  });
-
                                   setTimeRange(newTimeRange);
                                 }
                               }}

@@ -93,9 +93,7 @@ export default function PasswordDialog({
         </DialogHeader>
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onPasswordSubmit, (error) =>
-              console.log(error)
-            )}
+            onSubmit={form.handleSubmit(onPasswordSubmit)}
             className="space-y-4"
           >
             <FormField

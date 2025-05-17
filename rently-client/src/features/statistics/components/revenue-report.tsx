@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { RevenueDataPoint } from "./statistics.api";
+import { RevenueDataPoint } from "../statistics.api";
 import { formatCurrency } from "@/lib/utils";
 import { FileDown } from "lucide-react";
 import { format } from "date-fns";

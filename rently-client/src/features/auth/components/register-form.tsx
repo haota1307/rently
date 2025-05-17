@@ -91,9 +91,7 @@ const RegisterForm = ({
         className={cn("flex flex-col gap-4", className)}
         {...props}
         noValidate
-        onSubmit={form.handleSubmit(onSubmit, (err) => {
-          console.log(err);
-        })}
+        onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold">Đăng ký</h1>

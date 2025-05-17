@@ -35,15 +35,6 @@ export default function ComparisonPage() {
   const { items, removeItem, clearAll } = useComparisonStore();
   const router = useRouter();
 
-  // Debug: kiểm tra cấu trúc dữ liệu tiện ích
-  useEffect(() => {
-    if (items.length > 0) {
-      console.log("Room structure:", items[0].room);
-      console.log("Room amenities:", items[0].room.amenities);
-      console.log("Room roomAmenities:", items[0].room.roomAmenities);
-    }
-  }, [items]);
-
   if (items.length === 0) {
     return (
       <Container>

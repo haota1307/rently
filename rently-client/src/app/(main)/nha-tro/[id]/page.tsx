@@ -73,8 +73,6 @@ const RentalDetailPage = () => {
     setActiveImageIndex(index);
   };
 
-  console.log(rental);
-
   if (loading) {
     return (
       <div className="w-full mx-auto px-4 py-8">

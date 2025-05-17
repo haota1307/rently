@@ -76,8 +76,6 @@ export default function PaymentPage() {
     if (!socket || !paymentId) return;
 
     const handlePaymentStatusUpdate = (data: PaymentStatusUpdate) => {
-      console.log("Nhận cập nhật trạng thái thanh toán:", data);
-
       // Kiểm tra xem cập nhật này có phải cho paymentId hiện tại không
       if (data.id === paymentId) {
         // Khi nhận được cập nhật thanh toán thành công

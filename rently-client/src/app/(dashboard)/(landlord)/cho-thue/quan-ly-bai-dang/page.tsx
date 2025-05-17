@@ -90,8 +90,6 @@ export default function RentalPostsPage() {
     endDate: endDate?.toISOString(),
   };
 
-  console.log("Query params:", queryParams);
-
   const { data, isLoading, error } = useGetMyPosts(queryParams);
   const posts = data?.data || [];
   const totalPages = data?.totalPages || 0;

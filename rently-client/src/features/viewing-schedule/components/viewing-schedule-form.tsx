@@ -132,10 +132,6 @@ export function ViewingScheduleForm({
         milliseconds: 0,
       });
 
-      console.log("Form values:", values);
-      console.log("Date with time:", dateWithTime);
-      console.log("ISO string:", dateWithTime.toISOString());
-
       await createViewingSchedule.mutateAsync({
         postId,
         viewingDate: dateWithTime.toISOString(),

@@ -41,10 +41,6 @@ export default function ListenRoleUpdateSocket() {
       });
 
       socketInstance.on("connect", () => {
-        console.log(
-          "RoleUpdate socket kết nối thành công. ID:",
-          socketInstance.id
-        );
         setIsSocketReady(true);
         reconnectAttempts.current = 0;
 
@@ -52,7 +48,6 @@ export default function ListenRoleUpdateSocket() {
         const decoded = decodeAccessToken(accessToken);
         const userId = decoded?.sub;
         if (userId) {
-          console.log("RoleUpdate socket: đăng ký userId:", userId);
           socketInstance.emit("registerUser", userId);
           socketInstance.emit("join-user-room", { userId });
         }
@@ -71,7 +66,6 @@ export default function ListenRoleUpdateSocket() {
       });
 
       socketInstance.on("disconnect", (reason) => {
-        console.log("RoleUpdate socket bị ngắt kết nối. Lý do:", reason);
         setIsSocketReady(false);
       });
 
@@ -80,7 +74,6 @@ export default function ListenRoleUpdateSocket() {
         reconnectAttempts.current++;
 
         if (reconnectAttempts.current > maxReconnectAttempts) {
-          console.log("Đã vượt quá số lần thử kết nối lại. Dừng thử lại.");
           socketInstance.disconnect();
         }
       });
@@ -96,19 +89,14 @@ export default function ListenRoleUpdateSocket() {
   // Hàm thiết lập lắng nghe sự kiện
   const setupRoleUpdateListener = (targetSocket: Socket) => {
     try {
-      console.log("Thiết lập lắng nghe sự kiện roleUpdate");
-
       // Xóa lắng nghe cũ nếu có để tránh trùng lặp
       targetSocket.off("roleUpdate");
 
       // Lắng nghe sự kiện cập nhật vai trò
       targetSocket.on("roleUpdate", async (data) => {
-        console.log("Đã nhận sự kiện roleUpdate:", data);
-
         // Tạo id duy nhất cho sự kiện để tránh xử lý trùng lặp
         const eventId = `${JSON.stringify(data)}-${Date.now()}`;
         if (handledEvents.current.has(eventId)) {
-          console.log("Sự kiện đã được xử lý trước đó:", eventId);
           return;
         }
 
@@ -157,7 +145,6 @@ export default function ListenRoleUpdateSocket() {
                     const { roleName } = decodeAccessToken(newToken);
                     // Cập nhật role vào store
                     setRole(roleName as RoleType);
-                    console.log("Đã cập nhật role thành:", roleName);
                   }
                   resolve();
                 },
@@ -231,7 +218,6 @@ export default function ListenRoleUpdateSocket() {
         (!socket || !socket.connected) &&
         (!localSocket || !localSocket.connected)
       ) {
-        console.log("Không có socket nào kết nối. Thử kết nối lại...");
         setupLocalSocket();
       }
     }, 60000); // Kiểm tra mỗi phút

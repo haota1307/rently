@@ -1,14 +1,13 @@
 import { PrismaClient } from '@prisma/client'
+
+import * as fs from 'fs'
+import * as path from 'path'
 import {
   SYSTEM_SETTING_GROUPS,
   SYSTEM_SETTING_TYPES,
-} from '../../src/routes/system-setting/system-setting.model'
-import * as fs from 'fs'
-import * as path from 'path'
+} from 'src/routes/system-setting/system-setting.model'
 
 export async function seedSystemSettings(prisma: PrismaClient) {
-  console.log('Seeding system settings...')
-
   // Đọc template từ thư mục emails
   const emailsDir = path.join(process.cwd(), 'emails')
 

@@ -37,7 +37,6 @@ export async function POST(request: Request) {
         status: error.status,
       });
     } else {
-      console.log(error);
       return Response.json(
         {
           message: "Có lỗi xảy ra",

@@ -29,8 +29,6 @@ export function RoomDetailModal({
 }: RoomDetailModalProps) {
   const { data: room, isLoading, error } = useGetRoomDetail(roomId || 0);
 
-  console.log(room);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] max-h-[95vh] overflow-y-auto">

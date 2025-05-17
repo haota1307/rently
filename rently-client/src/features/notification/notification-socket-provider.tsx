@@ -63,7 +63,6 @@ export const NotificationSocketProvider: React.FC<
 
     // Xử lý sự kiện kết nối, ngắt kết nối
     socketInstance.on("connect", () => {
-      console.log("Connected to notification socket");
       setConnected(true);
 
       // Sau khi kết nối thành công, tham gia vào room của user
@@ -71,12 +70,10 @@ export const NotificationSocketProvider: React.FC<
     });
 
     socketInstance.on("disconnect", () => {
-      console.log("Disconnected from notification socket");
       setConnected(false);
     });
 
     socketInstance.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
       setConnected(false);
     });
 
@@ -161,4 +158,3 @@ export const NotificationSocketProvider: React.FC<
     </NotificationSocketContext.Provider>
   );
 };
- 

@@ -61,7 +61,7 @@ import {
 } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import TransactionReport from "@/features/landlord/transaction-report";
-import RevenueReport from "@/features/statistics/revenue-report";
+import RevenueReport from "@/features/statistics/components/revenue-report";
 
 interface Transaction {
   id: string;

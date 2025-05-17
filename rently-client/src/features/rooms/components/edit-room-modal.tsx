@@ -190,8 +190,6 @@ export function EditRoomModal({
         roomImages,
       };
 
-      console.log("Payload room images:", payload.roomImages); // Kiểm tra dữ liệu ảnh trước khi gửi
-
       await updateRoom({ roomId, body: payload });
       toast.success("Cập nhật phòng trọ thành công");
       onOpenChange(false);
