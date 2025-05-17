@@ -112,15 +112,144 @@ export class StatisticsRepo {
   async getRevenueData(
     days: number = 7,
     landlordId?: number,
-    transaction_content?: string
+    transaction_content?: string,
+    startDate?: string,
+    endDate?: string
   ): Promise<RevenueDataType[]> {
     try {
-      const result: RevenueDataType[] = []
-      const now = new Date()
+      // Xác định resolution dựa trên số ngày
+      let resolution = 'day'
+      if (days > 60) {
+        resolution = 'week'
+      } else if (days > 180) {
+        resolution = 'month'
+      }
 
-      // Tạo mảng ngày từ hiện tại trở về trước
-      for (let i = days - 1; i >= 0; i--) {
-        const date = subDays(now, i)
+      // Xác định khoảng thời gian
+      let start: Date
+      let end: Date
+
+      if (startDate && endDate) {
+        start = new Date(startDate)
+        end = new Date(endDate)
+        // Đảm bảo end là cuối ngày để bao gồm toàn bộ ngày kết thúc
+        end.setHours(23, 59, 59, 999)
+
+        days =
+          Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
+          1
+      } else {
+        end = new Date()
+        start = subDays(end, days - 1)
+        start.setHours(0, 0, 0, 0)
+      }
+
+      // Với khoảng thời gian lớn, sử dụng SQL trực tiếp để tối ưu
+      if (days > 30) {
+        // Xác định interval string đúng cú pháp PostgreSQL
+        let intervalString: string
+        switch (resolution) {
+          case 'week':
+            intervalString = "INTERVAL '1 week'"
+            break
+          case 'month':
+            intervalString = "INTERVAL '1 month'"
+            break
+          default:
+            intervalString = "INTERVAL '1 day'"
+            break
+        }
+
+        // Tạo câu truy vấn SQL trực tiếp để tăng tốc độ và nhóm dữ liệu
+        const whereClause: string[] = []
+        const params: any[] = [start, end]
+
+        // Thêm điều kiện lọc theo người dùng nếu có
+        if (landlordId) {
+          whereClause.push(`"userId" = $3`)
+          params.push(landlordId)
+        }
+
+        // Thêm điều kiện lọc theo nội dung giao dịch
+        const contentParam = transaction_content || 'SEVQR NAP'
+        if (contentParam) {
+          whereClause.push(`"transactionContent" ILIKE $${params.length + 1}`)
+          params.push(`%${contentParam}%`)
+        }
+
+        const whereCondition =
+          whereClause.length > 0 ? `AND ${whereClause.join(' AND ')}` : ''
+
+        // Tạo tham số query, không bao gồm resolution như một tham số vì sẽ truyền trực tiếp vào query
+        const queryParams: any[] = [start, end, `%${contentParam}%`]
+
+        // Thêm landlordId vào params nếu có
+        if (landlordId) {
+          queryParams.push(landlordId)
+        }
+
+        console.log(
+          'Executing query with resolution:',
+          resolution,
+          'and interval:',
+          intervalString
+        )
+
+        // Tối ưu hơn bằng cách sử dụng Prisma kết hợp raw query
+        // Sử dụng resolution và intervalString trực tiếp trong query thay vì thông qua tham số
+        const sql = `
+          WITH date_series AS (
+            SELECT generate_series(
+              $1::timestamp,
+              $2::timestamp,
+              ${intervalString}
+            ) AS date_point
+          ),
+          aggregated_data AS (
+            SELECT
+              DATE_TRUNC('${resolution}', "transactionDate") as period,
+              SUM(CASE WHEN "transactionContent" LIKE $3 OR "transactionContent" LIKE '%Nạp tiền%' THEN "amountIn" ELSE 0 END) as deposit,
+              SUM(CASE WHEN "transactionContent" LIKE '%RUT%' OR "transactionContent" LIKE '%Rút tiền%' THEN "amountOut" ELSE 0 END) as withdraw
+            FROM "PaymentTransaction"
+            WHERE "transactionDate" >= $1 AND "transactionDate" <= $2
+            ${landlordId ? 'AND "userId" = $4' : ''}
+            GROUP BY period
+            ORDER BY period
+          )
+          SELECT
+            ds.date_point as period,
+            TO_CHAR(ds.date_point, 'DD/MM') as display_date,
+            COALESCE(ad.deposit, 0) as deposit,
+            COALESCE(ad.withdraw, 0) as withdraw,
+            TO_CHAR(ds.date_point, 'YYYY-MM-DD') as date_str
+          FROM date_series ds
+          LEFT JOIN aggregated_data ad ON DATE_TRUNC('${resolution}', ds.date_point) = ad.period
+          ORDER BY ds.date_point ASC
+        `
+
+        const result = await this.prismaService.$queryRawUnsafe(
+          sql,
+          ...queryParams
+        )
+
+        // Chuyển đổi kết quả thành định dạng phản hồi
+        return (result as any[]).map(row => ({
+          name: row.display_date,
+          nạp: parseInt(row.deposit) || 0,
+          rút: parseInt(row.withdraw) || 0,
+          date: row.date_str,
+        }))
+      }
+
+      // Với số ngày nhỏ, sử dụng phương pháp hiện tại nhưng với song song hóa
+      const result: RevenueDataType[] = []
+
+      // Tạo mảng ngày từ start đến end
+      const datePromises: Promise<RevenueDataType>[] = []
+      for (let i = 0; i < days; i++) {
+        const date = new Date(start)
+        date.setDate(start.getDate() + i)
+
         const startOfDay = new Date(date)
         startOfDay.setHours(0, 0, 0, 0)
 
@@ -130,73 +259,89 @@ export class StatisticsRepo {
         const dateStr = format(date, 'yyyy-MM-dd')
         const displayDate = format(date, 'dd/MM', { locale: vi })
 
-        // Query giao dịch trong ngày từ database
-        const whereCondition: any = {
-          transactionDate: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-        }
-
-        // Thêm điều kiện lọc theo người dùng nếu có
-        if (landlordId) {
-          whereCondition.userId = landlordId
-        }
-
-        // Thêm điều kiện lọc theo nội dung giao dịch nếu có
-        if (transaction_content) {
-          const contents = transaction_content.split('|')
-          whereCondition.OR = contents.map(content => ({
-            transactionContent: {
-              contains: content,
-            },
-          }))
-        }
-
-        // Query giao dịch trong ngày từ database
-        const transactions =
-          await this.prismaService.paymentTransaction.findMany({
-            where: whereCondition,
-          })
-
-        // Tổng hợp số tiền nạp và rút trong ngày
-        let totalDeposit = 0
-        let totalWithdraw = 0
-
-        transactions.forEach(transaction => {
-          // Xác định loại giao dịch dựa vào nội dung
-          const transactionContent = transaction.transactionContent || ''
-
-          // Tiền nạp vào (amountIn) - chỉ tính khi nội dung là nạp tiền
-          if (
-            (transactionContent.includes('NAP') ||
-              transactionContent.includes('Nạp tiền')) &&
-            transaction.amountIn > 0
-          ) {
-            totalDeposit += transaction.amountIn
-          }
-
-          // Tiền rút ra (amountOut) - chỉ tính khi nội dung là rút tiền
-          if (
-            (transactionContent.includes('RUT') ||
-              transactionContent.includes('Rút tiền')) &&
-            transaction.amountOut > 0
-          ) {
-            totalWithdraw += transaction.amountOut
-          }
-        })
-
-        result.push({
-          name: displayDate,
-          nạp: totalDeposit,
-          rút: totalWithdraw,
-          date: dateStr,
-        })
+        // Tạo promise cho mỗi ngày để xử lý song song
+        datePromises.push(
+          this.getRevenueForDate(
+            startOfDay,
+            endOfDay,
+            displayDate,
+            dateStr,
+            landlordId,
+            transaction_content
+          )
+        )
       }
 
-      return result
+      // Chờ tất cả promises hoàn thành
+      const results = await Promise.all(datePromises)
+      return results
     } catch (error) {
       throw new InternalServerErrorException(error.message)
+    }
+  }
+
+  /**
+   * Helper function để xử lý dữ liệu doanh thu cho một ngày cụ thể
+   */
+  private async getRevenueForDate(
+    startOfDay: Date,
+    endOfDay: Date,
+    displayDate: string,
+    dateStr: string,
+    landlordId?: number,
+    transaction_content?: string
+  ): Promise<RevenueDataType> {
+    // Query giao dịch trong ngày từ database
+    const whereCondition: any = {
+      transactionDate: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    }
+
+    // Thêm điều kiện lọc theo người dùng nếu có
+    if (landlordId) {
+      whereCondition.userId = landlordId
+    }
+
+    // Tối ưu truy vấn nội dung giao dịch
+    if (transaction_content) {
+      // Ưu tiên exact match trước khi sử dụng contains để tận dụng index
+      if (transaction_content === 'SEVQR NAP') {
+        whereCondition.transactionContent = { contains: 'NAP' }
+      } else {
+        const contents = transaction_content.split('|')
+        whereCondition.OR = contents.map(content => ({
+          transactionContent: { contains: content },
+        }))
+      }
+    } else {
+      // Mặc định tìm theo giao dịch nạp và rút
+      whereCondition.OR = [
+        { transactionContent: { contains: 'NAP' } },
+        { transactionContent: { contains: 'RUT' } },
+      ]
+    }
+
+    // Thực hiện aggregation query thay vì lấy tất cả records
+    const aggregateResult =
+      await this.prismaService.paymentTransaction.aggregate({
+        _sum: {
+          amountIn: true,
+          amountOut: true,
+        },
+        where: whereCondition,
+      })
+
+    // Tổng hợp số tiền nạp và rút
+    const totalDeposit = aggregateResult._sum.amountIn || 0
+    const totalWithdraw = aggregateResult._sum.amountOut || 0
+
+    return {
+      name: displayDate,
+      nạp: totalDeposit,
+      rút: totalWithdraw,
+      date: dateStr,
     }
   }
 

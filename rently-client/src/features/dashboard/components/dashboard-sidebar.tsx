@@ -151,15 +151,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <DashboardNavbar items={data.navMain} />
       </SidebarContent>
-      <SidebarFooter>
-        <Button
-          className="flex items-center justify-center"
-          variant={"outline"}
-        >
-          <LogOutIcon className="size-4 mr-1" />
-          Quay về trang chủ
-        </Button>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

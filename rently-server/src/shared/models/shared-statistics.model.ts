@@ -21,6 +21,8 @@ export const StatisticsQuerySchema = z
     days: z.coerce.number().optional().default(7),
     limit: z.coerce.number().optional().default(5),
     transaction_content: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
   })
   .strict()
 

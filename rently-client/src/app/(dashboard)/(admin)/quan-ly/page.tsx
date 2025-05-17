@@ -20,7 +20,7 @@ import {
   TrendingUp,
   TrendingDown,
   Layers,
-  Calendar,
+  Calendar as CalendarIcon,
   MoreHorizontal,
   Search,
   Circle,
@@ -30,6 +30,7 @@ import {
   Activity,
   Eye,
 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 import {
   useGetStatisticsOverview,
   useGetRevenueData,
@@ -81,6 +82,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Kiểu dữ liệu cho hoạt động giao dịch
 interface Transaction {
@@ -110,8 +116,19 @@ const MapWithGeocodeDynamic = dynamic(
 const DashboardPage = () => {
   const { data, isLoading, error } = useGetStatisticsOverview();
   const [timeRange, setTimeRange] = useState<number>(7);
-  const { data: revenueData, isLoading: isLoadingRevenue } =
-    useGetRevenueData(timeRange);
+  // Khai báo dateFilter trước khi sử dụng
+  const [dateFilter, setDateFilter] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined,
+  });
+  const { data: revenueData, isLoading: isLoadingRevenue } = useGetRevenueData(
+    timeRange,
+    dateFilter.from,
+    dateFilter.to
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [selectedTransaction, setSelectedTransaction] =
@@ -140,13 +157,7 @@ const DashboardPage = () => {
   // State cho bộ lọc giao dịch
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showUserFilter, setShowUserFilter] = useState(false);
-  const [dateFilter, setDateFilter] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: undefined,
-    to: undefined,
-  });
+  // Đã chuyển khai báo dateFilter lên trên
   const [userFilter, setUserFilter] = useState("");
   const [transactionFilters, setTransactionFilters] = useState<
     Record<string, string | number | boolean>
@@ -303,7 +314,11 @@ const DashboardPage = () => {
 
   // Handler for changing time range
   const handleTimeRangeChange = (days: number) => {
+    console.log("Changing time range to:", days);
     setTimeRange(days);
+
+    // Reset date filter when switching to preset time ranges
+    setDateFilter({ from: undefined, to: undefined });
   };
 
   // Handler cho bộ lọc theo ngày
@@ -606,25 +621,6 @@ const DashboardPage = () => {
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4 " />
         <h1 className="text-base md:text-lg font-semibold">Tổng quan</h1>
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative rounded-md shadow-sm hidden md:flex">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-4 w-4 text-gray-400" />
-            </div>
-            <Input
-              type="text"
-              placeholder="Tìm kiếm..."
-              className="pl-10 pr-4 py-2 h-9 text-sm"
-            />
-          </div>
-          <Button variant="outline" size="sm" className="hidden md:flex">
-            <Calendar className="h-4 w-4 mr-1" />
-            Hôm nay
-          </Button>
-          <Button variant="outline" size="icon" className="flex md:hidden">
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </Button>
-        </div>
       </header>
 
       <div className="p-2 md:p-4 space-y-4 overflow-y-auto overflow-x-hidden max-w-full">
@@ -845,17 +841,119 @@ const DashboardPage = () => {
                 <CardHeader className="p-2 md:p-3 lg:p-6">
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-xs md:text-sm lg:text-base">
-                      Doanh thu 7 ngày qua
+                      Doanh thu {timeRange} ngày qua
                     </CardTitle>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] md:text-xs font-normal"
-                    >
-                      7 ngày
-                    </Badge>
+                    <div className="flex items-center gap-1 md:gap-2">
+                      <Button
+                        variant={timeRange === 7 ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 text-[10px] md:text-xs"
+                        onClick={() => handleTimeRangeChange(7)}
+                      >
+                        7 ngày
+                      </Button>
+                      <Button
+                        variant={timeRange === 30 ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 text-[10px] md:text-xs"
+                        onClick={() => handleTimeRangeChange(30)}
+                      >
+                        30 ngày
+                      </Button>
+                      <Button
+                        variant={timeRange === 90 ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 text-[10px] md:text-xs"
+                        onClick={() => handleTimeRangeChange(90)}
+                      >
+                        90 ngày
+                      </Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[10px] md:text-xs"
+                          >
+                            <CalendarIcon className="h-3 w-3 md:h-3.5 md:w-3.5 mr-1" />
+                            Tùy chỉnh
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="range"
+                            selected={{
+                              from:
+                                dateFilter.from ||
+                                subDays(new Date(), timeRange),
+                              to: dateFilter.to || new Date(),
+                            }}
+                            onSelect={(range) => {
+                              if (range?.from && range?.to) {
+                                const daysDiff = Math.ceil(
+                                  (range.to.getTime() - range.from.getTime()) /
+                                    (1000 * 60 * 60 * 24)
+                                );
+                                setTimeRange(daysDiff + 1);
+                                setDateFilter({
+                                  from: range.from,
+                                  to: range.to,
+                                });
+
+                                // Log để debug
+                                console.log("Calendar date range selected:", {
+                                  from: range.from,
+                                  to: range.to,
+                                  calculatedDays: daysDiff + 1,
+                                });
+                              }
+                            }}
+                            initialFocus
+                            numberOfMonths={1}
+                          />
+                          <div className="p-3 border-t flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setDateFilter({
+                                  from: undefined,
+                                  to: undefined,
+                                });
+                                setTimeRange(7);
+                              }}
+                            >
+                              Đặt lại
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                if (dateFilter.from && dateFilter.to) {
+                                  const daysDiff = Math.ceil(
+                                    (dateFilter.to.getTime() -
+                                      dateFilter.from.getTime()) /
+                                      (1000 * 60 * 60 * 24)
+                                  );
+                                  const newTimeRange = daysDiff + 1;
+                                  console.log("Applying custom date range:", {
+                                    from: dateFilter.from,
+                                    to: dateFilter.to,
+                                    calculatedDays: newTimeRange,
+                                  });
+
+                                  setTimeRange(newTimeRange);
+                                }
+                              }}
+                            >
+                              Áp dụng
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
                   <CardDescription className="text-[10px] md:text-xs">
-                    Thống kê doanh thu vào và ra trong 7 ngày gần đây
+                    Thống kê doanh thu vào và ra trong {timeRange} ngày gần đây
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-2 md:p-3 pt-0 lg:p-6 lg:pt-0">
@@ -1594,7 +1692,7 @@ const DashboardPage = () => {
                       className="h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3"
                       onClick={handleDateFilterToggle}
                     >
-                      <Calendar className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                      <CalendarIcon className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                       Ngày
                     </Button>
                     <Button

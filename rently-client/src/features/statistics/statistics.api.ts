@@ -42,17 +42,48 @@ export const getStatisticsOverview = async () => {
   return payload;
 };
 
+export interface GetRevenueDataParams {
+  days?: number;
+  startDate?: string;
+  endDate?: string;
+  transaction_content?: string;
+}
+
 export const getRevenueData = async (
   days: number = 7,
-  transaction_content?: string
+  transaction_content?: string,
+  startDate?: string,
+  endDate?: string
 ) => {
-  let url = `statistics/revenue?days=${days}`;
+  // Tạo URL cơ bản
+  let url = `statistics/revenue?`;
 
-  if (transaction_content) {
-    url += `&transaction_content=${transaction_content}`;
+  // Thêm các tham số
+  const params = new URLSearchParams();
+
+  // Luôn thêm days để đảm bảo tương thích với API cũ
+  params.append("days", days.toString());
+
+  // Nếu có startDate và endDate, thêm vào params
+  if (startDate) {
+    params.append("startDate", startDate);
+    console.log("Adding startDate to URL:", startDate);
   }
 
-  const { payload } = await http.get<RevenueDataPoint[]>(url);
+  if (endDate) {
+    params.append("endDate", endDate);
+    console.log("Adding endDate to URL:", endDate);
+  }
+
+  if (transaction_content) {
+    params.append("transaction_content", transaction_content);
+  }
+
+  // Log URL cuối cùng để debug
+  const finalUrl = `statistics/revenue?${params.toString()}`;
+  console.log("Fetching revenue data from URL:", finalUrl);
+
+  const { payload } = await http.get<RevenueDataPoint[]>(finalUrl);
   return payload;
 };
 

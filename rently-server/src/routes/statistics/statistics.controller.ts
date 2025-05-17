@@ -39,13 +39,17 @@ export class StatisticsController {
     @ActiveUser('roleName') roleName: string
   ) {
     const days = query.days || 7
+    const startDate = query.startDate
+    const endDate = query.endDate
 
     // Nếu là admin, cho phép xem tất cả hoặc lọc theo landlordId
     if (roleName === 'ADMIN') {
       return this.statisticsService.getRevenueData(
         days,
         query.landlordId,
-        query.transaction_content
+        query.transaction_content,
+        startDate,
+        endDate
       )
     }
 
@@ -53,7 +57,9 @@ export class StatisticsController {
     return this.statisticsService.getRevenueData(
       days,
       userId,
-      query.transaction_content
+      query.transaction_content,
+      startDate,
+      endDate
     )
   }
 
