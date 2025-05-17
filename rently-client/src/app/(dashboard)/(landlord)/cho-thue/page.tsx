@@ -60,6 +60,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
+import TransactionReport from "@/features/landlord/transaction-report";
+import RevenueReport from "@/features/statistics/revenue-report";
 
 interface Transaction {
   id: string;
@@ -79,6 +81,7 @@ const LandlordPage = () => {
   const { data: revenueData, isLoading: isLoadingRevenue } =
     useGetRevenueData(timeRange);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -86,6 +89,13 @@ const LandlordPage = () => {
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined,
+  });
 
   // Tính toán số trang và dữ liệu hiển thị
   const totalPages = Math.ceil(totalTransactions / itemsPerPage);
@@ -199,6 +209,9 @@ const LandlordPage = () => {
         // Lưu tổng số giao dịch
         setTotalTransactions(formattedTransactions.length);
 
+        // Lưu tất cả giao dịch để xuất báo cáo
+        setAllTransactions(formattedTransactions);
+
         // Phân trang thủ công (tính offset và limit)
         const offset = (page - 1) * itemsPerPage;
         const paginatedTransactions = formattedTransactions.slice(
@@ -229,6 +242,8 @@ const LandlordPage = () => {
   // Hàm thay đổi khoảng thời gian biểu đồ
   const handleTimeRangeChange = (days: number) => {
     setTimeRange(days);
+    // Reset date filter when switching to preset time ranges
+    setDateFilter({ from: undefined, to: undefined });
   };
 
   // Hàm xác định loại giao dịch chi tiết dựa vào nội dung
@@ -236,7 +251,11 @@ const LandlordPage = () => {
     const content = transaction.description.toLowerCase();
 
     if (transaction.isDeposit) {
-      if (content.includes("từ người thuê") || content.includes("thanh toán")) {
+      if (
+        content.includes("từ người thuê") ||
+        content.includes("thanh toán") ||
+        content.includes("nhận tiền đặt")
+      ) {
         return "Thu từ người thuê";
       } else {
         return "Nạp tiền vào tài khoản";
@@ -431,6 +450,11 @@ const LandlordPage = () => {
                 >
                   90 ngày
                 </Button>
+                <RevenueReport
+                  data={revenueData || []}
+                  timeRange={timeRange}
+                  dateFilter={dateFilter}
+                />
               </div>
             </div>
             <CardDescription className="text-xs">
@@ -459,8 +483,8 @@ const LandlordPage = () => {
                         value >= 1000000
                           ? `${(value / 1000000).toFixed(0)}tr`
                           : value >= 1000
-                          ? `${(value / 1000).toFixed(0)}k`
-                          : value.toString()
+                            ? `${(value / 1000).toFixed(0)}k`
+                            : value.toString()
                       }
                       fontSize={12}
                     />
@@ -505,13 +529,21 @@ const LandlordPage = () => {
         {/* Lịch sử giao dịch */}
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-blue-600" />
-              Lịch sử giao dịch của bạn
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Các giao dịch gần đây liên quan đến hoạt động cho thuê
-            </CardDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-600" />
+                  Lịch sử giao dịch của bạn
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Các giao dịch gần đây liên quan đến hoạt động cho thuê
+                </CardDescription>
+              </div>
+              <TransactionReport
+                transactions={allTransactions}
+                title="Báo cáo giao dịch tài khoản"
+              />
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="space-y-0">
