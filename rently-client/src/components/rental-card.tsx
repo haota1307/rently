@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Phone, Navigation } from "lucide-react";
-import { cn, formatPrice } from "@/lib/utils";
+import { cn, formatPrice, createPostSlug } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -68,6 +68,9 @@ export const RentalCard = ({
     return null;
   }
 
+  // Tạo slug cho bài đăng
+  const postSlug = createPostSlug(processedListing.title, processedListing.id);
+
   // Card theo dạng lưới (grid)
   if (viewMode === "grid") {
     return (
@@ -78,7 +81,7 @@ export const RentalCard = ({
             "opacity-75 grayscale-[40%] bg-gray-100"
         )}
       >
-        <Link href={`/bai-dang/${processedListing.id}`}>
+        <Link href={`/bai-dang/${postSlug}`}>
           <CardHeader className="p-0">
             <div className="relative aspect-[4/3] w-full overflow-hidden">
               <Image
@@ -120,7 +123,7 @@ export const RentalCard = ({
             <div className="flex justify-between items-start">
               <div className="space-y-1 flex-1">
                 <Link
-                  href={`/bai-dang/${processedListing.id}`}
+                  href={`/bai-dang/${postSlug}`}
                   className="hover:underline"
                 >
                   <h3 className="font-semibold text-ellipsis line-clamp-1">
@@ -194,9 +197,7 @@ export const RentalCard = ({
                   />
                 )}
                 <Button size="sm" asChild className="text-xs px-2">
-                  <Link href={`/bai-dang/${processedListing.id}`}>
-                    Xem chi tiết
-                  </Link>
+                  <Link href={`/bai-dang/${postSlug}`}>Xem chi tiết</Link>
                 </Button>
               </div>
             </div>
@@ -217,7 +218,7 @@ export const RentalCard = ({
     >
       <div className="flex flex-col sm:flex-row">
         <Link
-          href={`/bai-dang/${processedListing.id}`}
+          href={`/bai-dang/${postSlug}`}
           className="sm:w-[220px] sm:min-w-[220px]"
         >
           <div className="relative aspect-[4/3] sm:aspect-[4/3] w-full overflow-hidden h-full">
@@ -259,7 +260,7 @@ export const RentalCard = ({
             <div className="flex justify-between items-start">
               <div className="space-y-1 flex-1">
                 <Link
-                  href={`/bai-dang/${processedListing.id}`}
+                  href={`/bai-dang/${postSlug}`}
                   className="hover:underline"
                 >
                   <h3 className="font-semibold">{processedListing.title}</h3>
@@ -327,9 +328,7 @@ export const RentalCard = ({
                   />
                 )}
                 <Button size="sm" asChild>
-                  <Link href={`/bai-dang/${processedListing.id}`}>
-                    Xem chi tiết
-                  </Link>
+                  <Link href={`/bai-dang/${postSlug}`}>Xem chi tiết</Link>
                 </Button>
               </div>
             </div>

@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, createPostSlug } from "@/lib/utils";
 import Link from "next/link";
 import { RentalPostStatus } from "@/schemas/post.schema";
 import {
@@ -95,8 +95,9 @@ export default function PostsPage() {
     setCurrentPage(1);
   };
 
-  const handleViewPost = (postId: number) => {
-    window.open(`/bai-dang/${postId}`, "_blank");
+  const handleViewPost = (postId: number, title: string) => {
+    const slug = createPostSlug(title, postId);
+    window.open(`/bai-dang/${slug}`, "_blank");
   };
 
   const handleStatusToggle = async (postId: number, currentStatus: string) => {
@@ -241,8 +242,8 @@ export default function PostsPage() {
           post.status === RentalPostStatus.ACTIVE
             ? "Tạm ngưng"
             : post.status === RentalPostStatus.SUSPENDED
-            ? "Kích hoạt"
-            : "Kích hoạt";
+              ? "Kích hoạt"
+              : "Kích hoạt";
 
         return (
           <DropdownMenu>
@@ -260,7 +261,9 @@ export default function PostsPage() {
                 Sao chép ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleViewPost(post.id)}>
+              <DropdownMenuItem
+                onClick={() => handleViewPost(post.id, post.title)}
+              >
                 Xem chi tiết
               </DropdownMenuItem>
               <DropdownMenuItem

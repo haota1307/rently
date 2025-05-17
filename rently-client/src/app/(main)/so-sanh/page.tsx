@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, createPostSlug } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -116,7 +116,11 @@ export default function ComparisonPage() {
               </CardContent>
               <CardFooter className="p-4 pt-0">
                 <Button asChild className="w-full">
-                  <Link href={`/bai-dang/${post.id}`}>Xem chi tiết</Link>
+                  <Link
+                    href={`/bai-dang/${createPostSlug(post.title, post.id)}`}
+                  >
+                    Xem chi tiết
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -290,7 +294,9 @@ export default function ComparisonPage() {
                     <TableCell key={post.id}>
                       <div className="flex gap-2">
                         <Button asChild size="sm" className="w-full">
-                          <Link href={`/bai-dang/${post.id}`}>
+                          <Link
+                            href={`/bai-dang/${createPostSlug(post.title, post.id)}`}
+                          >
                             Xem chi tiết
                           </Link>
                         </Button>

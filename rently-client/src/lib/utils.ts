@@ -218,3 +218,29 @@ export function getInitials(name: string): string {
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 }
+
+/**
+ * Tạo slug cho bài đăng từ tiêu đề và ID
+ * @param title Tiêu đề bài đăng
+ * @param id ID bài đăng
+ * @returns Slug dạng "tieu-de.-i-id"
+ */
+export function createPostSlug(title: string, id: number | string): string {
+  // Chuyển sang chữ thường
+  const slug = title
+    .toLowerCase()
+    // Chuyển đổi các ký tự có dấu thành không dấu
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    // Thay thế ký tự đặc biệt bằng dấu gạch ngang
+    .replace(/[^\w\s]/g, "-")
+    // Thay thế khoảng trắng bằng dấu gạch ngang
+    .replace(/\s+/g, "-")
+    // Loại bỏ nhiều dấu gạch ngang liên tiếp
+    .replace(/-+/g, "-")
+    // Loại bỏ dấu gạch ngang ở đầu và cuối
+    .replace(/^-+|-+$/g, "");
+
+  // Thêm ID vào slug
+  return `${slug}.-i-${id}`;
+}

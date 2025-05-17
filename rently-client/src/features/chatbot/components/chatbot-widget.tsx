@@ -19,6 +19,11 @@ import {
   AlignJustify,
   RefreshCw,
   Volume2,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ChevronLeft,
+  ArrowRightCircle,
+  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +39,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { createPostSlug } from "@/lib/utils";
 
 interface Message {
   id: string;
@@ -301,48 +307,51 @@ export function ChatbotWidget() {
   // Tạo HTML cho kết quả tìm kiếm - sử dụng template strings cẩn thận
   const generateSearchResultsHtml = (results: any[]): string => {
     if (!results || results.length === 0) {
-      return `<p class="text-sm my-2">Không tìm thấy kết quả phù hợp.</p>`;
+      return "<p>Không tìm thấy kết quả nào phù hợp.</p>";
     }
 
     const resultsHtml = results
       .slice(0, 5)
-      .map(
-        (result, index) => `
-        <div class="p-1.5 sm:p-3 my-1.5 sm:my-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900 hover:shadow-md transition-all duration-200">
-          <a href="/bai-dang/${result.postId}" 
-             target="_blank" 
-             class="text-primary hover:text-primary/80 font-semibold transition-colors duration-200 text-[11px] sm:text-sm">
-            ${index + 1}. ${result.title}
-          </a>
-          <div class="flex flex-wrap items-center gap-1 text-[10px] sm:text-xs mt-1 sm:mt-2">
-            <span class="font-bold text-green-600 dark:text-green-400">${new Intl.NumberFormat(
-              "vi-VN"
-            ).format(Number(result.price))} VNĐ/tháng</span> 
-            <span class="mx-1">•</span>
-            <span class="font-medium">${result.area}m²</span>
-            <span class="mx-1">•</span>
-            <span class="text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[200px]">${
-              result.address
-            }</span>
+      .map((result, index) => {
+        // Tạo slug cho bài đăng
+        const slug = createPostSlug(result.title, result.postId);
+
+        return `
+          <div class="p-1.5 sm:p-3 my-1.5 sm:my-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900 hover:shadow-md transition-all duration-200">
+            <a href="/bai-dang/${slug}" 
+               target="_blank" 
+               class="text-primary hover:text-primary/80 font-semibold transition-colors duration-200 text-[11px] sm:text-sm">
+              ${index + 1}. ${result.title}
+            </a>
+            <div class="flex flex-wrap items-center gap-1 text-[10px] sm:text-xs mt-1 sm:mt-2">
+              <span class="font-bold text-green-600 dark:text-green-400">${new Intl.NumberFormat(
+                "vi-VN"
+              ).format(Number(result.price))} VNĐ/tháng</span> 
+              <span class="mx-1">•</span>
+              <span class="font-medium">${result.area}m²</span>
+              <span class="mx-1">•</span>
+              <span class="text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[200px]">${
+                result.address
+              }</span>
+            </div>
+            ${
+              result.imageUrls && result.imageUrls.length > 0
+                ? `<div class="mt-1 sm:mt-2 overflow-hidden rounded-md">
+                     <img src="${result.imageUrls[0]}" alt="${result.title}" class="w-full h-20 sm:h-32 object-cover hover:scale-105 transition-transform duration-500" />
+                   </div>`
+                : ""
+            }
+            <div class="text-[8px] sm:text-xs mt-1 sm:mt-2 flex flex-wrap gap-0.5 sm:gap-1">
+              ${result.amenities
+                .map(
+                  (amenity: string) =>
+                    `<span class="px-1 py-0.5 sm:px-2 sm:py-1 bg-blue-100 dark:bg-blue-900/50 rounded-full text-blue-700 dark:text-blue-300">${amenity}</span>`
+                )
+                .join(" ")}
+            </div>
           </div>
-          ${
-            result.imageUrls && result.imageUrls.length > 0
-              ? `<div class="mt-1 sm:mt-2 overflow-hidden rounded-md">
-                   <img src="${result.imageUrls[0]}" alt="${result.title}" class="w-full h-20 sm:h-32 object-cover hover:scale-105 transition-transform duration-500" />
-                 </div>`
-              : ""
-          }
-          <div class="text-[8px] sm:text-xs mt-1 sm:mt-2 flex flex-wrap gap-0.5 sm:gap-1">
-            ${result.amenities
-              .map(
-                (amenity: string) =>
-                  `<span class="px-1 py-0.5 sm:px-2 sm:py-1 bg-blue-100 dark:bg-blue-900/50 rounded-full text-blue-700 dark:text-blue-300">${amenity}</span>`
-              )
-              .join(" ")}
-          </div>
-        </div>
-      `
-      )
+        `;
+      })
       .join("");
 
     return `
@@ -523,8 +532,8 @@ export function ChatbotWidget() {
                 ? "inset-x-0 top-0 bottom-auto h-[85vh] m-2 rounded-lg" // Giới hạn chiều cao trên mobile 85% màn hình
                 : "inset-6"
               : isExpanded
-              ? "w-[85vw] sm:w-[600px] md:w-[650px] lg:w-[700px] max-h-[80vh]"
-              : "w-[85vw] sm:w-[400px] md:w-[450px] max-h-[80vh]"
+                ? "w-[85vw] sm:w-[600px] md:w-[650px] lg:w-[700px] max-h-[80vh]"
+                : "w-[85vw] sm:w-[400px] md:w-[450px] max-h-[80vh]"
           )}
           initial={{ opacity: 0, y: 30, scale: 0.9 }}
           animate={{
@@ -533,8 +542,8 @@ export function ChatbotWidget() {
             ...(isMaximized
               ? { x: 0, y: 0 }
               : position
-              ? { x: position.x, y: position.y }
-              : { bottom: 80, right: 20, x: 0, y: 0 }),
+                ? { x: position.x, y: position.y }
+                : { bottom: 80, right: 20, x: 0, y: 0 }),
           }}
           exit={{ opacity: 0, y: 30, scale: 0.9 }}
           transition={{

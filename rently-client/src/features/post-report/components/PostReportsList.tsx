@@ -24,13 +24,17 @@ import {
 } from "@/components/ui/table";
 import { PostReportActions } from "./PostReportActions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createPostSlug } from "@/lib/utils";
 
 // Badge variants theo status
-const statusVariantMap = {
+const statusVariantMap: Record<
+  ReportStatus,
+  "warning" | "default" | "destructive"
+> = {
   [ReportStatus.PENDING]: "warning",
-  [ReportStatus.PROCESSED]: "success",
+  [ReportStatus.PROCESSED]: "default",
   [ReportStatus.REJECTED]: "destructive",
-} as const;
+};
 
 // Label hiển thị theo status
 const statusLabelMap = {
@@ -52,10 +56,11 @@ export default function PostReportsList() {
     status,
     includePost: true,
     includeReportedBy: true,
+    includeProcessedBy: false,
   });
 
-  const handleStatusChange = (newStatus: string | undefined) => {
-    if (newStatus === undefined) {
+  const handleStatusChange = (newStatus: string) => {
+    if (newStatus === "ALL") {
       setStatus(undefined);
     } else {
       setStatus(newStatus as ReportStatus);
@@ -69,12 +74,15 @@ export default function PostReportsList() {
         <h2 className="text-2xl font-semibold">Danh sách báo cáo bài đăng</h2>
 
         <div className="flex flex-wrap gap-4 items-center">
-          <Select value={status} onValueChange={handleStatusChange}>
+          <Select
+            value={status !== undefined ? status : "ALL"}
+            onValueChange={handleStatusChange}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Lọc theo trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={undefined}>Tất cả</SelectItem>
+              <SelectItem value="ALL">Tất cả</SelectItem>
               <SelectItem value={ReportStatus.PENDING}>Chờ xử lý</SelectItem>
               <SelectItem value={ReportStatus.PROCESSED}>Đã xử lý</SelectItem>
               <SelectItem value={ReportStatus.REJECTED}>Đã từ chối</SelectItem>
@@ -151,7 +159,7 @@ export default function PostReportsList() {
                   <TableCell>
                     {report.post ? (
                       <a
-                        href={`/bai-dang/${report.postId}`}
+                        href={`/bai-dang/${createPostSlug(report.post.title, report.postId)}`}
                         className="text-blue-600 hover:underline"
                         target="_blank"
                         rel="noopener noreferrer"
@@ -203,8 +211,6 @@ export default function PostReportsList() {
           currentPage={page}
           totalPages={data.meta.totalPages}
           onPageChange={setPage}
-          hasNextPage={data.meta.hasNextPage}
-          hasPreviousPage={data.meta.hasPreviousPage}
         />
       )}
     </div>

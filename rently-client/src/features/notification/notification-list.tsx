@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { createPostSlug } from "@/lib/utils";
 
 interface NotificationListProps {
   notifications: Notification[];
@@ -56,16 +57,21 @@ export const NotificationList: React.FC<NotificationListProps> = ({
     // Điều hướng dựa vào loại thông báo
     switch (notification.type) {
       case NotificationType.PAYMENT:
-        router.push("/tai-khoan/lich-su-thanh-toan");
-        break;
-      case NotificationType.RENTAL_REQUEST:
-        // Kiểm tra nếu là người thuê hay người cho thuê để điều hướng
-        if (notification.relatedId) {
-          router.push(`/quan-ly/yeu-cau-thue/${notification.relatedId}`);
+        if (notification.deepLink) {
+          router.push(notification.deepLink);
+        } else {
+          router.push("/nap-tien");
         }
         break;
       case NotificationType.VIEWING_SCHEDULE:
         router.push("/lich-xem-phong");
+        break;
+      case NotificationType.RENTAL_REQUEST:
+        if (notification.deepLink) {
+          router.push(notification.deepLink);
+        } else {
+          router.push("/thue-phong");
+        }
         break;
       case NotificationType.INTERACTION:
         // Nếu là tin nhắn
@@ -80,12 +86,18 @@ export const NotificationList: React.FC<NotificationListProps> = ({
           notification.relatedType === "post" &&
           notification.relatedId
         ) {
-          router.push(`/bai-dang/${notification.relatedId}`);
+          // Tạo slug từ title và ID
+          const postTitle = notification.title || "bai-dang";
+          const slug = createPostSlug(postTitle, notification.relatedId);
+          router.push(`/bai-dang/${slug}`);
         }
         break;
       case NotificationType.POST:
         if (notification.relatedId) {
-          router.push(`/bai-dang/${notification.relatedId}`);
+          // Tạo slug từ title và ID
+          const postTitle = notification.title || "bai-dang";
+          const slug = createPostSlug(postTitle, notification.relatedId);
+          router.push(`/bai-dang/${slug}`);
         }
         break;
       default:

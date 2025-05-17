@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, createPostSlug } from "@/lib/utils";
 import { PostType } from "@/schemas/post.schema";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,8 +25,11 @@ export function SimilarPostCard({ post, className }: SimilarPostCardProps) {
     imageUrl = rental.rentalImages[0].imageUrl;
   }
 
+  // Tạo slug cho bài đăng
+  const postSlug = createPostSlug(post.title, post.id);
+
   return (
-    <Link href={`/bai-dang/${post.id}`} className={className}>
+    <Link href={`/bai-dang/${postSlug}`} className={className}>
       <Card className="overflow-hidden h-full hover:shadow-md transition-shadow group">
         <div className="relative aspect-[4/3]">
           <Image

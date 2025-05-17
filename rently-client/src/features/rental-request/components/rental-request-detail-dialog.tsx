@@ -37,6 +37,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useUpdateRentalRequest } from "@/features/rental-request/useRentalRequest";
+import { createPostSlug } from "@/lib/utils";
 
 interface RentalRequestDetailDialogProps {
   isOpen: boolean;
@@ -63,7 +64,7 @@ export function RentalRequestDetailDialog({
     setIsSubmitting(true);
     try {
       await updateRequestMutation.mutateAsync({
-        requestId: rentalRequest.id,
+        id: rentalRequest.id,
         data: {
           status: RentalRequestStatus.APPROVED,
           note,
@@ -93,7 +94,7 @@ export function RentalRequestDetailDialog({
     setIsSubmitting(true);
     try {
       await updateRequestMutation.mutateAsync({
-        requestId: rentalRequest.id,
+        id: rentalRequest.id,
         data: {
           status: RentalRequestStatus.REJECTED,
           note,
@@ -213,7 +214,12 @@ export function RentalRequestDetailDialog({
                 variant="outline"
                 size="sm"
                 className="w-full"
-                onClick={() => window.open(`/bai-dang/${post?.id}`, "_blank")}
+                onClick={() => {
+                  if (post?.id && post?.title) {
+                    const slug = createPostSlug(post.title, post.id);
+                    window.open(`/bai-dang/${slug}`, "_blank");
+                  }
+                }}
               >
                 Xem tin đăng
               </Button>

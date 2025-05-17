@@ -11,32 +11,36 @@ import { Role } from "@/constants/type";
 import { useAuth } from "@/hooks/use-auth";
 import { ReportPostButton } from "@/features/post-report/components";
 
-import { PostDetailSkeleton } from "@/app/(main)/bai-dang/[id]/_components/post-detail-skeleton";
-import { ImageGallery } from "@/app/(main)/bai-dang/[id]/_components/image-gallery";
-import { PostHeader } from "@/app/(main)/bai-dang/[id]/_components/post-header";
-import { PostPriceInfo } from "@/app/(main)/bai-dang/[id]/_components/post-price-info";
-import { PostActions } from "@/app/(main)/bai-dang/[id]/_components/post-actions";
-import { AmenitiesSection } from "@/app/(main)/bai-dang/[id]/_components/amenities-section";
-import { PostDescription } from "@/app/(main)/bai-dang/[id]/_components/post-description";
-import { LandlordInfo } from "@/app/(main)/bai-dang/[id]/_components/landlord-info";
-import { DepositInfo } from "@/app/(main)/bai-dang/[id]/_components/deposit-info";
-import { RentalInfo } from "@/app/(main)/bai-dang/[id]/_components/rental-info";
-import { LocationMap } from "@/app/(main)/bai-dang/[id]/_components/location-map";
-import { PostDetailsCard } from "@/app/(main)/bai-dang/[id]/_components/post-details-card";
-import { RentalRequestSection } from "@/app/(main)/bai-dang/[id]/_components/rental-request-section";
-import { ViewingScheduleSection } from "@/app/(main)/bai-dang/[id]/_components/viewing-schedule-section";
-import { CommentSection } from "@/app/(main)/bai-dang/[id]/_components/comment-section";
-import { RelatedPostsSection } from "@/app/(main)/bai-dang/[id]/_components/related-posts";
+import { PostDetailSkeleton } from "@/app/(main)/bai-dang/_components/post-detail-skeleton";
+import { ImageGallery } from "@/app/(main)/bai-dang/_components/image-gallery";
+import { PostHeader } from "@/app/(main)/bai-dang/_components/post-header";
+import { PostPriceInfo } from "@/app/(main)/bai-dang/_components/post-price-info";
+import { PostActions } from "@/app/(main)/bai-dang/_components/post-actions";
+import { AmenitiesSection } from "@/app/(main)/bai-dang/_components/amenities-section";
+import { PostDescription } from "@/app/(main)/bai-dang/_components/post-description";
+import { LandlordInfo } from "@/app/(main)/bai-dang/_components/landlord-info";
+import { DepositInfo } from "@/app/(main)/bai-dang/_components/deposit-info";
+import { RentalInfo } from "@/app/(main)/bai-dang/_components/rental-info";
+import { LocationMap } from "@/app/(main)/bai-dang/_components/location-map";
+import { PostDetailsCard } from "@/app/(main)/bai-dang/_components/post-details-card";
+import { RentalRequestSection } from "@/app/(main)/bai-dang/_components/rental-request-section";
+import { ViewingScheduleSection } from "@/app/(main)/bai-dang/_components/viewing-schedule-section";
+import { CommentSection } from "@/app/(main)/bai-dang/_components/comment-section";
+import { RelatedPostsSection } from "@/app/(main)/bai-dang/_components/related-posts";
 
 interface PostDetailPageProps {
   params: Promise<{
-    id: string;
+    slug: string;
   }>;
 }
 
 export default function PostDetailPage({ params }: PostDetailPageProps) {
-  const { id } = use(params);
-  const postId = parseInt(id);
+  const { slug } = use(params);
+
+  // Trích xuất ID từ slug theo định dạng ".-i-{id}"
+  const idMatch = slug.match(/\.-i-(\d+)$/);
+  const postId = idMatch ? parseInt(idMatch[1]) : 0;
+
   const { data: post, isLoading, error } = useGetPostDetail(postId);
 
   // Lấy thông tin về lịch hẹn xem phòng hiện tại của người dùng
@@ -75,6 +79,25 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   if (isLoading) {
     return <PostDetailSkeleton />;
+  }
+
+  // Kiểm tra nếu không tìm thấy ID từ slug
+  if (!postId) {
+    return (
+      <div className="mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Đường dẫn không hợp lệ
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Đường dẫn bạn đang truy cập không đúng định dạng.
+          </p>
+          <Link href="/">
+            <Button>Trở về trang chủ</Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (error || !post) {
