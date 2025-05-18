@@ -165,12 +165,11 @@ export const usePayment = () => {
 
     try {
       const result = await checkStatusMutation.mutateAsync(paymentId);
-
       if (
         result &&
         typeof result === "object" &&
         "status" in result &&
-        result.status === "COMPLETED"
+        (result.status === "COMPLETED" || result.status === "completed")
       ) {
         setState((prev) => ({
           ...prev,

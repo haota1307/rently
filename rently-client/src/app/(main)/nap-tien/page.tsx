@@ -132,11 +132,12 @@ export default function PaymentPage() {
     const handlePaymentStatusUpdate = (data: PaymentStatusUpdate) => {
       // Kiểm tra xem cập nhật này có phải cho paymentId hiện tại không
       if (data.id === paymentId) {
-        // Khi nhận được cập nhật thanh toán thành công
         if (data.status === "COMPLETED") {
           toast.success("Thanh toán thành công!");
-          // Gọi kiểm tra trạng thái để cập nhật UI
-          checkPayment(paymentId);
+
+          setTimeout(() => {
+            checkPayment(paymentId);
+          }, 2000);
         }
       }
     };
