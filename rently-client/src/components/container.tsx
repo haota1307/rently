@@ -8,8 +8,6 @@ interface ContainerProps {
 
 export function Container({ children, className }: ContainerProps) {
   return (
-    <div className={`container mx-auto px-8 py-8 ${className || ""}`}>
-      {children}
-    </div>
+    <div className={`flex flex-col space-y-6 w-full mx-4 p-4`}>{children}</div>
   );
 }

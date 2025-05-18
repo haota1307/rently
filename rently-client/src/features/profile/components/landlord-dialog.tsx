@@ -142,7 +142,7 @@ export default function LandlordDialog({
           <div className="bg-muted p-4 rounded-lg">
             <h4 className="font-medium mb-2">Quyền lợi của người cho thuê:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>Đăng tin cho thuê không giới hạn</li>
+              <li>Đăng tin cho thuê với giá hợp lý</li>
               <li>Tiếp cận hàng ngàn khách hàng tiềm năng</li>
               <li>Công cụ quản lý cho thuê chuyên nghiệp</li>
               <li>Hỗ trợ kỹ thuật ưu tiên</li>
@@ -153,7 +153,7 @@ export default function LandlordDialog({
             <h4 className="font-medium mb-2">Yêu cầu:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm">
               <li>Xác minh danh tính</li>
-              <li>Cung cấp thông tin pháp lý về tài sản</li>
+              <li>Cung cấp thông tin pháp lý bản thân</li>
               <li>Tuân thủ các quy định và chính sách của nền tảng</li>
             </ul>
           </div>

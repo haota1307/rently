@@ -125,13 +125,7 @@ export default function SavedListingsPage() {
                 })),
               };
 
-              return (
-                <RentalCard
-                  key={favorite.id}
-                  rental={rental}
-                  showFavoriteButton
-                />
-              );
+              return <RentalCard key={favorite.id} rental={rental} />;
             })}
           </div>
 

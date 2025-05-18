@@ -288,6 +288,48 @@ export function ChatbotWidget() {
     }
   }, [isMobile, isOpen]);
 
+  // Thêm useEffect để xử lý scroll khi mở/đóng chatbot
+  useEffect(() => {
+    // Lưu trữ giá trị overflow ban đầu
+    const originalOverflow = window.getComputedStyle(document.body).overflow;
+
+    if (isOpen) {
+      if (isMobile) {
+        // Lưu trạng thái scroll hiện tại trên mobile
+        const scrollY = window.scrollY;
+        document.body.style.position = "fixed";
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = "100%";
+        document.body.style.overflow = "hidden";
+      } else if (isMaximized) {
+        // Chỉ khóa scroll khi ở chế độ toàn màn hình trên desktop
+        document.body.style.overflow = "hidden";
+      }
+    } else {
+      // Khôi phục scroll khi đóng chatbot
+      if (isMobile) {
+        const scrollY = document.body.style.top;
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        document.body.style.overflow = originalOverflow;
+        if (scrollY) {
+          window.scrollTo(0, parseInt(scrollY || "0") * -1);
+        }
+      } else {
+        document.body.style.overflow = originalOverflow;
+      }
+    }
+
+    return () => {
+      // Đảm bảo reset style khi unmount
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, isMobile, isMaximized]);
+
   const toggleChat = () => {
     setIsOpen((prev) => !prev);
     // Nếu mở lại chat và chưa có tin nhắn, tải lịch sử
@@ -672,9 +714,13 @@ export function ChatbotWidget() {
           <ScrollArea
             ref={scrollAreaRef}
             className={cn(
-              "flex-1 overflow-auto py-4 px-3 sm:px-4 bg-gray-50 dark:bg-slate-800",
+              "flex-1 overflow-auto py-4 px-3 sm:px-4 bg-gray-50 dark:bg-slate-800 no-scrollbar",
               isDragging ? "pointer-events-none select-none" : ""
             )}
+            style={{
+              WebkitOverflowScrolling: "touch",
+              scrollBehavior: "smooth",
+            }}
           >
             {/* Loading indicator cho lịch sử */}
             {isLoadingHistory && historyOffset > 0 && (

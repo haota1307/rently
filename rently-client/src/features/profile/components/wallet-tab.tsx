@@ -65,11 +65,19 @@ export function WalletTab() {
 
   // Tính tổng số tiền đã nạp và đã chi
   const totalIn = payments
-    .filter((payment) => getTransactionType(payment.description) === "in")
+    .filter(
+      (payment) =>
+        getTransactionType(payment.description) === "in" &&
+        payment.status === "COMPLETED"
+    )
     .reduce((sum: number, payment) => sum + payment.amount, 0);
 
   const totalOut = payments
-    .filter((payment) => getTransactionType(payment.description) === "out")
+    .filter(
+      (payment) =>
+        getTransactionType(payment.description) === "out" &&
+        payment.status === "COMPLETED"
+    )
     .reduce((sum: number, payment) => sum + payment.amount, 0);
 
   // Hàm xử lý sự kiện khi nhấn vào nút Nạp tiền
@@ -172,8 +180,7 @@ export function WalletTab() {
                   Đã sử dụng
                 </span>
                 <span className="text-sm font-medium">
-                  {totalOut.toLocaleString()}/
-                  {(totalIn + (user?.balance || 0)).toLocaleString()}
+                  {totalOut.toLocaleString()}/{totalIn.toLocaleString()}
                 </span>
               </div>
               {/* <Progress value={6.67} className="h-2" /> */}
@@ -288,15 +295,15 @@ export function WalletTab() {
                             payment.status === "COMPLETED"
                               ? "bg-green-100 text-green-800 hover:bg-green-100"
                               : payment.status === "PENDING"
-                              ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                              : "bg-red-100 text-red-800 hover:bg-red-100"
+                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                : "bg-red-100 text-red-800 hover:bg-red-100"
                           }`}
                         >
                           {payment.status === "COMPLETED"
                             ? "Hoàn thành"
                             : payment.status === "PENDING"
-                            ? "Đang xử lý"
-                            : "Đã hủy"}
+                              ? "Đang xử lý"
+                              : "Đã hủy"}
                         </Badge>
                       </div>
                     </div>
@@ -345,15 +352,15 @@ export function WalletTab() {
                               payment.status === "COMPLETED"
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : payment.status === "PENDING"
-                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                                  ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                  : "bg-red-100 text-red-800 hover:bg-red-100"
                             }`}
                           >
                             {payment.status === "COMPLETED"
                               ? "Hoàn thành"
                               : payment.status === "PENDING"
-                              ? "Đang xử lý"
-                              : "Đã hủy"}
+                                ? "Đang xử lý"
+                                : "Đã hủy"}
                           </Badge>
                         </div>
                       </div>
@@ -403,15 +410,15 @@ export function WalletTab() {
                               payment.status === "COMPLETED"
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : payment.status === "PENDING"
-                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                                  ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                  : "bg-red-100 text-red-800 hover:bg-red-100"
                             }`}
                           >
                             {payment.status === "COMPLETED"
                               ? "Hoàn thành"
                               : payment.status === "PENDING"
-                              ? "Đang xử lý"
-                              : "Đã hủy"}
+                                ? "Đang xử lý"
+                                : "Đã hủy"}
                           </Badge>
                         </div>
                       </div>
@@ -461,15 +468,15 @@ export function WalletTab() {
                               payment.status === "COMPLETED"
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : payment.status === "PENDING"
-                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                                  ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                  : "bg-red-100 text-red-800 hover:bg-red-100"
                             }`}
                           >
                             {payment.status === "COMPLETED"
                               ? "Hoàn thành"
                               : payment.status === "PENDING"
-                              ? "Đang xử lý"
-                              : "Đã hủy"}
+                                ? "Đang xử lý"
+                                : "Đã hủy"}
                           </Badge>
                         </div>
                       </div>
