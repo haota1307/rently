@@ -25,12 +25,19 @@ export const useGetRevenueData = (
   const endDateStr = endDate ? format(endDate, "yyyy-MM-dd") : undefined;
 
   return useQuery({
-    queryKey: ["statistics", "revenue", days, startDateStr, endDateStr],
+    queryKey: [
+      "statistics",
+      "revenue",
+      days,
+      startDateStr,
+      endDateStr,
+      "NAP|RUT",
+    ],
     queryFn: async () => {
       try {
         const data = await getRevenueData(
           days,
-          "SEVQR NAP",
+          "NAP|RUT",
           startDateStr,
           endDateStr
         );

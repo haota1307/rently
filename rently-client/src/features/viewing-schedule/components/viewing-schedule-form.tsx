@@ -167,22 +167,8 @@ export function ViewingScheduleForm({
 
   return (
     <div className="space-y-4">
-      {/* Hiển thị thông tin đặt cọc nếu có */}
-      {postDetail?.deposit && postDetail.deposit > 0 && (
-        <div className="p-2 mb-2 border border-amber-200 rounded-md bg-amber-50">
-          <p className="text-xs text-amber-700 flex items-center">
-            <AlertCircle className="h-3 w-3 mr-1 text-amber-600 flex-shrink-0" />
-            Chủ nhà yêu cầu đặt cọc{" "}
-            {new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(postDetail.deposit)}
-          </p>
-        </div>
-      )}
-
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
           <div className="grid grid-cols-1 gap-4">
             <FormField
               control={form.control}

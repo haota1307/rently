@@ -160,6 +160,20 @@ export class StatisticsRepo {
             break
         }
 
+        // Xử lý điều kiện lọc nội dung giao dịch cho nạp và rút
+        let depositCondition = '"transactionContent" ILIKE \'%NAP%\''
+        let withdrawCondition = '"transactionContent" ILIKE \'%RUT%\''
+        if (transaction_content) {
+          const contents = transaction_content.split('|')
+          if (contents.length > 1) {
+            depositCondition = `"transactionContent" ILIKE '%${contents[0]}%'`
+            withdrawCondition = `"transactionContent" ILIKE '%${contents[1]}%'`
+          } else {
+            depositCondition = `"transactionContent" ILIKE '%${transaction_content}%'`
+            withdrawCondition = `"transactionContent" ILIKE '%${transaction_content}%'`
+          }
+        }
+
         // Tạo câu truy vấn SQL trực tiếp để tăng tốc độ và nhóm dữ liệu
         const whereClause: string[] = []
         const params: any[] = [start, end]
@@ -170,33 +184,9 @@ export class StatisticsRepo {
           params.push(landlordId)
         }
 
-        // Thêm điều kiện lọc theo nội dung giao dịch
-        const contentParam = transaction_content || 'SEVQR NAP'
-        if (contentParam) {
-          whereClause.push(`"transactionContent" ILIKE $${params.length + 1}`)
-          params.push(`%${contentParam}%`)
-        }
-
         const whereCondition =
           whereClause.length > 0 ? `AND ${whereClause.join(' AND ')}` : ''
 
-        // Tạo tham số query, không bao gồm resolution như một tham số vì sẽ truyền trực tiếp vào query
-        const queryParams: any[] = [start, end, `%${contentParam}%`]
-
-        // Thêm landlordId vào params nếu có
-        if (landlordId) {
-          queryParams.push(landlordId)
-        }
-
-        console.log(
-          'Executing query with resolution:',
-          resolution,
-          'and interval:',
-          intervalString
-        )
-
-        // Tối ưu hơn bằng cách sử dụng Prisma kết hợp raw query
-        // Sử dụng resolution và intervalString trực tiếp trong query thay vì thông qua tham số
         const sql = `
           WITH date_series AS (
             SELECT generate_series(
@@ -208,11 +198,11 @@ export class StatisticsRepo {
           aggregated_data AS (
             SELECT
               DATE_TRUNC('${resolution}', "transactionDate") as period,
-              SUM(CASE WHEN "transactionContent" LIKE $3 OR "transactionContent" LIKE '%Nạp tiền%' THEN "amountIn" ELSE 0 END) as deposit,
-              SUM(CASE WHEN "transactionContent" LIKE '%RUT%' OR "transactionContent" LIKE '%Rút tiền%' THEN "amountOut" ELSE 0 END) as withdraw
+              SUM(CASE WHEN ${depositCondition} OR "transactionContent" LIKE '%Nạp tiền%' THEN "amountIn" ELSE 0 END) as deposit,
+              SUM(CASE WHEN ${withdrawCondition} OR "transactionContent" LIKE '%Rút tiền%' THEN "amountOut" ELSE 0 END) as withdraw
             FROM "PaymentTransaction"
             WHERE "transactionDate" >= $1 AND "transactionDate" <= $2
-            ${landlordId ? 'AND "userId" = $4' : ''}
+            ${landlordId ? 'AND "userId" = $3' : ''}
             GROUP BY period
             ORDER BY period
           )
@@ -227,10 +217,7 @@ export class StatisticsRepo {
           ORDER BY ds.date_point ASC
         `
 
-        const result = await this.prismaService.$queryRawUnsafe(
-          sql,
-          ...queryParams
-        )
+        const result = await this.prismaService.$queryRawUnsafe(sql, ...params)
 
         // Chuyển đổi kết quả thành định dạng phản hồi
         return (result as any[]).map(row => ({

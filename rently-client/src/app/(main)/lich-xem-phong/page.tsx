@@ -26,9 +26,8 @@ import {
   HelpCircleIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 
 // Kiểu dữ liệu cho trạng thái tab
 type TabType = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED";
@@ -39,14 +38,10 @@ export default function ViewingSchedulePage() {
 
   return (
     <div className=" mx-8 py-6 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Lịch Xem Phòng</h1>
-          <p className="text-muted-foreground mt-1">
-            Quản lý và theo dõi tất cả các lịch hẹn xem phòng của bạn
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Lịch hẹn của bạn"
+        description="Quản lý và theo dõi tất cả các lịch hẹn xem phòng của bạn"
+      />
 
       {/* Tabs chính */}
       <Tabs
@@ -56,9 +51,6 @@ export default function ViewingSchedulePage() {
         className="w-full"
       >
         <div className="flex justify-between items-center mb-4">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold">Lịch hẹn của bạn</h2>
-          </div>
           <TabsList className="grid grid-cols-5 w-auto">
             <TabsTrigger value="ALL">Tất cả</TabsTrigger>
             <TabsTrigger value="PENDING">Chờ duyệt</TabsTrigger>

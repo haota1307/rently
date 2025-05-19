@@ -374,7 +374,7 @@ export class PaymentRepo {
         amountOut: amount,
         accumulated: user.balance - amount,
         code: `RUT${payment.id}`,
-        transactionContent: `Yêu cầu rút tiền về tài khoản ${bankAccountNumber} - ${bankName}`,
+        transactionContent: `CT DEN:${bankAccountNumber} SEVQR RUT${payment.id}`,
         referenceNumber: null,
         body:
           description ||
@@ -586,7 +586,7 @@ export class PaymentRepo {
             amountOut,
             accumulated: webhookData.accumulated,
             code: webhookData.code,
-            transactionContent: webhookData.content,
+            transactionContent: `CT DEN:${paymentData.metadata.bankAccountNumber} SEVQR RUT${withdrawId}`,
             referenceNumber: webhookData.referenceCode,
             body: webhookData.description,
             userId: payment.userId,
