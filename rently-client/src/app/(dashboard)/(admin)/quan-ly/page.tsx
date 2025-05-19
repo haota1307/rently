@@ -29,6 +29,7 @@ import {
   PieChart,
   Activity,
   Eye,
+  BarChart,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -47,7 +48,7 @@ import { vi } from "date-fns/locale";
 import {
   AreaChart,
   Area,
-  BarChart,
+  BarChart as RechartsBarChart,
   Bar,
   PieChart as RechartsPieChart,
   Pie,
@@ -156,6 +157,8 @@ const DashboardPage = () => {
     useState<TransactionSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+
+  console.log({ transactionSummary });
 
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showUserFilter, setShowUserFilter] = useState(false);
@@ -402,7 +405,6 @@ const DashboardPage = () => {
             "P. An Cư": [105.7792, 10.0341],
             "P. Thới Bình": [105.7838, 10.0427],
             "Khu vực khác": [105.752, 10.021],
-            // Thêm các phường khác ở đây
           };
 
           // Kết hợp dữ liệu bài đăng và tọa độ
@@ -1272,8 +1274,9 @@ const DashboardPage = () => {
 
               {/* Biểu đồ số bài đăng theo khu vực */}
               <Card className="overflow-hidden shadow-sm">
-                <CardHeader className="p-2 md:p-3 lg:p-6">
-                  <CardTitle className="text-xs md:text-sm lg:text-base">
+                <CardHeader className="p-2 md:p-3 lg:p-6 bg-gradient-to-r from-amber-50 to-orange-50">
+                  <CardTitle className="text-xs md:text-sm lg:text-base flex items-center gap-1 md:gap-2">
+                    <BarChart className="h-3 w-3 md:h-4 md:w-4 text-amber-600" />
                     Bài đăng theo khu vực
                   </CardTitle>
                   <CardDescription className="text-[10px] md:text-xs">
@@ -1295,7 +1298,7 @@ const DashboardPage = () => {
                       </div>
                     ) : normalizedPostsByArea.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
+                        <RechartsBarChart
                           data={normalizedPostsByArea}
                           margin={{
                             top: 5,
@@ -1348,7 +1351,7 @@ const DashboardPage = () => {
                               />
                             ))}
                           </Bar>
-                        </BarChart>
+                        </RechartsBarChart>
                       </ResponsiveContainer>
                     ) : (
                       <div className="text-center py-4 md:py-6 text-xs md:text-sm text-muted-foreground">
@@ -1361,8 +1364,9 @@ const DashboardPage = () => {
 
               {/* Khu vực nổi bật */}
               <Card className="overflow-hidden shadow-sm">
-                <CardHeader className="p-2 md:p-3 lg:p-6">
-                  <CardTitle className="text-xs md:text-sm lg:text-base">
+                <CardHeader className="p-2 md:p-3 lg:p-6 bg-gradient-to-r from-green-50 to-emerald-50">
+                  <CardTitle className="text-xs md:text-sm lg:text-base flex items-center gap-1 md:gap-2">
+                    <Map className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
                     Khu vực nổi bật
                   </CardTitle>
                   <CardDescription className="text-[10px] md:text-xs">
@@ -1614,26 +1618,6 @@ const DashboardPage = () => {
                     <Activity className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
                     Giao dịch gần đây
                   </CardTitle>
-                  <div className="flex flex-wrap gap-1 md:gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3"
-                      onClick={handleDateFilterToggle}
-                    >
-                      <CalendarIcon className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                      Ngày
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3"
-                      onClick={handleUserFilterToggle}
-                    >
-                      <Users className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                      Người dùng
-                    </Button>
-                  </div>
                 </div>
                 <CardDescription className="text-[10px] md:text-xs mt-1">
                   Danh sách các giao dịch tiền nạp và rút trong hệ thống
@@ -1953,7 +1937,7 @@ const DashboardPage = () => {
                     </div>
                   ) : normalizedPostsByArea.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
+                      <RechartsBarChart
                         data={normalizedPostsByArea}
                         margin={{
                           top: 5,
@@ -2006,7 +1990,7 @@ const DashboardPage = () => {
                             />
                           ))}
                         </Bar>
-                      </BarChart>
+                      </RechartsBarChart>
                     </ResponsiveContainer>
                   ) : (
                     <div className="text-center py-4 md:py-6 text-xs md:text-sm text-muted-foreground">

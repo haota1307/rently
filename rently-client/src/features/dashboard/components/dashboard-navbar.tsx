@@ -55,7 +55,6 @@ export function DashboardNavbar({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Quản lý trang web RENTLY</SidebarGroupLabel>
       <SidebarMenu>
         <SidebarGroupContent>
           <SidebarMenu>

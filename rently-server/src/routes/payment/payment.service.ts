@@ -560,27 +560,23 @@ export class PaymentService {
       status: PaymentStatus.COMPLETED,
     })
 
+    console.log({ transactions })
+
     // Tính tổng tiền vào và tiền ra
     let totalIncome = 0
     let totalExpense = 0
 
     transactions.forEach(t => {
-      // Kiểm tra nội dung giao dịch để phân biệt rõ ràng hơn
       const transactionContent = t.transaction?.transactionContent || ''
 
-      // Giao dịch nạp tiền - CHỈ khi có nội dung rõ ràng chứa SEVQR NAP
       if (
         t.transaction &&
         transactionContent.includes('SEVQR NAP') &&
         t.transaction.amountIn &&
         t.transaction.amountIn > 0
       ) {
-        console.log('Adding to income:', t.transaction.amountIn)
         totalIncome += t.transaction.amountIn
-      }
-
-      // Giao dịch rút tiền - CHỈ xử lý giao dịch rút thực sự
-      else if (
+      } else if (
         t.transaction &&
         (transactionContent.includes('RUT') ||
           transactionContent.includes('Rút tiền')) &&
@@ -588,39 +584,13 @@ export class PaymentService {
         t.transaction.amountOut &&
         t.transaction.amountOut > 0
       ) {
-        console.log('Adding to expense:', t.transaction.amountOut)
         totalExpense += t.transaction.amountOut
       }
 
       // Không tính các loại giao dịch khác vào thống kê tài chính tổng thể
     })
 
-    console.log(
-      'Summary calculation - totalIncome:',
-      totalIncome,
-      'totalExpense:',
-      totalExpense
-    )
-
-    // Tính balance là chênh lệch giữa số tiền nạp và rút đã lọc
     const balance = totalIncome - totalExpense
-
-    // Không dùng balance từ bankInfo vì nó phản ánh tất cả giao dịch, không chỉ là nạp/rút
-    /*
-    let balance = 0
-    try {
-      const bankInfoResponse = await this.getBankInfo()
-      if (bankInfoResponse.bankInfo && bankInfoResponse.bankInfo.accumulated) {
-        balance = parseFloat(bankInfoResponse.bankInfo.accumulated)
-      } else {
-        // Nếu không có accumulated, tính balance từ income và expense
-        balance = totalIncome - totalExpense
-      }
-    } catch (error) {
-      console.error('Error getting bank info:', error)
-      balance = totalIncome - totalExpense
-    }
-    */
 
     return this.createSuccessResponse({
       summary: {
