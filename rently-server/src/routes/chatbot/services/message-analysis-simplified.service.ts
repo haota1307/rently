@@ -114,6 +114,40 @@ export class ChatbotMessageAnalysisSimplifiedService {
           }
           break
 
+        case 'website_help':
+          result = {
+            intent: 'website_help',
+            content: await this.generateRAGResponse(
+              message,
+              'website_features'
+            ),
+          }
+          break
+
+        case 'account_help':
+          result = {
+            intent: 'account_help',
+            content: await this.generateRAGResponse(message, 'account_guide'),
+          }
+          break
+
+        case 'transaction_help':
+          result = {
+            intent: 'transaction_help',
+            content: await this.generateRAGResponse(
+              message,
+              'transaction_help'
+            ),
+          }
+          break
+
+        case 'contract_help':
+          result = {
+            intent: 'contract_help',
+            content: await this.generateRAGResponse(message, 'contract_help'),
+          }
+          break
+
         default:
           result = {
             intent: 'general',
@@ -147,6 +181,10 @@ export class ChatbotMessageAnalysisSimplifiedService {
             - search: Tìm kiếm phòng trọ, nhà ở
             - posting_guide: Hỏi về cách đăng tin, đăng bài
             - advice: Tìm kiếm lời khuyên về thuê trọ
+            - website_help: Câu hỏi về cách sử dụng trang web, giao diện, tính năng
+            - account_help: Câu hỏi về tài khoản, đăng ký, đăng nhập, quên mật khẩu
+            - transaction_help: Câu hỏi về thanh toán, nạp tiền, rút tiền, đặt cọc, giao dịch
+            - contract_help: Câu hỏi về hợp đồng thuê phòng, ký kết, quản lý hợp đồng
             - general: Các câu hỏi chung khác
             
             Chỉ trả về loại, không giải thích.`,
@@ -166,7 +204,16 @@ export class ChatbotMessageAnalysisSimplifiedService {
             properties: {
               intent: {
                 type: 'string',
-                enum: ['search', 'posting_guide', 'advice', 'general'],
+                enum: [
+                  'search',
+                  'posting_guide',
+                  'advice',
+                  'website_help',
+                  'account_help',
+                  'transaction_help',
+                  'contract_help',
+                  'general',
+                ],
                 description: 'Ý định của người dùng',
               },
             },
@@ -200,7 +247,14 @@ export class ChatbotMessageAnalysisSimplifiedService {
    */
   async generateRAGResponse(
     message: string,
-    type: 'general' | 'advice' | 'posting_guide'
+    type:
+      | 'general'
+      | 'advice'
+      | 'posting_guide'
+      | 'website_features'
+      | 'account_guide'
+      | 'transaction_help'
+      | 'contract_help'
   ): Promise<string> {
     try {
       // Cache key
@@ -295,7 +349,14 @@ export class ChatbotMessageAnalysisSimplifiedService {
    * Tạo system prompt dựa trên loại câu hỏi
    */
   private createSystemPrompt(
-    type: 'general' | 'advice' | 'posting_guide',
+    type:
+      | 'general'
+      | 'advice'
+      | 'posting_guide'
+      | 'website_features'
+      | 'account_guide'
+      | 'transaction_help'
+      | 'contract_help',
     context: string
   ): string {
     if (type === 'advice') {
@@ -323,6 +384,62 @@ export class ChatbotMessageAnalysisSimplifiedService {
       - Mỗi bước có giải thích ngắn gọn TẠI SAO điều đó quan trọng
       - Nhấn mạnh: hình ảnh chất lượng, cách viết tiêu đề/mô tả, đặt giá hợp lý
       - Ngôn ngữ đơn giản, dễ hiểu
+      `
+    } else if (type === 'website_features') {
+      return `
+      Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ tại Việt Nam.
+      
+      THÔNG TIN VỀ TRANG WEB:
+      ${context}
+      
+      HƯỚNG DẪN TRẢ LỜI:
+      - Hướng dẫn rõ ràng từng bước sử dụng trang web
+      - Mô tả vị trí các nút, menu và chức năng
+      - Sử dụng ngôn ngữ đơn giản, dễ hiểu
+      - Nếu có thể, đề cập đến vị trí tương đối của các phần tử (ví dụ: "ở góc trên bên phải")
+      - Khi mô tả quy trình, sử dụng số thứ tự: 1) 2) 3)...
+      `
+    } else if (type === 'account_guide') {
+      return `
+      Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ tại Việt Nam.
+      
+      THÔNG TIN VỀ TÀI KHOẢN:
+      ${context}
+      
+      HƯỚNG DẪN TRẢ LỜI:
+      - Hướng dẫn rõ ràng từng bước về quy trình liên quan đến tài khoản
+      - Nhấn mạnh các lưu ý về bảo mật tài khoản
+      - Giải thích các tùy chọn và cài đặt quan trọng
+      - Đưa ra lời khuyên để tránh các vấn đề phổ biến
+      - Ngôn ngữ thân thiện và dễ hiểu
+      `
+    } else if (type === 'transaction_help') {
+      return `
+      Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ tại Việt Nam.
+      
+      THÔNG TIN VỀ GIAO DỊCH VÀ THANH TOÁN:
+      ${context}
+      
+      HƯỚNG DẪN TRẢ LỜI:
+      - Hướng dẫn chi tiết về quy trình giao dịch/thanh toán
+      - Nhấn mạnh các biện pháp bảo mật và an toàn
+      - Giải thích rõ các phương thức thanh toán được hỗ trợ
+      - Nêu các lưu ý quan trọng để tránh lỗi giao dịch
+      - Sử dụng ngôn ngữ rõ ràng, chính xác về số tiền và thời gian
+      `
+    } else if (type === 'contract_help') {
+      return `
+      Bạn là trợ lý ảo Rently Assistant của một trang web cho thuê phòng trọ tại Việt Nam.
+      
+      THÔNG TIN VỀ HỢP ĐỒNG THUÊ PHÒNG:
+      ${context}
+      
+      HƯỚNG DẪN TRẢ LỜI:
+      - Hướng dẫn chi tiết về quy trình liên quan đến hợp đồng
+      - Nhấn mạnh tầm quan trọng của việc đọc kỹ các điều khoản
+      - Giải thích rõ quyền lợi và trách nhiệm của các bên
+      - Đưa ra lời khuyên để đảm bảo hợp đồng công bằng và rõ ràng
+      - Hãy chuyên nghiệp và khách quan trong câu trả lời
       `
     } else {
       return `

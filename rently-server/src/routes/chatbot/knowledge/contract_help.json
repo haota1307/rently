@@ -1,0 +1,47 @@
+[
+  {
+    "id": "con_1",
+    "content": "Quy trình ký hợp đồng trên Rently: 1) Sau khi yêu cầu thuê phòng được chấp nhận, vào mục 'Phòng đã thuê' và nhấn 'Xem chi tiết', 2) Trong chi tiết, nhấn vào 'Xem hợp đồng' nếu chủ trọ đã tạo hợp đồng, 3) Đọc kỹ các điều khoản hợp đồng, 4) Nếu đồng ý, nhấn 'Ký hợp đồng' và xác nhận thông tin, 5) Sau khi cả hai bên ký, hợp đồng sẽ có hiệu lực và được lưu trữ trong hệ thống. Bạn có thể tải xuống bản PDF của hợp đồng để lưu trữ.",
+    "metadata": {
+      "source": "default",
+      "category": "contract_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "con_2",
+    "content": "Để xem và quản lý hợp đồng thuê phòng trên Rently: 1) Đăng nhập vào tài khoản, 2) Đối với người thuê: vào mục 'Phòng đã thuê' > 'Xem chi tiết' > 'Hợp đồng'; Đối với chủ trọ: vào mục 'Quản lý cho thuê' > 'Hợp đồng', 3) Tại đây bạn có thể xem trạng thái hợp đồng (Đang chờ ký, Đã ký, Hết hạn), 4) Nhấn vào từng hợp đồng để xem chi tiết, 5) Sử dụng tính năng 'Tải xuống' để lưu bản PDF của hợp đồng, 6) Đối với hợp đồng đang chờ ký, bạn có thể thực hiện ký số hoặc từ chối ký.",
+    "metadata": {
+      "source": "default",
+      "category": "contract_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "con_3",
+    "content": "Các điều khoản quan trọng cần chú ý trong hợp đồng thuê phòng Rently: 1) Thời hạn thuê và điều kiện gia hạn/chấm dứt hợp đồng, 2) Giá thuê, tiền cọc và phương thức thanh toán, 3) Quy định về sửa chữa và bảo trì phòng ốc, 4) Trách nhiệm của người thuê và chủ trọ, 5) Chính sách hoàn trả tiền cọc khi kết thúc hợp đồng, 6) Điều khoản về việc chuyển nhượng hoặc cho thuê lại, 7) Quy định về thú cưng, khách thăm và tiếng ồn. Đọc kỹ và làm rõ mọi điều khoản trước khi ký.",
+    "metadata": {
+      "source": "default",
+      "category": "contract_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "con_4",
+    "content": "Cách tạo hợp đồng cho thuê phòng trên Rently (dành cho chủ trọ): 1) Đăng nhập vào tài khoản chủ trọ, 2) Vào mục 'Quản lý cho thuê' > 'Yêu cầu thuê', 3) Chọn yêu cầu thuê đã được chấp nhận, 4) Nhấn 'Tạo hợp đồng', 5) Điền đầy đủ thông tin: thời hạn thuê, giá thuê, tiền cọc, ngày bắt đầu, các điều khoản bổ sung, 6) Có thể sử dụng mẫu hợp đồng có sẵn hoặc tùy chỉnh, 7) Kiểm tra lại và nhấn 'Tạo hợp đồng', 8) Hợp đồng sẽ được gửi đến người thuê để ký kết. Hợp đồng chỉ có hiệu lực khi cả hai bên cùng ký.",
+    "metadata": {
+      "source": "default",
+      "category": "contract_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "con_5",
+    "content": "Quy trình gia hạn hợp đồng thuê phòng trên Rently: 1) Đăng nhập vào tài khoản, 2) Đối với người thuê: vào mục 'Phòng đã thuê' > 'Xem chi tiết' > 'Hợp đồng'; Đối với chủ trọ: vào mục 'Quản lý cho thuê' > 'Hợp đồng', 3) Chọn hợp đồng cần gia hạn, 4) Nhấn nút 'Yêu cầu gia hạn' (người thuê) hoặc 'Tạo gia hạn' (chủ trọ), 5) Nhập thời gian gia hạn và điều chỉnh giá thuê nếu cần, 6) Gửi yêu cầu và chờ bên còn lại xác nhận, 7) Sau khi cả hai bên đồng ý, phụ lục gia hạn sẽ được tạo và có hiệu lực.",
+    "metadata": {
+      "source": "default",
+      "category": "contract_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  }
+]

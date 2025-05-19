@@ -1,0 +1,47 @@
+[
+  {
+    "id": "acc_1",
+    "content": "Để đăng ký tài khoản trên Rently: 1) Nhấn vào nút 'Đăng ký' ở góc phải trên cùng, 2) Chọn loại tài khoản (Người thuê hoặc Chủ trọ), 3) Điền thông tin cá nhân (họ tên, email, số điện thoại, mật khẩu), 4) Xác nhận email được gửi đến, 5) Hoàn tất đăng ký. Nếu chọn loại tài khoản Chủ trọ, bạn cần cung cấp thêm giấy tờ xác thực và đợi quản trị viên phê duyệt.",
+    "metadata": {
+      "source": "default",
+      "category": "account_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "acc_2",
+    "content": "Để quản lý tài khoản Rently: 1) Đăng nhập vào tài khoản, 2) Nhấn vào avatar hoặc tên người dùng ở góc phải trên cùng, 3) Chọn 'Tài khoản' từ menu thả xuống, 4) Tại đây bạn có thể: cập nhật thông tin cá nhân, thay đổi mật khẩu, quản lý phương thức thanh toán, xem lịch sử giao dịch, và thiết lập thông báo. Mọi thay đổi đều được lưu tự động sau khi cập nhật.",
+    "metadata": {
+      "source": "default",
+      "category": "account_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "acc_3",
+    "content": "Để thay đổi mật khẩu tài khoản Rently: 1) Đăng nhập vào tài khoản, 2) Vào mục 'Tài khoản' từ menu người dùng, 3) Chọn tab 'Bảo mật', 4) Nhập mật khẩu hiện tại và mật khẩu mới, 5) Xác nhận mật khẩu mới, 6) Nhấn 'Cập nhật'. Mật khẩu mới phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt để đảm bảo an toàn.",
+    "metadata": {
+      "source": "default",
+      "category": "account_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "acc_4",
+    "content": "Quy trình nâng cấp tài khoản lên chủ trọ trên Rently: 1) Đăng nhập vào tài khoản hiện tại, 2) Vào mục 'Tài khoản' > 'Nâng cấp tài khoản', 3) Chuẩn bị và tải lên giấy tờ xác thực: CMND/CCCD (mặt trước và sau), giấy tờ sở hữu/quản lý nhà trọ, 4) Điền thông tin bổ sung như địa chỉ kinh doanh, mã số thuế (nếu có), 5) Gửi yêu cầu xét duyệt, 6) Chờ phản hồi từ quản trị viên (thường trong vòng 24-48 giờ), 7) Khi được duyệt, tài khoản sẽ tự động có thêm quyền đăng tin và quản lý nhà trọ.",
+    "metadata": {
+      "source": "default",
+      "category": "account_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "acc_5",
+    "content": "Cách khôi phục mật khẩu Rently khi quên: 1) Truy cập trang đăng nhập, 2) Nhấn vào liên kết 'Quên mật khẩu', 3) Nhập email đã đăng ký tài khoản, 4) Nhấn 'Gửi yêu cầu', 5) Kiểm tra email và nhấn vào liên kết đặt lại mật khẩu (liên kết có hiệu lực trong 30 phút), 6) Tạo mật khẩu mới và xác nhận, 7) Đăng nhập lại bằng mật khẩu mới. Nếu không nhận được email, hãy kiểm tra thư mục spam hoặc liên hệ hỗ trợ.",
+    "metadata": {
+      "source": "default",
+      "category": "account_guide",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  }
+]

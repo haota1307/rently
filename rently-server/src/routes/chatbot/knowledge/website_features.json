@@ -1,0 +1,56 @@
+[
+  {
+    "id": "web_1",
+    "content": "Quy trình thuê phòng trên Rently gồm các bước: 1) Tìm kiếm và chọn phòng phù hợp trên trang 'thue-phong', 2) Gửi yêu cầu thuê qua nút 'Thuê ngay', 3) Điền thông tin về thời hạn thuê và ngày dự kiến chuyển vào, 4) Chờ chủ trọ phản hồi yêu cầu, 5) Nếu được chấp nhận, tiến hành đặt cọc và ký hợp đồng, 6) Theo dõi trạng thái yêu cầu thuê trong mục 'Phòng đã thuê'. Toàn bộ quá trình được quản lý trực tuyến trên nền tảng Rently.",
+    "metadata": {
+      "source": "default",
+      "category": "website_features",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "web_2",
+    "content": "Để xem trạng thái yêu cầu thuê phòng trên Rently: 1) Đăng nhập vào tài khoản, 2) Vào mục 'Phòng đã thuê' trong menu người dùng, 3) Xem danh sách các yêu cầu thuê với các trạng thái: 'Đang chờ' (PENDING), 'Đã thuê' (APPROVED), 'Bị từ chối' (REJECTED), hoặc 'Đã hủy' (CANCELED), 4) Nhấn vào 'Xem chi tiết' để xem thông tin đầy đủ của từng yêu cầu, bao gồm thông tin phòng, chủ nhà và tiền cọc.",
+    "metadata": {
+      "source": "default",
+      "category": "website_features",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "web_3",
+    "content": "Để tìm kiếm phòng trọ trên Rently: 1) Truy cập trang chủ hoặc vào mục 'thue-phong', 2) Sử dụng thanh tìm kiếm phía trên với các bộ lọc: giá cả (từ x đến y), diện tích (từ a đến b m²), tiện ích (wifi, máy lạnh, nhà vệ sinh riêng, etc.), 3) Có thể tìm theo khu vực/địa chỉ cụ thể, 4) Kết quả tìm kiếm sẽ hiển thị với thông tin về giá, diện tích, vị trí, và các tiện ích của phòng, 5) Nhấn vào từng phòng để xem thông tin chi tiết và hình ảnh.",
+    "metadata": {
+      "source": "default",
+      "category": "website_features",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "web_4",
+    "content": "Cách lọc và sắp xếp kết quả tìm kiếm phòng trọ trên Rently: 1) Sau khi nhập tiêu chí tìm kiếm cơ bản, bạn có thể sử dụng các bộ lọc nâng cao ở cột bên trái, 2) Lọc theo giá (thấp đến cao hoặc cao đến thấp), 3) Lọc theo diện tích, 4) Lọc theo khu vực (ví dụ: gần Đại học Nam Cần Thơ), 5) Lọc theo tiện ích có sẵn (wifi, máy lạnh, máy giặt, v.v.), 6) Các kết quả sẽ được cập nhật tự động theo các tiêu chí đã chọn.",
+    "metadata": {
+      "source": "default",
+      "category": "website_features",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "web_11",
+    "content": "Cách sử dụng chatbot Rently Assistant: 1) Nhấn vào biểu tượng chat ở góc dưới bên phải màn hình, 2) Nhập câu hỏi hoặc yêu cầu của bạn vào ô chat, 3) Bạn có thể hỏi về: tìm kiếm phòng (ví dụ: 'Tìm phòng giá dưới 3 triệu ở quận Ninh Kiều'), hướng dẫn đăng tin, lời khuyên thuê phòng, cách sử dụng trang web, 4) Chatbot sẽ trả lời ngay lập tức, 5) Nếu cần hỗ trợ thêm, bạn có thể chọn 'Liên hệ nhân viên hỗ trợ' từ menu chat. Lịch sử chat được lưu lại để bạn có thể tham khảo sau này.",
+    "metadata": {
+      "source": "default",
+      "category": "website_features",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "web_12",
+    "content": "Cách liên hệ hỗ trợ trên Rently: 1) Nhấn vào mục 'Liên hệ' ở cuối trang, 2) Điền thông tin vào form liên hệ (họ tên, email, số điện thoại, nội dung cần hỗ trợ), 3) Nhấn 'Gửi yêu cầu', 4) Đội ngũ hỗ trợ sẽ phản hồi qua email hoặc điện thoại trong vòng 24 giờ. Ngoài ra, bạn có thể liên hệ qua hotline: [số hotline] hoặc email: support@rently.vn. Thời gian hỗ trợ: 8:00 - 22:00 các ngày trong tuần.",
+    "metadata": {
+      "source": "default",
+      "category": "website_features",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  }
+]

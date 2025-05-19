@@ -75,19 +75,6 @@ export const NotificationPopover = () => {
               <span className="sm:hidden">Đọc tất cả</span>
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 sm:h-9 text-xs font-medium p-2 bg-background hover:bg-primary/10 hover:text-primary"
-            onClick={() => {
-              router.push("/lich-xem-phong");
-              setOpen(false);
-            }}
-          >
-            <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
-            <span className="hidden sm:inline">Xem tất cả</span>
-            <span className="sm:hidden">Tất cả</span>
-          </Button>
         </div>
       </div>
 

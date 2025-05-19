@@ -1,0 +1,47 @@
+[
+  {
+    "id": "trans_1",
+    "content": "Để nạp tiền vào tài khoản Rently: 1) Đăng nhập và vào mục 'Nạp tiền' từ menu người dùng, 2) Chọn số tiền muốn nạp hoặc nhập số tiền tùy chỉnh, 3) Chọn phương thức thanh toán (Thẻ ATM nội địa, Thẻ quốc tế Visa/Mastercard, Ví điện tử MoMo/ZaloPay), 4) Làm theo hướng dẫn để hoàn tất giao dịch, 5) Kiểm tra email xác nhận và số dư được cập nhật trong tài khoản. Tiền nạp vào có thể sử dụng để đặt cọc phòng hoặc thanh toán phí đăng tin.",
+    "metadata": {
+      "source": "default",
+      "category": "transaction_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "trans_2",
+    "content": "Để rút tiền từ tài khoản Rently: 1) Đăng nhập và vào mục 'Rút tiền' từ menu người dùng, 2) Nhập số tiền muốn rút (tối thiểu 100.000 VND), 3) Chọn hoặc thêm tài khoản ngân hàng để nhận tiền, 4) Xác nhận thông tin và nhấn 'Yêu cầu rút tiền', 5) Yêu cầu sẽ được xử lý trong 24-48 giờ làm việc, 6) Kiểm tra email xác nhận và theo dõi trạng thái trong 'Lịch sử giao dịch'. Lưu ý: có thể áp dụng phí rút tiền tùy theo số tiền và phương thức rút.",
+    "metadata": {
+      "source": "default",
+      "category": "transaction_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "trans_3",
+    "content": "Quy trình đặt cọc phòng trọ trên Rently: 1) Sau khi yêu cầu thuê phòng được chủ trọ chấp nhận, bạn sẽ nhận được thông báo yêu cầu đặt cọc, 2) Vào mục 'Phòng đã thuê' > 'Xem chi tiết' của phòng đó, 3) Nhấn nút 'Đặt cọc', 4) Xác nhận số tiền cọc (thường là 1-2 tháng tiền thuê), 5) Chọn phương thức thanh toán (từ số dư tài khoản hoặc thanh toán trực tiếp), 6) Hoàn tất giao dịch, 7) Chủ trọ sẽ nhận được thông báo và xác nhận đã nhận tiền cọc. Tiền cọc sẽ được hoàn trả khi kết thúc hợp đồng nếu đáp ứng các điều kiện đã thỏa thuận.",
+    "metadata": {
+      "source": "default",
+      "category": "transaction_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "trans_4",
+    "content": "Để xem lịch sử giao dịch trên Rently: 1) Đăng nhập vào tài khoản, 2) Vào mục 'Tài khoản' > 'Lịch sử giao dịch', 3) Xem danh sách các giao dịch được sắp xếp theo thời gian, 4) Mỗi giao dịch hiển thị: loại giao dịch (nạp tiền, rút tiền, đặt cọc...), số tiền, thời gian, trạng thái, 5) Nhấn vào từng giao dịch để xem chi tiết, 6) Sử dụng bộ lọc để tìm kiếm giao dịch theo loại, trạng thái hoặc khoảng thời gian. Bạn cũng có thể tải xuống lịch sử giao dịch dưới dạng PDF hoặc Excel cho mục đích kế toán.",
+    "metadata": {
+      "source": "default",
+      "category": "transaction_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "trans_5",
+    "content": "Các phương thức thanh toán được hỗ trợ trên Rently: 1) Thẻ ATM nội địa có đăng ký Internet Banking (hỗ trợ hầu hết các ngân hàng Việt Nam), 2) Thẻ quốc tế Visa, Mastercard, JCB, 3) Ví điện tử: MoMo, ZaloPay, VNPay, 4) Chuyển khoản ngân hàng (cho giao dịch giá trị lớn), 5) Thanh toán qua số dư tài khoản Rently. Tất cả giao dịch đều được mã hóa và bảo mật theo tiêu chuẩn quốc tế. Mỗi giao dịch thành công đều có biên lai điện tử gửi qua email.",
+    "metadata": {
+      "source": "default",
+      "category": "transaction_help",
+      "createdAt": "2023-06-10T10:00:00.000Z"
+    }
+  }
+]

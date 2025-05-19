@@ -29,7 +29,16 @@ export interface KnowledgeChunk {
  * Kết quả phân tích tin nhắn
  */
 export interface MessageAnalysisResult {
-  intent: 'search' | 'general' | 'math' | 'advice' | 'posting_guide'
+  intent:
+    | 'search'
+    | 'general'
+    | 'math'
+    | 'advice'
+    | 'posting_guide'
+    | 'website_help'
+    | 'account_help'
+    | 'transaction_help'
+    | 'contract_help'
   content: string
   criteria?: any
 }

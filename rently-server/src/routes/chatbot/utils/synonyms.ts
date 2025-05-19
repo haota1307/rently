@@ -141,6 +141,58 @@ export const importantPhrases: string[] = [
   'thoáng mát',
   'mới',
   'chất lượng',
+
+  // Trang web & giao diện
+  'trang web',
+  'đăng nhập',
+  'đăng ký',
+  'tài khoản',
+  'bảo mật',
+  'mật khẩu',
+  'tìm kiếm',
+  'lọc',
+  'sắp xếp',
+  'nút',
+  'menu',
+  'giao diện',
+  'thanh công cụ',
+  'trang chủ',
+  'hướng dẫn',
+  'quên mật khẩu',
+  'xác minh',
+  'thông báo',
+
+  // Chức năng người dùng
+  'lưu tin',
+  'yêu thích',
+  'so sánh',
+  'đánh giá',
+  'chia sẻ',
+  'nhắn tin',
+  'liên hệ',
+  'báo cáo',
+  'chatbot',
+  'trợ lý ảo',
+  'rently assistant',
+
+  // Giao dịch
+  'nạp tiền',
+  'rút tiền',
+  'ví',
+  'giao dịch',
+  'thanh toán',
+  'lịch sử',
+  'đặt cọc online',
+  'biên lai',
+  'hóa đơn',
+
+  // Hợp đồng
+  'ký hợp đồng',
+  'xem hợp đồng',
+  'tải hợp đồng',
+  'gia hạn hợp đồng',
+  'điều khoản',
+  'tạo hợp đồng',
 ]
 
 /**
