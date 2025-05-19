@@ -4,14 +4,6 @@ import { useState, useEffect } from "react";
 import { useGetRentalRequests } from "@/features/rental-request/useRentalRequest";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { RentalRequestStatus } from "@/schemas/rental-request.schema";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,21 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-// Custom hook debounce
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function RentalRequestsPage() {
   const [page, setPage] = useState(1);

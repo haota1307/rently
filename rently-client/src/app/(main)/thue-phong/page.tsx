@@ -47,6 +47,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/page-header";
 
 // Kiểu dữ liệu cho trạng thái tab
 type TabType = "ALL" | "APPROVED" | "REJECTED" | "CANCELED" | "PENDING";
@@ -96,10 +97,17 @@ export default function RentedRoomsPage() {
 
     if (!rentalRequests || rentalRequests.length === 0) {
       return (
-        <div className="p-6">
-          <p className="text-center text-muted-foreground py-8">
-            Bạn chưa có lịch sử thuê phòng nào.
+        <div className="text-center py-12 bg-muted/20 rounded-lg">
+          <div className="inline-block p-3 bg-primary/10 rounded-full mb-3">
+            <HomeIcon className="h-6 w-6 text-primary" />
+          </div>
+          <p className="text-lg font-medium">Không có phòng đã thuê nào</p>
+          <p className="text-muted-foreground">
+            Bạn chưa thuê phòng trọ nào. Hãy tìm phòng trọ và thuê ngay!
           </p>
+          <Button className="mt-4" asChild>
+            <Link href="/phong-tro">Tìm phòng trọ</Link>
+          </Button>
         </div>
       );
     }
@@ -141,19 +149,19 @@ export default function RentedRoomsPage() {
                       rental.status === RentalRequestStatus.APPROVED
                         ? "default"
                         : rental.status === RentalRequestStatus.CANCELED
-                        ? "destructive"
-                        : rental.status === RentalRequestStatus.REJECTED
-                        ? "outline"
-                        : "secondary"
+                          ? "destructive"
+                          : rental.status === RentalRequestStatus.REJECTED
+                            ? "outline"
+                            : "secondary"
                     }
                   >
                     {rental.status === RentalRequestStatus.APPROVED
                       ? "Đã thuê"
                       : rental.status === RentalRequestStatus.PENDING
-                      ? "Đang chờ"
-                      : rental.status === RentalRequestStatus.REJECTED
-                      ? "Bị từ chối"
-                      : "Đã hủy"}
+                        ? "Đang chờ"
+                        : rental.status === RentalRequestStatus.REJECTED
+                          ? "Bị từ chối"
+                          : "Đã hủy"}
                   </Badge>
                 </td>
                 <td className="py-4 text-right">
@@ -177,14 +185,10 @@ export default function RentedRoomsPage() {
 
   return (
     <div className=" mx-8 py-6 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Phòng Đã Thuê</h1>
-          <p className="text-muted-foreground mt-1">
-            Quản lý và theo dõi tất cả các phòng đã thuê của bạn
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Phòng Đã Thuê"
+        description="Quản lý và theo dõi tất cả các phòng đã thuê của bạn"
+      />
 
       {/* Tabs chính */}
       <Tabs
@@ -194,9 +198,6 @@ export default function RentedRoomsPage() {
         className="w-full"
       >
         <div className="flex justify-between items-center mb-4">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold">Danh sách phòng đã thuê</h2>
-          </div>
           <TabsList className="grid grid-cols-5 w-auto">
             <TabsTrigger value="ALL">Tất cả</TabsTrigger>
             <TabsTrigger value="APPROVED">Đã thuê</TabsTrigger>
@@ -297,21 +298,22 @@ export default function RentedRoomsPage() {
                         selectedRental.status === RentalRequestStatus.APPROVED
                           ? "default"
                           : selectedRental.status ===
-                            RentalRequestStatus.CANCELED
-                          ? "destructive"
-                          : selectedRental.status ===
-                            RentalRequestStatus.REJECTED
-                          ? "outline"
-                          : "secondary"
+                              RentalRequestStatus.CANCELED
+                            ? "destructive"
+                            : selectedRental.status ===
+                                RentalRequestStatus.REJECTED
+                              ? "outline"
+                              : "secondary"
                       }
                     >
                       {selectedRental.status === RentalRequestStatus.APPROVED
                         ? "Đã thuê"
                         : selectedRental.status === RentalRequestStatus.PENDING
-                        ? "Đang chờ"
-                        : selectedRental.status === RentalRequestStatus.REJECTED
-                        ? "Bị từ chối"
-                        : "Đã hủy"}
+                          ? "Đang chờ"
+                          : selectedRental.status ===
+                              RentalRequestStatus.REJECTED
+                            ? "Bị từ chối"
+                            : "Đã hủy"}
                     </Badge>
                   </div>
                   <div className="bg-muted/30 p-3 rounded-md">

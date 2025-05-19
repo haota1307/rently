@@ -38,6 +38,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useUpdateRentalRequest } from "@/features/rental-request/useRentalRequest";
 import { createPostSlug } from "@/lib/utils";
+import rentalRequestApiRequest from "@/features/rental-request/rental-request.api";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface RentalRequestDetailDialogProps {
   isOpen: boolean;
@@ -57,26 +59,38 @@ export function RentalRequestDetailDialog({
   );
 
   const updateRequestMutation = useUpdateRentalRequest();
+  const queryClient = useQueryClient();
 
   // Hàm xử lý khi click vào nút chấp nhận
   const handleApprove = async () => {
     setStatusAction("APPROVE");
     setIsSubmitting(true);
     try {
-      await updateRequestMutation.mutateAsync({
-        id: rentalRequest.id,
-        data: {
-          status: RentalRequestStatus.APPROVED,
-          note,
-        },
+      // Chuyển đổi tường minh sang kiểu number
+      const requestId = Number(rentalRequest.id);
+
+      // Kiểm tra ID hợp lệ
+      if (isNaN(requestId)) {
+        throw new Error("Mã yêu cầu không hợp lệ");
+      }
+
+      // Gọi API trực tiếp
+      await rentalRequestApiRequest.update(requestId, {
+        status: RentalRequestStatus.APPROVED,
+        note,
       });
+
       toast.success("Đã chấp nhận yêu cầu thuê thành công");
       onClose();
+
+      // Vô hiệu hóa cache để dữ liệu được cập nhật
+      await queryClient.invalidateQueries({
+        queryKey: ["rental-requests"],
+      });
     } catch (error: any) {
       toast.error(
         error?.payload?.message || "Đã xảy ra lỗi khi chấp nhận yêu cầu thuê"
       );
-      console.error(error);
     } finally {
       setIsSubmitting(false);
       setStatusAction(null);
@@ -93,21 +107,31 @@ export function RentalRequestDetailDialog({
 
     setIsSubmitting(true);
     try {
-      await updateRequestMutation.mutateAsync({
-        id: rentalRequest.id,
-        data: {
-          status: RentalRequestStatus.REJECTED,
-          note,
-          rejectionReason: note,
-        },
+      // Chuyển đổi sang số
+      const requestId = Number(rentalRequest.id);
+
+      // Kiểm tra ID hợp lệ
+      if (isNaN(requestId)) {
+        throw new Error("Mã yêu cầu không hợp lệ");
+      }
+
+      await rentalRequestApiRequest.update(requestId, {
+        status: RentalRequestStatus.REJECTED,
+        note,
+        rejectionReason: note,
       });
+
       toast.success("Đã từ chối yêu cầu thuê thành công");
       onClose();
+
+      // Vô hiệu hóa cache để dữ liệu được cập nhật
+      await queryClient.invalidateQueries({
+        queryKey: ["rental-requests"],
+      });
     } catch (error: any) {
       toast.error(
         error?.payload?.message || "Đã xảy ra lỗi khi từ chối yêu cầu thuê"
       );
-      console.error(error);
     } finally {
       setIsSubmitting(false);
       setStatusAction(null);

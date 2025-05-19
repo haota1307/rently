@@ -10,7 +10,7 @@ export enum RentalRequestStatus {
 
 // Schema cho thông tin room trong RentalRequest
 export const RentalRequestRoomSchema = z.object({
-  id: z.number(),
+  id: z.coerce.number(),
   title: z.string(),
   area: z.number().nullable(),
   price: z.number().nullable(),
@@ -18,14 +18,14 @@ export const RentalRequestRoomSchema = z.object({
 
 // Schema cho thông tin rental trong RentalRequest
 export const RentalRequestRentalSchema = z.object({
-  id: z.number(),
+  id: z.coerce.number(),
   title: z.string(),
   address: z.string().nullable(),
 });
 
 // Schema cho thông tin post trong RentalRequest
 export const RentalRequestPostSchema = z.object({
-  id: z.string(),
+  id: z.coerce.number(),
   title: z.string(),
   buildingName: z.string(),
   address: z.string(),
@@ -42,7 +42,7 @@ export const RentalRequestPostSchema = z.object({
 
 // Schema cho thông tin người dùng trong RentalRequest
 export const RentalRequestUserSchema = z.object({
-  id: z.number(),
+  id: z.coerce.number(),
   name: z.string(),
   phoneNumber: z.string().nullable(),
   email: z.string(),
@@ -50,10 +50,10 @@ export const RentalRequestUserSchema = z.object({
 
 // Schema cho chi tiết RentalRequest
 export const RentalRequestSchema = z.object({
-  id: z.number(),
-  postId: z.number(),
-  tenantId: z.number(),
-  landlordId: z.number(),
+  id: z.coerce.number(),
+  postId: z.coerce.number(),
+  tenantId: z.coerce.number(),
+  landlordId: z.coerce.number(),
   status: z.nativeEnum(RentalRequestStatus),
   note: z.string().nullable(),
   expectedMoveDate: z.string().or(z.date()),

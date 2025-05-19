@@ -139,7 +139,9 @@ export const useUpdateRentalRequest = () => {
     }: {
       id: number;
       data: UpdateRentalRequestBodyType;
-    }) => rentalRequestApiRequest.update(id, data),
+    }) => {
+      return rentalRequestApiRequest.update(id, data);
+    },
     onSuccess: (response) => {
       // Làm mới các truy vấn yêu cầu thuê
       queryClient.invalidateQueries({ queryKey: ["rental-requests"] });

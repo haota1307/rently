@@ -31,8 +31,16 @@ const rentalRequestApiRequest = {
   },
 
   // Cập nhật yêu cầu thuê
-  update: async (id: number, data: UpdateRentalRequestBodyType) => {
-    const response = await http.put<any>(`rental-requests/${id}`, data);
+  update: async (id: number | string, data: UpdateRentalRequestBodyType) => {
+    // Chuyển đổi ID sang số (nếu nó là chuỗi)
+    const numericId = typeof id === "string" ? Number(id) : id;
+
+    // Đảm bảo id không undefined và là số hợp lệ
+    if (numericId === undefined || isNaN(numericId)) {
+      throw new Error("ID yêu cầu thuê không hợp lệ");
+    }
+
+    const response = await http.put<any>(`rental-requests/${numericId}`, data);
     return response.payload || response;
   },
 
