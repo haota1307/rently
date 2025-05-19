@@ -54,9 +54,9 @@ export function RentalRequestDetailDialog({
 }: RentalRequestDetailDialogProps) {
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusAction, setStatusAction] = useState<"APPROVE" | "REJECT" | null>(
-    null
-  );
+  const [statusAction, setStatusAction] = useState<
+    "APPROVE" | "REJECT" | "CANCEL" | null
+  >(null);
 
   const updateRequestMutation = useUpdateRentalRequest();
   const queryClient = useQueryClient();
@@ -131,6 +131,47 @@ export function RentalRequestDetailDialog({
     } catch (error: any) {
       toast.error(
         error?.payload?.message || "Đã xảy ra lỗi khi từ chối yêu cầu thuê"
+      );
+    } finally {
+      setIsSubmitting(false);
+      setStatusAction(null);
+    }
+  };
+
+  // Hàm xử lý khi click vào nút hủy yêu cầu thuê
+  const handleCancel = async () => {
+    setStatusAction("CANCEL");
+    if (!note || note.trim() === "") {
+      toast.error("Vui lòng nhập lý do hủy yêu cầu thuê");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Chuyển đổi sang số
+      const requestId = Number(rentalRequest.id);
+
+      // Kiểm tra ID hợp lệ
+      if (isNaN(requestId)) {
+        throw new Error("Mã yêu cầu không hợp lệ");
+      }
+
+      await rentalRequestApiRequest.update(requestId, {
+        status: RentalRequestStatus.CANCELED,
+        note,
+        rejectionReason: note,
+      });
+
+      toast.success("Đã hủy yêu cầu thuê thành công");
+      onClose();
+
+      // Vô hiệu hóa cache để dữ liệu được cập nhật
+      await queryClient.invalidateQueries({
+        queryKey: ["rental-requests"],
+      });
+    } catch (error: any) {
+      toast.error(
+        error?.payload?.message || "Đã xảy ra lỗi khi hủy yêu cầu thuê"
       );
     } finally {
       setIsSubmitting(false);
@@ -412,13 +453,65 @@ export function RentalRequestDetailDialog({
           </>
         )}
 
-        {status !== RentalRequestStatus.PENDING && (
-          <DialogFooter>
-            <Button type="button" onClick={onClose}>
-              Đóng
-            </Button>
-          </DialogFooter>
+        {status === RentalRequestStatus.APPROVED && (
+          <>
+            <Separator className="my-4" />
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label htmlFor="note" className="text-sm font-medium">
+                  {statusAction === "CANCEL"
+                    ? "Lý do hủy yêu cầu thuê"
+                    : "Ghi chú"}
+                </label>
+                <Textarea
+                  id="note"
+                  placeholder={
+                    statusAction === "CANCEL"
+                      ? "Nhập lý do hủy yêu cầu thuê (bắt buộc)..."
+                      : "Nhập ghi chú của bạn..."
+                  }
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  required={statusAction === "CANCEL"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {statusAction === "CANCEL" &&
+                    "Bắt buộc phải nhập lý do khi hủy yêu cầu thuê đã được chấp nhận."}
+                </p>
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Đóng
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  Hủy yêu cầu thuê
+                </Button>
+              </DialogFooter>
+            </div>
+          </>
         )}
+
+        {status !== RentalRequestStatus.PENDING &&
+          status !== RentalRequestStatus.APPROVED && (
+            <DialogFooter>
+              <Button type="button" onClick={onClose}>
+                Đóng
+              </Button>
+            </DialogFooter>
+          )}
       </DialogContent>
     </Dialog>
   );
