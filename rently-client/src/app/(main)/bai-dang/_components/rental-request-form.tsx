@@ -41,6 +41,8 @@ export function RentalRequestForm({ postId }: RentalRequestFormProps) {
   // Lấy thông tin chi tiết bài đăng để biết có yêu cầu đặt cọc hay không
   const { data: postDetail } = useGetPostDetail(postId);
 
+  console.log("postDetail", postDetail);
+
   // Lấy thông tin tài khoản người dùng để kiểm tra số dư
   const { data: accountData } = useAccountMe();
   const userBalance = accountData?.payload?.balance || 0;

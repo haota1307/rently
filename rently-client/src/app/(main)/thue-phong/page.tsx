@@ -69,6 +69,8 @@ export default function RentedRoomsPage() {
       activeTab !== "ALL" ? (activeTab as RentalRequestStatus) : undefined,
   });
 
+  console.log({ rentalRequestsResponse });
+
   const rentalRequests = rentalRequestsResponse?.data || [];
 
   const handleOpenDetail = (rental: RentalRequestType) => {

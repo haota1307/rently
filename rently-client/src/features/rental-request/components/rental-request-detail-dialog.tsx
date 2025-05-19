@@ -58,8 +58,9 @@ export function RentalRequestDetailDialog({
     "APPROVE" | "REJECT" | "CANCEL" | null
   >(null);
 
-  const updateRequestMutation = useUpdateRentalRequest();
   const queryClient = useQueryClient();
+
+  console.log("rentalRequest", rentalRequest);
 
   // Hàm xử lý khi click vào nút chấp nhận
   const handleApprove = async () => {
@@ -74,10 +75,12 @@ export function RentalRequestDetailDialog({
         throw new Error("Mã yêu cầu không hợp lệ");
       }
 
-      // Gọi API trực tiếp
+      const depositAmount = rentalRequest.post?.deposit || 0;
+
       await rentalRequestApiRequest.update(requestId, {
         status: RentalRequestStatus.APPROVED,
         note,
+        depositAmount,
       });
 
       toast.success("Đã chấp nhận yêu cầu thuê thành công");

@@ -22,13 +22,9 @@ import {
 } from './rental-request.dto'
 
 @Controller('rental-requests')
-@UseGuards(AccessTokenGuard)
 export class RentalRequestController {
   constructor(private rentalRequestService: RentalRequestService) {}
 
-  /**
-   * Lấy danh sách yêu cầu thuê
-   */
   @Get()
   @ZodSerializerDto(GetRentalRequestsResDTO)
   list(

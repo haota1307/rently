@@ -143,6 +143,7 @@ export class RentalRequestRepo {
                 title: true,
                 pricePaid: true,
                 description: true,
+                deposit: true,
                 rental: {
                   select: {
                     id: true,
@@ -211,6 +212,7 @@ export class RentalRequestRepo {
               title: true,
               pricePaid: true,
               description: true,
+              deposit: true,
               rental: {
                 select: {
                   id: true,
@@ -420,6 +422,20 @@ export class RentalRequestRepo {
               email: true,
             },
           },
+        },
+      })
+
+      const postId = rentalRequest.post.id
+
+      const post = await prisma.rentalPost.findUnique({
+        where: { id: postId },
+        select: { deposit: true },
+      })
+
+      await prisma.rentalRequest.update({
+        where: { id },
+        data: {
+          depositAmount: post.deposit,
         },
       })
 

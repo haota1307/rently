@@ -63,6 +63,8 @@ export default function RentalRequestsPage() {
   const requests = data?.data || [];
   const totalPages = data?.totalPages || 0;
 
+  console.log("requests", requests);
+
   // Hàm xử lý khi click vào xem chi tiết
   const handleViewRequest = (request: any) => {
     setSelectedRequest(request);

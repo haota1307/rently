@@ -33,22 +33,14 @@ export class RentalRequestService {
 
   // Lấy danh sách yêu cầu thuê
   async list(query: GetRentalRequestsQueryType, userId: number, role: string) {
-    this.logger.log(
-      `Getting rental requests list for user ${userId} with role ${query.role || role}`
-    )
     return this.rentalRequestRepo.list(query, userId, query.role)
   }
 
   // Lấy chi tiết yêu cầu thuê
   async findById(id: number, userId: number, roleName: string) {
-    this.logger.log(
-      `Getting rental request detail for id ${id} by user ${userId}`
-    )
-
     const rentalRequest = await this.rentalRequestRepo.findById(id)
 
     if (!rentalRequest) {
-      this.logger.warn(`Rental request with id ${id} not found`)
       throw new NotFoundException('Yêu cầu thuê không tồn tại')
     }
 
@@ -71,10 +63,6 @@ export class RentalRequestService {
 
   // Tạo yêu cầu thuê mới
   async create(data: CreateRentalRequestBodyType, userId: number) {
-    this.logger.log(
-      `Creating rental request for post ${data.postId} by user ${userId}`
-    )
-
     try {
       // Sử dụng transaction để đảm bảo tính nhất quán dữ liệu
       return await this.prismaService.$transaction(
@@ -128,6 +116,7 @@ export class RentalRequestService {
           const rentalRequest = await this.rentalRequestRepo.create({
             data,
             tenantId: userId,
+
             prismaTransaction,
           })
 
@@ -219,10 +208,6 @@ export class RentalRequestService {
     userId: number,
     roleName: string
   ) {
-    this.logger.log(
-      `Updating rental request ${id} by user ${userId} with data: ${JSON.stringify(data)}`
-    )
-
     try {
       // Sử dụng transaction để đảm bảo tính nhất quán dữ liệu
       return await this.prismaService.$transaction(
@@ -243,6 +228,8 @@ export class RentalRequestService {
 
           // Kiểm tra trạng thái hiện tại
           this.validateCurrentStatus(rentalRequest, data)
+
+          console.log('update', rentalRequest, data)
 
           // Nếu là trạng thái APPROVED, xử lý tiền đặt cọc
           if (data.status === RentalRequestStatus.APPROVED) {
@@ -388,6 +375,8 @@ export class RentalRequestService {
     prismaTransaction: any
   ) {
     if (!rentalRequest.post) return
+
+    console.log('rentalRequest.post.deposit', rentalRequest.post.deposit)
 
     // Sử dụng trường deposit một cách an toàn
     const depositAmount = Number(

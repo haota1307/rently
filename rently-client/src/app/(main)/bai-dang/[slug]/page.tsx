@@ -43,6 +43,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   const { data: post, isLoading, error } = useGetPostDetail(postId);
 
+  console.log("post", post);
+
   // Lấy thông tin về lịch hẹn xem phòng hiện tại của người dùng
   const { getViewingSchedules } = useViewingSchedule();
   const { data: schedules } = getViewingSchedules({
@@ -128,7 +130,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   if (room?.roomImages && room.roomImages.length > 0) {
     images = [
       ...images,
-      ...room.roomImages.map((img) => ({
+      ...room.roomImages.map((img: { imageUrl: string }) => ({
         url: img.imageUrl,
         source: "Phòng",
       })),
@@ -139,7 +141,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   if (rental?.rentalImages && rental.rentalImages.length > 0) {
     images = [
       ...images,
-      ...rental.rentalImages.map((img) => ({
+      ...rental.rentalImages.map((img: { imageUrl: string }) => ({
         url: img.imageUrl,
         source: "Nhà trọ",
       })),
@@ -155,7 +157,9 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   // Lấy danh sách tiện ích từ phòng
   const amenities = room?.roomAmenities
-    ? room.roomAmenities.map((amenity) => amenity.amenity.name)
+    ? room.roomAmenities.map(
+        (amenity: { amenity: { name: any } }) => amenity.amenity.name
+      )
     : [];
 
   return (
