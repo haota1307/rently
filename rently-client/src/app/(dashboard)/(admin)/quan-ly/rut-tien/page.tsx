@@ -103,6 +103,8 @@ const WithdrawManagementPage = () => {
   const [openQrDialog, setOpenQrDialog] = useState(false);
   const qrImageRef = useRef<HTMLImageElement>(null);
 
+  console.log("withdrawRequests", withdrawRequests);
+
   // Lấy socket từ store
   const socket = useAppStore((state) => state.socket);
   const emitSocketEvent = useAppStore((state) => state.emitSocketEvent);
@@ -118,23 +120,57 @@ const WithdrawManagementPage = () => {
         ...(status && status !== "all" && { status }),
       });
 
+      console.log("API Response:", response);
+
       if (response.payload?.transactions) {
+        console.log("Raw transactions:", response.payload.transactions);
+
         // Lọc các giao dịch là yêu cầu rút tiền
         const withdrawRequests = response.payload.transactions
-          .filter(
-            (transaction: any) =>
-              parseFloat(transaction.amount_out) > 0 &&
-              transaction.transaction_content?.includes("Yêu cầu rút tiền")
-          )
+          .filter((transaction: any) => {
+            const isWithdraw = parseFloat(transaction.amount_out) > 0;
+            // Thay đổi điều kiện lọc, chỉ kiểm tra "RUT" thay vì "Yêu cầu rút tiền"
+            const hasRutContent =
+              transaction.transaction_content?.includes("RUT");
+
+            console.log(`Transaction ${transaction.id}:`, {
+              amountOut: transaction.amount_out,
+              isWithdraw,
+              content: transaction.transaction_content,
+              hasRutContent,
+              match: isWithdraw && hasRutContent,
+            });
+
+            return isWithdraw && hasRutContent;
+          })
           .map((transaction: any) => {
             const createdAt = new Date(transaction.transaction_date);
 
             // Trích xuất thông tin ngân hàng từ nội dung giao dịch
-            const contentParts = transaction.transaction_content?.split(" - ");
-            const bankName = contentParts?.length > 1 ? contentParts[1] : "";
-            const accountMatch =
-              transaction.transaction_content?.match(/tài khoản (\d+)/);
-            const bankAccountNumber = accountMatch ? accountMatch[1] : "";
+            // Format mới: "CT DEN:0947055644 SEVQR RUT53"
+            let bankName = "";
+            let bankAccountNumber = "";
+
+            // Trích xuất số tài khoản từ nội dung giao dịch mới
+            if (transaction.transaction_content) {
+              // Cố gắng lấy số tài khoản từ phần DEN:xxxxxxxxxx
+              const denMatch =
+                transaction.transaction_content.match(/DEN:(\d+)/);
+              if (denMatch && denMatch[1]) {
+                bankAccountNumber = denMatch[1];
+              }
+
+              // Mặc định sử dụng số tài khoản từ trường accountNumber nếu có
+              if (!bankAccountNumber && transaction.account_number) {
+                bankAccountNumber = transaction.account_number;
+              }
+
+              // Nếu không tìm thấy thông tin ngân hàng trong nội dung, sử dụng gateway hoặc mặc định
+              bankName =
+                transaction.gateway ||
+                transaction.bank_brand_name ||
+                "Không xác định";
+            }
 
             // Lấy tên chủ tài khoản từ metadata của transaction
             let bankAccountName = "";
@@ -183,9 +219,11 @@ const WithdrawManagementPage = () => {
             };
           });
 
+        console.log("Filtered withdraw requests:", withdrawRequests);
         setWithdrawRequests(withdrawRequests);
       }
     } catch (err) {
+      console.error("Error fetching transactions:", err);
       setError("Không thể tải danh sách yêu cầu rút tiền");
     } finally {
       setLoading(false);
@@ -199,6 +237,8 @@ const WithdrawManagementPage = () => {
         const response = await paymentApiRequest.getTransactions({
           id: withdrawId,
         });
+
+        console.log("Transaction detail response:", response);
 
         if (
           response.status === 200 &&
@@ -238,19 +278,35 @@ const WithdrawManagementPage = () => {
               // Giao dịch chưa có trong danh sách, thêm mới nếu phù hợp
               if (
                 parseFloat(transactionData.amount_out) > 0 &&
-                transactionData.transaction_content?.includes(
-                  "Yêu cầu rút tiền"
-                )
+                transactionData.transaction_content?.includes("RUT")
               ) {
                 // Tạo yêu cầu rút tiền mới từ giao dịch này
                 const createdAt = new Date(transactionData.transaction_date);
-                const contentParts =
-                  transactionData.transaction_content?.split(" - ");
-                const bankName =
-                  contentParts?.length > 1 ? contentParts[1] : "";
-                const accountMatch =
-                  transactionData.transaction_content?.match(/tài khoản (\d+)/);
-                const bankAccountNumber = accountMatch ? accountMatch[1] : "";
+
+                // Trích xuất thông tin ngân hàng từ format mới
+                let bankName = "";
+                let bankAccountNumber = "";
+
+                // Trích xuất số tài khoản từ nội dung giao dịch mới
+                if (transactionData.transaction_content) {
+                  // Cố gắng lấy số tài khoản từ phần DEN:xxxxxxxxxx
+                  const denMatch =
+                    transactionData.transaction_content.match(/DEN:(\d+)/);
+                  if (denMatch && denMatch[1]) {
+                    bankAccountNumber = denMatch[1];
+                  }
+
+                  // Mặc định sử dụng số tài khoản từ trường accountNumber nếu có
+                  if (!bankAccountNumber && transactionData.account_number) {
+                    bankAccountNumber = transactionData.account_number;
+                  }
+
+                  // Nếu không tìm thấy thông tin ngân hàng trong nội dung, sử dụng gateway hoặc mặc định
+                  bankName =
+                    transactionData.gateway ||
+                    transactionData.bank_brand_name ||
+                    "Không xác định";
+                }
 
                 let bankAccountName = "";
                 try {
@@ -308,6 +364,7 @@ const WithdrawManagementPage = () => {
           return false;
         }
       } catch (error) {
+        console.error("Error in fetchAndUpdateSingleWithdraw:", error);
         // Trong trường hợp lỗi, vẫn làm mới danh sách
         fetchWithdrawRequests(statusFilter);
         return false;
@@ -319,6 +376,12 @@ const WithdrawManagementPage = () => {
   // Hàm chung để đóng modal và cập nhật danh sách khi có sự kiện từ server
   const closeModalAndUpdateList = useCallback(
     (withdrawId: number, status: string, amount?: number) => {
+      console.log("closeModalAndUpdateList called:", {
+        withdrawId,
+        status,
+        amount,
+      });
+
       // Nếu đang hiển thị modal QR cho yêu cầu vừa được cập nhật
       if (selectedRequest && selectedRequest.id === withdrawId) {
         // Đóng modal và reset state
@@ -343,8 +406,8 @@ const WithdrawManagementPage = () => {
       }
 
       // Cập nhật trạng thái trong danh sách
-      setWithdrawRequests((prevRequests) =>
-        prevRequests.map((req) => {
+      setWithdrawRequests((prevRequests) => {
+        const updated = prevRequests.map((req) => {
           if (req.id === withdrawId) {
             return {
               ...req,
@@ -354,8 +417,10 @@ const WithdrawManagementPage = () => {
             };
           }
           return req;
-        })
-      );
+        });
+        console.log("Updated withdraw requests:", updated);
+        return updated;
+      });
 
       // Gọi API để cập nhật đầy đủ thông tin từ server
       fetchAndUpdateSingleWithdraw(withdrawId);
@@ -366,6 +431,8 @@ const WithdrawManagementPage = () => {
   // Xử lý dữ liệu từ sự kiện payment status updated
   const processPaymentUpdateData = useCallback(
     (updateData: any) => {
+      console.log("processPaymentUpdateData called with data:", updateData);
+
       let withdrawId = null;
 
       // Trích xuất ID từ dữ liệu
@@ -382,11 +449,19 @@ const WithdrawManagementPage = () => {
         }
       }
 
+      console.log("Extracted withdrawId:", withdrawId);
+
       if (withdrawId) {
         const status = updateData.status || "COMPLETED";
+        console.log("Calling closeModalAndUpdateList with:", {
+          withdrawId,
+          status,
+          amount: updateData.amount,
+        });
         closeModalAndUpdateList(withdrawId, status, updateData.amount);
       } else {
         // Không có ID cụ thể, cập nhật toàn bộ danh sách
+        console.log("No specific withdrawId found, refreshing all requests");
         fetchWithdrawRequests(statusFilter);
       }
     },

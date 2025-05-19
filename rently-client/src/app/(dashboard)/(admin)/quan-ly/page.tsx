@@ -583,7 +583,7 @@ const DashboardPage = () => {
           value={activeTab}
           onValueChange={setActiveTab}
         >
-          <div className="flex justify-between items-center mb-4">
+          {/* <div className="flex justify-between items-center mb-4">
             <TabsList className="mb-0 w-full sm:w-auto overflow-x-auto">
               <TabsTrigger value="overview" className="text-xs md:text-sm">
                 Tổng quan
@@ -595,7 +595,7 @@ const DashboardPage = () => {
                 Khu vực
               </TabsTrigger>
             </TabsList>
-          </div>
+          </div> */}
 
           <TabsContent value="overview" className="mt-0">
             <div className="grid gap-3 md:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-4">
@@ -812,14 +812,6 @@ const DashboardPage = () => {
                         onClick={() => handleTimeRangeChange(30)}
                       >
                         30 ngày
-                      </Button>
-                      <Button
-                        variant={timeRange === 90 ? "default" : "outline"}
-                        size="sm"
-                        className="h-7 text-[10px] md:text-xs"
-                        onClick={() => handleTimeRangeChange(90)}
-                      >
-                        90 ngày
                       </Button>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -1533,13 +1525,6 @@ const DashboardPage = () => {
                         onClick={() => handleTimeRangeChange(30)}
                       >
                         30 ngày
-                      </Button>
-                      <Button
-                        variant={timeRange === 90 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handleTimeRangeChange(90)}
-                      >
-                        90 ngày
                       </Button>
                     </div>
                   </div>

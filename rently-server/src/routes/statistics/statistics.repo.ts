@@ -117,6 +117,54 @@ export class StatisticsRepo {
     endDate?: string
   ): Promise<RevenueDataType[]> {
     try {
+      // Đầu tiên, lấy giao dịch mới nhất và cũ nhất để biết phạm vi dữ liệu thực tế
+      let transactionDateCondition: any = {}
+
+      // Thêm điều kiện lọc theo người dùng nếu có
+      if (landlordId) {
+        transactionDateCondition.userId = landlordId
+      }
+
+      // Lọc theo loại giao dịch (nếu có)
+      if (transaction_content) {
+        if (transaction_content === 'SEVQR NAP') {
+          transactionDateCondition.transactionContent = { contains: 'NAP' }
+        } else {
+          const contents = transaction_content.split('|')
+          transactionDateCondition.OR = contents.map(content => ({
+            transactionContent: { contains: content },
+          }))
+        }
+      } else {
+        // Mặc định tìm theo giao dịch nạp và rút
+        transactionDateCondition.OR = [
+          { transactionContent: { contains: 'NAP' } },
+          { transactionContent: { contains: 'RUT' } },
+        ]
+      }
+
+      const latestTransaction =
+        await this.prismaService.paymentTransaction.findFirst({
+          where: transactionDateCondition,
+          orderBy: {
+            transactionDate: 'desc',
+          },
+          select: {
+            transactionDate: true,
+          },
+        })
+
+      const earliestTransaction =
+        await this.prismaService.paymentTransaction.findFirst({
+          where: transactionDateCondition,
+          orderBy: {
+            transactionDate: 'asc',
+          },
+          select: {
+            transactionDate: true,
+          },
+        })
+
       // Xác định resolution dựa trên số ngày
       let resolution = 'day'
       if (days > 60) {
@@ -125,27 +173,81 @@ export class StatisticsRepo {
         resolution = 'month'
       }
 
-      // Xác định khoảng thời gian
+      // Xác định khoảng thời gian ban đầu
       let start: Date
       let end: Date
 
-      if (startDate && endDate) {
-        start = new Date(startDate)
-        end = new Date(endDate)
+      // Ưu tiên sử dụng dữ liệu thực tế nếu có
+      if (latestTransaction) {
+        // Sử dụng ngày của giao dịch mới nhất làm mốc
+        end = new Date(latestTransaction.transactionDate)
         // Đảm bảo end là cuối ngày để bao gồm toàn bộ ngày kết thúc
         end.setHours(23, 59, 59, 999)
 
-        days =
-          Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
-          1
-      } else {
-        end = new Date()
-        start = subDays(end, days - 1)
+        // Tính ngày bắt đầu dựa trên số ngày yêu cầu
+        start = new Date(end)
+        start.setDate(end.getDate() - days + 1)
         start.setHours(0, 0, 0, 0)
+
+        // Nếu có giao dịch cũ nhất và nó nằm trong khoảng, mở rộng khoảng thời gian
+        if (earliestTransaction) {
+          const earliestDate = new Date(earliestTransaction.transactionDate)
+          if (earliestDate < start) {
+            // Mở rộng khoảng thời gian để bao gồm giao dịch cũ nhất
+            start = new Date(earliestDate)
+            start.setHours(0, 0, 0, 0)
+
+            // Đảm bảo khoảng thời gian không vượt quá số ngày yêu cầu
+            const actualDays =
+              Math.ceil(
+                (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+              ) + 1
+            if (actualDays > days) {
+              // Nếu vượt quá, điều chỉnh lại resolution
+              if (actualDays > 60) {
+                resolution = 'week'
+              }
+              if (actualDays > 180) {
+                resolution = 'month'
+              }
+            }
+          }
+        }
+      } else {
+        // Nếu không có dữ liệu, sử dụng thời gian hiện tại
+        if (startDate && endDate) {
+          start = new Date(startDate)
+          end = new Date(endDate)
+          // Đảm bảo end là cuối ngày
+          end.setHours(23, 59, 59, 999)
+        } else {
+          end = new Date()
+          start = subDays(end, days - 1)
+          start.setHours(0, 0, 0, 0)
+        }
       }
 
+      // Tạo điều kiện where cơ bản
+      const whereCondition: any = {
+        transactionDate: {
+          gte: start,
+          lte: end,
+        },
+        ...transactionDateCondition,
+      }
+
+      delete whereCondition.OR // Tránh trùng lặp OR
+
+      // Kiểm tra xem có dữ liệu trong khoảng thời gian này không
+      const dataCount = await this.prismaService.paymentTransaction.count({
+        where: whereCondition,
+      })
+
       // Với khoảng thời gian lớn, sử dụng SQL trực tiếp để tối ưu
-      if (days > 30) {
+      if (
+        days > 30 ||
+        (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24) > 30
+      ) {
         // Xác định interval string đúng cú pháp PostgreSQL
         let intervalString: string
         switch (resolution) {
@@ -184,7 +286,7 @@ export class StatisticsRepo {
           params.push(landlordId)
         }
 
-        const whereCondition =
+        const whereConditionSql =
           whereClause.length > 0 ? `AND ${whereClause.join(' AND ')}` : ''
 
         const sql = `
@@ -228,7 +330,7 @@ export class StatisticsRepo {
         }))
       }
 
-      // Với số ngày nhỏ, sử dụng phương pháp hiện tại nhưng với song song hóa
+      // Nếu không có dữ liệu trong khoảng hoặc với số ngày nhỏ, sử dụng phương pháp tạo mảng ngày
       const result: RevenueDataType[] = []
 
       // Tạo mảng ngày từ start đến end
@@ -261,6 +363,16 @@ export class StatisticsRepo {
 
       // Chờ tất cả promises hoàn thành
       const results = await Promise.all(datePromises)
+
+      // Log kết quả để kiểm tra
+      console.log('Date range:', {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        dataCount,
+        resolution,
+        resultsCount: results.length,
+      })
+
       return results
     } catch (error) {
       throw new InternalServerErrorException(error.message)

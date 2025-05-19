@@ -9,61 +9,64 @@ datasource db {
 }
 
 model User {
-  id                       Int                   @id @default(autoincrement())
-  name                     String
-  avatar                   String?
-  phoneNumber              String?
-  email                    String                @unique
-  password                 String
-  status                   UserStatus            @default(INACTIVE)
-  balance                  Int                   @default(0)
-  roleId                   Int
-  deletedAt                DateTime?
-  createdAt                DateTime              @default(now()) @db.Timestamptz(6)
-  updatedAt                DateTime              @updatedAt @db.Timestamptz(6)
-  createdById              Int?
-  deletedById              Int?
-  updatedById              Int?
-  ChatbotMessage           ChatbotMessage[]
-  comments                 Comment[]
-  conversationsOne         Conversation[]        @relation("UserOneConversations")
-  conversationsTwo         Conversation[]        @relation("UserTwoConversations")
-  conversationMessages     ConversationMessage[]
-  favorites                Favorite[]
-  notifications            Notification[]
-  payments                 Payment[]
-  paymentTransactions      PaymentTransaction[]
-  PermissionCreatedBy      Permission[]          @relation("PermissionCreatedBy")
-  deletedPermissions       Permission[]          @relation("PermissionDeletedBy")
-  PermissionUpdatedBy      Permission[]          @relation("PermissionUpdatedBy")
-  Permission               Permission[]
-  processedReports         PostReport[]          @relation("ProcessedReports")
-  reportedPosts            PostReport[]          @relation("UserReports")
-  PostReport               PostReport[]
-  refreshTokens            RefreshToken[]
-  rentals                  Rental[]              @relation("LandlordRentals")
-  rentalPosts              RentalPost[]          @relation("LandlordRentalPosts")
-  landlordRentalRequests   RentalRequest[]       @relation("LandlordRentalRequests")
-  tenantRentalRequests     RentalRequest[]       @relation("TenantRentalRequests")
-  reviews                  Review[]              @relation("TenantReviews")
-  RoleCreatedBy            Role[]                @relation("RoleCreatedBy")
-  Role                     Role[]                @relation("RoledeletedByIdBy")
-  RoleUpdatedBy            Role[]                @relation("RoleUpdatedBy")
-  processedRequests        RoleUpgradeRequest[]  @relation("ProcessedRequests")
-  roleUpgradeRequests      RoleUpgradeRequest[]
-  createdSettings          SystemSetting[]       @relation("SettingCreatedBy")
-  updatedSettings          SystemSetting[]       @relation("SettingUpdatedBy")
-  respondedContacts        Contact[]             @relation("UserRespondedContacts")
-  createdBy                User?                 @relation("CreatorUsers", fields: [createdById], references: [id], onUpdate: NoAction)
-  createdUsers             User[]                @relation("CreatorUsers")
-  deletedBy                User?                 @relation("DeletorUsers", fields: [deletedById], references: [id], onUpdate: NoAction)
-  deletedUsers             User[]                @relation("DeletorUsers")
-  role                     Role                  @relation(fields: [roleId], references: [id])
-  updatedBy                User?                 @relation("UpdatorUsers", fields: [updatedById], references: [id], onUpdate: NoAction)
-  updatedUsers             User[]                @relation("UpdatorUsers")
-  landlordViewingSchedules ViewingSchedule[]     @relation("LandlordViewingSchedules")
-  tenantViewingSchedules   ViewingSchedule[]     @relation("TenantViewingSchedules")
-  Contact                  Contact[]
+  id                                             Int                   @id @default(autoincrement())
+  name                                           String
+  avatar                                         String?
+  phoneNumber                                    String?
+  email                                          String                @unique
+  password                                       String
+  status                                         UserStatus            @default(INACTIVE)
+  balance                                        Int                   @default(0)
+  roleId                                         Int
+  deletedAt                                      DateTime?
+  createdAt                                      DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt                                      DateTime              @updatedAt @db.Timestamptz(6)
+  createdById                                    Int?
+  deletedById                                    Int?
+  updatedById                                    Int?
+  ChatbotMessage                                 ChatbotMessage[]
+  comments                                       Comment[]
+  respondedContacts                              Contact[]             @relation("UserRespondedContacts")
+  Contact                                        Contact[]
+  ContractAttachment                             ContractAttachment[]
+  conversationsOne                               Conversation[]        @relation("UserOneConversations")
+  conversationsTwo                               Conversation[]        @relation("UserTwoConversations")
+  conversationMessages                           ConversationMessage[]
+  favorites                                      Favorite[]
+  notifications                                  Notification[]
+  payments                                       Payment[]
+  paymentTransactions                            PaymentTransaction[]
+  PermissionCreatedBy                            Permission[]          @relation("PermissionCreatedBy")
+  deletedPermissions                             Permission[]          @relation("PermissionDeletedBy")
+  PermissionUpdatedBy                            Permission[]          @relation("PermissionUpdatedBy")
+  Permission                                     Permission[]
+  processedReports                               PostReport[]          @relation("ProcessedReports")
+  reportedPosts                                  PostReport[]          @relation("UserReports")
+  PostReport                                     PostReport[]
+  refreshTokens                                  RefreshToken[]
+  rentals                                        Rental[]              @relation("LandlordRentals")
+  RentalContract_RentalContract_landlordIdToUser RentalContract[]      @relation("RentalContract_landlordIdToUser")
+  RentalContract_RentalContract_tenantIdToUser   RentalContract[]      @relation("RentalContract_tenantIdToUser")
+  rentalPosts                                    RentalPost[]          @relation("LandlordRentalPosts")
+  landlordRentalRequests                         RentalRequest[]       @relation("LandlordRentalRequests")
+  tenantRentalRequests                           RentalRequest[]       @relation("TenantRentalRequests")
+  reviews                                        Review[]              @relation("TenantReviews")
+  RoleCreatedBy                                  Role[]                @relation("RoleCreatedBy")
+  Role                                           Role[]                @relation("RoledeletedByIdBy")
+  RoleUpdatedBy                                  Role[]                @relation("RoleUpdatedBy")
+  processedRequests                              RoleUpgradeRequest[]  @relation("ProcessedRequests")
+  roleUpgradeRequests                            RoleUpgradeRequest[]
+  createdSettings                                SystemSetting[]       @relation("SettingCreatedBy")
+  updatedSettings                                SystemSetting[]       @relation("SettingUpdatedBy")
+  createdBy                                      User?                 @relation("CreatorUsers", fields: [createdById], references: [id], onUpdate: NoAction)
+  createdUsers                                   User[]                @relation("CreatorUsers")
+  deletedBy                                      User?                 @relation("DeletorUsers", fields: [deletedById], references: [id], onUpdate: NoAction)
+  deletedUsers                                   User[]                @relation("DeletorUsers")
+  role                                           Role                  @relation(fields: [roleId], references: [id])
+  updatedBy                                      User?                 @relation("UpdatorUsers", fields: [updatedById], references: [id], onUpdate: NoAction)
+  updatedUsers                                   User[]                @relation("UpdatorUsers")
+  landlordViewingSchedules                       ViewingSchedule[]     @relation("LandlordViewingSchedules")
+  tenantViewingSchedules                         ViewingSchedule[]     @relation("TenantViewingSchedules")
 
   @@index([name])
   @@index([status])
@@ -162,19 +165,20 @@ model Rental {
 }
 
 model Room {
-  id            Int           @id @default(autoincrement())
-  title         String
-  price         Decimal
-  isAvailable   Boolean       @default(true)
-  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
-  rentalId      Int
-  area          Int
-  RentalPost    RentalPost[]
-  reviews       Review[]
-  rental        Rental        @relation(fields: [rentalId], references: [id], onDelete: Cascade)
-  roomAmenities RoomAmenity[]
-  roomImages    RoomImage[]
+  id             Int              @id @default(autoincrement())
+  title          String
+  price          Decimal
+  isAvailable    Boolean          @default(true)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(6)
+  rentalId       Int
+  area           Int
+  RentalContract RentalContract[]
+  RentalPost     RentalPost[]
+  reviews        Review[]
+  rental         Rental           @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  roomAmenities  RoomAmenity[]
+  roomImages     RoomImage[]
 
   @@index([rentalId])
   @@index([isAvailable])
@@ -270,6 +274,8 @@ model Payment {
   @@index([createdAt])
   @@index([status, userId])
   @@index([createdAt, status])
+  @@index([createdAt, status], map: "payment_created_status_idx")
+  @@index([status], map: "payment_status_idx")
 }
 
 model PaymentTransaction {
@@ -297,6 +303,8 @@ model PaymentTransaction {
   @@index([transactionDate, transactionContent])
   @@index([transactionDate, userId, transactionContent])
   @@index([transactionContent])
+  @@index([transactionContent], map: "payment_transaction_content_idx")
+  @@index([transactionDate, transactionContent], map: "payment_transaction_date_content_idx")
 }
 
 model Conversation {
@@ -436,6 +444,7 @@ model RentalRequest {
   rejectionReason  String?
   createdAt        DateTime            @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime            @updatedAt @db.Timestamptz(6)
+  RentalContract   RentalContract?
   landlord         User                @relation("LandlordRentalRequests", fields: [landlordId], references: [id])
   post             RentalPost          @relation(fields: [postId], references: [id])
   tenant           User                @relation("TenantRentalRequests", fields: [tenantId], references: [id])
@@ -533,13 +542,61 @@ model Contact {
   updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
   respondedAt   DateTime?     @db.Timestamptz(6)
   respondedById Int?
+  userId        Int?
   respondedBy   User?         @relation("UserRespondedContacts", fields: [respondedById], references: [id])
   User          User?         @relation(fields: [userId], references: [id])
-  userId        Int?
 
   @@index([status])
   @@index([email])
   @@index([createdAt])
+}
+
+model ContractAttachment {
+  id             Int            @id @default(autoincrement())
+  contractId     Int
+  fileUrl        String
+  fileName       String
+  fileType       String
+  uploadedBy     Int
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  RentalContract RentalContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  User           User           @relation(fields: [uploadedBy], references: [id])
+
+  @@index([contractId])
+  @@index([uploadedBy])
+}
+
+model RentalContract {
+  id                                   Int                  @id @default(autoincrement())
+  contractNumber                       String               @unique
+  rentalRequestId                      Int                  @unique
+  roomId                               Int
+  landlordId                           Int
+  tenantId                             Int
+  startDate                            DateTime             @db.Timestamptz(6)
+  endDate                              DateTime             @db.Timestamptz(6)
+  monthlyRent                          Decimal              @db.Decimal(10, 2)
+  deposit                              Decimal              @db.Decimal(10, 2)
+  paymentDueDate                       Int
+  contractContent                      String
+  terms                                Json?
+  landlordSignedAt                     DateTime?            @db.Timestamptz(6)
+  tenantSignedAt                       DateTime?            @db.Timestamptz(6)
+  status                               ContractStatus       @default(DRAFT)
+  createdAt                            DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt                            DateTime             @db.Timestamptz(6)
+  ContractAttachment                   ContractAttachment[]
+  User_RentalContract_landlordIdToUser User                 @relation("RentalContract_landlordIdToUser", fields: [landlordId], references: [id])
+  RentalRequest                        RentalRequest        @relation(fields: [rentalRequestId], references: [id])
+  Room                                 Room                 @relation(fields: [roomId], references: [id])
+  User_RentalContract_tenantIdToUser   User                 @relation("RentalContract_tenantIdToUser", fields: [tenantId], references: [id])
+
+  @@index([createdAt])
+  @@index([endDate])
+  @@index([landlordId])
+  @@index([startDate])
+  @@index([status])
+  @@index([tenantId])
 }
 
 enum TransactionStatus {
@@ -615,4 +672,14 @@ enum ContactStatus {
   PENDING
   RESPONDED
   CLOSED
+}
+
+enum ContractStatus {
+  DRAFT
+  AWAITING_LANDLORD_SIGNATURE
+  AWAITING_TENANT_SIGNATURE
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  RENEWED
 }

@@ -543,13 +543,6 @@ const LandlordPage = () => {
                 >
                   30 ngày
                 </Button>
-                <Button
-                  variant={timeRange === 90 ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleTimeRangeChange(90)}
-                >
-                  90 ngày
-                </Button>
                 <RevenueReport
                   data={revenueData || []}
                   timeRange={timeRange}
@@ -652,13 +645,6 @@ const LandlordPage = () => {
                   onClick={() => handleTransactionTimeFilterChange(30)}
                 >
                   30 ngày
-                </Button>
-                <Button
-                  variant={transactionTimeFilter === 90 ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleTransactionTimeFilterChange(90)}
-                >
-                  90 ngày
                 </Button>
               </div>
               <TransactionReport
