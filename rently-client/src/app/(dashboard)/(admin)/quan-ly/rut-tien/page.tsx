@@ -219,7 +219,6 @@ const WithdrawManagementPage = () => {
             };
           });
 
-        console.log("Filtered withdraw requests:", withdrawRequests);
         setWithdrawRequests(withdrawRequests);
       }
     } catch (err) {

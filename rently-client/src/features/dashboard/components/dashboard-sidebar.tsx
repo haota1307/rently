@@ -29,7 +29,6 @@ import {
 
 import { DashboardNavbar } from "@/features/dashboard/components/dashboard-navbar";
 import { DashboardLogo } from "@/features/dashboard/components/dashboard-logo";
-import { Button } from "@/components/ui/button";
 
 const defaultData = {
   user: {
@@ -38,11 +37,13 @@ const defaultData = {
     avatar: "/avatars/admin.jpg",
   },
   navMain: [
+    // Tổng quan
     {
       title: "Tổng quan",
       url: "/quan-ly",
       icon: Home,
     },
+    // Quản lý tài chính
     {
       title: "Quản lý doanh thu",
       url: "/quan-ly/doanh-thu",
@@ -53,11 +54,18 @@ const defaultData = {
       url: "/quan-ly/rut-tien",
       icon: CreditCard,
     },
+    // Quản lý người dùng
     {
       title: "Quản lý người dùng",
       url: "/quan-ly/nguoi-dung",
       icon: User,
     },
+    {
+      title: "Yêu cầu nâng cấp",
+      url: "/quan-ly/yeu-cau-nang-cap",
+      icon: Users,
+    },
+    // Quản lý nhà trọ và nội dung
     {
       title: "Quản lý nhà trọ",
       url: "/quan-ly/nha-tro",
@@ -73,25 +81,22 @@ const defaultData = {
       url: "/quan-ly/tien-ich",
       icon: Building2Icon,
     },
+    // Quản lý liên hệ và báo cáo
     {
       title: "Quản lý liên hệ",
       url: "/quan-ly/lien-he",
       icon: Mail,
     },
     {
-      title: "Quản lý quyền",
-      url: "/quan-ly/quyen",
-      icon: Shield,
-    },
-    {
       title: "Quản lý báo cáo",
       url: "/quan-ly/bao-cao",
       icon: Flag,
     },
+    // Quản lý hệ thống
     {
-      title: "Yêu cầu nâng cấp",
-      url: "/quan-ly/yeu-cau-nang-cap",
-      icon: Users,
+      title: "Quản lý quyền",
+      url: "/quan-ly/quyen",
+      icon: Shield,
     },
     {
       title: "Cài đặt hệ thống",
@@ -103,11 +108,13 @@ const defaultData = {
 
 const landloardData = {
   navMain: [
+    // Tổng quan
     {
       title: "Tổng quan",
       url: "/cho-thue",
       icon: Home,
     },
+    // Quản lý nhà trọ và phòng trọ
     {
       title: "Danh sách nhà trọ",
       url: "/cho-thue/nha-tro",
@@ -118,11 +125,13 @@ const landloardData = {
       url: "/cho-thue/phong-tro",
       icon: Home,
     },
+    // Quản lý bài đăng
     {
       title: "Danh sách bài đăng",
       url: "/cho-thue/quan-ly-bai-dang",
       icon: NotebookPen,
     },
+    // Quản lý lịch hẹn và yêu cầu
     {
       title: "Lịch xem phòng",
       url: "/cho-thue/dat-lich",
