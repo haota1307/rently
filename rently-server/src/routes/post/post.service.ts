@@ -335,4 +335,96 @@ export class PostService {
       )
     }
   }
+
+  /**
+   * Lấy danh sách bài đăng gần vị trí người dùng
+   */
+  async getNearbyPosts({
+    lat,
+    lng,
+    limit = 5,
+  }: {
+    lat: number
+    lng: number
+    limit?: number
+  }) {
+    try {
+      // Sử dụng Haversine formula để tính khoảng cách
+      // Lưu ý: Prisma không hỗ trợ trực tiếp địa lý, nên cần tính toán trực tiếp
+      interface NearbyPost {
+        id: number
+        title: string
+        price: string | number
+        address: string
+        area: number
+        distance: number
+      }
+
+      const nearbyPosts = await this.prismaService.$queryRaw<NearbyPost[]>`
+        SELECT 
+          rp.id, 
+          rp.title, 
+          room.price, 
+          r.address,
+          room.area,
+          (
+            6371 * acos(
+              cos(radians(${lat})) * 
+              cos(radians(CAST(r.lat AS FLOAT))) * 
+              cos(radians(CAST(r.lng AS FLOAT)) - radians(${lng})) + 
+              sin(radians(${lat})) * 
+              sin(radians(CAST(r.lat AS FLOAT)))
+            )
+          ) AS distance
+        FROM "RentalPost" rp
+        INNER JOIN "Rental" r ON rp."rentalId" = r.id
+        INNER JOIN "Room" room ON rp."roomId" = room.id
+        WHERE rp.status = 'ACTIVE'
+        ORDER BY distance
+        LIMIT ${limit}
+      `
+
+      // Lấy chi tiết cho các bài đăng
+      const postIds = nearbyPosts.map(post => post.id)
+      const postsDetails = await Promise.all(
+        postIds.map(id => this.findById(id))
+      )
+
+      // Kết hợp dữ liệu
+      const results = nearbyPosts.map(postWithDistance => {
+        const details = postsDetails.find(p => p?.id === postWithDistance.id)
+
+        // Lấy hình ảnh từ bài đăng chi tiết
+        const images =
+          details?.room?.roomImages?.map(img => ({
+            url: img.imageUrl,
+            order: img.order,
+          })) || []
+
+        // Lấy tiện ích
+        const roomAmenities = details?.room?.roomAmenities || []
+        const amenities = roomAmenities.map(ra => ra.amenity.name)
+
+        return {
+          id: postWithDistance.id,
+          title: postWithDistance.title,
+          price: Number(postWithDistance.price),
+          address: postWithDistance.address,
+          area: Number(postWithDistance.area),
+          distance: Number(postWithDistance.distance),
+          images,
+          amenities,
+          status: details?.status || 'ACTIVE',
+        }
+      })
+
+      return {
+        data: results,
+        totalItems: results.length,
+      }
+    } catch (error) {
+      console.error('Error getting nearby posts:', error)
+      throw new Error('Failed to get nearby posts')
+    }
+  }
 }

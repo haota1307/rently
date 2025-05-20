@@ -147,3 +147,26 @@ export const useUpdatePostStatus = () => {
     },
   });
 };
+
+export const useGetNearbyPosts = (
+  coordinates: [number, number] | null,
+  limit = 5,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery({
+    queryKey: ["nearbyPosts", coordinates],
+    queryFn: async () => {
+      if (!coordinates) return { data: [], totalItems: 0 };
+      const [lat, lng] = coordinates;
+      const res = await postApiRequest.getNearbyPosts({
+        lat,
+        lng,
+        limit,
+      });
+      return res.payload;
+    },
+    enabled:
+      !!coordinates &&
+      (options?.enabled !== undefined ? options.enabled : true),
+  });
+};

@@ -1,6 +1,7 @@
 import http from "@/lib/http";
 import {
   CreatePostBodyType,
+  GetNearbyPostsResType,
   GetPostsQueryType,
   GetPostsResType,
   PostType,
@@ -61,6 +62,16 @@ const postApiRequest = {
   getSameRental: (rentalId: number, currentPostId: number, limit = 4) =>
     http.get<GetPostsResType>(
       `${prefix}/rental/${rentalId}?exclude=${currentPostId}&limit=${limit}`
+    ),
+
+  // Lấy danh sách bài đăng gần vị trí hiện tại của người dùng
+  getNearbyPosts: (params: { lat: number; lng: number; limit?: number }) =>
+    http.get<GetNearbyPostsResType>(
+      `${prefix}/nearby?${queryString.stringify({
+        lat: params.lat,
+        lng: params.lng,
+        limit: params.limit || 5,
+      })}`
     ),
 };
 

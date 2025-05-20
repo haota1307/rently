@@ -18,6 +18,7 @@ import {
   GetPostsResDTO,
   UpdatePostBodyDTO,
   UpdatePostStatusDTO,
+  GetNearbyPostsResDTO,
 } from 'src/routes/post/post.dto'
 import { PostService } from 'src/routes/post/post.service'
 
@@ -43,6 +44,34 @@ export class PostController {
     @ActiveUser('userId') userId: number
   ) {
     return this.rentalPostService.listByUserId(query, userId)
+  }
+
+  @Get('nearby')
+  @IsPublic()
+  @ZodSerializerDto(GetNearbyPostsResDTO)
+  async getNearbyPosts(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('limit') limit: string = '5'
+  ) {
+    return this.rentalPostService.getNearbyPosts({
+      lat: parseFloat(lat),
+      lng: parseFloat(lng),
+      limit: parseInt(limit, 10),
+    })
+  }
+
+  @Get('rental/:rentalId')
+  async getSameRental(
+    @Param('rentalId') rentalId: string,
+    @Query('exclude') excludePostId: string,
+    @Query('limit') limit: string = '4'
+  ) {
+    return this.rentalPostService.getSameRental(
+      +rentalId,
+      +excludePostId,
+      +limit
+    )
   }
 
   @Get(':rentalPostId')
@@ -106,18 +135,5 @@ export class PostController {
     @Query('limit') limit: string = '4'
   ) {
     return this.rentalPostService.getSimilarByPrice(+id, +limit)
-  }
-
-  @Get('/rental/:rentalId')
-  async getSameRental(
-    @Param('rentalId') rentalId: string,
-    @Query('exclude') excludePostId: string,
-    @Query('limit') limit: string = '4'
-  ) {
-    return this.rentalPostService.getSameRental(
-      +rentalId,
-      +excludePostId,
-      +limit
-    )
   }
 }

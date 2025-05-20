@@ -3,7 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Phone, Navigation } from "lucide-react";
-import { cn, formatPrice, createPostSlug } from "@/lib/utils";
+import {
+  cn,
+  formatPrice,
+  createPostSlug,
+  formatDistanceValue,
+} from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -104,6 +109,14 @@ export const RentalCard = ({
                   Mới
                 </Badge>
               )}
+              {processedListing.distance > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="absolute top-2 right-2 z-10 bg-blue-500/80 text-white hover:bg-blue-600"
+                >
+                  {formatDistanceValue(processedListing.distance)}
+                </Badge>
+              )}
               {processedListing.isAvailable === false && (
                 <div className="absolute top-1/2 left-0 right-0 text-center z-20 transform -rotate-6">
                   <Badge
@@ -150,12 +163,10 @@ export const RentalCard = ({
               <div className="flex items-center text-sm">
                 <Navigation className="mr-1 h-4 w-4 text-blue-500" />
                 <span className="font-medium text-blue-600">
-                  {processedListing.distance < 1
-                    ? `${(processedListing.distance * 1000).toFixed(0)} m`
-                    : `${processedListing.distance.toFixed(1)} km`}
+                  {formatDistanceValue(processedListing.distance)}
                 </span>
                 <span className="ml-1 text-muted-foreground">
-                  Từ Đại học Nam Cần Thơ
+                  từ vị trí của bạn
                 </span>
               </div>
             )}
@@ -285,11 +296,11 @@ export const RentalCard = ({
               <div className="flex items-center text-sm">
                 <Navigation className="mr-1 h-4 w-4 text-blue-500" />
                 <span className="font-medium text-blue-600">
-                  {processedListing.distance < 1
-                    ? `${(processedListing.distance * 1000).toFixed(0)} m`
-                    : `${processedListing.distance.toFixed(1)} km`}
+                  {formatDistanceValue(processedListing.distance)}
                 </span>
-                <span className="ml-1 text-muted-foreground">từ trung tâm</span>
+                <span className="ml-1 text-muted-foreground">
+                  từ Đại học Nam Cần Thơ
+                </span>
               </div>
             )}
 

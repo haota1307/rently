@@ -3,6 +3,7 @@
 import { HeroSection } from "@/components/hero-section";
 import { MobileFilters } from "@/components/moblie-filters";
 import { PageHeader } from "@/components/page-header";
+import { NearbyPostsSection } from "@/components/nearby-posts-section";
 import RentalListings from "@/components/rental-listings";
 import SearchFilters, { FilterValues } from "@/components/search-filters";
 import { useState, useEffect, useRef } from "react";
@@ -122,6 +123,33 @@ export default function Home() {
               </div>
             </motion.div>
           </div>
+
+          {/* Section bài viết cho thuê gần bạn */}
+          <motion.div
+            className="mt-24"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            <div className="relative mb-12">
+              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 w-40 h-1.5 bg-gradient-to-r from-cyan-300 via-blue-300 to-indigo-300 dark:from-cyan-600 dark:via-blue-600 dark:to-indigo-600 rounded-full opacity-70 blur-sm"></div>
+
+              <PageHeader
+                title="Bài viết cho thuê gần bạn"
+                description="Khám phá các phòng trọ phù hợp gần vị trí hiện tại của bạn"
+              />
+            </div>
+
+            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+              {/* Hiệu ứng trang trí góc */}
+              <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-cyan-200/40 via-blue-200/30 to-indigo-200/40 dark:from-cyan-900/20 dark:via-blue-900/20 dark:to-indigo-900/20 rounded-full blur-2xl"></div>
+              <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-blue-200/30 via-indigo-200/20 to-purple-200/30 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 rounded-full blur-2xl"></div>
+
+              <div className="relative z-10">
+                <NearbyPostsSection />
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
       </div>
     </div>

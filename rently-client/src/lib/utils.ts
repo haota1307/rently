@@ -55,6 +55,18 @@ export const formatDate = (
   return format(date, formatString, { locale: vi });
 };
 
+/**
+ * Format khoảng cách theo định dạng thân thiện
+ * @param distanceInKm - Khoảng cách tính bằng km
+ * @returns Khoảng cách được định dạng (ví dụ: 500m, 1.5km)
+ */
+export const formatDistanceValue = (distanceInKm: number) => {
+  if (distanceInKm < 1) {
+    return `${Math.round(distanceInKm * 1000)}m`;
+  }
+  return `${distanceInKm.toFixed(1)}km`;
+};
+
 const errorMessageMap: Record<string, string> = {
   "Error.InvalidPassword": "Mật khẩu không hợp lệ. Vui lòng thử lại.",
   "Error.EmailNotFound": "Email không tồn tại trong hệ thống.",

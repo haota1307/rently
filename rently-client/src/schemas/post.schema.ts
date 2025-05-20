@@ -199,6 +199,29 @@ export const UpdatePostStatusSchema = z.object({
   }),
 });
 
+// Thêm schema cho API getNearbyPosts
+export const GetNearbyPostsResSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.number(),
+      title: z.string(),
+      price: z.number().or(z.string().transform(Number)),
+      address: z.string(),
+      area: z.number().or(z.string().transform(Number)),
+      distance: z.number().nullable().optional(),
+      images: z.array(
+        z.object({
+          url: z.string(),
+          order: z.number(),
+        })
+      ),
+      amenities: z.array(z.string()),
+      status: z.string(),
+    })
+  ),
+  totalItems: z.number(),
+});
+
 export type PostType = z.infer<typeof PostDetailSchema>;
 export type GetPostsResType = z.infer<typeof GetPostsResSchema>;
 export type GetPostsQueryType = z.infer<typeof GetPostsQuerySchema>;
@@ -207,3 +230,4 @@ export type GetPostDetailResType = z.infer<typeof GetPostDetailResSchema>;
 export type CreatePostBodyType = z.infer<typeof CreatePostBodySchema>;
 export type UpdatePostBodyType = z.infer<typeof UpdatePostBodySchema>;
 export type UpdatePostStatusType = z.infer<typeof UpdatePostStatusSchema>;
+export type GetNearbyPostsResType = z.infer<typeof GetNearbyPostsResSchema>;
