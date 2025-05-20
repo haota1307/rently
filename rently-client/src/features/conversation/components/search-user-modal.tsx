@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, UserCircle, Loader2 } from "lucide-react";
 import userApiRequest from "@/features/user/user.api";
 import { useConversation } from "@/features/conversation/use-conversation";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/hooks/use-auth";
 
 type User = {
