@@ -35,6 +35,7 @@ export interface RentalCardProps {
   rental?: RentalType;
   viewMode?: "grid" | "list";
   onContactClick?: () => void;
+  isNearbyPost?: boolean;
 }
 
 export const RentalCard = ({
@@ -42,6 +43,7 @@ export const RentalCard = ({
   rental,
   viewMode = "grid",
   onContactClick = () => {},
+  isNearbyPost = false,
 }: RentalCardProps) => {
   const processedListing = rental
     ? {
@@ -166,7 +168,9 @@ export const RentalCard = ({
                   {formatDistanceValue(processedListing.distance)}
                 </span>
                 <span className="ml-1 text-muted-foreground">
-                  từ vị trí của bạn
+                  {isNearbyPost
+                    ? "từ vị trí của bạn"
+                    : "từ Đại học Nam Cần Thơ"}
                 </span>
               </div>
             )}
@@ -299,7 +303,9 @@ export const RentalCard = ({
                   {formatDistanceValue(processedListing.distance)}
                 </span>
                 <span className="ml-1 text-muted-foreground">
-                  từ Đại học Nam Cần Thơ
+                  {isNearbyPost
+                    ? "từ vị trí của bạn"
+                    : "từ Đại học Nam Cần Thơ"}
                 </span>
               </div>
             )}

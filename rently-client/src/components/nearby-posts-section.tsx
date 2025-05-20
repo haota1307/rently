@@ -93,6 +93,7 @@ export function NearbyPostsSection() {
               distance: Number(post.distance || 0),
               isAvailable: post.status === "ACTIVE",
             }}
+            isNearbyPost={true}
           />
         ))}
       </div>
