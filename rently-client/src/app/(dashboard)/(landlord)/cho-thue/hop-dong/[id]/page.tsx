@@ -319,12 +319,14 @@ export default function ContractDetailPage() {
                     Giá thuê hàng tháng
                   </p>
                   <p className="font-medium">
-                    {formatPrice(contract.monthlyRent)}
+                    {(contract.monthlyRent * 1000).toLocaleString()} đ
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Tiền đặt cọc</p>
-                  <p className="font-medium">{formatPrice(contract.deposit)}</p>
+                  <p className="font-medium">
+                    {(contract.deposit * 1000).toLocaleString()} đ
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
