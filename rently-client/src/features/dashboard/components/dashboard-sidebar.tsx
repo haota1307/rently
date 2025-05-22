@@ -131,6 +131,12 @@ const landloardData = {
       url: "/cho-thue/quan-ly-bai-dang",
       icon: NotebookPen,
     },
+    // Quản lý hợp đồng
+    {
+      title: "Quản lý hợp đồng",
+      url: "/cho-thue/hop-dong",
+      icon: FileText,
+    },
     // Quản lý lịch hẹn và yêu cầu
     {
       title: "Lịch xem phòng",

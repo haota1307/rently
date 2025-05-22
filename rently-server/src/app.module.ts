@@ -29,6 +29,7 @@ import { NotificationModule } from './routes/notification/notification.module'
 import { PostReportModule } from './routes/post-report/post-report.module'
 import { SystemSettingModule } from './routes/system-setting/system-setting.module'
 import { ContactModule } from './routes/contact/contact.module'
+import { RentalContractModule } from './routes/rental-contract/rental-contract.module'
 
 import { AmenityModule } from 'src/routes/amenity/amenity.module'
 import { ScheduleModule } from '@nestjs/schedule'
@@ -67,6 +68,7 @@ import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
     PostReportModule,
     SystemSettingModule,
     ContactModule,
+    RentalContractModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
