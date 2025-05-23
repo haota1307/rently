@@ -11,14 +11,40 @@ export class PdfGeneratorService {
   async generateContractPdf(
     contract: any,
     landlord: any,
-    tenant: any
+    tenant: any,
+    signatures?: {
+      landlordSignature?: {
+        signatureUrl?: string
+        identityCard?: string
+        identityCardIssuedDate?: string
+        identityCardIssuedPlace?: string
+        address?: string
+      }
+      tenantSignature?: {
+        signatureUrl?: string
+        identityCard?: string
+        identityCardIssuedDate?: string
+        identityCardIssuedPlace?: string
+        address?: string
+      }
+    }
   ): Promise<Buffer> {
     // Tạo dữ liệu cho template
     const templateData = {
       contract,
-      landlord,
-      tenant,
+      landlord: {
+        ...landlord,
+        ...signatures?.landlordSignature,
+      },
+      tenant: {
+        ...tenant,
+        ...signatures?.tenantSignature,
+      },
       currentDate: format(new Date(), 'dd/MM/yyyy', { locale: vi }),
+      signatures: {
+        landlordSignatureUrl: signatures?.landlordSignature?.signatureUrl,
+        tenantSignatureUrl: signatures?.tenantSignature?.signatureUrl,
+      },
     }
 
     // Tạo HTML từ template

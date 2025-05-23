@@ -56,6 +56,8 @@ interface TemplateData {
     phoneNumber: string | null
     identityCard?: string
     address?: string
+    identityCardIssuedDate?: string
+    identityCardIssuedPlace?: string
   }
   tenant: {
     name: string
@@ -63,16 +65,22 @@ interface TemplateData {
     phoneNumber: string | null
     identityCard?: string
     address?: string
+    identityCardIssuedDate?: string
+    identityCardIssuedPlace?: string
   }
   currentDate: string
+  signatures?: {
+    landlordSignatureUrl?: string
+    tenantSignatureUrl?: string
+  }
 }
 
 export function getContractHTML(data: TemplateData): string {
-  const { contract, landlord, tenant, currentDate } = data
+  const { contract, landlord, tenant, currentDate, signatures } = data
 
   // Điều chỉnh giá nếu cần (nếu giá được lưu theo đơn vị nghìn đồng)
-  const monthlyRent = contract.monthlyRent * 1000
-  const deposit = contract.deposit * 1000
+  const monthlyRent = contract.monthlyRent
+  const deposit = contract.deposit
 
   return `
 <!DOCTYPE html>
@@ -136,14 +144,14 @@ export function getContractHTML(data: TemplateData): string {
 
     <p><strong>BÊN A: BÊN CHO THUÊ</strong></p>
     <p>Họ và Tên: ${landlord.name}</p>
-    <p>CMND/CCCD: ${landlord.identityCard || '......................'} Ngày cấp: ...................... Nơi cấp: ......................</p>
+    <p>CMND/CCCD: ${landlord.identityCard || '......................'} Ngày cấp: ${landlord.identityCardIssuedDate || '......................'} Nơi cấp: ${landlord.identityCardIssuedPlace || '......................'}</p>
     <p>Thường Trú: ${landlord.address || '......................'}</p>
     <p>Điện thoại: ${landlord.phoneNumber || '......................'}</p>
     <p>Email: ${landlord.email || '......................'}</p>
 
     <p><strong>BÊN B: BÊN THUÊ NHÀ</strong></p>
     <p>Họ và Tên: ${tenant.name}</p>
-    <p>CMND/CCCD: ${tenant.identityCard || '......................'} Ngày cấp: ...................... Nơi cấp: ......................</p>
+    <p>CMND/CCCD: ${tenant.identityCard || '......................'} Ngày cấp: ${tenant.identityCardIssuedDate || '......................'} Nơi cấp: ${tenant.identityCardIssuedPlace || '......................'}</p>
     <p>Thường Trú: ${tenant.address || '......................'}</p>
     <p>Điện thoại: ${tenant.phoneNumber || '......................'}</p>
     <p>Email: ${tenant.email || '......................'}</p>
@@ -155,9 +163,9 @@ export function getContractHTML(data: TemplateData): string {
     <p>Thời hạn thuê nhà là ${getDurationInMonths(contract.startDate, contract.endDate)} tháng kể từ ngày ${formatDateString(contract.startDate)} đến ngày ${formatDateString(contract.endDate)}</p>
 
     <p><strong>Điều 2:</strong></p>
-    <p>Gía tiền thuê nhà là ${formatCurrency(monthlyRent)} đồng/tháng (Bằng chữ: .....................)</p>
+    <p>Giá tiền thuê nhà là ${formatCurrency(monthlyRent)} đồng/tháng</p>
     <p>Tiền thuê nhà bên B thanh toán cho bên A vào ngày ${contract.paymentDueDate} hàng tháng.</p>
-    <p>Bên B đặt tiền thế chân trước ${formatCurrency(deposit)} đồng (Bằng chữ: .....................) cho bên A. 
+    <p>Bên B đặt tiền thế chân trước ${formatCurrency(deposit)} đồng cho bên A. 
        Tiền thế chân sẽ được trả lại đầy đủ cho bên thuê khi hết hợp đồng thuê căn hộ và thanh toán đầy đủ 
        tiền điện, nước, phí dịch vụ và các khoản khác liên quan.</p>
 
@@ -184,14 +192,14 @@ export function getContractHTML(data: TemplateData): string {
     <div class="signature-box">
       <p><strong>BÊN A</strong></p>
       <p>(Ký tên)</p>
-      ${contract.landlordSignedAt ? '<p><em>Đã ký điện tử</em></p>' : '<div class="signature-line"></div>'}
+      ${signatures?.landlordSignatureUrl ? `<img src="${signatures.landlordSignatureUrl}" alt="Chữ ký chủ nhà" style="max-width: 120px; max-height: 60px;" />` : contract.landlordSignedAt ? '<p><em>Đã ký điện tử</em></p>' : '<div class="signature-line"></div>'}
       <p>${landlord.name}</p>
     </div>
 
     <div class="signature-box">
       <p><strong>BÊN B</strong></p>
       <p>(Ký tên)</p>
-      ${contract.tenantSignedAt ? '<p><em>Đã ký điện tử</em></p>' : '<div class="signature-line"></div>'}
+      ${signatures?.tenantSignatureUrl ? `<img src="${signatures.tenantSignatureUrl}" alt="Chữ ký người thuê" style="max-width: 120px; max-height: 60px;" />` : contract.tenantSignedAt ? '<p><em>Đã ký điện tử</em></p>' : '<div class="signature-line"></div>'}
       <p>${tenant.name}</p>
     </div>
   </div>

@@ -479,7 +479,13 @@ export class RentalContractRepo {
     id: number,
     userId: number,
     userType: 'landlord' | 'tenant',
-    signatureUrl: string
+    signatureUrl: string,
+    info?: {
+      identityCard?: string
+      identityCardIssuedDate?: string
+      identityCardIssuedPlace?: string
+      address?: string
+    }
   ): Promise<ContractDetailType> {
     try {
       const updateData: any = {
@@ -517,6 +523,10 @@ export class RentalContractRepo {
           contractId: id,
           userId,
           signatureUrl,
+          identityCard: info?.identityCard,
+          identityCardIssuedDate: info?.identityCardIssuedDate,
+          identityCardIssuedPlace: info?.identityCardIssuedPlace,
+          address: info?.address,
         },
       })
 
@@ -725,6 +735,67 @@ export class RentalContractRepo {
     } catch (error) {
       this.logger.error(`Error getting user info: ${error.message}`)
       throw error
+    }
+  }
+
+  async getContractSignatures(contractId: number): Promise<{
+    landlordSignature?: {
+      signatureUrl?: string
+      identityCard?: string
+      identityCardIssuedDate?: string
+      identityCardIssuedPlace?: string
+      address?: string
+    }
+    tenantSignature?: {
+      signatureUrl?: string
+      identityCard?: string
+      identityCardIssuedDate?: string
+      identityCardIssuedPlace?: string
+      address?: string
+    }
+  }> {
+    try {
+      const contract = await this.prismaService.rentalContract.findUnique({
+        where: { id: contractId },
+        select: { landlordId: true, tenantId: true },
+      })
+      if (!contract) return {}
+      const signatures = await this.prismaService.contractSignature.findMany({
+        where: { contractId },
+      })
+      const landlordSignature = signatures.find(
+        sig => sig.userId === contract.landlordId
+      )
+      const tenantSignature = signatures.find(
+        sig => sig.userId === contract.tenantId
+      )
+      return {
+        landlordSignature: landlordSignature
+          ? {
+              signatureUrl: landlordSignature.signatureUrl,
+              identityCard: landlordSignature.identityCard ?? undefined,
+              identityCardIssuedDate:
+                landlordSignature.identityCardIssuedDate ?? undefined,
+              identityCardIssuedPlace:
+                landlordSignature.identityCardIssuedPlace ?? undefined,
+              address: landlordSignature.address ?? undefined,
+            }
+          : undefined,
+        tenantSignature: tenantSignature
+          ? {
+              signatureUrl: tenantSignature.signatureUrl,
+              identityCard: tenantSignature.identityCard ?? undefined,
+              identityCardIssuedDate:
+                tenantSignature.identityCardIssuedDate ?? undefined,
+              identityCardIssuedPlace:
+                tenantSignature.identityCardIssuedPlace ?? undefined,
+              address: tenantSignature.address ?? undefined,
+            }
+          : undefined,
+      }
+    } catch (error) {
+      this.logger.error(`Error getting contract signatures: ${error.message}`)
+      return {}
     }
   }
 }

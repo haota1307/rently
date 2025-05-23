@@ -587,13 +587,17 @@ model ContractTemplate {
 }
 
 model ContractSignature {
-  id           Int            @id @default(autoincrement())
-  contractId   Int
-  userId       Int
-  signatureUrl String
-  signedAt     DateTime       @default(now()) @db.Timestamptz(6)
-  contract     RentalContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  user         User           @relation(fields: [userId], references: [id])
+  id                      Int            @id @default(autoincrement())
+  contractId              Int
+  userId                  Int
+  signatureUrl            String
+  signedAt                DateTime       @default(now()) @db.Timestamptz(6)
+  identityCard            String?
+  identityCardIssuedDate  String?
+  identityCardIssuedPlace String?
+  address                 String?
+  contract                RentalContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  user                    User           @relation(fields: [userId], references: [id])
 
   @@index([contractId])
   @@index([userId])

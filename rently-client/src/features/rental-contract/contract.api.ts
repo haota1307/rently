@@ -93,6 +93,10 @@ type CreateContractType = {
 
 type SignContractType = {
   signature: string; // Base64 encoded signature image
+  identityCard?: string;
+  identityCardIssuedDate?: string;
+  identityCardIssuedPlace?: string;
+  address?: string;
 };
 
 export const contractApiRequest = {

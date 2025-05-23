@@ -99,6 +99,10 @@ export class GetContractParamsDTO extends createZodDto(
 // Schema cho chữ ký hợp đồng
 export const SignContractSchema = z.object({
   signature: z.string(), // Base64 encoded signature image
+  identityCard: z.string().optional(),
+  identityCardIssuedDate: z.string().optional(),
+  identityCardIssuedPlace: z.string().optional(),
+  address: z.string().optional(),
 })
 
 export class SignContractDTO extends createZodDto(SignContractSchema) {}

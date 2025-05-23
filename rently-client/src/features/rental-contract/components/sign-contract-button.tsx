@@ -30,11 +30,20 @@ export function SignContractButton({
     (userRole === "tenant" &&
       status === ContractStatus.AWAITING_TENANT_SIGNATURE);
 
-  const handleSign = async (signatureDataUrl: string) => {
+  const handleSign = async (
+    signatureDataUrl: string,
+    info: {
+      identityCard: string;
+      identityCardIssuedDate: string;
+      identityCardIssuedPlace: string;
+      address: string;
+    }
+  ) => {
     try {
       setIsLoading(true);
       await contractApiRequest.sign(contractId, {
         signature: signatureDataUrl,
+        ...info,
       });
       toast.success("Đã ký hợp đồng thành công");
       onSuccess();

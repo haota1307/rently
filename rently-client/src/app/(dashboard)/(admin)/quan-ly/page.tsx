@@ -1994,17 +1994,6 @@ const DashboardPage = () => {
                     Giá trung bình
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-2 md:p-4">
-                  <div className="flex items-center gap-1 md:gap-2">
-                    <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
-                    <span className="text-base md:text-lg lg:text-xl font-bold">
-                      1.800.000 ₫
-                    </span>
-                  </div>
-                  <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
-                    Giá trung bình phòng trọ
-                  </p>
-                </CardContent>
               </Card>
             </div>
           </TabsContent>

@@ -262,7 +262,13 @@ export class RentalContractService {
           id,
           userId,
           userType,
-          data.signature
+          data.signature,
+          {
+            identityCard: data.identityCard,
+            identityCardIssuedDate: data.identityCardIssuedDate,
+            identityCardIssuedPlace: data.identityCardIssuedPlace,
+            address: data.address,
+          }
         )
 
       // Gửi thông báo
@@ -364,11 +370,16 @@ export class RentalContractService {
         contract.tenantId
       )
 
+      // Lấy chữ ký
+      const signatures =
+        await this.rentalContractRepo.getContractSignatures(contractId)
+
       // Gọi service để tạo PDF
       const pdfBuffer = await this.pdfGeneratorService.generateContractPdf(
         contract,
         landlordInfo,
-        tenantInfo
+        tenantInfo,
+        signatures
       )
 
       return pdfBuffer
@@ -377,8 +388,6 @@ export class RentalContractService {
       throw error
     }
   }
-
-  // ===== Helper methods =====
 
   // Gửi thông báo khi hợp đồng được ký
   private async sendContractSignatureNotifications(
