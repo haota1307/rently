@@ -21,7 +21,7 @@ import {
 } from "@/schemas/rental-request.schema";
 import { Button } from "@/components/ui/button";
 import contractApiRequest from "@/features/rental-contract/contract.api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ContractStatus,
   CONTRACT_STATUS_LABELS,
@@ -104,6 +104,7 @@ export function RentalHistoryTab() {
   const [selectedContract, setSelectedContract] = useState<number | null>(null);
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const queryClient = useQueryClient();
 
   const {
     data: rentalRequestsResponse,
@@ -493,8 +494,14 @@ export function RentalHistoryTab() {
                     status={contractDetail.status}
                     userRole="tenant"
                     onSuccess={() => {
-                      // Sau khi ký, refetch lại contract detail
+                      // Sau khi ký, refetch lại contract detail và danh sách hợp đồng
                       setSelectedContract(contractDetail.id);
+                      queryClient.invalidateQueries({
+                        queryKey: ["contract-detail", contractDetail.id],
+                      });
+                      queryClient.invalidateQueries({
+                        queryKey: ["contracts"],
+                      });
                     }}
                   />
                 </div>

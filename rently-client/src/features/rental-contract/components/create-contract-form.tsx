@@ -41,6 +41,7 @@ import {
   RentalRequestStatus,
 } from "@/schemas/rental-request.schema";
 import { Card, CardContent } from "@/components/ui/card";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface CreateContractFormProps {
   onSuccess: () => void;
@@ -54,6 +55,7 @@ export function CreateContractForm({ onSuccess }: CreateContractFormProps) {
   >([]);
   const [selectedRequest, setSelectedRequest] =
     useState<RentalRequestDetailType | null>(null);
+  const queryClient = useQueryClient();
 
   const form = useForm<CreateContractFormValues>({
     resolver: zodResolver(createContractSchema),
@@ -147,6 +149,7 @@ export function CreateContractForm({ onSuccess }: CreateContractFormProps) {
 
       await contractApiRequest.create(apiData);
       toast.success("Tạo hợp đồng thành công");
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
       onSuccess();
     } catch (error: any) {
       console.error(error);

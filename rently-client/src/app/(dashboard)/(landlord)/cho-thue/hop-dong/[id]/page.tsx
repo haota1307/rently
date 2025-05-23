@@ -148,16 +148,6 @@ export default function ContractDetailPage() {
               Hợp đồng #{contract.contractNumber}
             </h2>
           </div>
-          <div className="flex gap-2">
-            {userRole && (
-              <SignContractButton
-                contractId={Number(id)}
-                status={contract.status}
-                userRole={userRole}
-                onSuccess={fetchContractDetails}
-              />
-            )}
-          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -284,13 +274,13 @@ export default function ContractDetailPage() {
                     Giá thuê hàng tháng
                   </p>
                   <p className="font-medium">
-                    {(contract.monthlyRent * 1000).toLocaleString()} đ
+                    {contract.monthlyRent.toLocaleString()} VNĐ
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Tiền đặt cọc</p>
                   <p className="font-medium">
-                    {(contract.deposit * 1000).toLocaleString()} đ
+                    {contract.deposit.toLocaleString()} VNĐ
                   </p>
                 </div>
                 <div>

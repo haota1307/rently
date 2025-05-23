@@ -42,12 +42,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function ContractPage() {
   const { userId } = useAuth();
   const router = useRouter();
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<ContractStatus | "all">(
     "all"
   );
@@ -58,17 +57,22 @@ export default function ContractPage() {
 
   const debouncedSearch = useDebounce(searchInput, 500);
 
-  useEffect(() => {
-    if (userId) {
-      fetchContracts();
-    }
-  }, [userId, selectedStatus, debouncedSearch, page, timeFilter]);
-
-  const fetchContracts = async () => {
-    if (!userId) return;
-
-    setLoading(true);
-    try {
+  // Sử dụng useQuery để lấy danh sách hợp đồng
+  const {
+    data: contracts = [],
+    isLoading: loading,
+    refetch: refetchContracts,
+  } = useQuery({
+    queryKey: [
+      "contracts",
+      userId,
+      selectedStatus,
+      debouncedSearch,
+      page,
+      timeFilter,
+    ],
+    queryFn: async () => {
+      if (!userId) return [];
       const response = await contractApiRequest.list({
         status:
           selectedStatus !== "all"
@@ -78,15 +82,10 @@ export default function ContractPage() {
         page,
         limit,
       });
-
-      setContracts(response.payload.data as Contract[]);
-    } catch (error) {
-      console.error("Lỗi khi tải hợp đồng:", error);
-      toast.error("Không thể tải danh sách hợp đồng");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.payload.data as Contract[];
+    },
+    enabled: !!userId,
+  });
 
   const handleStatusChange = (status: string) => {
     setPage(1);
