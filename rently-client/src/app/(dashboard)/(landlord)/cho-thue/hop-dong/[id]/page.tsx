@@ -25,6 +25,9 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
+// Đảm bảo trang này luôn được render động
+export const dynamic = "force-dynamic";
+
 export default function ContractDetailPage() {
   const router = useRouter();
   const { id } = useParams();

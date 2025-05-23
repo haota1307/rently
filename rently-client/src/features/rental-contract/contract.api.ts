@@ -127,6 +127,11 @@ export const contractApiRequest = {
    * @param file File cần đính kèm
    */
   addAttachment: (id: number, file: File) => {
+    // Kiểm tra môi trường trước khi sử dụng File
+    if (typeof window === "undefined") {
+      throw new Error("Phương thức này chỉ có thể được gọi ở phía client");
+    }
+
     const formData = new FormData();
     formData.append("file", file);
     return http.post<ContractDetailType>(
@@ -140,6 +145,11 @@ export const contractApiRequest = {
    * Trả về Blob để tạo URL tải xuống
    */
   downloadFinalDocument: async (id: number) => {
+    // Kiểm tra môi trường trước khi sử dụng XMLHttpRequest
+    if (typeof window === "undefined") {
+      throw new Error("Phương thức này chỉ có thể được gọi ở phía client");
+    }
+
     // Sử dụng XMLHttpRequest để lấy blob trực tiếp
     return new Promise<Blob>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -192,6 +202,11 @@ export const contractApiRequest = {
    * @param id ID của hợp đồng
    */
   exportPDF: async (id: number): Promise<Blob> => {
+    // Kiểm tra môi trường trước khi sử dụng XMLHttpRequest
+    if (typeof window === "undefined") {
+      throw new Error("Phương thức này chỉ có thể được gọi ở phía client");
+    }
+
     try {
       // Sử dụng XMLHttpRequest để lấy blob trực tiếp
       return new Promise<Blob>((resolve, reject) => {

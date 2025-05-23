@@ -43,6 +43,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Đảm bảo trang này luôn được render động
+export const dynamic = "force-dynamic";
+
 export default function ContractPage() {
   const { userId } = useAuth();
   const router = useRouter();
