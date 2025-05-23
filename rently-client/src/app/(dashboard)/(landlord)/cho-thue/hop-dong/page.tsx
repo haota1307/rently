@@ -43,9 +43,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Đảm bảo trang này luôn được render động
-export const dynamic = "force-dynamic";
-
 export default function ContractPage() {
   const { userId } = useAuth();
   const router = useRouter();
@@ -58,11 +55,6 @@ export default function ContractPage() {
   const [timeFilter, setTimeFilter] = useState("all");
   const [page, setPage] = useState(1);
   const limit = 10;
-
-  // State for selected contract
-  const [selectedContract, setSelectedContract] = useState<Contract | null>(
-    null
-  );
 
   const debouncedSearch = useDebounce(searchInput, 500);
 
@@ -124,17 +116,14 @@ export default function ContractPage() {
 
   // Import và sử dụng ContractViewer component để xử lý tải xuống
   const handleExportContract = async (contract: Contract) => {
-    // Gọi API để xuất hợp đồng dạng PDF trực tiếp sử dụng ContractViewer component
     const toastId = toast.loading("Đang xử lý hợp đồng...");
 
     try {
       // Gọi API để xuất hợp đồng dạng PDF
       const pdfBlob = await contractApiRequest.exportPDF(contract.id);
 
-      // Tạo URL tạm thời từ blob để tải xuống
       const blobUrl = URL.createObjectURL(pdfBlob);
 
-      // Tạo một element a ẩn để tải xuống
       const downloadLink = document.createElement("a");
       downloadLink.href = blobUrl;
       downloadLink.download = `hop-dong-${contract.contractNumber}.pdf`;
