@@ -80,6 +80,19 @@ export default function DropdownAvatar() {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
+          {/* Đường dẫn thông tin tài khoản - cho tất cả các role */}
+          <DropdownMenuItem asChild>
+            <Link
+              href="/tai-khoan"
+              className="cursor-pointer flex items-center gap-2"
+            >
+              <UserIcon className="h-4 w-4" />
+              <span>Thông tin cá nhân</span>
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
           {/* Admin và Landlord */}
           {role === Role.Admin && (
             <>
@@ -101,31 +114,26 @@ export default function DropdownAvatar() {
                   <span>Quản lý cho thuê</span>
                 </Link>
               </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
             </>
           )}
 
           {role === Role.Landlord && (
-            <DropdownMenuItem asChild>
-              <Link
-                href="/cho-thue"
-                className="cursor-pointer flex items-center gap-2"
-              >
-                <Home className="h-4 w-4" />
-                <span>Quản lý cho thuê</span>
-              </Link>
-            </DropdownMenuItem>
-          )}
+            <>
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/cho-thue"
+                  className="cursor-pointer flex items-center gap-2"
+                >
+                  <Home className="h-4 w-4" />
+                  <span>Quản lý cho thuê</span>
+                </Link>
+              </DropdownMenuItem>
 
-          {/* Đường dẫn thông tin tài khoản - cho tất cả các role */}
-          <DropdownMenuItem asChild>
-            <Link
-              href="/tai-khoan"
-              className="cursor-pointer flex items-center gap-2"
-            >
-              <UserIcon className="h-4 w-4" />
-              <span>Thông tin cá nhân</span>
-            </Link>
-          </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
 
           {/* Các đường dẫn khác */}
           <DropdownMenuItem asChild>

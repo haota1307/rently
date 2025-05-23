@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl";
 import rentalApiRequest from "@/features/rental/rental.api";
 import { RentalType } from "@/schemas/rental.schema";
 import { useRouter } from "next/navigation";
+import { createPostSlug } from "@/lib/utils";
 
 const RentalsMap: React.FC = () => {
   const router = useRouter();
@@ -125,7 +126,9 @@ const RentalsMap: React.FC = () => {
 
             // Thêm sự kiện click vào marker
             el.addEventListener("click", () => {
-              router.push(`/nha-tro/${rental.id}`);
+              router.push(
+                `/nha-tro/${createPostSlug(rental.title, rental.id)}`
+              );
             });
 
             // Thêm tọa độ vào bounds

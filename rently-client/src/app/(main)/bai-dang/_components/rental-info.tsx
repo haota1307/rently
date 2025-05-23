@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createPostSlug } from "@/lib/utils";
 
 interface RentalInfoProps {
   rental: {
@@ -17,7 +18,7 @@ export function RentalInfo({ rental }: RentalInfoProps) {
 
   const handleViewRental = () => {
     if (rental?.id) {
-      router.push(`/nha-tro/${rental.id}`);
+      router.push(`/nha-tro/${createPostSlug(rental.title, rental.id)}`);
     }
   };
 

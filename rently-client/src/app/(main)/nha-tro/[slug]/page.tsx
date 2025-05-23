@@ -37,7 +37,12 @@ import { RentalType } from "@/schemas/rental.schema";
 const RentalDetailPage = () => {
   const params = useParams();
   const router = useRouter();
-  const rentalId = Number(params.id);
+
+  // Trích xuất ID từ slug theo định dạng ".-i-{id}"
+  const { slug } = params;
+  const idMatch = slug ? String(slug).match(/\.-i-(\d+)$/) : null;
+  const rentalId = idMatch ? parseInt(idMatch[1]) : 0;
+
   const [rental, setRental] = useState<RentalType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +54,14 @@ const RentalDetailPage = () => {
     const fetchRental = async () => {
       try {
         setLoading(true);
+
+        // Kiểm tra nếu không tìm thấy ID từ slug
+        if (!rentalId) {
+          setError("Đường dẫn không hợp lệ");
+          setLoading(false);
+          return;
+        }
+
         const data = await rentalApiRequest.detail(rentalId);
 
         if (data.status === 200 && data.payload) {
@@ -64,14 +77,43 @@ const RentalDetailPage = () => {
       }
     };
 
-    if (rentalId) {
-      fetchRental();
-    }
+    fetchRental();
   }, [rentalId]);
 
   const handleImageClick = (index: number) => {
     setActiveImageIndex(index);
   };
+
+  // Kiểm tra nếu không tìm thấy ID từ slug
+  if (!rentalId && !loading) {
+    return (
+      <div className="w-full mx-auto px-4 py-12">
+        <div className="bg-gray-50 dark:bg-gray-900 p-8 rounded-lg text-center max-w-2xl mx-auto">
+          <XCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Đường dẫn không hợp lệ</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Đường dẫn bạn đang truy cập không đúng định dạng.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              onClick={() => router.back()}
+              variant="outline"
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Quay lại
+            </Button>
+            <Button asChild>
+              <Link href="/" className="gap-2">
+                <Home className="h-4 w-4" />
+                Trang chủ
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

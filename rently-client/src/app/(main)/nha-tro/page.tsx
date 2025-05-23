@@ -49,7 +49,7 @@ import { PageHeader } from "@/components/page-header";
 
 import rentalApiRequest from "@/features/rental/rental.api";
 import { RentalType } from "@/schemas/rental.schema";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, createPostSlug } from "@/lib/utils";
 
 // Import động bản đồ để tránh lỗi SSR
 const RentalsMap = dynamic(() => import("@/features/map/rentals-map"), {
@@ -831,7 +831,7 @@ const RentalListingContent = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {rentals.map((rental) => (
             <Link
-              href={`/nha-tro/${rental.id}`}
+              href={`/nha-tro/${createPostSlug(rental.title, rental.id)}`}
               key={rental.id}
               className="block group"
             >
