@@ -261,7 +261,7 @@ export class RentalContractRepo {
           contractContent,
           terms: data.terms,
           templateId: data.templateId,
-          status: ContractStatus.DRAFT,
+          status: ContractStatus.AWAITING_LANDLORD_SIGNATURE,
           updatedAt: new Date(),
         },
       })

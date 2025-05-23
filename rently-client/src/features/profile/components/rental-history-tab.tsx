@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
+import { SignContractButton } from "@/features/rental-contract/components/sign-contract-button";
 
 // Xác định kiểu dữ liệu cho tệp đính kèm
 interface ContractAttachment {
@@ -98,6 +100,7 @@ interface ContractDetailType {
 }
 
 export function RentalHistoryTab() {
+  const { userId } = useAuth();
   const [selectedContract, setSelectedContract] = useState<number | null>(null);
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -374,7 +377,7 @@ export function RentalHistoryTab() {
                     {new Intl.NumberFormat("vi-VN", {
                       style: "currency",
                       currency: "VND",
-                    }).format(contractDetail.monthlyRent * 1000)}
+                    }).format(contractDetail.monthlyRent)}
                   </p>
                 </div>
                 <div>
@@ -385,7 +388,7 @@ export function RentalHistoryTab() {
                     {new Intl.NumberFormat("vi-VN", {
                       style: "currency",
                       currency: "VND",
-                    }).format(contractDetail.deposit * 1000)}
+                    }).format(contractDetail.deposit)}
                   </p>
                 </div>
                 <div>
@@ -482,6 +485,20 @@ export function RentalHistoryTab() {
                   </Button>
                 )}
               </div>
+
+              {contractDetail && userId === contractDetail.tenantId && (
+                <div className="mt-4">
+                  <SignContractButton
+                    contractId={contractDetail.id}
+                    status={contractDetail.status}
+                    userRole="tenant"
+                    onSuccess={() => {
+                      // Sau khi ký, refetch lại contract detail
+                      setSelectedContract(contractDetail.id);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <Alert>

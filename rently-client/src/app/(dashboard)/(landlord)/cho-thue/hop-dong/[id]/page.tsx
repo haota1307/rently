@@ -24,6 +24,8 @@ import {
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { ContractViewer } from "@/features/rental-contract/components/contract-viewer";
+import { SignContractButton } from "@/features/rental-contract/components/sign-contract-button";
 
 // Đảm bảo trang này luôn được render động
 export const dynamic = "force-dynamic";
@@ -34,7 +36,6 @@ export default function ContractDetailPage() {
   const { userId } = useAuth();
   const [contract, setContract] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [signDialogOpen, setSignDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -52,57 +53,6 @@ export default function ContractDetailPage() {
       toast.error("Không thể tải thông tin hợp đồng");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSignContract = async () => {
-    try {
-      // Giả lập dữ liệu chữ ký (trong thực tế sẽ lấy từ canvas hoặc input)
-      const signatureData = {
-        signature:
-          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-      };
-
-      await contractApiRequest.sign(Number(id), signatureData);
-      toast.success("Ký hợp đồng thành công");
-      fetchContractDetails();
-      setSignDialogOpen(false);
-    } catch (error) {
-      console.error("Lỗi khi ký hợp đồng:", error);
-      toast.error("Không thể ký hợp đồng");
-    }
-  };
-
-  const handleDownloadContract = async () => {
-    try {
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", `/api/rental-contract/${id}/final-document`, true);
-      xhr.responseType = "blob";
-
-      xhr.onload = function () {
-        if (this.status === 200) {
-          const blob = new Blob([this.response], { type: "application/pdf" });
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `hop-dong-${id}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          window.URL.revokeObjectURL(url);
-        } else {
-          toast.error("Không thể tải xuống hợp đồng");
-        }
-      };
-
-      xhr.onerror = function () {
-        toast.error("Không thể tải xuống hợp đồng");
-      };
-
-      xhr.send();
-    } catch (error) {
-      console.error("Lỗi khi tải xuống hợp đồng:", error);
-      toast.error("Không thể tải xuống hợp đồng");
     }
   };
 
@@ -163,10 +113,13 @@ export default function ContractDetailPage() {
     );
   }
 
-  const canSign =
-    contract.status === ContractStatus.AWAITING_LANDLORD_SIGNATURE &&
-    contract.landlordId === userId &&
-    !contract.landlordSignedAt;
+  // Xác định vai trò người dùng với hợp đồng này
+  const userRole =
+    contract.landlordId === userId
+      ? "landlord"
+      : contract.tenantId === userId
+        ? "tenant"
+        : null;
 
   return (
     <SidebarInset>
@@ -196,16 +149,13 @@ export default function ContractDetailPage() {
             </h2>
           </div>
           <div className="flex gap-2">
-            {canSign && (
-              <Button onClick={() => setSignDialogOpen(true)}>
-                Ký hợp đồng
-              </Button>
-            )}
-            {contract.status === ContractStatus.ACTIVE && (
-              <Button variant="outline" onClick={handleDownloadContract}>
-                <Download className="mr-2 h-4 w-4" />
-                Tải xuống hợp đồng
-              </Button>
+            {userRole && (
+              <SignContractButton
+                contractId={Number(id)}
+                status={contract.status}
+                userRole={userRole}
+                onSuccess={fetchContractDetails}
+              />
             )}
           </div>
         </div>
@@ -233,6 +183,18 @@ export default function ContractDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Tích hợp ContractViewer */}
+            <div className="mt-6">
+              <ContractViewer
+                contractId={Number(id)}
+                contractNumber={contract.contractNumber}
+                status={contract.status}
+                landlordId={contract.landlordId}
+                tenantId={contract.tenantId}
+                onContractUpdated={fetchContractDetails}
+              />
+            </div>
 
             {/* File đính kèm */}
             <Card className="mt-6">
@@ -369,42 +331,6 @@ export default function ContractDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* Dialog ký hợp đồng */}
-      <Dialog open={signDialogOpen} onOpenChange={setSignDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ký hợp đồng</DialogTitle>
-            <DialogDescription>
-              Bằng cách nhấn nút "Xác nhận", bạn đồng ý với các điều khoản trong
-              hợp đồng này.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="mb-4">
-              Hợp đồng: <strong>{contract.contractNumber}</strong>
-            </p>
-            <p className="mb-4">
-              Ngày ký:{" "}
-              <strong>
-                {format(new Date(), "dd/MM/yyyy", { locale: vi })}
-              </strong>
-            </p>
-            {/* Mô phỏng vùng ký tên */}
-            <div className="border border-dashed rounded-md p-4 text-center">
-              <p className="text-muted-foreground mb-2">
-                Chữ ký của bạn sẽ được lưu trực tuyến
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setSignDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleSignContract}>Xác nhận</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </SidebarInset>
   );
 }

@@ -178,7 +178,7 @@ export default function ContractPage() {
       id: "rent",
       header: "Giá thuê",
       cell: ({ row }: { row: { original: Contract } }) => {
-        const adjustedPrice = row.original.monthlyRent * 1000;
+        const adjustedPrice = row.original.monthlyRent;
 
         return new Intl.NumberFormat("vi-VN", {
           style: "currency",
