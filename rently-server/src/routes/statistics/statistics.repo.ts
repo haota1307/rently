@@ -125,9 +125,22 @@ export class StatisticsRepo {
         transactionDateCondition.userId = landlordId
       }
 
+      // Log tham số để debug
+      console.log('getRevenueData params:', {
+        days,
+        landlordId,
+        transaction_content,
+        startDate,
+        endDate,
+      })
+
       // Lọc theo loại giao dịch (nếu có)
       if (transaction_content) {
-        if (transaction_content === 'SEVQR NAP') {
+        if (transaction_content === 'ALL') {
+          // Không lọc theo nội dung giao dịch, lấy tất cả
+          // Chỉ giữ lại điều kiện lọc theo userId (nếu có)
+          console.log('Using ALL mode - no content filter applied')
+        } else if (transaction_content === 'SEVQR NAP') {
           transactionDateCondition.transactionContent = { contains: 'NAP' }
         } else {
           const contents = transaction_content.split('|')
@@ -266,13 +279,27 @@ export class StatisticsRepo {
         let depositCondition = '"transactionContent" ILIKE \'%NAP%\''
         let withdrawCondition = '"transactionContent" ILIKE \'%RUT%\''
         if (transaction_content) {
-          const contents = transaction_content.split('|')
-          if (contents.length > 1) {
-            depositCondition = `"transactionContent" ILIKE '%${contents[0]}%'`
-            withdrawCondition = `"transactionContent" ILIKE '%${contents[1]}%'`
+          if (transaction_content === 'ALL') {
+            // Với ALL, phân loại theo nội dung giao dịch và giá trị amount
+            depositCondition =
+              '("amountIn" > 0 AND ("transactionContent" ILIKE \'%NAP%\' OR "transactionContent" ILIKE \'%tiền đặt%\' OR "transactionContent" ILIKE \'%nhận tiền%\' OR "transactionContent" ILIKE \'%thanh toán từ%\'))'
+            withdrawCondition =
+              '("amountOut" > 0 AND ("transactionContent" ILIKE \'%RUT%\' OR "transactionContent" ILIKE \'%phí%\'))'
+
+            // Log điều kiện SQL để debug
+            console.log('ALL mode SQL conditions:', {
+              depositCondition,
+              withdrawCondition,
+            })
           } else {
-            depositCondition = `"transactionContent" ILIKE '%${transaction_content}%'`
-            withdrawCondition = `"transactionContent" ILIKE '%${transaction_content}%'`
+            const contents = transaction_content.split('|')
+            if (contents.length > 1) {
+              depositCondition = `"transactionContent" ILIKE '%${contents[0]}%'`
+              withdrawCondition = `"transactionContent" ILIKE '%${contents[1]}%'`
+            } else {
+              depositCondition = `"transactionContent" ILIKE '%${transaction_content}%'`
+              withdrawCondition = `"transactionContent" ILIKE '%${transaction_content}%'`
+            }
           }
         }
 
@@ -406,7 +433,76 @@ export class StatisticsRepo {
     // Tối ưu truy vấn nội dung giao dịch
     if (transaction_content) {
       // Ưu tiên exact match trước khi sử dụng contains để tận dụng index
-      if (transaction_content === 'SEVQR NAP') {
+      if (transaction_content === 'ALL') {
+        // Đối với ALL, cần thực hiện 2 query riêng biệt để phân loại đúng
+        // 1. Query cho tiền vào (nạp tiền, tiền đặt cọc, nhận thanh toán)
+        const depositQuery =
+          await this.prismaService.paymentTransaction.aggregate({
+            _sum: {
+              amountIn: true,
+            },
+            where: {
+              transactionDate: {
+                gte: startOfDay,
+                lte: endOfDay,
+              },
+              ...(landlordId ? { userId: landlordId } : {}),
+              amountIn: { gt: 0 },
+              OR: [
+                { transactionContent: { contains: 'NAP' } },
+                { transactionContent: { contains: 'tiền đặt' } },
+                { transactionContent: { contains: 'nhận tiền' } },
+                { transactionContent: { contains: 'thanh toán từ' } },
+              ],
+            },
+          })
+
+        // 2. Query cho tiền ra (rút tiền, các loại phí)
+        const withdrawQuery =
+          await this.prismaService.paymentTransaction.aggregate({
+            _sum: {
+              amountOut: true,
+            },
+            where: {
+              transactionDate: {
+                gte: startOfDay,
+                lte: endOfDay,
+              },
+              ...(landlordId ? { userId: landlordId } : {}),
+              amountOut: { gt: 0 },
+              OR: [
+                { transactionContent: { contains: 'RUT' } },
+                { transactionContent: { contains: 'phí' } },
+              ],
+            },
+          })
+
+        // Tổng hợp kết quả
+        const totalDeposit = depositQuery._sum.amountIn || 0
+        const totalWithdraw = withdrawQuery._sum.amountOut || 0
+
+        // Log kết quả để debug
+        console.log(`Day ${dateStr} results (ALL mode):`, {
+          deposit: totalDeposit,
+          withdraw: totalWithdraw,
+          query: {
+            depositConditions: [
+              'NAP',
+              'tiền đặt',
+              'nhận tiền',
+              'thanh toán từ',
+            ],
+            withdrawConditions: ['RUT', 'phí'],
+          },
+        })
+
+        return {
+          name: displayDate,
+          nạp: totalDeposit,
+          rút: totalWithdraw,
+          date: dateStr,
+        }
+      } else if (transaction_content === 'SEVQR NAP') {
         whereCondition.transactionContent = { contains: 'NAP' }
       } else {
         const contents = transaction_content.split('|')
@@ -422,7 +518,7 @@ export class StatisticsRepo {
       ]
     }
 
-    // Thực hiện aggregation query thay vì lấy tất cả records
+    // Sử dụng cách cũ cho các trường hợp khác
     const aggregateResult =
       await this.prismaService.paymentTransaction.aggregate({
         _sum: {

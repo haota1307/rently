@@ -19,10 +19,13 @@ export const useGetStatisticsOverview = () => {
 export const useGetRevenueData = (
   days: number = 7,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
+  landlordMode: boolean = false
 ) => {
   const startDateStr = startDate ? format(startDate, "yyyy-MM-dd") : undefined;
   const endDateStr = endDate ? format(endDate, "yyyy-MM-dd") : undefined;
+
+  const transactionContent = landlordMode ? "ALL" : "NAP|RUT";
 
   return useQuery({
     queryKey: [
@@ -31,13 +34,13 @@ export const useGetRevenueData = (
       days,
       startDateStr,
       endDateStr,
-      "NAP|RUT",
+      transactionContent,
     ],
     queryFn: async () => {
       try {
         const data = await getRevenueData(
           days,
-          "NAP|RUT",
+          transactionContent,
           startDateStr,
           endDateStr
         );

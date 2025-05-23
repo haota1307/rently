@@ -78,8 +78,12 @@ interface Transaction {
 const LandlordPage = () => {
   const { data: statistics, isLoading } = useGetStatisticsOverview();
   const [timeRange, setTimeRange] = useState(7);
-  const { data: revenueData, isLoading: isLoadingRevenue } =
-    useGetRevenueData(timeRange);
+  const { data: revenueData, isLoading: isLoadingRevenue } = useGetRevenueData(
+    timeRange,
+    undefined,
+    undefined,
+    true
+  );
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
