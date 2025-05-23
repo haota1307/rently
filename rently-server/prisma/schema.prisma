@@ -29,6 +29,8 @@ model User {
   respondedContacts                              Contact[]             @relation("UserRespondedContacts")
   Contact                                        Contact[]
   ContractAttachment                             ContractAttachment[]
+  ContractSignature                              ContractSignature[]
+  contractTemplates                              ContractTemplate[]
   conversationsOne                               Conversation[]        @relation("UserOneConversations")
   conversationsTwo                               Conversation[]        @relation("UserTwoConversations")
   conversationMessages                           ConversationMessage[]
@@ -566,6 +568,37 @@ model ContractAttachment {
   @@index([uploadedBy])
 }
 
+model ContractTemplate {
+  id          Int              @id @default(autoincrement())
+  name        String
+  description String?
+  fileUrl     String
+  fileName    String
+  fileType    String
+  isDefault   Boolean          @default(false)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+  landlordId  Int
+  contracts   RentalContract[]
+  landlord    User             @relation(fields: [landlordId], references: [id])
+
+  @@index([landlordId])
+  @@index([isDefault])
+}
+
+model ContractSignature {
+  id           Int            @id @default(autoincrement())
+  contractId   Int
+  userId       Int
+  signatureUrl String
+  signedAt     DateTime       @default(now()) @db.Timestamptz(6)
+  contract     RentalContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id])
+
+  @@index([contractId])
+  @@index([userId])
+}
+
 model RentalContract {
   id                                   Int                  @id @default(autoincrement())
   contractNumber                       String               @unique
@@ -585,10 +618,14 @@ model RentalContract {
   status                               ContractStatus       @default(DRAFT)
   createdAt                            DateTime             @default(now()) @db.Timestamptz(6)
   updatedAt                            DateTime             @db.Timestamptz(6)
+  finalDocumentUrl                     String?
+  templateId                           Int?
   ContractAttachment                   ContractAttachment[]
+  ContractSignature                    ContractSignature[]
   User_RentalContract_landlordIdToUser User                 @relation("RentalContract_landlordIdToUser", fields: [landlordId], references: [id])
   RentalRequest                        RentalRequest        @relation(fields: [rentalRequestId], references: [id])
   Room                                 Room                 @relation(fields: [roomId], references: [id])
+  template                             ContractTemplate?    @relation(fields: [templateId], references: [id])
   User_RentalContract_tenantIdToUser   User                 @relation("RentalContract_tenantIdToUser", fields: [tenantId], references: [id])
 
   @@index([createdAt])
@@ -597,6 +634,7 @@ model RentalContract {
   @@index([startDate])
   @@index([status])
   @@index([tenantId])
+  @@index([templateId])
 }
 
 enum TransactionStatus {

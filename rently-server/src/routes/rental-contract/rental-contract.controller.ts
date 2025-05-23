@@ -39,8 +39,7 @@ import { PdfGeneratorService } from './pdf-generator.service'
 export class RentalContractController {
   constructor(
     private readonly rentalContractService: RentalContractService,
-    private readonly uploadService: UploadService,
-    private readonly pdfGeneratorService: PdfGeneratorService
+    private readonly uploadService: UploadService
   ) {}
 
   // ===== Quản lý mẫu hợp đồng =====
