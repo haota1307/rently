@@ -36,6 +36,10 @@ export default function ContractDetailPage() {
   const { userId } = useAuth();
   const [contract, setContract] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [previewFile, setPreviewFile] = useState<{
+    url: string;
+    type: string;
+  } | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -218,15 +222,32 @@ export default function ContractDetailPage() {
                         key={attachment.id}
                         className="flex items-center justify-between border p-3 rounded-md"
                       >
-                        <div className="flex items-center">
-                          <FileText className="h-5 w-5 mr-2 text-blue-600" />
-                          <span>{attachment.fileName}</span>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-blue-600" />
+                          <button
+                            className="text-blue-600 hover:underline text-left"
+                            style={{
+                              cursor: "pointer",
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                            }}
+                            onClick={() =>
+                              setPreviewFile({
+                                url: attachment.fileUrl,
+                                type: attachment.fileType,
+                              })
+                            }
+                          >
+                            {attachment.fileName}
+                          </button>
                         </div>
                         <a
                           href={attachment.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline"
+                          download
                         >
                           <Download className="h-4 w-4" />
                         </a>
@@ -240,6 +261,46 @@ export default function ContractDetailPage() {
                 )}
               </CardContent>
             </Card>
+            {/* Modal xem file đính kèm */}
+            <Dialog
+              open={!!previewFile}
+              onOpenChange={() => setPreviewFile(null)}
+            >
+              <DialogContent className="max-w-3xl">
+                {previewFile &&
+                  (previewFile.type.includes("pdf") ? (
+                    <iframe
+                      src={previewFile.url}
+                      title="Xem file PDF"
+                      width="100%"
+                      height="600px"
+                      style={{ border: "none" }}
+                    />
+                  ) : previewFile.type.includes("image") ? (
+                    <img
+                      src={previewFile.url}
+                      alt="Xem ảnh"
+                      style={{ maxWidth: "100%", maxHeight: 500 }}
+                    />
+                  ) : (
+                    <div>
+                      <p>
+                        Không hỗ trợ xem trực tiếp file này. Bạn có thể tải về
+                        để xem.
+                      </p>
+                      <a
+                        href={previewFile.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                        download
+                      >
+                        Tải file về
+                      </a>
+                    </div>
+                  ))}
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="space-y-6">
