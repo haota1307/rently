@@ -186,8 +186,8 @@ export class PaymentController {
   @ZodSerializerDto(MessageResponseDTO)
   @Auth([AuthType.APIKey])
   async confirmWithdrawTransaction(@Body() body: WebhookPaymentBodyDTO) {
-    // Kiểm tra nội dung và lấy ID giao dịch rút tiền
-    const withdrawIdMatch = body.content?.match(/#RUT(\d+)/)
+    // Chấp nhận cả RUT12 và #RUT12 (không phân biệt hoa thường)
+    const withdrawIdMatch = body.content?.match(/#?RUT(\d+)/i)
     if (!withdrawIdMatch || !withdrawIdMatch[1]) {
       throw new BadRequestException(
         'Không tìm thấy mã giao dịch rút tiền trong nội dung chuyển khoản'
