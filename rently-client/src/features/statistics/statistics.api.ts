@@ -15,8 +15,11 @@ export interface StatisticsOverview {
 
 export interface RevenueDataPoint {
   name: string;
-  nạp: number;
-  rút: number;
+  nạp?: number;
+  rút?: number;
+  "đặt cọc"?: number;
+  "phí đăng bài"?: number;
+  "hoàn cọc"?: number;
   date: string;
 }
 
@@ -78,6 +81,32 @@ export const getRevenueData = async (
   }
 
   const finalUrl = `statistics/revenue?${params.toString()}`;
+
+  const { payload } = await http.get<RevenueDataPoint[]>(finalUrl);
+  return payload;
+};
+
+export const getLandlordTransactionData = async (
+  days: number = 7,
+  startDate?: string,
+  endDate?: string
+) => {
+  // Tạo các tham số
+  const params = new URLSearchParams();
+
+  // Thêm days
+  params.append("days", days.toString());
+
+  // Thêm startDate và endDate nếu có
+  if (startDate) {
+    params.append("startDate", startDate);
+  }
+
+  if (endDate) {
+    params.append("endDate", endDate);
+  }
+
+  const finalUrl = `statistics/landlord-transaction?${params.toString()}`;
 
   const { payload } = await http.get<RevenueDataPoint[]>(finalUrl);
   return payload;

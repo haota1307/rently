@@ -5,6 +5,7 @@ import {
   getRoomDistribution,
   getPostsByArea,
   getPopularAreas,
+  getLandlordTransactionData,
 } from "./statistics.api";
 import { format } from "date-fns";
 
@@ -55,6 +56,42 @@ export const useGetRevenueData = (
     gcTime: 30 * 60 * 1000, // 30 phút
     refetchOnWindowFocus: false,
     // Thêm retry với delay tăng dần
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+};
+
+export const useGetLandlordTransactionData = (
+  days: number = 7,
+  startDate?: Date,
+  endDate?: Date
+) => {
+  const startDateStr = startDate ? format(startDate, "yyyy-MM-dd") : undefined;
+  const endDateStr = endDate ? format(endDate, "yyyy-MM-dd") : undefined;
+
+  return useQuery({
+    queryKey: [
+      "statistics",
+      "landlord-transaction",
+      days,
+      startDateStr,
+      endDateStr,
+    ],
+    queryFn: async () => {
+      try {
+        const data = await getLandlordTransactionData(
+          days,
+          startDateStr,
+          endDateStr
+        );
+        return data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    staleTime: 10 * 60 * 1000, // 10 phút
+    gcTime: 30 * 60 * 1000, // 30 phút
+    refetchOnWindowFocus: false,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });

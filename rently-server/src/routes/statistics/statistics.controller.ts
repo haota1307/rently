@@ -62,6 +62,36 @@ export class StatisticsController {
     )
   }
 
+  @Get('landlord-transaction')
+  @ZodSerializerDto(RevenueDataDTO)
+  async getLandlordTransactionData(
+    @Query() query: StatisticsQueryDTO,
+    @ActiveUser('userId') userId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    const days = query.days || 7
+    const startDate = query.startDate
+    const endDate = query.endDate
+
+    // Nếu là admin, cho phép xem tất cả hoặc lọc theo landlordId
+    if (roleName === 'ADMIN') {
+      return this.statisticsService.getLandlordTransactionData(
+        days,
+        query.landlordId,
+        startDate,
+        endDate
+      )
+    }
+
+    // Nếu không phải admin, chỉ cho xem dữ liệu của chính mình
+    return this.statisticsService.getLandlordTransactionData(
+      days,
+      userId,
+      startDate,
+      endDate
+    )
+  }
+
   @Get('room-distribution')
   @ZodSerializerDto(RoomDistributionDTO)
   async getRoomDistribution(

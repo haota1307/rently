@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { RevenueDataPoint } from "../statistics.api";
 import { formatCurrency } from "@/lib/utils";
@@ -28,11 +28,32 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
 }) => {
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Kiểm tra loại dữ liệu (nạp/rút hoặc đặt cọc/phí đăng bài/hoàn cọc)
+  const hasDepositFeeData = data?.some(
+    (item) =>
+      item["đặt cọc"] !== undefined ||
+      item["phí đăng bài"] !== undefined ||
+      item["hoàn cọc"] !== undefined
+  );
+
   // Tính tổng thu chi
-  const totalIncome =
-    data?.reduce((sum, item) => sum + (item.nạp || 0), 0) || 0;
-  const totalExpense =
-    data?.reduce((sum, item) => sum + (item.rút || 0), 0) || 0;
+  const totalIncome = hasDepositFeeData
+    ? data?.reduce((sum, item) => sum + (item["đặt cọc"] || 0), 0) || 0
+    : data?.reduce((sum, item) => sum + (item.nạp || 0), 0) || 0;
+
+  const totalExpense = hasDepositFeeData
+    ? data?.reduce(
+        (sum, item) =>
+          sum + (item["phí đăng bài"] || 0) + (item["hoàn cọc"] || 0),
+        0
+      ) || 0
+    : data?.reduce((sum, item) => sum + (item.rút || 0), 0) || 0;
+
+  // Tính tổng hoàn cọc riêng (để hiển thị trong báo cáo)
+  const totalRefund = hasDepositFeeData
+    ? data?.reduce((sum, item) => sum + (item["hoàn cọc"] || 0), 0) || 0
+    : 0;
+
   const balance = totalIncome - totalExpense;
 
   // Xử lý xuất báo cáo
@@ -50,6 +71,18 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
     if (dateFilter.from && dateFilter.to) {
       reportTitle = `Báo cáo doanh thu từ ${format(dateFilter.from, "dd/MM/yyyy", { locale: vi })} đến ${format(dateFilter.to, "dd/MM/yyyy", { locale: vi })}`;
     }
+
+    // Xác định tên cột dựa vào loại dữ liệu
+    const column1Name = hasDepositFeeData ? "Tiền đặt cọc" : "Nạp tiền";
+    const column2Name = hasDepositFeeData ? "Phí đăng bài" : "Rút tiền";
+    const column3Name = hasDepositFeeData ? "Hoàn tiền cọc" : "";
+    const summary1Name = hasDepositFeeData
+      ? "Tổng tiền đặt cọc:"
+      : "Tổng nạp tiền:";
+    const summary2Name = hasDepositFeeData
+      ? "Tổng phí đăng bài:"
+      : "Tổng rút tiền:";
+    const summary3Name = "Tổng hoàn tiền cọc:";
 
     // Tạo nội dung HTML cho cửa sổ in
     const reportContent = `
@@ -148,12 +181,16 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
         <div class="report-summary">
           <h3>Tổng kết doanh thu</h3>
           <div class="summary-row">
-            <span>Tổng nạp tiền:</span>
+            <span>${summary1Name}</span>
             <span>${formatCurrency(summaryData?.totalIncome || totalIncome)}</span>
           </div>
           <div class="summary-row">
-            <span>Tổng rút tiền:</span>
+            <span>${summary2Name}</span>
             <span>${formatCurrency(summaryData?.totalExpense || totalExpense)}</span>
+          </div>
+          <div class="summary-row">
+            <span>${summary3Name}</span>
+            <span>${formatCurrency(totalRefund)}</span>
           </div>
           <div class="summary-row">
             <span>Chênh lệch:</span>
@@ -162,7 +199,28 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
         </div>
 
         <h3>Chi tiết doanh thu theo ngày</h3>
-                  <table class="report-table">          <thead>            <tr>              <th style="width: 40%">Ngày tháng</th>              <th style="width: 30%">Nạp tiền</th>              <th style="width: 30%">Rút tiền</th>            </tr>          </thead>          <tbody>            ${data.map((item, index) => `              <tr key=${index}>                <td>${format(new Date(item.date), "dd/MM/yyyy", { locale: vi })}</td>                <td class="amount">${formatCurrency(item.nạp || 0)}</td>                <td class="amount">${formatCurrency(item.rút || 0)}</td>              </tr>            `).join("")}
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th style="width: 25%">Ngày tháng</th>
+              <th style="width: 25%">${column1Name}</th>
+              <th style="width: 25%">${column2Name}</th>
+              <th style="width: 25%">${column3Name}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data
+              .map(
+                (item, index) => `
+              <tr key=${index}>
+                <td>${format(new Date(item.date), "dd/MM/yyyy", { locale: vi })}</td>
+                <td class="amount">${formatCurrency(hasDepositFeeData ? item["đặt cọc"] || 0 : item.nạp || 0)}</td>
+                <td class="amount">${formatCurrency(hasDepositFeeData ? item["phí đăng bài"] || 0 : item.rút || 0)}</td>
+                <td class="amount">${formatCurrency(hasDepositFeeData ? item["hoàn cọc"] || 0 : 0)}</td>
+              </tr>
+            `
+              )
+              .join("")}
           </tbody>
         </table>
 

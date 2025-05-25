@@ -759,4 +759,110 @@ export class StatisticsRepo {
       throw new InternalServerErrorException(error.message)
     }
   }
+
+  async getLandlordTransactionData(
+    days: number = 7,
+    landlordId?: number,
+    startDate?: string,
+    endDate?: string
+  ): Promise<RevenueDataType[]> {
+    try {
+      // Xác định khoảng thời gian
+      let start: Date
+      let end: Date
+
+      if (startDate && endDate) {
+        start = new Date(startDate)
+        end = new Date(endDate)
+        // Đảm bảo end là cuối ngày
+        end.setHours(23, 59, 59, 999)
+      } else {
+        end = new Date()
+        start = new Date()
+        start.setDate(end.getDate() - days + 1)
+        start.setHours(0, 0, 0, 0)
+      }
+
+      // Sử dụng SQL trực tiếp để tối ưu hiệu suất và xử lý phức tạp hơn
+      const sql = `
+        WITH date_series AS (
+          SELECT generate_series(
+            $1::timestamp,
+            $2::timestamp,
+            INTERVAL '1 day'
+          ) AS date_point
+        ),
+        -- Tiền đặt cọc (nhận từ người thuê)
+        deposit_data AS (
+          SELECT
+            DATE_TRUNC('day', "transactionDate") as period,
+            SUM("amountIn") as deposit_amount
+          FROM "PaymentTransaction"
+          WHERE "transactionDate" >= $1 AND "transactionDate" <= $2
+          ${landlordId ? 'AND "userId" = $3' : ''}
+          AND ("transactionContent" LIKE '%Nhận tiền đặt cọc%' OR "transactionContent" LIKE '%Đặt cọc%')
+          AND "amountIn" > 0
+          GROUP BY period
+        ),
+        -- Phí đăng bài
+        post_fee_data AS (
+          SELECT
+            DATE_TRUNC('day', "transactionDate") as period,
+            SUM("amountOut") as fee_amount
+          FROM "PaymentTransaction"
+          WHERE "transactionDate" >= $1 AND "transactionDate" <= $2
+          ${landlordId ? 'AND "userId" = $3' : ''}
+          AND (
+            "transactionContent" LIKE '%phí đăng%' OR
+            "transactionContent" LIKE '%phi dang%' OR
+            "transactionContent" LIKE '%FEE%' OR
+            "code" LIKE '%FEE%'
+          )
+          GROUP BY period
+        ),
+        -- Hoàn cọc (trả lại cho người thuê)
+        refund_data AS (
+          SELECT
+            DATE_TRUNC('day', "transactionDate") as period,
+            SUM("amountOut") as refund_amount
+          FROM "PaymentTransaction"
+          WHERE "transactionDate" >= $1 AND "transactionDate" <= $2
+          ${landlordId ? 'AND "userId" = $3' : ''}
+          AND ("transactionContent" LIKE '%Hoàn tiền đặt cọc%' OR "transactionContent" LIKE '%Hoàn cọc%')
+          GROUP BY period
+        )
+        SELECT
+          ds.date_point as period,
+          TO_CHAR(ds.date_point, 'DD/MM') as display_date,
+          COALESCE(dd.deposit_amount, 0) as deposit_amount,
+          COALESCE(pf.fee_amount, 0) as fee_amount,
+          COALESCE(rd.refund_amount, 0) as refund_amount,
+          TO_CHAR(ds.date_point, 'YYYY-MM-DD') as date_str
+        FROM date_series ds
+        LEFT JOIN deposit_data dd ON DATE_TRUNC('day', ds.date_point) = dd.period
+        LEFT JOIN post_fee_data pf ON DATE_TRUNC('day', ds.date_point) = pf.period
+        LEFT JOIN refund_data rd ON DATE_TRUNC('day', ds.date_point) = rd.period
+        ORDER BY ds.date_point ASC
+      `
+
+      const params: any[] = [start, end]
+      if (landlordId) {
+        params.push(landlordId)
+      }
+
+      const result = await this.prismaService.$queryRawUnsafe(sql, ...params)
+
+      // Chuyển đổi kết quả thành định dạng phản hồi
+      return (result as any[]).map(row => ({
+        name: row.display_date,
+        'đặt cọc': parseInt(row.deposit_amount) || 0,
+        'phí đăng bài': parseInt(row.fee_amount) || 0,
+        'hoàn cọc': parseInt(row.refund_amount) || 0,
+        date: row.date_str,
+      }))
+    } catch (error) {
+      console.error('Error in getLandlordTransactionData:', error)
+      throw new InternalServerErrorException(error.message)
+    }
+  }
 }

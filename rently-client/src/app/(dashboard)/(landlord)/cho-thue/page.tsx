@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import {
   useGetStatisticsOverview,
-  useGetRevenueData,
+  useGetLandlordTransactionData,
 } from "@/features/statistics/statistics.hooks";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,12 +78,8 @@ interface Transaction {
 const LandlordPage = () => {
   const { data: statistics, isLoading } = useGetStatisticsOverview();
   const [timeRange, setTimeRange] = useState(7);
-  const { data: revenueData, isLoading: isLoadingRevenue } = useGetRevenueData(
-    timeRange,
-    undefined,
-    undefined,
-    true
-  );
+  const { data: revenueData, isLoading: isLoadingRevenue } =
+    useGetLandlordTransactionData(timeRange, undefined, undefined);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
@@ -600,8 +596,8 @@ const LandlordPage = () => {
                     />
                     <Area
                       type="monotone"
-                      dataKey="nạp"
-                      name="Tiền vào"
+                      dataKey="đặt cọc"
+                      name="Tiền đặt cọc"
                       stackId="1"
                       stroke="#10b981"
                       fill="#10b981"
@@ -609,11 +605,20 @@ const LandlordPage = () => {
                     />
                     <Area
                       type="monotone"
-                      dataKey="rút"
-                      name="Tiền ra"
+                      dataKey="phí đăng bài"
+                      name="Phí đăng bài"
                       stackId="2"
                       stroke="#ef4444"
                       fill="#ef4444"
+                      fillOpacity={0.6}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="hoàn cọc"
+                      name="Hoàn tiền cọc"
+                      stackId="3"
+                      stroke="#f59e0b"
+                      fill="#f59e0b"
                       fillOpacity={0.6}
                     />
                   </AreaChart>

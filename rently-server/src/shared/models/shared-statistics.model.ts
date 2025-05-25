@@ -29,8 +29,11 @@ export const StatisticsQuerySchema = z
 // Schema cho dữ liệu doanh thu
 export const RevenueDataSchema = z.object({
   name: z.string(),
-  nạp: z.number(),
-  rút: z.number(),
+  nạp: z.number().optional(),
+  rút: z.number().optional(),
+  'đặt cọc': z.number().optional(),
+  'phí đăng bài': z.number().optional(),
+  'hoàn cọc': z.number().optional(),
   date: z.string(),
 })
 
