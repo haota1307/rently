@@ -83,7 +83,7 @@ export function EditRoomModal({
   } = useGetRoomDetail(roomId || 0);
 
   const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentals({
-    limit: 100,
+    limit: 10,
     page: 1,
   });
 
@@ -91,23 +91,20 @@ export function EditRoomModal({
 
   // Khi dữ liệu phòng được tải, cập nhật form và danh sách tiện ích đã chọn
   useEffect(() => {
-    if (roomData && open) {
+    if (roomData && open && rentalOptions.length > 0) {
       form.reset({
         title: roomData.title || "",
         price: roomData.price || 0,
         area: roomData.area || 0,
-        rentalId: roomData.rentalId || 0,
+        rentalId: roomData.rentalId || rentalOptions[0].id,
         isAvailable:
           roomData.isAvailable !== undefined ? roomData.isAvailable : true,
       });
-
-      // Nếu phòng có danh sách tiện ích, cập nhật danh sách đã chọn
-      if (roomData.amenities && roomData.amenities.length > 0) {
-        setSelectedAmenities(roomData.amenities);
-      } else {
-        setSelectedAmenities([]);
-      }
-
+      setSelectedAmenities(
+        roomData.roomAmenities
+          ? roomData.roomAmenities.map((ra) => ra.amenity)
+          : []
+      );
       // Nếu phòng có hình ảnh, cập nhật các slot hình ảnh
       if (roomData.roomImages && roomData.roomImages.length > 0) {
         const newImageSlots: ImageSlot[] = [null, null, null, null, null];
@@ -125,9 +122,10 @@ export function EditRoomModal({
         setImageSlots([null, null, null, null, null]);
       }
     }
-  }, [roomData, open, form]);
+  }, [roomData, open, form, rentalOptions]);
 
   const handleSubmit = async (values: UpdateRoomBodyType) => {
+    console.log(values);
     if (!roomId) return;
 
     try {

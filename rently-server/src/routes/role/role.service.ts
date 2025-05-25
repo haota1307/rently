@@ -62,11 +62,7 @@ export class RoleService {
     if (!role) {
       throw NotFoundRecordException
     }
-    const baseRoles: string[] = [
-      RoleName.Admin,
-      RoleName.Landlord,
-      RoleName.Client,
-    ]
+    const baseRoles: string[] = [RoleName.Admin]
 
     if (baseRoles.includes(role.name)) {
       throw ProhibitedActionOnBaseRoleException
