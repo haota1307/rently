@@ -14,8 +14,7 @@ interface AmenityFiltersProps {
 export function AmenityFilters({ onSortChange }: AmenityFiltersProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4">
-      <div className="grid gap-2 w-full">
-        <Label htmlFor="sort">Sắp xếp theo</Label>
+      <div className="w-full flex items-center gap-2">
         <Select defaultValue="newest" onValueChange={onSortChange}>
           <SelectTrigger id="sort" className="min-w-[180px] w-full">
             <SelectValue placeholder="Sắp xếp" />

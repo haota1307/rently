@@ -132,12 +132,12 @@ export default function RolesPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              {/* <div className="flex justify-end">
                 <Button onClick={() => setIsCreateModalOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   <span>Thêm vai trò</span>
                 </Button>
-              </div>
+              </div> */}
             </div>
           </CardContent>
         </Card>

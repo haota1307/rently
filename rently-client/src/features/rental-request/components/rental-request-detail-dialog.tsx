@@ -270,11 +270,24 @@ export function RentalRequestDetailDialog({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Diện tích:</span>
-                <span>{post?.area} m²</span>
+                <span>
+                  {typeof post?.room?.area === "number" && post.room.area > 0
+                    ? `${post.room.area} m²`
+                    : typeof post?.area === "number" && post.area > 0
+                      ? `${post.area} m²`
+                      : "--"}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Đặt cọc:</span>
-                <span>{post?.deposit?.toLocaleString()} đ</span>
+                <span>
+                  {typeof rentalRequest?.depositAmount === "number" &&
+                  rentalRequest.depositAmount > 0
+                    ? `${rentalRequest.depositAmount.toLocaleString()} đ`
+                    : typeof post?.deposit === "number" && post.deposit > 0
+                      ? `${post.deposit.toLocaleString()} đ`
+                      : "--"}
+                </span>
               </div>
             </CardContent>
             <CardFooter className="pt-0">

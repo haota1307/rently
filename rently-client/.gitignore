@@ -40,3 +40,5 @@ next-env.d.ts
 
 test.tsx
 test.*
+
+CODE_GUIDELINE_CLIENT.md

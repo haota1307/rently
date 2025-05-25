@@ -71,6 +71,7 @@ export class PaginatedPostReportResDTO extends createZodDto(
             email: z.string(),
             avatar: z.string().nullable(),
           })
+          .nullable()
           .optional(),
       })
     ),
