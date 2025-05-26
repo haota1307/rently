@@ -229,22 +229,30 @@ export class PaymentRepo {
 
     // Lọc theo nội dung giao dịch (NAP|RUT)
     if (query.transaction_content) {
-      const contentFilters = query.transaction_content
-        .split('|')
-        .map((content: string) => ({
-          OR: [
-            {
-              transactionContent: {
-                contains: content,
-              },
+      const contents = query.transaction_content.split('|')
+
+      const contentFilters = contents.map((content: string) => ({
+        OR: [
+          {
+            transactionContent: {
+              contains: content,
+              mode: 'insensitive',
             },
-            {
-              description: {
-                contains: content,
-              },
+          },
+          {
+            code: {
+              contains: content,
+              mode: 'insensitive',
             },
-          ],
-        }))
+          },
+          {
+            description: {
+              contains: content,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }))
 
       // Thêm điều kiện OR cho nhiều loại giao dịch
       if (contentFilters.length > 0) {
