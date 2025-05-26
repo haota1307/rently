@@ -101,6 +101,12 @@ export const GetRentalRequestsResSchema = PaginatedResponseSchema.extend({
   data: z.array(RentalRequestDetailSchema),
 })
 
+// Schema cho hủy yêu cầu thuê
+export const CancelRentalRequestBodySchema = z.object({
+  note: z.string(),
+  refundDeposit: z.boolean(),
+})
+
 // Types
 export type RentalRequestType = z.infer<typeof RentalRequestSchema>
 export type RentalRequestDetailType = z.infer<typeof RentalRequestDetailSchema>
@@ -118,4 +124,7 @@ export type GetRentalRequestParamsType = z.infer<
 >
 export type GetRentalRequestsResType = z.infer<
   typeof GetRentalRequestsResSchema
+>
+export type CancelRentalRequestBodyType = z.infer<
+  typeof CancelRentalRequestBodySchema
 >

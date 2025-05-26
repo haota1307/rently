@@ -14,6 +14,7 @@ import {
   RentalRequestDetailType,
   RentalRequestStatus,
   UpdateRentalRequestBodyType,
+  CancelRentalRequestBodyType,
 } from './rental-request.model'
 import { RoleName } from 'src/shared/constants/role.constant'
 import { EmailService } from 'src/shared/services/email.service'
@@ -537,5 +538,66 @@ export class RentalRequestService {
     } catch (error) {
       this.logger.error('Error sending status update notifications', error)
     }
+  }
+
+  // Hủy yêu cầu thuê với lựa chọn hoàn tiền cọc hoặc không
+  async cancelRequest(
+    id: number,
+    body: CancelRentalRequestBodyType,
+    userId: number,
+    roleName: string
+  ) {
+    // Lấy yêu cầu thuê
+    const rentalRequest =
+      await this.rentalRequestRepo.findRequestWithRelations(id)
+    if (!rentalRequest) {
+      throw new NotFoundException('Yêu cầu thuê không tồn tại')
+    }
+    // Chỉ landlord hoặc tenant liên quan mới được hủy
+    if (
+      rentalRequest.tenantId !== userId &&
+      rentalRequest.landlordId !== userId &&
+      roleName !== 'ADMIN'
+    ) {
+      throw new ForbiddenException('Bạn không có quyền hủy yêu cầu thuê này')
+    }
+    // Không cho phép hủy nếu đã bị hủy hoặc từ chối
+    if (
+      rentalRequest.status === RentalRequestStatus.CANCELED ||
+      rentalRequest.status === RentalRequestStatus.REJECTED
+    ) {
+      throw new BadRequestException('Yêu cầu thuê đã bị hủy hoặc từ chối')
+    }
+    // Chỉ cho phép hủy khi đã được duyệt (APPROVED)
+    if (rentalRequest.status !== RentalRequestStatus.APPROVED) {
+      throw new BadRequestException('Chỉ có thể hủy yêu cầu thuê đã được duyệt')
+    }
+    // Xử lý transaction
+    return this.prismaService.$transaction(async prisma => {
+      // Nếu refundDeposit = true thì hoàn tiền cọc
+      if (body.refundDeposit) {
+        const depositAmount = Number((rentalRequest.post as any).deposit || 0)
+        if (depositAmount > 0) {
+          await this.rentalRequestRepo.refundDeposit(
+            rentalRequest.tenantId,
+            rentalRequest.landlordId,
+            depositAmount,
+            rentalRequest.post.title,
+            rentalRequest.tenant.name,
+            prisma
+          )
+        }
+      }
+      // Cập nhật trạng thái yêu cầu thuê
+      const updated = await this.rentalRequestRepo.update({
+        id,
+        data: {
+          status: RentalRequestStatus.CANCELED,
+          note: body.note,
+        },
+        prismaTransaction: prisma,
+      })
+      return updated
+    })
   }
 }

@@ -40,6 +40,7 @@ import { useUpdateRentalRequest } from "@/features/rental-request/useRentalReque
 import { createPostSlug } from "@/lib/utils";
 import rentalRequestApiRequest from "@/features/rental-request/rental-request.api";
 import { useQueryClient } from "@tanstack/react-query";
+import { Dialog as ConfirmDialog } from "@/components/ui/dialog";
 
 interface RentalRequestDetailDialogProps {
   isOpen: boolean;
@@ -56,6 +57,10 @@ export function RentalRequestDetailDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusAction, setStatusAction] = useState<
     "APPROVE" | "REJECT" | "CANCEL" | null
+  >(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelRefundDeposit, setCancelRefundDeposit] = useState<
+    boolean | null
   >(null);
 
   const queryClient = useQueryClient();
@@ -142,33 +147,24 @@ export function RentalRequestDetailDialog({
   };
 
   // Hàm xử lý khi click vào nút hủy yêu cầu thuê
-  const handleCancel = async () => {
+  const handleCancel = async (refundDeposit: boolean) => {
     setStatusAction("CANCEL");
     if (!note || note.trim() === "") {
       toast.error("Vui lòng nhập lý do hủy yêu cầu thuê");
       return;
     }
-
     setIsSubmitting(true);
     try {
-      // Chuyển đổi sang số
       const requestId = Number(rentalRequest.id);
-
-      // Kiểm tra ID hợp lệ
       if (isNaN(requestId)) {
         throw new Error("Mã yêu cầu không hợp lệ");
       }
-
-      await rentalRequestApiRequest.update(requestId, {
-        status: RentalRequestStatus.CANCELED,
+      await rentalRequestApiRequest.cancel(requestId, {
         note,
-        rejectionReason: note,
+        refundDeposit,
       });
-
       toast.success("Đã hủy yêu cầu thuê thành công");
       onClose();
-
-      // Vô hiệu hóa cache để dữ liệu được cập nhật
       await queryClient.invalidateQueries({
         queryKey: ["rental-requests"],
       });
@@ -179,6 +175,8 @@ export function RentalRequestDetailDialog({
     } finally {
       setIsSubmitting(false);
       setStatusAction(null);
+      setShowCancelConfirm(false);
+      setCancelRefundDeposit(null);
     }
   };
 
@@ -509,10 +507,9 @@ export function RentalRequestDetailDialog({
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={handleCancel}
+                  onClick={() => setShowCancelConfirm(true)}
                   disabled={isSubmitting}
                 >
-                  <Ban className="h-4 w-4 mr-2" />
                   Hủy yêu cầu thuê
                 </Button>
               </DialogFooter>
@@ -528,6 +525,45 @@ export function RentalRequestDetailDialog({
               </Button>
             </DialogFooter>
           )}
+
+        {/* Modal xác nhận hủy với 2 lựa chọn */}
+        <ConfirmDialog
+          open={showCancelConfirm}
+          onOpenChange={setShowCancelConfirm}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Bạn muốn xử lý tiền cọc như thế nào?</DialogTitle>
+              <DialogDescription>
+                Khi hủy yêu cầu thuê, bạn có thể chọn trả lại tiền cọc cho người
+                thuê hoặc giữ lại tiền cọc.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col gap-2">
+              <Button
+                variant="default"
+                onClick={() => handleCancel(true)}
+                disabled={isSubmitting}
+              >
+                Hủy và trả lại tiền cọc
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleCancel(false)}
+                disabled={isSubmitting}
+              >
+                Hủy và giữ lại tiền cọc
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={isSubmitting}
+              >
+                Đóng
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </ConfirmDialog>
       </DialogContent>
     </Dialog>
   );

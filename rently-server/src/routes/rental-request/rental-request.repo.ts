@@ -730,7 +730,7 @@ export class RentalRequestRepo {
         },
       })
 
-      // Tạo giao dịch hoàn tiền cho người thuê
+      // Tạo giao dịch hoàn tiền cho người thuê (amountIn > 0, amountOut = 0)
       const tenantTransaction = await prisma.paymentTransaction.create({
         data: {
           gateway: 'SYSTEM',
@@ -742,18 +742,6 @@ export class RentalRequestRepo {
         },
       })
 
-      // Tạo giao dịch hoàn tiền từ chủ nhà
-      const landlordTransaction = await prisma.paymentTransaction.create({
-        data: {
-          gateway: 'SYSTEM',
-          transactionDate: new Date(),
-          amountOut: amount,
-          amountIn: 0,
-          transactionContent: `Hoàn tiền đặt cọc cho ${tenantName} - bài đăng: ${postTitle}`,
-          userId: landlordId,
-        },
-      })
-
       // Tạo bản ghi thanh toán hoàn tiền cho người thuê
       await prisma.payment.create({
         data: {
@@ -762,18 +750,6 @@ export class RentalRequestRepo {
           description: `Hoàn tiền đặt cọc cho bài đăng: ${postTitle}`,
           userId: tenantId,
           transactionId: tenantTransaction.id,
-          metadata: { type: 'DEPOSIT_REFUND' },
-        },
-      })
-
-      // Tạo bản ghi thanh toán hoàn tiền từ chủ nhà
-      await prisma.payment.create({
-        data: {
-          amount: amount,
-          status: PaymentStatus.COMPLETED,
-          description: `Hoàn tiền đặt cọc cho ${tenantName} - bài đăng: ${postTitle}`,
-          userId: landlordId,
-          transactionId: landlordTransaction.id,
           metadata: { type: 'DEPOSIT_REFUND' },
         },
       })

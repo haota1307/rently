@@ -40,26 +40,10 @@ export function WalletTab() {
   const user = data?.payload;
   const payments: Payment[] = paymentHistoryData?.payload?.payload || [];
 
-  // Hàm xác định loại giao dịch (tiền vào hay tiền ra)
-  const getTransactionType = (description: string | null) => {
-    if (!description) return "unknown";
-
-    // Tiền vào
-    if (
-      description.includes("Nạp tiền") ||
-      description.includes("Nhận tiền đặt cọc")
-    ) {
-      return "in";
-    }
-
-    // Tiền ra
-    if (
-      description.includes("Phí đăng bài") ||
-      description.includes("Tiền đặt cọc")
-    ) {
-      return "out";
-    }
-
+  // Hàm xác định loại giao dịch (tiền vào hay tiền ra) dựa vào amountIn/amountOut
+  const getTransactionType = (payment: Payment) => {
+    if (payment.transaction?.amountIn > 0) return "in";
+    if (payment.transaction?.amountOut > 0) return "out";
     return "unknown";
   };
 
@@ -67,16 +51,14 @@ export function WalletTab() {
   const totalIn = payments
     .filter(
       (payment) =>
-        getTransactionType(payment.description) === "in" &&
-        payment.status === "COMPLETED"
+        getTransactionType(payment) === "in" && payment.status === "COMPLETED"
     )
     .reduce((sum: number, payment) => sum + payment.amount, 0);
 
   const totalOut = payments
     .filter(
       (payment) =>
-        getTransactionType(payment.description) === "out" &&
-        payment.status === "COMPLETED"
+        getTransactionType(payment) === "out" && payment.status === "COMPLETED"
     )
     .reduce((sum: number, payment) => sum + payment.amount, 0);
 
@@ -258,7 +240,7 @@ export function WalletTab() {
                       className="flex items-center justify-between p-4 bg-muted/40 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        {getTransactionType(payment.description) === "in" ? (
+                        {getTransactionType(payment) === "in" ? (
                           <ArrowDownCircle className="h-5 w-5 text-green-500" />
                         ) : (
                           <ArrowUpCircle className="h-5 w-5 text-red-500" />
@@ -279,14 +261,12 @@ export function WalletTab() {
                       <div className="text-right">
                         <div
                           className={
-                            getTransactionType(payment.description) === "in"
+                            getTransactionType(payment) === "in"
                               ? "text-green-600 font-medium"
                               : "text-red-600 font-medium"
                           }
                         >
-                          {getTransactionType(payment.description) === "in"
-                            ? "+"
-                            : "-"}
+                          {getTransactionType(payment) === "in" ? "+" : "-"}
                           {payment.amount.toLocaleString()} VNĐ
                         </div>
                         <Badge
@@ -375,11 +355,10 @@ export function WalletTab() {
 
             <TabsContent value="deposits">
               <div className="space-y-4">
-                {payments.filter(
-                  (p) => getTransactionType(p.description) === "in"
-                ).length > 0 ? (
+                {payments.filter((p) => getTransactionType(p) === "in").length >
+                0 ? (
                   payments
-                    .filter((p) => getTransactionType(p.description) === "in")
+                    .filter((p) => getTransactionType(p) === "in")
                     .map((payment) => (
                       <div
                         key={payment.id}
@@ -433,11 +412,10 @@ export function WalletTab() {
 
             <TabsContent value="expenses">
               <div className="space-y-4">
-                {payments.filter(
-                  (p) => getTransactionType(p.description) === "out"
-                ).length > 0 ? (
+                {payments.filter((p) => getTransactionType(p) === "out")
+                  .length > 0 ? (
                   payments
-                    .filter((p) => getTransactionType(p.description) === "out")
+                    .filter((p) => getTransactionType(p) === "out")
                     .map((payment) => (
                       <div
                         key={payment.id}

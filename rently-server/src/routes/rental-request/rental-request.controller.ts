@@ -1,16 +1,6 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-} from '@nestjs/common'
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common'
 import { ZodSerializerDto } from 'nestjs-zod'
 import { RentalRequestService } from './rental-request.service'
-import { AccessTokenGuard } from 'src/shared/guards/access-token.guard'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import {
   CreateRentalRequestBodyDTO,
@@ -19,6 +9,7 @@ import {
   GetRentalRequestsResDTO,
   RentalRequestDetailDTO,
   UpdateRentalRequestBodyDTO,
+  CancelRentalRequestBodyDTO,
 } from './rental-request.dto'
 
 @Controller('rental-requests')
@@ -72,5 +63,24 @@ export class RentalRequestController {
     @ActiveUser('roleName') roleName: string
   ) {
     return this.rentalRequestService.update(params.id, body, userId, roleName)
+  }
+
+  /**
+   * Hủy yêu cầu thuê (landlord hoặc tenant)
+   */
+  @Put(':id/cancel')
+  @ZodSerializerDto(RentalRequestDetailDTO)
+  cancelRequest(
+    @Param() params: GetRentalRequestParamsDTO,
+    @Body() body: CancelRentalRequestBodyDTO,
+    @ActiveUser('userId') userId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    return this.rentalRequestService.cancelRequest(
+      params.id,
+      body,
+      userId,
+      roleName
+    )
   }
 }

@@ -57,9 +57,12 @@ const rentalRequestApiRequest = {
     return response.payload || response;
   },
 
-  // Hủy yêu cầu thuê (dành cho tenant)
-  cancel: async (id: number) => {
-    const response = await http.put<any>(`rental-requests/${id}/cancel`, {});
+  // Hủy yêu cầu thuê (dành cho tenant và landlord)
+  cancel: async (
+    id: number,
+    data: { note: string; refundDeposit: boolean }
+  ) => {
+    const response = await http.put<any>(`rental-requests/${id}/cancel`, data);
     return response.payload || response;
   },
 };

@@ -6,6 +6,7 @@ import {
   GetRentalRequestsResSchema,
   RentalRequestDetailSchema,
   UpdateRentalRequestBodySchema,
+  CancelRentalRequestBodySchema,
 } from './rental-request.model'
 
 // DTOs cho Request
@@ -32,4 +33,9 @@ export class RentalRequestDetailDTO extends createZodDto(
 
 export class GetRentalRequestsResDTO extends createZodDto(
   GetRentalRequestsResSchema
+) {}
+
+// DTO cho hủy yêu cầu thuê
+export class CancelRentalRequestBodyDTO extends createZodDto(
+  CancelRentalRequestBodySchema
 ) {}
