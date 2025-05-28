@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { Plus, MoreHorizontal, Receipt } from "lucide-react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { roomColumns } from "@/features/dashboard/components/columns/room-columns";
@@ -14,6 +14,7 @@ import { CreateRoomModal } from "@/features/rooms/components/create-room-modal";
 import { EditRoomModal } from "@/features/rooms/components/edit-room-modal";
 import { DeleteRoomConfirm } from "@/features/rooms/components/delete-room-confirm";
 import { RoomDetailModal } from "@/features/rooms/components/room-detail-modal";
+import { CreateRoomBillModal } from "@/features/rooms/components/create-room-bill-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,7 @@ export default function RoomsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isCreateBillModalOpen, setIsCreateBillModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
 
   const limit = 5;
@@ -92,6 +94,12 @@ export default function RoomsPage() {
     setIsDeleteModalOpen(true);
   };
 
+  // Callback khi người dùng chọn tạo hóa đơn
+  const handleCreateBill = (room: any) => {
+    setSelectedRoom(room);
+    setIsCreateBillModalOpen(true);
+  };
+
   const columns = [
     ...roomColumns.filter((column) => column.id !== "actions"),
     {
@@ -123,6 +131,13 @@ export default function RoomsPage() {
               <DropdownMenuItem onClick={() => handleEditRoom(room)}>
                 Chỉnh sửa
               </DropdownMenuItem>
+              {/* Chỉ hiển thị nút "Tạo hóa đơn" cho phòng đã thuê */}
+              {!room.isAvailable && (
+                <DropdownMenuItem onClick={() => handleCreateBill(room)}>
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Tạo hóa đơn
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => handleDeleteRoom(room)}
                 className="text-red-600"
@@ -221,6 +236,13 @@ export default function RoomsPage() {
             onOpenChange={setIsDeleteModalOpen}
             roomId={selectedRoom.id}
             roomTitle={selectedRoom.title}
+          />
+
+          {/* Modal tạo hóa đơn */}
+          <CreateRoomBillModal
+            open={isCreateBillModalOpen}
+            onOpenChange={setIsCreateBillModalOpen}
+            roomId={selectedRoom.id}
           />
         </>
       )}

@@ -12,6 +12,7 @@ import RentalStatusUpdateEmail from 'emails/rental-status-update'
 import ResetPasswordEmail from 'emails/reset-password'
 import ContactNotificationEmail from 'emails/contact-notification'
 import ContactResponseEmail from 'emails/contact-response'
+import RoomBillEmail from 'emails/room-bill'
 import Handlebars from 'handlebars'
 
 @Injectable()
@@ -435,6 +436,100 @@ export class EmailService {
           originalMessage={payload.originalMessage}
           responseMessage={payload.responseMessage}
           websiteUrl={payload.websiteUrl}
+        />
+      ),
+    })
+  }
+
+  // Phương thức gửi email hóa đơn tiền phòng
+  async sendRoomBill(payload: {
+    email: string
+    tenantName: string
+    roomTitle: string
+    billingMonth: string
+    dueDate: string
+    electricityOld: number
+    electricityNew: number
+    electricityUsage: number
+    electricityPrice: number
+    electricityAmount: number
+    waterOld: number
+    waterNew: number
+    waterUsage: number
+    waterPrice: number
+    waterAmount: number
+    otherFees: Array<{ name: string; amount: number }>
+    totalAmount: number
+    note?: string
+    paymentUrl?: string
+  }) {
+    const subject = `Hóa đơn tiền phòng ${payload.roomTitle} - ${payload.billingMonth}`
+    const templateKey = 'email_room_bill_template'
+
+    // Thử lấy template từ database trước
+    const dbTemplate = await this.getEmailTemplateFromDB(templateKey)
+
+    // Nếu có template HTML trong database thì dùng
+    if (dbTemplate) {
+      console.log(
+        '[EmailService] Sử dụng HTML template từ database cho hóa đơn tiền phòng'
+      )
+      const html = this.renderTemplate(dbTemplate, {
+        tenant_name: payload.tenantName,
+        room_title: payload.roomTitle,
+        billing_month: payload.billingMonth,
+        due_date: payload.dueDate,
+        electricity_old: payload.electricityOld,
+        electricity_new: payload.electricityNew,
+        electricity_usage: payload.electricityUsage,
+        electricity_price: payload.electricityPrice,
+        electricity_amount: payload.electricityAmount,
+        water_old: payload.waterOld,
+        water_new: payload.waterNew,
+        water_usage: payload.waterUsage,
+        water_price: payload.waterPrice,
+        water_amount: payload.waterAmount,
+        other_fees: payload.otherFees,
+        total_amount: payload.totalAmount,
+        note: payload.note || '',
+        payment_url: payload.paymentUrl || 'https://rently.top/nap-tien',
+      })
+      return this.resend.emails.send({
+        from: 'Rently <no-reply@rently.top>',
+        to: [payload.email],
+        subject,
+        html,
+      })
+    }
+
+    // Nếu không có hoặc là template React thì dùng React Component
+    console.log(
+      '[EmailService] Sử dụng React component từ file cho hóa đơn tiền phòng'
+    )
+    return this.resend.emails.send({
+      from: 'Rently <no-reply@rently.top>',
+      to: [payload.email],
+      subject,
+      react: (
+        <RoomBillEmail
+          tenantName={payload.tenantName}
+          roomTitle={payload.roomTitle}
+          billingMonth={payload.billingMonth}
+          dueDate={payload.dueDate}
+          electricityOld={payload.electricityOld}
+          electricityNew={payload.electricityNew}
+          electricityUsage={payload.electricityUsage}
+          electricityPrice={payload.electricityPrice}
+          electricityAmount={payload.electricityAmount}
+          waterOld={payload.waterOld}
+          waterNew={payload.waterNew}
+          waterUsage={payload.waterUsage}
+          waterPrice={payload.waterPrice}
+          waterAmount={payload.waterAmount}
+          otherFees={payload.otherFees}
+          totalAmount={payload.totalAmount}
+          note={payload.note}
+          paymentUrl={payload.paymentUrl}
         />
       ),
     })

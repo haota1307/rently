@@ -36,6 +36,8 @@ import { ScheduleModule } from '@nestjs/schedule'
 import { BullModule } from '@nestjs/bullmq'
 import envConfig from 'src/shared/config'
 import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
+import { RoomBillModule } from './routes/room-bill/room-bill.module'
+
 @Module({
   imports: [
     BullModule.forRoot({
@@ -69,6 +71,7 @@ import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
     SystemSettingModule,
     ContactModule,
     RentalContractModule,
+    RoomBillModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

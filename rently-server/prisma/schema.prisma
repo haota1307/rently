@@ -69,6 +69,7 @@ model User {
   updatedUsers                                   User[]                @relation("UpdatorUsers")
   landlordViewingSchedules                       ViewingSchedule[]     @relation("LandlordViewingSchedules")
   tenantViewingSchedules                         ViewingSchedule[]     @relation("TenantViewingSchedules")
+  createdRoomUtilityBills                        RoomUtilityBill[]
 
   @@index([name])
   @@index([status])
@@ -167,20 +168,21 @@ model Rental {
 }
 
 model Room {
-  id             Int              @id @default(autoincrement())
+  id             Int               @id @default(autoincrement())
   title          String
   price          Decimal
-  isAvailable    Boolean          @default(true)
-  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime         @updatedAt @db.Timestamptz(6)
+  isAvailable    Boolean           @default(true)
+  createdAt      DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @db.Timestamptz(6)
   rentalId       Int
   area           Int
   RentalContract RentalContract[]
   RentalPost     RentalPost[]
   reviews        Review[]
-  rental         Rental           @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  rental         Rental            @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   roomAmenities  RoomAmenity[]
   roomImages     RoomImage[]
+  utilityBills   RoomUtilityBill[]
 
   @@index([rentalId])
   @@index([isAvailable])
@@ -639,6 +641,35 @@ model RentalContract {
   @@index([status])
   @@index([tenantId])
   @@index([templateId])
+}
+
+model RoomUtilityBill {
+  id               Int      @id @default(autoincrement())
+  roomId           Int
+  electricityOld   Int      @default(0) // Chỉ số điện cũ
+  electricityNew   Int      @default(0) // Chỉ số điện mới
+  electricityPrice Decimal  @default(3500) // Giá điện mặc định 3500đ/kWh
+  waterOld         Int      @default(0) // Chỉ số nước cũ
+  waterNew         Int      @default(0) // Chỉ số nước mới
+  waterPrice       Decimal  @default(15000) // Giá nước mặc định 15000đ/m3
+  otherFees        Json? // Các khoản phí khác (dạng JSON)
+  totalAmount      Decimal // Tổng tiền
+  note             String? // Ghi chú
+  isPaid           Boolean  @default(false) // Trạng thái thanh toán
+  billingMonth     DateTime // Tháng hóa đơn (lưu ngày đầu tháng)
+  dueDate          DateTime // Ngày đến hạn thanh toán
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
+  createdById      Int
+  emailSent        Boolean  @default(false) // Đánh dấu đã gửi email chưa
+
+  // Relations
+  room      Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([roomId])
+  @@index([billingMonth])
+  @@index([isPaid])
 }
 
 enum TransactionStatus {
