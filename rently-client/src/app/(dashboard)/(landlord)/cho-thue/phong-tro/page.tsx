@@ -13,7 +13,6 @@ import { useGetMyRooms } from "@/features/rooms/useRoom";
 import { CreateRoomModal } from "@/features/rooms/components/create-room-modal";
 import { EditRoomModal } from "@/features/rooms/components/edit-room-modal";
 import { DeleteRoomConfirm } from "@/features/rooms/components/delete-room-confirm";
-import { RoomDetailModal } from "@/features/rooms/components/room-detail-modal";
 import { CreateRoomBillModal } from "@/features/rooms/components/create-room-bill-modal";
 import {
   DropdownMenu,
@@ -23,8 +22,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 export default function RoomsPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priceFilter, setPriceFilter] = useState<string>("all");
@@ -35,7 +36,6 @@ export default function RoomsPage() {
   // State cho chức năng chỉnh sửa và xóa
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateBillModalOpen, setIsCreateBillModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
 
@@ -78,8 +78,7 @@ export default function RoomsPage() {
 
   // Callback khi người dùng chọn xem chi tiết
   const handleViewRoom = (room: any) => {
-    setSelectedRoom(room);
-    setIsDetailModalOpen(true);
+    router.push(`/cho-thue/phong-tro/${room.id}`);
   };
 
   // Callback khi người dùng chọn chỉnh sửa
@@ -216,13 +215,6 @@ export default function RoomsPage() {
 
       {selectedRoom && (
         <>
-          {/* Modal xem chi tiết phòng */}
-          <RoomDetailModal
-            open={isDetailModalOpen}
-            onOpenChange={setIsDetailModalOpen}
-            roomId={selectedRoom.id}
-          />
-
           {/* Modal chỉnh sửa phòng */}
           <EditRoomModal
             open={isEditModalOpen}
