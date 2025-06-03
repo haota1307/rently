@@ -3,7 +3,7 @@ import { ContractStatusBadge } from "./contract-status-badge";
 import { formatDate } from "@/lib/format";
 import { formatPrice } from "@/lib/utils";
 import { ContractStatus } from "../contract.constants";
-import { Eye, FileText, Pencil, Trash2 } from "lucide-react";
+import { Eye, FileText, RotateCw, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { differenceInDays, isPast, isFuture } from "date-fns";
 
 export interface Contract {
   id: number;
@@ -32,24 +34,29 @@ export interface Contract {
   status: ContractStatus;
   landlord: {
     name: string;
+    id: number;
   };
   tenant: {
     name: string;
+    id: number;
   };
   room: {
     title: string;
+    id: number;
   };
 }
 
 interface ContractTableProps {
   contracts: Contract[];
   loading: boolean;
+  currentUserId?: number;
   onRefresh: () => void;
 }
 
 export function ContractTable({
   contracts,
   loading,
+  currentUserId,
   onRefresh,
 }: ContractTableProps) {
   const router = useRouter();
@@ -58,8 +65,36 @@ export function ContractTable({
     router.push(`/cho-thue/hop-dong/${id}`);
   };
 
-  const handleExportContract = (id: number) => {
-    // Xử lý xuất hợp đồng
+  const getDaysRemaining = (endDate: Date) => {
+    const today = new Date();
+    const end = new Date(endDate);
+
+    if (isPast(end)) return null;
+
+    return differenceInDays(end, today);
+  };
+
+  const getExpirationBadge = (endDate: Date, status: ContractStatus) => {
+    if (status !== ContractStatus.ACTIVE) return null;
+
+    const daysRemaining = getDaysRemaining(endDate);
+    if (daysRemaining === null) return null;
+
+    if (daysRemaining <= 7) {
+      return (
+        <Badge variant="destructive" className="ml-2">
+          Sắp hết hạn ({daysRemaining} ngày)
+        </Badge>
+      );
+    } else if (daysRemaining <= 30) {
+      return (
+        <Badge variant="warning" className="ml-2 bg-yellow-500">
+          {daysRemaining} ngày
+        </Badge>
+      );
+    }
+
+    return null;
   };
 
   if (loading) {
@@ -96,8 +131,13 @@ export function ContractTable({
                 <TableCell>{contract.room.title}</TableCell>
                 <TableCell>{contract.tenant.name}</TableCell>
                 <TableCell>
-                  {formatDate(contract.startDate)} -{" "}
-                  {formatDate(contract.endDate)}
+                  <div>
+                    <div>
+                      {formatDate(contract.startDate)} -{" "}
+                      {formatDate(contract.endDate)}
+                    </div>
+                    {getExpirationBadge(contract.endDate, contract.status)}
+                  </div>
                 </TableCell>
                 <TableCell>{formatPrice(contract.monthlyRent)}</TableCell>
                 <TableCell>
@@ -121,12 +161,34 @@ export function ContractTable({
                         <Eye className="mr-2 h-4 w-4" />
                         Xem chi tiết
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleExportContract(contract.id)}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Xuất PDF
-                      </DropdownMenuItem>
+
+                      {/* Các tùy chọn nhanh cho hợp đồng đang hoạt động */}
+                      {contract.status === ContractStatus.ACTIVE &&
+                        currentUserId === contract.landlord.id && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(
+                                  `/cho-thue/hop-dong/${contract.id}?action=renew`
+                                )
+                              }
+                            >
+                              <RotateCw className="mr-2 h-4 w-4" />
+                              Gia hạn hợp đồng
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(
+                                  `/cho-thue/hop-dong/${contract.id}?action=terminate`
+                                )
+                              }
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Chấm dứt hợp đồng
+                            </DropdownMenuItem>
+                          </>
+                        )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

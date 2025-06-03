@@ -626,6 +626,7 @@ model RentalContract {
   updatedAt                            DateTime             @db.Timestamptz(6)
   finalDocumentUrl                     String?
   templateId                           Int?
+  terminatedAt                         DateTime?            @db.Timestamptz(6)
   ContractAttachment                   ContractAttachment[]
   ContractSignature                    ContractSignature[]
   User_RentalContract_landlordIdToUser User                 @relation("RentalContract_landlordIdToUser", fields: [landlordId], references: [id])
@@ -733,6 +734,10 @@ enum NotificationType {
   VIEWING_SCHEDULE
   POST
   SYSTEM
+  CONTRACT_TERMINATED
+  CONTRACT_EXPIRED
+  CONTRACT_RENEWED
+  CONTRACT_SIGNED
 }
 
 enum ReportStatus {

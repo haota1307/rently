@@ -43,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ContractDataTable } from "@/features/rental-contract/components/contract-data-table";
 
 export default function ContractPage() {
   const { userId } = useAuth();
@@ -308,13 +309,13 @@ export default function ContractPage() {
           }
         />
 
-        <DataTable
-          columns={contractColumns}
-          data={contracts}
+        <ContractDataTable
+          contracts={contracts}
           currentPage={page}
           totalPages={Math.ceil(contracts.length / limit)}
           onPageChange={setPage}
-          isLoading={loading}
+          loading={loading}
+          currentUserId={userId}
           emptyMessage="Không có hợp đồng nào"
         />
       </div>

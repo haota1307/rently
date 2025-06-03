@@ -11,6 +11,13 @@ import {
   Res,
   UploadedFile,
   UseInterceptors,
+  FileTypeValidator,
+  MaxFileSizeValidator,
+  ParseFilePipe,
+  ParseIntPipe,
+  Patch,
+  StreamableFile,
+  UseGuards,
 } from '@nestjs/common'
 import { RentalContractService } from './rental-contract.service'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
@@ -33,7 +40,6 @@ import {
 import { UploadService } from '../upload/cloudinary.service'
 import { UPLOAD_PATHS, SUCCESS_MESSAGES } from './rental-contract.constant'
 import { Response } from 'express'
-import { PdfGeneratorService } from './pdf-generator.service'
 
 @Controller('rental-contracts')
 export class RentalContractController {
@@ -259,5 +265,51 @@ export class RentalContractController {
       console.error('Error exporting contract PDF:', error)
       res.status(500).send('Không thể xuất hợp đồng')
     }
+  }
+
+  // Chấm dứt hợp đồng
+  @Patch(':id/terminate')
+  @ZodSerializerDto(ContractDetailDTO)
+  async terminateContract(
+    @Param() params: GetContractParamsDTO,
+    @Body() data: { reason: string },
+    @ActiveUser('userId') userId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    const contract = await this.rentalContractService.terminateContract(
+      params.id,
+      userId,
+      roleName,
+      data.reason
+    )
+    return contract
+  }
+
+  // Đánh dấu hợp đồng hết hạn (chỉ cho chủ nhà và Admin)
+  @Patch(':id/expire')
+  @ZodSerializerDto(ContractDetailDTO)
+  async expireContract(
+    @Param() params: GetContractParamsDTO,
+    @ActiveUser('userId') userId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    return this.rentalContractService.expireContract(params.id)
+  }
+
+  // Gia hạn hợp đồng (chỉ cho chủ nhà và Admin)
+  @Patch(':id/renew')
+  @ZodSerializerDto(ContractDetailDTO)
+  async renewContract(
+    @Param() params: GetContractParamsDTO,
+    @Body() data: { endDate: string },
+    @ActiveUser('userId') userId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    return this.rentalContractService.renewContract(
+      params.id,
+      userId,
+      roleName,
+      data.endDate
+    )
   }
 }
