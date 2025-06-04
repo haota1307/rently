@@ -82,3 +82,20 @@ export const useDeleteRoom = () => {
     },
   });
 };
+
+// Hook để admin tạo phòng trọ cho người cho thuê
+export const useCreateRoomForLandlord = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body: CreateRoomBodyType & { landlordId: number }) => {
+      const res = await roomApiRequest.createForLandlord(body);
+      return res.payload as GetRoomDetailResType;
+    },
+    onSuccess: () => {
+      // Invalidate các query liên quan
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["rentals"] });
+    },
+  });
+};

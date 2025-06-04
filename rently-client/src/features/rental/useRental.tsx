@@ -57,6 +57,22 @@ export const useCreateRental = () => {
   });
 };
 
+// Hook để admin tạo nhà trọ cho người cho thuê
+export const useCreateRentalForLandlord = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body: CreateRentalBodyType & { landlordId: number }) => {
+      const res = await rentalApiRequest.createForLandlord(body);
+      return res.payload as RentalType;
+    },
+    onSuccess: () => {
+      // Invalidate các query liên quan
+      queryClient.invalidateQueries({ queryKey: ["rentals"] });
+    },
+  });
+};
+
 // Cập nhật bất động sản
 export const useUpdateRental = () => {
   const queryClient = useQueryClient();

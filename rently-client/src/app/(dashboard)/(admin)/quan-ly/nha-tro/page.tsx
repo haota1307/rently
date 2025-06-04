@@ -13,7 +13,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ColumnDef } from "@tanstack/react-table";
 import { useGetRentals } from "@/features/rental/useRental";
 import { RentalType } from "@/schemas/rental.schema";
-import { toast } from "sonner";
+import { CreateRoomForLandlordModal } from "@/features/rooms/components/create-room-for-landlord-modal";
+import { CreateRentalForLandlordModal } from "@/features/rental/component/create-rental-for-landlord-modal";
 
 // Custom hook debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -34,6 +35,8 @@ export default function RentalsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [landlordFilter, setLandlordFilter] = useState<string>("all");
+  const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
+  const [isCreateRentalModalOpen, setIsCreateRentalModalOpen] = useState(false);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   // Gọi API để lấy danh sách nhà trọ
@@ -83,12 +86,19 @@ export default function RentalsPage() {
                   onLandlordFilterChange={handleLandlordFilterChange}
                 />
 
-                <Button
-                  onClick={() => toast.info("Tính năng đang được phát triển")}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span>Thêm nhà trọ</span>
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => setIsCreateRentalModalOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span>Thêm nhà trọ</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreateRoomModalOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span>Thêm phòng trọ</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -101,6 +111,18 @@ export default function RentalsPage() {
           totalPages={rentalsData?.totalPages || 1}
           onPageChange={setCurrentPage}
           isLoading={isLoading}
+        />
+
+        {/* Modal tạo nhà trọ cho người cho thuê */}
+        <CreateRentalForLandlordModal
+          isOpen={isCreateRentalModalOpen}
+          onClose={() => setIsCreateRentalModalOpen(false)}
+        />
+
+        {/* Modal tạo phòng trọ cho người cho thuê */}
+        <CreateRoomForLandlordModal
+          open={isCreateRoomModalOpen}
+          onOpenChange={setIsCreateRoomModalOpen}
         />
       </div>
     </SidebarInset>

@@ -35,6 +35,9 @@ const rentalApiRequest = {
   create: (body: CreateRentalBodyType) =>
     http.post<RentalType>(`${prefix}`, body),
 
+  createForLandlord: (body: CreateRentalBodyType & { landlordId: number }) =>
+    http.post<RentalType>(`${prefix}/admin/create-for-landlord`, body),
+
   update: (rentalId: number, body: UpdateRentalBodyType) =>
     http.put<RentalType>(`${prefix}/${rentalId}`, body),
 
