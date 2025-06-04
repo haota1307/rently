@@ -67,6 +67,64 @@ const WELCOME_MESSAGE: Message = {
   timestamp: new Date(),
 };
 
+// Tạo HTML cho kết quả tìm kiếm - sử dụng template strings cẩn thận
+const generateSearchResultsHtml = (results: any[]): string => {
+  if (!results || results.length === 0) {
+    return "<p>Không tìm thấy kết quả nào phù hợp.</p>";
+  }
+
+  const resultsHtml = results
+    .slice(0, 5)
+    .map((result, index) => {
+      // Tạo slug cho bài đăng
+      const slug = createPostSlug(result.title, result.postId);
+
+      return `
+        <div class="p-1.5 sm:p-3 my-1.5 sm:my-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900 hover:shadow-md transition-all duration-200">
+          <a href="/bai-dang/${slug}" 
+             target="_blank" 
+             class="text-primary hover:text-primary/80 font-semibold transition-colors duration-200 text-[11px] sm:text-sm">
+            ${index + 1}. ${result.title}
+          </a>
+          <div class="flex flex-wrap items-center gap-1 text-[10px] sm:text-xs mt-1 sm:mt-2">
+            <span class="font-bold text-green-600 dark:text-green-400">${new Intl.NumberFormat(
+              "vi-VN"
+            ).format(Number(result.price))} VNĐ/tháng</span> 
+            <span class="mx-1">•</span>
+            <span class="font-medium">${result.area}m²</span>
+            <span class="mx-1">•</span>
+            <span class="text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[200px]">${
+              result.address
+            }</span>
+          </div>
+          ${
+            result.imageUrls && result.imageUrls.length > 0
+              ? `<div class="mt-1 sm:mt-2 overflow-hidden rounded-md">
+                   <img src="${result.imageUrls[0]}" alt="${result.title}" class="w-full h-20 sm:h-32 object-cover hover:scale-105 transition-transform duration-500" />
+                 </div>`
+              : ""
+          }
+          <div class="text-[8px] sm:text-xs mt-1 sm:mt-2 flex flex-wrap gap-0.5 sm:gap-1">
+            ${result.amenities
+              .map(
+                (amenity: string) =>
+                  `<span class="px-1 py-0.5 sm:px-2 sm:py-1 bg-blue-100 dark:bg-blue-900/50 rounded-full text-blue-700 dark:text-blue-300">${amenity}</span>`
+              )
+              .join(" ")}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="space-y-1 sm:space-y-2 my-1.5 sm:my-3">
+      ${resultsHtml}
+    </div>
+    <p class="text-[9px] sm:text-sm mt-1.5 sm:mt-3 text-gray-600 dark:text-gray-300 italic">Bạn có thể nhấp vào tên phòng để xem chi tiết.</p>
+  `;
+};
+
 // Hàm chuyển đổi từ dữ liệu API sang định dạng tin nhắn nội bộ
 const convertHistoryToMessages = (historyItems: any[]): Message[] => {
   const messages: Message[] = [];
@@ -80,14 +138,38 @@ const convertHistoryToMessages = (historyItems: any[]): Message[] => {
       timestamp: new Date(item.createdAt),
     });
 
-    // Thêm phản hồi của bot
-    messages.push({
-      id: `bot_${item.id}`,
-      content: item.response,
-      sender: "bot",
-      timestamp: new Date(item.createdAt),
-      isHtml: item.response.includes("<") && item.response.includes(">"),
-    });
+    // Xử lý kết quả phòng trọ (results)
+    let resultsArray: any[] | undefined;
+    let summary: string = "";
+    if (Array.isArray(item.results)) {
+      resultsArray = item.results;
+      summary = item.response || "";
+    } else if (item.results && Array.isArray(item.results.results)) {
+      resultsArray = item.results.results;
+      summary = item.results.summary || item.response || "";
+    }
+
+    if (resultsArray && resultsArray.length > 0) {
+      const htmlContent = generateSearchResultsHtml(resultsArray);
+      messages.push({
+        id: `bot_${item.id}`,
+        content: `${summary}<br/><br/>${htmlContent}`,
+        sender: "bot",
+        timestamp: new Date(item.createdAt),
+        isHtml: true,
+      });
+    } else {
+      messages.push({
+        id: `bot_${item.id}`,
+        content: item.response,
+        sender: "bot",
+        timestamp: new Date(item.createdAt),
+        isHtml:
+          item.response &&
+          item.response.includes("<") &&
+          item.response.includes(">"),
+      });
+    }
   });
 
   // Sắp xếp tin nhắn theo thời gian tăng dần
@@ -344,64 +426,6 @@ export function ChatbotWidget() {
 
   const toggleMaximize = () => {
     setIsMaximized(!isMaximized);
-  };
-
-  // Tạo HTML cho kết quả tìm kiếm - sử dụng template strings cẩn thận
-  const generateSearchResultsHtml = (results: any[]): string => {
-    if (!results || results.length === 0) {
-      return "<p>Không tìm thấy kết quả nào phù hợp.</p>";
-    }
-
-    const resultsHtml = results
-      .slice(0, 5)
-      .map((result, index) => {
-        // Tạo slug cho bài đăng
-        const slug = createPostSlug(result.title, result.postId);
-
-        return `
-          <div class="p-1.5 sm:p-3 my-1.5 sm:my-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900 hover:shadow-md transition-all duration-200">
-            <a href="/bai-dang/${slug}" 
-               target="_blank" 
-               class="text-primary hover:text-primary/80 font-semibold transition-colors duration-200 text-[11px] sm:text-sm">
-              ${index + 1}. ${result.title}
-            </a>
-            <div class="flex flex-wrap items-center gap-1 text-[10px] sm:text-xs mt-1 sm:mt-2">
-              <span class="font-bold text-green-600 dark:text-green-400">${new Intl.NumberFormat(
-                "vi-VN"
-              ).format(Number(result.price))} VNĐ/tháng</span> 
-              <span class="mx-1">•</span>
-              <span class="font-medium">${result.area}m²</span>
-              <span class="mx-1">•</span>
-              <span class="text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[200px]">${
-                result.address
-              }</span>
-            </div>
-            ${
-              result.imageUrls && result.imageUrls.length > 0
-                ? `<div class="mt-1 sm:mt-2 overflow-hidden rounded-md">
-                     <img src="${result.imageUrls[0]}" alt="${result.title}" class="w-full h-20 sm:h-32 object-cover hover:scale-105 transition-transform duration-500" />
-                   </div>`
-                : ""
-            }
-            <div class="text-[8px] sm:text-xs mt-1 sm:mt-2 flex flex-wrap gap-0.5 sm:gap-1">
-              ${result.amenities
-                .map(
-                  (amenity: string) =>
-                    `<span class="px-1 py-0.5 sm:px-2 sm:py-1 bg-blue-100 dark:bg-blue-900/50 rounded-full text-blue-700 dark:text-blue-300">${amenity}</span>`
-                )
-                .join(" ")}
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-
-    return `
-      <div class="space-y-1 sm:space-y-2 my-1.5 sm:my-3">
-        ${resultsHtml}
-      </div>
-      <p class="text-[9px] sm:text-sm mt-1.5 sm:mt-3 text-gray-600 dark:text-gray-300 italic">Bạn có thể nhấp vào tên phòng để xem chi tiết.</p>
-    `;
   };
 
   // Thêm tin nhắn bot

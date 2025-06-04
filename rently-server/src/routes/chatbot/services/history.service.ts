@@ -123,9 +123,9 @@ export class ChatbotHistoryService {
    */
   async getChatHistory(userId: number, limit: number = 10, offset: number = 0) {
     try {
-      // Truy vấn raw SQL để lấy lịch sử chat
+      // Truy vấn raw SQL để lấy lịch sử chat, trả về cả results và criteria
       const query = `
-        SELECT id, message, response, "createdAt"
+        SELECT id, message, response, "createdAt", results, criteria
         FROM "ChatbotMessage"
         WHERE "userId" = $1
         ORDER BY "createdAt" DESC

@@ -41,6 +41,8 @@ interface ChatHistoryResponse {
     message: string;
     response: string;
     createdAt: string;
+    results?: any[];
+    criteria?: any;
   }>;
   hasMore: boolean;
   total: number;

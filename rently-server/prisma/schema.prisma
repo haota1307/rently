@@ -479,8 +479,8 @@ model Notification {
 
 model ChatbotMessage {
   id        Int      @id @default(autoincrement())
-  message   String
-  response  String
+  message   String?
+  response  String?
   criteria  Json?
   results   Json?
   isRead    Boolean  @default(true)
