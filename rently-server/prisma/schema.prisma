@@ -9,67 +9,68 @@ datasource db {
 }
 
 model User {
-  id                                             Int                   @id @default(autoincrement())
+  id                                             Int                    @id @default(autoincrement())
   name                                           String
   avatar                                         String?
   phoneNumber                                    String?
-  email                                          String                @unique
+  email                                          String                 @unique
   password                                       String
-  status                                         UserStatus            @default(INACTIVE)
-  balance                                        Int                   @default(0)
+  status                                         UserStatus             @default(INACTIVE)
+  balance                                        Int                    @default(0)
   roleId                                         Int
   deletedAt                                      DateTime?
-  createdAt                                      DateTime              @default(now()) @db.Timestamptz(6)
-  updatedAt                                      DateTime              @updatedAt @db.Timestamptz(6)
+  createdAt                                      DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt                                      DateTime               @updatedAt @db.Timestamptz(6)
   createdById                                    Int?
   deletedById                                    Int?
   updatedById                                    Int?
   ChatbotMessage                                 ChatbotMessage[]
   comments                                       Comment[]
-  respondedContacts                              Contact[]             @relation("UserRespondedContacts")
+  respondedContacts                              Contact[]              @relation("UserRespondedContacts")
   Contact                                        Contact[]
   ContractAttachment                             ContractAttachment[]
   ContractSignature                              ContractSignature[]
   contractTemplates                              ContractTemplate[]
-  conversationsOne                               Conversation[]        @relation("UserOneConversations")
-  conversationsTwo                               Conversation[]        @relation("UserTwoConversations")
+  conversationsOne                               Conversation[]         @relation("UserOneConversations")
+  conversationsTwo                               Conversation[]         @relation("UserTwoConversations")
   conversationMessages                           ConversationMessage[]
   favorites                                      Favorite[]
   notifications                                  Notification[]
   payments                                       Payment[]
   paymentTransactions                            PaymentTransaction[]
-  PermissionCreatedBy                            Permission[]          @relation("PermissionCreatedBy")
-  deletedPermissions                             Permission[]          @relation("PermissionDeletedBy")
-  PermissionUpdatedBy                            Permission[]          @relation("PermissionUpdatedBy")
+  PermissionCreatedBy                            Permission[]           @relation("PermissionCreatedBy")
+  deletedPermissions                             Permission[]           @relation("PermissionDeletedBy")
+  PermissionUpdatedBy                            Permission[]           @relation("PermissionUpdatedBy")
   Permission                                     Permission[]
-  processedReports                               PostReport[]          @relation("ProcessedReports")
-  reportedPosts                                  PostReport[]          @relation("UserReports")
+  processedReports                               PostReport[]           @relation("ProcessedReports")
+  reportedPosts                                  PostReport[]           @relation("UserReports")
   PostReport                                     PostReport[]
   refreshTokens                                  RefreshToken[]
-  rentals                                        Rental[]              @relation("LandlordRentals")
-  RentalContract_RentalContract_landlordIdToUser RentalContract[]      @relation("RentalContract_landlordIdToUser")
-  RentalContract_RentalContract_tenantIdToUser   RentalContract[]      @relation("RentalContract_tenantIdToUser")
-  rentalPosts                                    RentalPost[]          @relation("LandlordRentalPosts")
-  landlordRentalRequests                         RentalRequest[]       @relation("LandlordRentalRequests")
-  tenantRentalRequests                           RentalRequest[]       @relation("TenantRentalRequests")
-  reviews                                        Review[]              @relation("TenantReviews")
-  RoleCreatedBy                                  Role[]                @relation("RoleCreatedBy")
-  Role                                           Role[]                @relation("RoledeletedByIdBy")
-  RoleUpdatedBy                                  Role[]                @relation("RoleUpdatedBy")
-  processedRequests                              RoleUpgradeRequest[]  @relation("ProcessedRequests")
+  rentals                                        Rental[]               @relation("LandlordRentals")
+  RentalContract_RentalContract_landlordIdToUser RentalContract[]       @relation("RentalContract_landlordIdToUser")
+  RentalContract_RentalContract_tenantIdToUser   RentalContract[]       @relation("RentalContract_tenantIdToUser")
+  rentalPosts                                    RentalPost[]           @relation("LandlordRentalPosts")
+  landlordRentalRequests                         RentalRequest[]        @relation("LandlordRentalRequests")
+  tenantRentalRequests                           RentalRequest[]        @relation("TenantRentalRequests")
+  reviews                                        Review[]               @relation("TenantReviews")
+  RoleCreatedBy                                  Role[]                 @relation("RoleCreatedBy")
+  Role                                           Role[]                 @relation("RoledeletedByIdBy")
+  RoleUpdatedBy                                  Role[]                 @relation("RoleUpdatedBy")
+  processedRequests                              RoleUpgradeRequest[]   @relation("ProcessedRequests")
   roleUpgradeRequests                            RoleUpgradeRequest[]
-  createdSettings                                SystemSetting[]       @relation("SettingCreatedBy")
-  updatedSettings                                SystemSetting[]       @relation("SettingUpdatedBy")
-  createdBy                                      User?                 @relation("CreatorUsers", fields: [createdById], references: [id], onUpdate: NoAction)
-  createdUsers                                   User[]                @relation("CreatorUsers")
-  deletedBy                                      User?                 @relation("DeletorUsers", fields: [deletedById], references: [id], onUpdate: NoAction)
-  deletedUsers                                   User[]                @relation("DeletorUsers")
-  role                                           Role                  @relation(fields: [roleId], references: [id])
-  updatedBy                                      User?                 @relation("UpdatorUsers", fields: [updatedById], references: [id], onUpdate: NoAction)
-  updatedUsers                                   User[]                @relation("UpdatorUsers")
-  landlordViewingSchedules                       ViewingSchedule[]     @relation("LandlordViewingSchedules")
-  tenantViewingSchedules                         ViewingSchedule[]     @relation("TenantViewingSchedules")
+  createdSettings                                SystemSetting[]        @relation("SettingCreatedBy")
+  updatedSettings                                SystemSetting[]        @relation("SettingUpdatedBy")
+  createdBy                                      User?                  @relation("CreatorUsers", fields: [createdById], references: [id], onUpdate: NoAction)
+  createdUsers                                   User[]                 @relation("CreatorUsers")
+  deletedBy                                      User?                  @relation("DeletorUsers", fields: [deletedById], references: [id], onUpdate: NoAction)
+  deletedUsers                                   User[]                 @relation("DeletorUsers")
+  role                                           Role                   @relation(fields: [roleId], references: [id])
+  updatedBy                                      User?                  @relation("UpdatorUsers", fields: [updatedById], references: [id], onUpdate: NoAction)
+  updatedUsers                                   User[]                 @relation("UpdatorUsers")
+  landlordViewingSchedules                       ViewingSchedule[]      @relation("LandlordViewingSchedules")
+  tenantViewingSchedules                         ViewingSchedule[]      @relation("TenantViewingSchedules")
   createdRoomUtilityBills                        RoomUtilityBill[]
+  LandlordSubscription                           LandlordSubscription[]
 
   @@index([name])
   @@index([status])
@@ -261,17 +262,18 @@ model RentalPost {
 }
 
 model Payment {
-  id            Int                 @id @default(autoincrement())
-  amount        Int
-  status        PaymentStatus
-  description   String?
-  createdAt     DateTime            @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime            @updatedAt @db.Timestamptz(6)
-  userId        Int
-  transactionId Int?                @unique
-  metadata      Json?
-  transaction   PaymentTransaction? @relation(fields: [transactionId], references: [id])
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  Int                   @id @default(autoincrement())
+  amount              Int
+  status              PaymentStatus
+  description         String?
+  createdAt           DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime              @updatedAt @db.Timestamptz(6)
+  userId              Int
+  transactionId       Int?                  @unique
+  metadata            Json?
+  transaction         PaymentTransaction?   @relation(fields: [transactionId], references: [id])
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  SubscriptionHistory SubscriptionHistory[]
 
   @@index([userId])
   @@index([status])
@@ -671,6 +673,54 @@ model RoomUtilityBill {
   @@index([roomId])
   @@index([billingMonth])
   @@index([isPaid])
+}
+
+model LandlordSubscription {
+  id                    Int                   @id @default(autoincrement())
+  userId                Int
+  planType              String                @default("BASIC")
+  planId                String? // ID của plan từ subscription_plans (SystemSetting)
+  status                SubscriptionStatus    @default(ACTIVE)
+  startDate             DateTime              @db.Timestamptz(6)
+  endDate               DateTime              @db.Timestamptz(6)
+  amount                Decimal               @default(0) @db.Decimal(10, 2)
+  isFreeTrial           Boolean               @default(false)
+  autoRenew             Boolean               @default(true)
+  createdAt             DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime              @updatedAt @db.Timestamptz(6)
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionHistories SubscriptionHistory[]
+
+  @@unique([userId, status], name: "unique_active_subscription", map: "LandlordSubscription_userId_status_key")
+  @@index([userId])
+  @@index([status])
+  @@index([endDate])
+  @@index([planId])
+}
+
+model SubscriptionHistory {
+  id             Int                  @id @default(autoincrement())
+  subscriptionId Int
+  action         String
+  previousStatus SubscriptionStatus?
+  newStatus      SubscriptionStatus?
+  planType       String? // Loại plan khi thực hiện action
+  planId         String? // ID của plan từ subscription_plans
+  amount         Decimal?             @db.Decimal(10, 2)
+  paymentId      Int?
+  note           String?
+  createdAt      DateTime             @default(now()) @db.Timestamptz(6)
+  subscription   LandlordSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  payment        Payment?             @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([subscriptionId])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELED
 }
 
 enum TransactionStatus {

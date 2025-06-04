@@ -99,6 +99,11 @@ const defaultData = {
       icon: Shield,
     },
     {
+      title: "Quản lý Subscription",
+      url: "/quan-ly/subscription",
+      icon: CreditCard,
+    },
+    {
       title: "Cài đặt hệ thống",
       url: "/quan-ly/cai-dat",
       icon: Shield,
