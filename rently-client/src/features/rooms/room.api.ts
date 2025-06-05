@@ -39,6 +39,12 @@ const roomApiRequest = {
   create: (body: CreateRoomBodyType) =>
     http.post<GetRoomDetailResType>(`${prefix}`, body),
 
+  createForLandlord: (body: CreateRoomBodyType & { landlordId: number }) =>
+    http.post<GetRoomDetailResType>(
+      `${prefix}/admin/create-for-landlord`,
+      body
+    ),
+
   update: (roomId: number, body: UpdateRoomBodyType) =>
     http.put<GetRoomDetailResType>(`${prefix}/${roomId}`, body),
 

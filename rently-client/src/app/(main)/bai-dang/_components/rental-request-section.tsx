@@ -28,7 +28,10 @@ export function RentalRequestSection({
   hasExistingRequest,
   isRoomAvailable,
 }: RentalRequestSectionProps) {
-  if (isLandlord || !isRoomAvailable) {
+  if (isLandlord) {
+    return null;
+  }
+  if (!isRoomAvailable) {
     return null;
   }
 

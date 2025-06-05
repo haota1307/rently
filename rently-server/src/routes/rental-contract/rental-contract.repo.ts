@@ -530,7 +530,7 @@ export class RentalContractRepo {
         },
       })
 
-      // Lấy hợp đồng đã cập nhật - đảm bảo không null với type assertion
+      // Lấy hợp đồng đã cập nhật với đầy đủ thông tin
       const updatedContract = await this.findContractById(id)
       if (!updatedContract) {
         throw new InternalServerErrorException(
@@ -538,8 +538,7 @@ export class RentalContractRepo {
         )
       }
 
-      // Sử dụng type assertion để TypeScript hiểu rằng updatedContract không phải là null
-      return updatedContract as ContractDetailType
+      return updatedContract
     } catch (error) {
       this.logger.error(
         `Error updating contract signature: ${error.message}`,
@@ -572,7 +571,7 @@ export class RentalContractRepo {
         )
       }
 
-      return updatedContract as ContractDetailType
+      return updatedContract
     } catch (error) {
       this.logger.error(
         `Error updating final document: ${error.message}`,
@@ -608,7 +607,7 @@ export class RentalContractRepo {
         )
       }
 
-      return updatedContract as ContractDetailType
+      return updatedContract
     } catch (error) {
       this.logger.error(
         `Error adding contract attachment: ${error.message}`,
@@ -796,6 +795,158 @@ export class RentalContractRepo {
     } catch (error) {
       this.logger.error(`Error getting contract signatures: ${error.message}`)
       return {}
+    }
+  }
+
+  // Cập nhật trạng thái hợp đồng
+  async updateContractStatus(
+    id: number,
+    status: ContractStatus,
+    additionalData?: Record<string, any>
+  ): Promise<ContractDetailType> {
+    try {
+      // Tìm hợp đồng để kiểm tra trạng thái hiện tại
+      const existingContract =
+        await this.prismaService.rentalContract.findUnique({
+          where: { id },
+        })
+
+      if (!existingContract) {
+        throw new NotFoundException('Không tìm thấy hợp đồng')
+      }
+
+      // Cập nhật hợp đồng với trạng thái mới
+      const updatedData: any = {
+        status,
+        updatedAt: new Date(),
+      }
+
+      // Thêm dữ liệu bổ sung nếu có
+      if (additionalData) {
+        // Lọc ra các trường hợp lệ để tránh lỗi Prisma Unknown argument
+        const { terminationReason, terminatedAt, ...restData } = additionalData
+
+        // Trường terminatedAt là tồn tại trong schema
+        if (terminatedAt) {
+          updatedData.terminatedAt = terminatedAt
+        }
+
+        // Ghi log nếu có trường không tồn tại
+        if (terminationReason) {
+          this.logger.warn(
+            `Field terminationReason does not exist in schema and will be ignored`
+          )
+        }
+
+        // Thêm các trường còn lại
+        Object.assign(updatedData, restData)
+      }
+
+      // Cập nhật hợp đồng
+      await this.prismaService.rentalContract.update({
+        where: { id },
+        data: updatedData,
+      })
+
+      // Lấy hợp đồng đã cập nhật với đầy đủ thông tin
+      const updatedContract = await this.findContractById(id)
+      if (!updatedContract) {
+        throw new InternalServerErrorException(
+          'Không thể tìm thấy hợp đồng sau khi cập nhật'
+        )
+      }
+
+      return updatedContract
+    } catch (error) {
+      this.logger.error(
+        `Error updating contract status: ${error.message}`,
+        error.stack
+      )
+      throw new InternalServerErrorException(
+        'Không thể cập nhật trạng thái hợp đồng'
+      )
+    }
+  }
+
+  // Tìm các hợp đồng đã hết hạn nhưng vẫn đang active
+  async findExpiredContracts(currentDate: Date): Promise<{ id: number }[]> {
+    try {
+      // Tìm các hợp đồng có endDate < currentDate nhưng vẫn đang ACTIVE
+      const expiredContracts = await this.prismaService.rentalContract.findMany(
+        {
+          where: {
+            status: ContractStatus.ACTIVE,
+            endDate: {
+              lt: currentDate,
+            },
+          },
+          select: {
+            id: true,
+          },
+        }
+      )
+
+      return expiredContracts
+    } catch (error) {
+      this.logger.error(
+        `Error finding expired contracts: ${error.message}`,
+        error.stack
+      )
+      throw new InternalServerErrorException(
+        'Không thể tìm các hợp đồng đã hết hạn'
+      )
+    }
+  }
+
+  // Gia hạn hợp đồng
+  async renewContract(id: number, endDate: Date): Promise<ContractDetailType> {
+    try {
+      // Tìm hợp đồng để kiểm tra trạng thái hiện tại
+      const existingContract =
+        await this.prismaService.rentalContract.findUnique({
+          where: { id },
+        })
+
+      if (!existingContract) {
+        throw new NotFoundException('Không tìm thấy hợp đồng')
+      }
+
+      // Kiểm tra trạng thái hợp đồng có hợp lệ để gia hạn không
+      // Cho phép gia hạn cả hợp đồng ACTIVE và RENEWED
+      if (
+        existingContract.status !== ContractStatus.ACTIVE &&
+        existingContract.status !== ContractStatus.RENEWED
+      ) {
+        throw new Error(
+          'Chỉ có thể gia hạn hợp đồng đang hoạt động hoặc đã gia hạn'
+        )
+      }
+
+      // Cập nhật hợp đồng với ngày kết thúc mới và trạng thái RENEWED
+      await this.prismaService.rentalContract.update({
+        where: { id },
+        data: {
+          endDate,
+          status: ContractStatus.RENEWED,
+          updatedAt: new Date(),
+        },
+      })
+
+      // Lấy hợp đồng đã cập nhật với đầy đủ thông tin
+      const updatedContract = await this.findContractById(id)
+      if (!updatedContract) {
+        throw new InternalServerErrorException(
+          'Không thể tìm thấy hợp đồng sau khi gia hạn'
+        )
+      }
+
+      return updatedContract
+    } catch (error) {
+      this.logger.error(
+        `Error renewing contract: ${error.message}`,
+        error.stack
+      )
+      throw new InternalServerErrorException('Không thể gia hạn hợp đồng')
     }
   }
 }

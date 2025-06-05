@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -26,6 +26,7 @@ import { vi } from "date-fns/locale";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { ContractViewer } from "@/features/rental-contract/components/contract-viewer";
 import { SignContractButton } from "@/features/rental-contract/components/sign-contract-button";
+import { ContractActions } from "@/features/rental-contract/components/contract-actions";
 
 // Đảm bảo trang này luôn được render động
 export const dynamic = "force-dynamic";
@@ -33,6 +34,8 @@ export const dynamic = "force-dynamic";
 export default function ContractDetailPage() {
   const router = useRouter();
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const action = searchParams.get("action");
   const { userId } = useAuth();
   const [contract, setContract] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -41,11 +44,32 @@ export default function ContractDetailPage() {
     type: string;
   } | null>(null);
 
+  // State để kiểm soát việc mở các modal tương ứng khi có action param
+  const [openTerminateModal, setOpenTerminateModal] = useState(false);
+  const [openRenewModal, setOpenRenewModal] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchContractDetails();
     }
   }, [id]);
+
+  // Xử lý action từ URL query params
+  useEffect(() => {
+    if (contract && action) {
+      if (action === "terminate" && contract.status === ContractStatus.ACTIVE) {
+        setOpenTerminateModal(true);
+      } else if (
+        action === "renew" &&
+        contract.status === ContractStatus.ACTIVE
+      ) {
+        setOpenRenewModal(true);
+      }
+
+      // Xóa action param sau khi đã xử lý
+      router.push(`/cho-thue/hop-dong/${id}`, { scroll: false });
+    }
+  }, [contract, action, id, router]);
 
   const fetchContractDetails = async () => {
     try {
@@ -187,6 +211,21 @@ export default function ContractDetailPage() {
                 landlordId={contract.landlordId}
                 tenantId={contract.tenantId}
                 onContractUpdated={fetchContractDetails}
+              />
+            </div>
+
+            {/* Thêm Contract Actions */}
+            <div className="mt-3">
+              <ContractActions
+                contractId={Number(id)}
+                status={contract.status}
+                endDate={new Date(contract.endDate)}
+                isLandlord={contract.landlordId === userId}
+                onContractUpdated={fetchContractDetails}
+                openTerminateModal={openTerminateModal}
+                setOpenTerminateModal={setOpenTerminateModal}
+                openRenewModal={openRenewModal}
+                setOpenRenewModal={setOpenRenewModal}
               />
             </div>
 

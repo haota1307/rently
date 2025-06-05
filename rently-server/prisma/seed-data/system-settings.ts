@@ -276,5 +276,159 @@ export async function seedSystemSettings(prisma: PrismaClient) {
     },
   })
 
+  // Cài đặt subscription cho landlord
+  await prisma.systemSetting.upsert({
+    where: { key: 'landlord_subscription_monthly_fee' },
+    update: {},
+    create: {
+      key: 'landlord_subscription_monthly_fee',
+      value: '299000',
+      type: SYSTEM_SETTING_TYPES.NUMBER,
+      group: SYSTEM_SETTING_GROUPS.PRICING,
+      description: 'Phí subscription hàng tháng cho landlord (VND)',
+    },
+  })
+
+  await prisma.systemSetting.upsert({
+    where: { key: 'landlord_subscription_free_trial_days' },
+    update: {},
+    create: {
+      key: 'landlord_subscription_free_trial_days',
+      value: '30',
+      type: SYSTEM_SETTING_TYPES.NUMBER,
+      group: SYSTEM_SETTING_GROUPS.PRICING,
+      description: 'Số ngày dùng thử miễn phí cho landlord',
+    },
+  })
+
+  await prisma.systemSetting.upsert({
+    where: { key: 'landlord_subscription_grace_period_days' },
+    update: {},
+    create: {
+      key: 'landlord_subscription_grace_period_days',
+      value: '7',
+      type: SYSTEM_SETTING_TYPES.NUMBER,
+      group: SYSTEM_SETTING_GROUPS.PRICING,
+      description: 'Số ngày gia hạn sau khi hết hạn subscription',
+    },
+  })
+
+  await prisma.systemSetting.upsert({
+    where: { key: 'landlord_subscription_enabled' },
+    update: {},
+    create: {
+      key: 'landlord_subscription_enabled',
+      value: 'true',
+      type: SYSTEM_SETTING_TYPES.BOOLEAN,
+      group: SYSTEM_SETTING_GROUPS.PRICING,
+      description: 'Bật/tắt chế độ subscription cho landlord',
+    },
+  })
+
+  await prisma.systemSetting.upsert({
+    where: { key: 'post_payment_enabled' },
+    update: {},
+    create: {
+      key: 'post_payment_enabled',
+      value: 'false',
+      type: SYSTEM_SETTING_TYPES.BOOLEAN,
+      group: SYSTEM_SETTING_GROUPS.PRICING,
+      description: 'Bật/tắt chế độ thanh toán per-post (legacy)',
+    },
+  })
+
+  // Cấu hình các gói subscription (JSON)
+  await prisma.systemSetting.upsert({
+    where: { key: 'subscription_plans' },
+    update: {},
+    create: {
+      key: 'subscription_plans',
+      value: JSON.stringify([
+        {
+          id: 'free_trial',
+          name: 'Dùng thử miễn phí',
+          description: 'Trải nghiệm đầy đủ tính năng trong 30 ngày',
+          price: 0,
+          duration: 30,
+          durationType: 'days',
+          features: [
+            'Đăng bài cho thuê không giới hạn',
+            'Quản lý phòng trọ và hợp đồng',
+            'Nhận yêu cầu thuê và lịch xem phòng',
+            'Hỗ trợ khách hàng',
+            'Tự động chuyển sang gói trả phí sau 30 ngày',
+          ],
+          isFreeTrial: true,
+          isActive: true,
+          color: 'green',
+          badge: 'Khuyến nghị',
+          icon: 'gift',
+        },
+        {
+          id: 'basic_monthly',
+          name: 'Gói cơ bản',
+          description: 'Gói cơ bản hàng tháng cho landlord',
+          price: 299000,
+          duration: 1,
+          durationType: 'months',
+          features: [
+            'Đăng bài cho thuê không giới hạn',
+            'Quản lý phòng trọ và hợp đồng',
+            'Nhận yêu cầu thuê và lịch xem phòng',
+            'Hỗ trợ khách hàng ưu tiên',
+            'Báo cáo thống kê chi tiết',
+          ],
+          isFreeTrial: false,
+          isActive: true,
+          color: 'blue',
+          badge: null,
+          icon: 'crown',
+        },
+        {
+          id: 'premium_monthly',
+          name: 'Gói cao cấp',
+          description: 'Gói cao cấp với nhiều tính năng nâng cao',
+          price: 599000,
+          duration: 1,
+          durationType: 'months',
+          features: [
+            'Tất cả tính năng gói cơ bản',
+            'Ưu tiên hiển thị bài đăng',
+            'Analytics chi tiết',
+            'Hỗ trợ 24/7',
+            'Template hợp đồng premium',
+            'Quản lý nhiều tài khoản',
+          ],
+          isFreeTrial: false,
+          isActive: true,
+          color: 'purple',
+          badge: 'Phổ biến',
+          icon: 'star',
+        },
+        {
+          id: 'yearly_basic',
+          name: 'Gói cơ bản (Năm)',
+          description: 'Gói cơ bản thanh toán theo năm - Tiết kiệm 20%',
+          price: 2870400, // 299000 * 12 * 0.8 = tiết kiệm 20%
+          duration: 12,
+          durationType: 'months',
+          features: [
+            'Tất cả tính năng gói cơ bản',
+            'Tiết kiệm 20% so với thanh toán hàng tháng',
+            'Ưu tiên hỗ trợ',
+          ],
+          isFreeTrial: false,
+          isActive: true,
+          color: 'amber',
+          badge: 'Tiết kiệm',
+          icon: 'calendar',
+        },
+      ]),
+      type: SYSTEM_SETTING_TYPES.JSON,
+      group: SYSTEM_SETTING_GROUPS.PRICING,
+      description: 'Cấu hình các gói subscription cho landlord',
+    },
+  })
+
   console.log('System settings seeded successfully')
 }

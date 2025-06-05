@@ -124,9 +124,29 @@ export class RoomRepo {
     }
   }
 
-  async create({ data }: { data: CreateRoomBodyType }): Promise<RoomType> {
+  async create({
+    data,
+    landlordId,
+  }: {
+    data: CreateRoomBodyType
+    landlordId: number
+  }): Promise<RoomType> {
     try {
       const { amenityIds, roomImages, ...roomData } = data
+
+      // Kiểm tra xem rental có thuộc về landlord không
+      const rental = await this.prismaService.rental.findFirst({
+        where: {
+          id: roomData.rentalId,
+          landlordId: landlordId,
+        },
+      })
+
+      if (!rental) {
+        throw new InternalServerErrorException(
+          'Nhà trọ không tồn tại hoặc không thuộc về người cho thuê này'
+        )
+      }
 
       const room = await this.prismaService.room.create({
         data: {

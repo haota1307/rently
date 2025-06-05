@@ -231,6 +231,29 @@ export const contractApiRequest = {
       throw error;
     }
   },
+
+  /**
+   * Chấm dứt hợp đồng
+   * @param id ID của hợp đồng
+   * @param reason Lý do chấm dứt hợp đồng
+   */
+  terminateContract: (id: number, reason: string) =>
+    http.patch<ContractDetailType>(`${prefix}/${id}/terminate`, { reason }),
+
+  /**
+   * Đánh dấu hợp đồng hết hạn
+   * @param id ID của hợp đồng
+   */
+  expireContract: (id: number) =>
+    http.patch<ContractDetailType>(`${prefix}/${id}/expire`, {}),
+
+  /**
+   * Gia hạn hợp đồng
+   * @param id ID của hợp đồng
+   * @param data Thông tin gia hạn hợp đồng
+   */
+  renewContract: (id: number, data: { endDate: string }) =>
+    http.patch<ContractDetailType>(`${prefix}/${id}/renew`, data),
 };
 
 export default contractApiRequest;

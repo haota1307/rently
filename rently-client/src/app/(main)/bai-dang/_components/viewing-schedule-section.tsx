@@ -18,6 +18,7 @@ interface ViewingScheduleSectionProps {
   isAuth: boolean;
   isLandlordOrAdmin: boolean;
   existingSchedule: any | null;
+  isRoomAvailable: boolean;
 }
 
 export function ViewingScheduleSection({
@@ -25,7 +26,12 @@ export function ViewingScheduleSection({
   isAuth,
   isLandlordOrAdmin,
   existingSchedule,
+  isRoomAvailable,
 }: ViewingScheduleSectionProps) {
+  if (!isRoomAvailable) {
+    return null;
+  }
+
   return (
     <Card className="mb-4">
       <CardContent className="p-3 sm:p-5">

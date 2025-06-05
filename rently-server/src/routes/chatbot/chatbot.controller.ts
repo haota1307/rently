@@ -17,6 +17,8 @@ export class ChatbotController {
       return { error: 'Tin nhắn không được để trống' }
     }
 
+    console.log('body chatbot', body)
+
     // Ưu tiên sử dụng userId từ token nếu có, nếu không thì lấy từ body request
     // Nếu không có cả hai, userId sẽ là undefined - người dùng không đăng nhập
     const userId = activeUserId || body.userId

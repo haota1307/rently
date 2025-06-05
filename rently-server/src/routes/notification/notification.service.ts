@@ -173,4 +173,73 @@ export class NotificationService {
       })
     }
   }
+
+  // Helper methods cho thông báo liên quan đến hợp đồng
+  async notifyContractTerminated(
+    userId: number,
+    contractNumber: string,
+    contractId: number
+  ) {
+    return this.create({
+      userId,
+      type: NotificationTypeEnum.CONTRACT_TERMINATED,
+      title: 'Hợp đồng đã chấm dứt',
+      message: `Hợp đồng ${contractNumber} đã được chấm dứt.`,
+      relatedId: contractId,
+      relatedType: 'contract',
+    })
+  }
+
+  async notifyContractExpired(
+    userId: number,
+    contractNumber: string,
+    contractId: number
+  ) {
+    return this.create({
+      userId,
+      type: NotificationTypeEnum.CONTRACT_EXPIRED,
+      title: 'Hợp đồng đã hết hạn',
+      message: `Hợp đồng ${contractNumber} đã hết hạn.`,
+      relatedId: contractId,
+      relatedType: 'contract',
+    })
+  }
+
+  async notifyContractRenewed(
+    userId: number,
+    contractNumber: string,
+    endDate: Date,
+    contractId: number
+  ) {
+    const formattedDate = new Intl.DateTimeFormat('vi-VN', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).format(endDate instanceof Date ? endDate : new Date(endDate))
+
+    return this.create({
+      userId,
+      type: NotificationTypeEnum.CONTRACT_RENEWED,
+      title: 'Hợp đồng đã được gia hạn',
+      message: `Hợp đồng ${contractNumber} đã được gia hạn đến ${formattedDate}.`,
+      relatedId: contractId,
+      relatedType: 'contract',
+    })
+  }
+
+  async notifyContractSigned(
+    userId: number,
+    contractNumber: string,
+    signerName: string,
+    contractId: number
+  ) {
+    return this.create({
+      userId,
+      type: NotificationTypeEnum.CONTRACT_SIGNED,
+      title: 'Hợp đồng đã được ký',
+      message: `${signerName} đã ký hợp đồng ${contractNumber}.`,
+      relatedId: contractId,
+      relatedType: 'contract',
+    })
+  }
 }

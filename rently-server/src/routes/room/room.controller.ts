@@ -48,8 +48,18 @@ export class RoomController {
 
   @Post()
   @ZodSerializerDto(GetRoomDetailResDTO)
-  create(@Body() body: CreateRoomBodyDTO) {
-    return this.roomService.create({ data: body })
+  create(
+    @Body() body: CreateRoomBodyDTO,
+    @ActiveUser('userId') userId: number
+  ) {
+    return this.roomService.create({ data: body, landlordId: userId })
+  }
+
+  @Post('admin/create-for-landlord')
+  @ZodSerializerDto(GetRoomDetailResDTO)
+  createForLandlord(@Body() body: CreateRoomBodyDTO & { landlordId: number }) {
+    const { landlordId, ...roomData } = body
+    return this.roomService.create({ data: roomData, landlordId })
   }
 
   @Put(':roomId')

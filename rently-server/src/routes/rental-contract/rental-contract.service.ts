@@ -36,6 +36,7 @@ import {
   ContractUpdateForbiddenException,
 } from './rental-contract.error'
 import { PdfGeneratorService } from './pdf-generator.service'
+import { PrismaService } from 'src/shared/services/prisma.service'
 
 @Injectable()
 export class RentalContractService {
@@ -45,7 +46,8 @@ export class RentalContractService {
     private readonly rentalContractRepo: RentalContractRepo,
     private readonly notificationService: NotificationService,
     private readonly emailService: EmailService,
-    private readonly pdfGeneratorService: PdfGeneratorService
+    private readonly pdfGeneratorService: PdfGeneratorService,
+    private readonly prismaService: PrismaService
   ) {}
 
   // ===== Quản lý mẫu hợp đồng =====
@@ -509,6 +511,220 @@ export class RentalContractService {
       this.logger.error(
         `Error sending contract signature notifications: ${error.message}`
       )
+    }
+  }
+
+  // Chấm dứt hợp đồng
+  async terminateContract(
+    id: number,
+    userId: number,
+    role: string,
+    reason: string
+  ): Promise<ContractDetailType> {
+    try {
+      // Kiểm tra quyền truy cập
+      const hasAccess = await this.rentalContractRepo.checkContractAccess(
+        id,
+        userId
+      )
+      if (!role.includes('Admin') && !hasAccess) {
+        throw new ForbiddenException('Bạn không có quyền chấm dứt hợp đồng này')
+      }
+
+      // Kiểm tra hợp đồng phải đang ACTIVE hoặc RENEWED
+      const contract = await this.rentalContractRepo.findContractById(id)
+      if (!contract) {
+        throw ContractNotFoundException
+      }
+
+      if (
+        contract.status !== ContractStatus.ACTIVE &&
+        contract.status !== ContractStatus.RENEWED
+      ) {
+        throw new BadRequestException(
+          'Chỉ có thể chấm dứt hợp đồng đang hoạt động hoặc đã gia hạn'
+        )
+      }
+
+      // Cập nhật trạng thái hợp đồng - chỉ truyền các trường có trong schema
+      const terminatedContract =
+        await this.rentalContractRepo.updateContractStatus(
+          id,
+          ContractStatus.TERMINATED,
+          { terminatedAt: new Date() }
+        )
+
+      // Thêm comment về lý do chấm dứt hợp đồng vì trường terminationReason không tồn tại trong schema
+      if (reason) {
+        try {
+          // Có thể tạo một bảng comments hoặc metadata để lưu thông tin này
+          this.logger.log(`Contract ${id} terminated with reason: ${reason}`)
+          // TODO: Lưu lý do vào bảng comments hoặc metadata nếu cần
+        } catch (error) {
+          this.logger.warn(
+            `Could not save termination reason: ${error.message}`
+          )
+        }
+      }
+
+      // Cập nhật trạng thái phòng thành trống (isAvailable = true)
+      try {
+        await this.prismaService.room.update({
+          where: { id: contract.roomId },
+          data: { isAvailable: true },
+        })
+      } catch (error) {
+        this.logger.error(`Error updating room status: ${error.message}`)
+        // Không throw error ở đây để vẫn hoàn tất quá trình chấm dứt hợp đồng
+      }
+
+      // Gửi thông báo đến các bên
+      await this.notificationService.notifyContractTerminated(
+        contract.landlordId,
+        contract.contractNumber,
+        id
+      )
+
+      await this.notificationService.notifyContractTerminated(
+        contract.tenantId,
+        contract.contractNumber,
+        id
+      )
+
+      return terminatedContract
+    } catch (error) {
+      this.logger.error(`Error terminating contract: ${error.message}`)
+      throw error
+    }
+  }
+
+  // Đánh dấu hợp đồng hết hạn
+  async expireContract(id: number): Promise<ContractDetailType> {
+    try {
+      const contract = await this.rentalContractRepo.findContractById(id)
+      if (!contract) {
+        throw ContractNotFoundException
+      }
+
+      // Chỉ có thể đánh dấu hết hạn cho hợp đồng đang hoạt động
+      if (contract.status !== ContractStatus.ACTIVE) {
+        throw new BadRequestException(
+          'Chỉ có thể đánh dấu hết hạn cho hợp đồng đang hoạt động'
+        )
+      }
+
+      // Cập nhật trạng thái hợp đồng
+      const expiredContract =
+        await this.rentalContractRepo.updateContractStatus(
+          id,
+          ContractStatus.EXPIRED
+        )
+
+      // Cập nhật trạng thái phòng thành trống (isAvailable = true)
+      try {
+        await this.prismaService.room.update({
+          where: { id: contract.roomId },
+          data: { isAvailable: true },
+        })
+      } catch (error) {
+        this.logger.error(`Error updating room status: ${error.message}`)
+        // Không throw error ở đây để vẫn hoàn tất quá trình đánh dấu hết hạn
+      }
+
+      // Gửi thông báo đến các bên
+      await this.notificationService.notifyContractExpired(
+        contract.landlordId,
+        contract.contractNumber,
+        id
+      )
+
+      await this.notificationService.notifyContractExpired(
+        contract.tenantId,
+        contract.contractNumber,
+        id
+      )
+
+      return expiredContract
+    } catch (error) {
+      this.logger.error(`Error expiring contract: ${error.message}`)
+      throw error
+    }
+  }
+
+  // Gia hạn hợp đồng
+  async renewContract(
+    id: number,
+    userId: number,
+    role: string,
+    endDate: string
+  ): Promise<ContractDetailType> {
+    try {
+      // Kiểm tra quyền truy cập (chỉ chủ nhà mới có quyền gia hạn)
+      const isLandlord = await this.rentalContractRepo.isLandlordOfContract(
+        id,
+        userId
+      )
+      if (!role.includes('Admin') && !isLandlord) {
+        throw new ForbiddenException(
+          'Chỉ chủ nhà mới có quyền gia hạn hợp đồng'
+        )
+      }
+
+      // Gia hạn hợp đồng
+      const renewedContract = await this.rentalContractRepo.renewContract(
+        id,
+        new Date(endDate)
+      )
+
+      // Gửi thông báo đến các bên
+      await this.notificationService.notifyContractRenewed(
+        renewedContract.landlordId,
+        renewedContract.contractNumber,
+        new Date(endDate),
+        id
+      )
+
+      await this.notificationService.notifyContractRenewed(
+        renewedContract.tenantId,
+        renewedContract.contractNumber,
+        new Date(endDate),
+        id
+      )
+
+      return renewedContract
+    } catch (error) {
+      this.logger.error(`Error renewing contract: ${error.message}`)
+      throw error
+    }
+  }
+
+  // Hàm kiểm tra và cập nhật các hợp đồng hết hạn (dùng cho cron job)
+  async checkAndUpdateExpiredContracts(): Promise<void> {
+    try {
+      const now = new Date()
+
+      // Tìm các hợp đồng đã hết hạn nhưng vẫn đang ACTIVE
+      const expiredContracts =
+        await this.rentalContractRepo.findExpiredContracts(now)
+
+      this.logger.log(
+        `Found ${expiredContracts.length} expired contracts to update`
+      )
+
+      for (const contract of expiredContracts) {
+        try {
+          await this.expireContract(contract.id)
+          this.logger.log(`Successfully expired contract #${contract.id}`)
+        } catch (error) {
+          this.logger.error(
+            `Error expiring contract #${contract.id}: ${error.message}`
+          )
+          // Tiếp tục với hợp đồng tiếp theo
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error checking expired contracts: ${error.message}`)
+      throw error
     }
   }
 }

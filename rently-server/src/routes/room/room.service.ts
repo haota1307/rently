@@ -28,9 +28,15 @@ export class RoomService {
     return room
   }
 
-  async create({ data }: { data: CreateRoomBodyType }) {
+  async create({
+    data,
+    landlordId,
+  }: {
+    data: CreateRoomBodyType
+    landlordId: number
+  }) {
     console.log('Creating room with data:', JSON.stringify(data, null, 2))
-    return this.roomRepo.create({ data })
+    return this.roomRepo.create({ data, landlordId })
   }
 
   async update({ id, data }: { id: number; data: UpdateRoomBodyType }) {

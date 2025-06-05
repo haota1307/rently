@@ -57,6 +57,15 @@ export class RentalController {
     @Body() body: CreateRentalBodyDTO,
     @ActiveUser('userId') userId: number
   ) {
+    const rentalData = { ...body, landlordId: userId }
+    return this.rentalService.create({ data: rentalData })
+  }
+
+  @Post('admin/create-for-landlord')
+  @ZodSerializerDto(GetRentalDetailResDTO)
+  createForLandlord(
+    @Body() body: CreateRentalBodyDTO & { landlordId: number }
+  ) {
     return this.rentalService.create({ data: body })
   }
 

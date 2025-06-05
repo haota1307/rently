@@ -1,5 +1,3 @@
-import { Label } from "@/components/ui/label";
-import { Contract } from "./contract-table";
 import { CONTRACT_STATUS_LABELS, ContractStatus } from "../contract.constants";
 import {
   Select,

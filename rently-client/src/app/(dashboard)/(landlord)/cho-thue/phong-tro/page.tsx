@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { Plus, MoreHorizontal, Receipt } from "lucide-react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { roomColumns } from "@/features/dashboard/components/columns/room-columns";
@@ -13,7 +13,7 @@ import { useGetMyRooms } from "@/features/rooms/useRoom";
 import { CreateRoomModal } from "@/features/rooms/components/create-room-modal";
 import { EditRoomModal } from "@/features/rooms/components/edit-room-modal";
 import { DeleteRoomConfirm } from "@/features/rooms/components/delete-room-confirm";
-import { RoomDetailModal } from "@/features/rooms/components/room-detail-modal";
+import { CreateRoomBillModal } from "@/features/rooms/components/create-room-bill-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +22,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 export default function RoomsPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priceFilter, setPriceFilter] = useState<string>("all");
@@ -34,7 +36,7 @@ export default function RoomsPage() {
   // State cho chức năng chỉnh sửa và xóa
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isCreateBillModalOpen, setIsCreateBillModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
 
   const limit = 5;
@@ -76,8 +78,7 @@ export default function RoomsPage() {
 
   // Callback khi người dùng chọn xem chi tiết
   const handleViewRoom = (room: any) => {
-    setSelectedRoom(room);
-    setIsDetailModalOpen(true);
+    router.push(`/cho-thue/phong-tro/${room.id}`);
   };
 
   // Callback khi người dùng chọn chỉnh sửa
@@ -90,6 +91,12 @@ export default function RoomsPage() {
   const handleDeleteRoom = (room: any) => {
     setSelectedRoom(room);
     setIsDeleteModalOpen(true);
+  };
+
+  // Callback khi người dùng chọn tạo hóa đơn
+  const handleCreateBill = (room: any) => {
+    setSelectedRoom(room);
+    setIsCreateBillModalOpen(true);
   };
 
   const columns = [
@@ -123,6 +130,13 @@ export default function RoomsPage() {
               <DropdownMenuItem onClick={() => handleEditRoom(room)}>
                 Chỉnh sửa
               </DropdownMenuItem>
+              {/* Chỉ hiển thị nút "Tạo hóa đơn" cho phòng đã thuê */}
+              {!room.isAvailable && (
+                <DropdownMenuItem onClick={() => handleCreateBill(room)}>
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Tạo hóa đơn
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => handleDeleteRoom(room)}
                 className="text-red-600"
@@ -201,13 +215,6 @@ export default function RoomsPage() {
 
       {selectedRoom && (
         <>
-          {/* Modal xem chi tiết phòng */}
-          <RoomDetailModal
-            open={isDetailModalOpen}
-            onOpenChange={setIsDetailModalOpen}
-            roomId={selectedRoom.id}
-          />
-
           {/* Modal chỉnh sửa phòng */}
           <EditRoomModal
             open={isEditModalOpen}
@@ -221,6 +228,13 @@ export default function RoomsPage() {
             onOpenChange={setIsDeleteModalOpen}
             roomId={selectedRoom.id}
             roomTitle={selectedRoom.title}
+          />
+
+          {/* Modal tạo hóa đơn */}
+          <CreateRoomBillModal
+            open={isCreateBillModalOpen}
+            onOpenChange={setIsCreateBillModalOpen}
+            roomId={selectedRoom.id}
           />
         </>
       )}

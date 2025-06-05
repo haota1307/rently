@@ -274,6 +274,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 isAuth={isAuth}
                 isLandlordOrAdmin={isLandlordOrAdmin}
                 existingSchedule={existingSchedule}
+                isRoomAvailable={room?.isAvailable || false}
               />
 
               {isAuth && !isLandlord && (

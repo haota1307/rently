@@ -142,12 +142,33 @@ export default function LandlordDialog({
           <div className="bg-muted p-4 rounded-lg">
             <h4 className="font-medium mb-2">Quyền lợi của người cho thuê:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>Đăng tin cho thuê với giá hợp lý</li>
-              <li>Tiếp cận hàng ngàn khách hàng tiềm năng</li>
-              <li>Công cụ quản lý cho thuê chuyên nghiệp</li>
-              <li>Hỗ trợ kỹ thuật ưu tiên</li>
-              <li>Báo cáo và phân tích chi tiết</li>
+              <li>Truy cập trang quản lý cho thuê chuyên nghiệp</li>
+              <li>Đăng bài cho thuê không giới hạn</li>
+              <li>Quản lý phòng trọ và hợp đồng</li>
+              <li>Nhận yêu cầu thuê và lịch xem phòng</li>
+              <li>Hỗ trợ khách hàng ưu tiên</li>
+              <li>Báo cáo thống kê chi tiết</li>
             </ul>
+          </div>
+
+          {/* Subscription Notice */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+            <h4 className="font-medium mb-2 text-blue-800">
+              🎉 Ưu đãi đặc biệt!
+            </h4>
+            <p className="text-sm text-blue-700 mb-2">
+              Sau khi được phê duyệt, bạn sẽ được{" "}
+              <strong>dùng thử miễn phí 30 ngày</strong> để trải nghiệm đầy đủ
+              tính năng cho thuê.
+            </p>
+            <p className="text-xs text-blue-600">
+              Sau 30 ngày, chỉ{" "}
+              {new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(299000)}
+              /tháng để tiếp tục sử dụng.
+            </p>
           </div>
           <div className="bg-muted p-4 rounded-lg">
             <h4 className="font-medium mb-2">Yêu cầu:</h4>
