@@ -104,6 +104,19 @@ export class LandlordSubscriptionController {
     return this.subscriptionService.cancelSubscription(userId, reason)
   }
 
+  @Patch('toggle-auto-renew')
+  @ApiOperation({ summary: 'Bật/tắt tự động gia hạn subscription' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cập nhật trạng thái tự động gia hạn thành công',
+  })
+  async toggleAutoRenew(
+    @ActiveUser('userId') userId: number,
+    @Body('autoRenew') autoRenew: boolean
+  ) {
+    return this.subscriptionService.toggleAutoRenew(userId, autoRenew)
+  }
+
   @Get('check-access')
   @ApiOperation({ summary: 'Kiểm tra quyền truy cập trang cho thuê' })
   @ApiResponse({

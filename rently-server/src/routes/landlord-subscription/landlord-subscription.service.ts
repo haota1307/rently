@@ -10,10 +10,16 @@ import {
   CreateSubscriptionDto,
   UpdateSubscriptionDto,
 } from './dto/landlord-subscription.dto'
+import { Cron } from '@nestjs/schedule'
+import { Logger } from '@nestjs/common'
+import { EmailService } from 'src/shared/services/email.service'
 
 @Injectable()
 export class LandlordSubscriptionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   /**
    * Kiểm tra xem user đã từng sử dụng free trial chưa
@@ -428,6 +434,52 @@ export class LandlordSubscriptionService {
   }
 
   /**
+   * Cập nhật trạng thái tự động gia hạn subscription
+   */
+  async toggleAutoRenew(
+    userId: number,
+    autoRenew: boolean
+  ): Promise<LandlordSubscription> {
+    const subscription = await this.getActiveSubscription(userId)
+    if (!subscription) {
+      throw new NotFoundException('Không tìm thấy subscription đang hoạt động')
+    }
+
+    const updatedSubscription = await this.prisma.landlordSubscription.update({
+      where: { id: subscription.id },
+      data: {
+        autoRenew,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    // Ghi lại lịch sử
+    await this.createSubscriptionHistory(
+      subscription.id,
+      autoRenew ? 'AUTO_RENEW_ENABLED' : 'AUTO_RENEW_DISABLED',
+      subscription.status,
+      subscription.status,
+      undefined,
+      undefined,
+      autoRenew
+        ? 'Đã bật tự động gia hạn subscription'
+        : 'Đã tắt tự động gia hạn subscription',
+      undefined,
+      undefined
+    )
+
+    return updatedSubscription
+  }
+
+  /**
    * Lấy subscription active của user
    */
   async getActiveSubscription(
@@ -577,6 +629,7 @@ export class LandlordSubscriptionService {
   /**
    * Cron job để kiểm tra và cập nhật subscription hết hạn
    */
+  @Cron('0 0 * * *') // Chạy vào 0 giờ sáng hàng ngày
   async checkExpiredSubscriptions() {
     const now = new Date()
 
@@ -611,6 +664,180 @@ export class LandlordSubscriptionService {
     }
 
     return expiredSubscriptions.length
+  }
+
+  /**
+   * Cron job để tự động gia hạn các subscription có autoRenew=true
+   */
+  @Cron('0 1 * * *') // Chạy vào 1 giờ sáng hàng ngày
+  async autoRenewSubscriptions() {
+    const logger = new Logger('AutoRenewSubscriptions')
+    logger.log('Bắt đầu tự động gia hạn subscription...')
+
+    // Lấy ngày hiện tại
+    const now = new Date()
+
+    // Lấy ngày sau 1 ngày (tự động gia hạn trước khi hết hạn 1 ngày)
+    const oneDayLater = new Date(now)
+    oneDayLater.setDate(oneDayLater.getDate() + 1)
+
+    // Lấy danh sách subscription cần gia hạn (sắp hết hạn trong 1 ngày và có autoRenew=true)
+    const subscriptionsToRenew =
+      await this.prisma.landlordSubscription.findMany({
+        where: {
+          status: SubscriptionStatus.ACTIVE,
+          autoRenew: true,
+          endDate: {
+            gte: now,
+            lte: oneDayLater,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              balance: true,
+            },
+          },
+          plan: true, // Lấy thêm thông tin về plan
+        },
+      })
+
+    logger.log(
+      `Tìm thấy ${subscriptionsToRenew.length} subscription cần tự động gia hạn`
+    )
+
+    // Lấy phí hàng tháng từ system setting
+    const monthlyFee = await this.getSystemSetting(
+      'landlord_subscription_monthly_fee',
+      299000
+    )
+
+    // Xử lý từng subscription
+    for (const subscription of subscriptionsToRenew) {
+      try {
+        // Kiểm tra số dư tài khoản
+        if (!subscription.user || subscription.user.balance < monthlyFee) {
+          logger.warn(
+            `Không thể gia hạn subscription ID ${subscription.id} - Số dư không đủ: ${subscription.user?.balance || 0}`
+          )
+
+          // Ghi lại lịch sử về việc không thể gia hạn do số dư không đủ
+          await this.createSubscriptionHistory(
+            subscription.id,
+            'AUTO_RENEW_FAILED',
+            subscription.status,
+            subscription.status,
+            monthlyFee,
+            undefined,
+            'Không thể tự động gia hạn do số dư không đủ',
+            undefined,
+            undefined
+          )
+
+          continue
+        }
+
+        // Xử lý thanh toán và gia hạn
+        logger.log(
+          `Gia hạn subscription ID ${subscription.id} cho user ${subscription.userId}`
+        )
+
+        let newEndDate = new Date(subscription.endDate)
+        let paymentId: number | null = null
+        let newBalance = subscription.user.balance
+
+        // Thực hiện giao dịch để đảm bảo tính nhất quán
+        const result = await this.prisma.$transaction(async tx => {
+          // Trừ tiền từ tài khoản
+          const updatedUser = await tx.user.update({
+            where: { id: subscription.userId },
+            data: {
+              balance: {
+                decrement: monthlyFee,
+              },
+            },
+            select: {
+              balance: true,
+            },
+          })
+
+          // Tạo payment transaction
+          const payment = await tx.paymentTransaction.create({
+            data: {
+              userId: subscription.userId,
+              gateway: 'internal',
+              amountOut: monthlyFee,
+              transactionContent: 'Tự động gia hạn subscription hàng tháng',
+              referenceNumber: `AUTO_RENEW_${subscription.userId}_${Date.now()}`,
+            },
+          })
+
+          // Cập nhật ngày hết hạn của subscription
+          newEndDate.setMonth(newEndDate.getMonth() + 1)
+
+          const updatedSubscription = await tx.landlordSubscription.update({
+            where: { id: subscription.id },
+            data: {
+              endDate: newEndDate,
+              amount: monthlyFee,
+            },
+          })
+
+          // Ghi lại lịch sử
+          await this.createSubscriptionHistory(
+            subscription.id,
+            'AUTO_RENEWED',
+            subscription.status,
+            SubscriptionStatus.ACTIVE,
+            monthlyFee,
+            payment.id,
+            'Tự động gia hạn subscription hàng tháng',
+            subscription.planType,
+            subscription.planId
+          )
+
+          return {
+            user: updatedUser,
+            subscription: updatedSubscription,
+            paymentId: payment.id,
+          }
+        })
+
+        newBalance = result.user.balance
+        paymentId = result.paymentId
+
+        // Gửi email thông báo cho người dùng
+        if (subscription.user.email) {
+          try {
+            await this.emailService.sendAutoRenewNotification({
+              email: subscription.user.email,
+              userName: subscription.user.name,
+              planName: subscription.plan?.name || subscription.planType,
+              amount: monthlyFee,
+              newEndDate,
+              autoRenewStatus: subscription.autoRenew,
+              balance: newBalance,
+            })
+
+            logger.log(
+              `Đã gửi email thông báo tự động gia hạn cho ${subscription.user.email}`
+            )
+          } catch (emailError) {
+            logger.error(`Lỗi khi gửi email thông báo: ${emailError.message}`)
+          }
+        }
+      } catch (error) {
+        logger.error(
+          `Lỗi khi tự động gia hạn subscription ID ${subscription.id}: ${error.message}`
+        )
+      }
+    }
+
+    logger.log('Kết thúc quá trình tự động gia hạn subscription')
+    return subscriptionsToRenew.length
   }
 
   /**
