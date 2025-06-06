@@ -37,8 +37,10 @@ export const useCheckSubscriptionAccess = () => {
       const response = await subscriptionApiRequest.checkAccess();
       return response.payload;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: false,
+    staleTime: 1000 * 30, // Giảm xuống 30 giây (trước đó là 5 phút)
+    refetchOnWindowFocus: true, // Refresh khi focus lại tab
+    refetchOnMount: true, // Luôn refresh khi mount component
+    retry: 1,
   });
 };
 
@@ -79,16 +81,25 @@ export const useCreateSubscription = () => {
           : "Đăng ký subscription thành công!"
       );
 
-      // Invalidate và refetch các queries liên quan
-      queryClient.invalidateQueries({
-        queryKey: SUBSCRIPTION_QUERY_KEYS.mySubscription,
-      });
-      queryClient.invalidateQueries({
-        queryKey: SUBSCRIPTION_QUERY_KEYS.accessCheck,
-      });
-      // Invalidate eligibility check để cập nhật trạng thái free trial
-      queryClient.invalidateQueries({
-        queryKey: [...SUBSCRIPTION_QUERY_KEYS.accessCheck, "eligibility"],
+      // Invalidate và refetch các queries liên quan ngay lập tức
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: SUBSCRIPTION_QUERY_KEYS.mySubscription,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: SUBSCRIPTION_QUERY_KEYS.accessCheck,
+        }),
+        // Invalidate eligibility check để cập nhật trạng thái free trial
+        queryClient.invalidateQueries({
+          queryKey: [...SUBSCRIPTION_QUERY_KEYS.accessCheck, "eligibility"],
+        }),
+      ]).then(() => {
+        // Cập nhật lại cache với dữ liệu mới
+        queryClient.setQueryData(SUBSCRIPTION_QUERY_KEYS.mySubscription, data);
+        queryClient.setQueryData(SUBSCRIPTION_QUERY_KEYS.accessCheck, {
+          hasAccess: true,
+          subscription: data,
+        });
       });
     },
     onError: (error: any) => {

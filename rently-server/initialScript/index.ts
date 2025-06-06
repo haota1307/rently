@@ -9,6 +9,7 @@ import {
 import * as fs from 'fs'
 import * as path from 'path'
 import { User } from '@prisma/client'
+import { seedSubscriptionPlans } from './seed-subscription-plans'
 
 const prisma = new PrismaService()
 const hashingService = new HashingService()
@@ -37,15 +38,27 @@ const main = async () => {
       ],
     })
     createdRoleCount = roles.count
+    console.log(`Created ${createdRoleCount} roles`)
+  } else {
+    console.log('Roles already exist, skipping role creation')
+  }
 
-    // Lấy role Admin
-    const adminRole = await prisma.role.findFirstOrThrow({
-      where: {
-        name: RoleName.Admin,
-      },
-    })
+  // Lấy role Admin - luôn thực hiện bước này
+  const adminRole = await prisma.role.findFirstOrThrow({
+    where: {
+      name: RoleName.Admin,
+    },
+  })
 
-    // Tạo tài khoản Admin
+  // Kiểm tra xem có tài khoản admin chưa
+  const adminExists = await prisma.user.findFirst({
+    where: {
+      email: envConfig.ADMIN_EMAIL,
+    },
+  })
+
+  // Tạo tài khoản Admin nếu chưa tồn tại
+  if (!adminExists) {
     const hashedPassword = await hashingService.hash(envConfig.ADMIN_PASSWORD)
     adminUser = await prisma.user.create({
       data: {
@@ -57,12 +70,11 @@ const main = async () => {
         roleId: adminRole.id,
       },
     })
-    console.log(`Created ${createdRoleCount} roles`)
     if (adminUser) {
       console.log(`Created admin user: ${adminUser.email}`)
     }
   } else {
-    console.log('Roles already exist, skipping role creation')
+    console.log(`Admin user already exists: ${adminExists.email}`)
   }
 
   // Tạo dữ liệu mẫu cho tiện ích phòng trọ
@@ -138,190 +150,17 @@ const main = async () => {
     }
   }
 
-  // Thêm cài đặt subscription cho landlord
-  console.log('Checking and creating subscription settings...')
-  let subscriptionSettingsCreated = 0
-  let subscriptionSettingsUpdated = 0
-
-  // Danh sách các cài đặt subscription cơ bản
-  const subscriptionSettings = [
-    {
-      key: 'landlord_subscription_monthly_fee',
-      value: '299000',
-      type: SYSTEM_SETTING_TYPES.NUMBER,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Phí subscription hàng tháng cho landlord (VND)',
-    },
-    {
-      key: 'landlord_subscription_free_trial_days',
-      value: '30',
-      type: SYSTEM_SETTING_TYPES.NUMBER,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Số ngày dùng thử miễn phí cho landlord',
-    },
-    {
-      key: 'landlord_subscription_grace_period_days',
-      value: '7',
-      type: SYSTEM_SETTING_TYPES.NUMBER,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Số ngày gia hạn sau khi hết hạn subscription',
-    },
-    {
-      key: 'landlord_subscription_enabled',
-      value: 'true',
-      type: SYSTEM_SETTING_TYPES.BOOLEAN,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Bật/tắt chế độ subscription cho landlord',
-    },
-    {
-      key: 'post_payment_enabled',
-      value: 'false',
-      type: SYSTEM_SETTING_TYPES.BOOLEAN,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Bật/tắt chế độ thanh toán per-post (legacy)',
-    },
-  ]
-
-  // Danh sách các gói subscription plan
-  const subscriptionPlans = [
-    {
-      key: 'subscription_plan_free_trial',
-      value: JSON.stringify({
-        id: 'free_trial',
-        name: 'Dùng thử miễn phí',
-        description: 'Trải nghiệm đầy đủ tính năng trong 30 ngày',
-        price: 0,
-        duration: 30,
-        durationType: 'days',
-        features: [
-          'Đăng bài cho thuê không giới hạn',
-          'Quản lý phòng trọ và hợp đồng',
-          'Nhận yêu cầu thuê và lịch xem phòng',
-          'Hỗ trợ khách hàng',
-          'Tự động chuyển sang gói trả phí sau 30 ngày',
-        ],
-        isFreeTrial: true,
-        isActive: true,
-        color: 'green',
-        badge: 'Khuyến nghị',
-        icon: 'gift',
-      }),
-      type: SYSTEM_SETTING_TYPES.JSON,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Gói dùng thử miễn phí',
-    },
-    {
-      key: 'subscription_plan_basic_monthly',
-      value: JSON.stringify({
-        id: 'basic_monthly',
-        name: 'Gói cơ bản',
-        description: 'Gói cơ bản hàng tháng cho landlord',
-        price: 299000,
-        duration: 1,
-        durationType: 'months',
-        features: [
-          'Đăng bài cho thuê không giới hạn',
-          'Quản lý phòng trọ và hợp đồng',
-          'Nhận yêu cầu thuê và lịch xem phòng',
-          'Hỗ trợ khách hàng ưu tiên',
-          'Báo cáo thống kê chi tiết',
-        ],
-        isFreeTrial: false,
-        isActive: true,
-        color: 'blue',
-        badge: null,
-        icon: 'crown',
-      }),
-      type: SYSTEM_SETTING_TYPES.JSON,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Gói cơ bản hàng tháng',
-    },
-    {
-      key: 'subscription_plan_premium_monthly',
-      value: JSON.stringify({
-        id: 'premium_monthly',
-        name: 'Gói cao cấp',
-        description: 'Gói cao cấp với nhiều tính năng nâng cao',
-        price: 599000,
-        duration: 1,
-        durationType: 'months',
-        features: [
-          'Tất cả tính năng gói cơ bản',
-          'Ưu tiên hiển thị bài đăng',
-          'Analytics chi tiết',
-          'Hỗ trợ 24/7',
-          'Template hợp đồng premium',
-          'Quản lý nhiều tài khoản',
-        ],
-        isFreeTrial: false,
-        isActive: true,
-        color: 'purple',
-        badge: 'Phổ biến',
-        icon: 'star',
-      }),
-      type: SYSTEM_SETTING_TYPES.JSON,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Gói cao cấp hàng tháng',
-    },
-    {
-      key: 'subscription_plan_yearly_basic',
-      value: JSON.stringify({
-        id: 'yearly_basic',
-        name: 'Gói cơ bản (Năm)',
-        description: 'Gói cơ bản thanh toán theo năm - Tiết kiệm 20%',
-        price: 2870400, // 299000 * 12 * 0.8 = tiết kiệm 20%
-        duration: 12,
-        durationType: 'months',
-        features: [
-          'Tất cả tính năng gói cơ bản',
-          'Tiết kiệm 20% so với thanh toán hàng tháng',
-          'Ưu tiên hỗ trợ',
-        ],
-        isFreeTrial: false,
-        isActive: true,
-        color: 'amber',
-        badge: 'Tiết kiệm',
-        icon: 'calendar',
-      }),
-      type: SYSTEM_SETTING_TYPES.JSON,
-      group: SYSTEM_SETTING_GROUPS.PRICING,
-      description: 'Gói cơ bản theo năm',
-    },
-  ]
-
-  // Thêm các gói subscription vào danh sách cài đặt
-  const allSubscriptionSettings = [
-    ...subscriptionSettings,
-    ...subscriptionPlans,
-  ]
-
-  // Tạo hoặc cập nhật từng cài đặt subscription
-  for (const setting of allSubscriptionSettings) {
-    const existingSetting = await prisma.systemSetting.findUnique({
-      where: { key: setting.key },
-    })
-
-    if (existingSetting) {
-      await prisma.systemSetting.update({
-        where: { key: setting.key },
-        data: setting,
-      })
-      subscriptionSettingsUpdated++
-      console.log(`Updated subscription setting: ${setting.key}`)
-    } else {
-      await prisma.systemSetting.create({
-        data: setting,
-      })
-      subscriptionSettingsCreated++
-      console.log(`Created subscription setting: ${setting.key}`)
-    }
-  }
+  // Thêm các gói subscription mới vào bảng SubscriptionPlan
+  const {
+    createdCount: subscriptionPlansCreated,
+    updatedCount: subscriptionPlansUpdated,
+  } = await seedSubscriptionPlans(prisma)
 
   console.log(
     `Pricing settings: ${pricingSettingsCreated} created, ${pricingSettingsUpdated} updated`
   )
   console.log(
-    `Subscription settings: ${subscriptionSettingsCreated} created, ${subscriptionSettingsUpdated} updated`
+    `Subscription plans: ${subscriptionPlansCreated} created, ${subscriptionPlansUpdated} updated`
   )
 
   // Tạo dữ liệu cài đặt giao diện mặc định
@@ -495,8 +334,8 @@ const main = async () => {
     pricingSettingsUpdated,
     interfaceSettingsCreated,
     interfaceSettingsUpdated,
-    subscriptionSettingsCreated,
-    subscriptionSettingsUpdated,
+    subscriptionPlansCreated,
+    subscriptionPlansUpdated,
   }
 }
 
@@ -511,8 +350,8 @@ main()
       pricingSettingsUpdated,
       interfaceSettingsCreated,
       interfaceSettingsUpdated,
-      subscriptionSettingsCreated,
-      subscriptionSettingsUpdated,
+      subscriptionPlansCreated,
+      subscriptionPlansUpdated,
     }) => {
       if (createdRoleCount > 0) {
         console.log(`Created ${createdRoleCount} roles`)
@@ -531,7 +370,7 @@ main()
         `Interface settings: ${interfaceSettingsCreated} created, ${interfaceSettingsUpdated} updated`
       )
       console.log(
-        `Subscription settings: ${subscriptionSettingsCreated} created, ${subscriptionSettingsUpdated} updated`
+        `Subscription plans: ${subscriptionPlansCreated} created, ${subscriptionPlansUpdated} updated`
       )
       console.log('Script completed successfully')
     }

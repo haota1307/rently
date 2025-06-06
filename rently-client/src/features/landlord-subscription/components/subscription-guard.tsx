@@ -15,6 +15,7 @@ import { AlertCircle, Crown, Clock, CreditCard } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { SubscriptionUpgradeModal } from "./subscription-upgrade-modal";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface SubscriptionGuardProps {
   children: React.ReactNode;
@@ -25,10 +26,23 @@ export function SubscriptionGuard({
   children,
   fallback,
 }: SubscriptionGuardProps) {
-  const { data: accessCheck, isLoading, error } = useCheckSubscriptionAccess();
+  const {
+    data: accessCheck,
+    isLoading,
+    error,
+    refetch,
+  } = useCheckSubscriptionAccess();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [subscriptionSuccess, setSubscriptionSuccess] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Khi đăng ký thành công, chuyển hướng ngay lập tức
+  useEffect(() => {
+    if (subscriptionSuccess) {
+      router.replace("/cho-thue");
+    }
+  }, [subscriptionSuccess, router]);
 
   // Nếu đang loading, hiển thị loading state
   if (isLoading) {
@@ -64,7 +78,7 @@ export function SubscriptionGuard({
   }
 
   // Nếu có quyền truy cập, hiển thị nội dung
-  if (accessCheck?.hasAccess) {
+  if (accessCheck?.hasAccess || subscriptionSuccess) {
     return <>{children}</>;
   }
 
@@ -208,6 +222,10 @@ export function SubscriptionGuard({
           open={showUpgradeModal}
           onOpenChange={setShowUpgradeModal}
           currentSubscription={subscription}
+          onSuccess={() => {
+            refetch();
+            setSubscriptionSuccess(true);
+          }}
         />
       </div>
     </div>

@@ -534,4 +534,86 @@ export class EmailService {
       ),
     })
   }
+
+  async sendAutoRenewNotification(payload: {
+    email: string
+    userName: string
+    planName: string
+    amount: number
+    newEndDate: Date
+    autoRenewStatus: boolean
+    balance: number
+  }) {
+    const subject = `Gói subscription của bạn đã được tự động gia hạn`
+    const templateKey = 'email_auto_renew_notification_template'
+
+    // Định dạng số tiền
+    const formattedAmount = new Intl.NumberFormat('vi-VN').format(
+      payload.amount
+    )
+    const formattedBalance = new Intl.NumberFormat('vi-VN').format(
+      payload.balance
+    )
+    const formattedEndDate = new Date(payload.newEndDate).toLocaleDateString(
+      'vi-VN'
+    )
+
+    // Thử lấy template từ database
+    const dbTemplate = await this.getEmailTemplateFromDB(templateKey)
+
+    // Nếu có template trong database thì dùng
+    if (dbTemplate) {
+      const html = this.renderTemplate(dbTemplate, {
+        user_name: payload.userName,
+        plan_name: payload.planName,
+        amount: formattedAmount,
+        new_end_date: formattedEndDate,
+        auto_renew_status: payload.autoRenewStatus ? 'Bật' : 'Tắt',
+        balance: formattedBalance,
+      })
+
+      return this.resend.emails.send({
+        from: 'Rently <no-reply@rently.top>',
+        to: [payload.email],
+        subject,
+        html,
+      })
+    }
+
+    // Nếu không có template trong database, dùng template mặc định
+    const defaultHtml = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; color: #333;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4F46E5;">Thông báo tự động gia hạn gói subscription</h1>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+          <p>Xin chào <strong>${payload.userName}</strong>,</p>
+          
+          <p>Gói subscription <strong>${payload.planName}</strong> của bạn đã được tự động gia hạn thành công.</p>
+          
+          <ul style="line-height: 1.6;">
+            <li>Số tiền thanh toán: <strong>${formattedAmount} VND</strong></li>
+            <li>Ngày hết hạn mới: <strong>${formattedEndDate}</strong></li>
+            <li>Trạng thái tự động gia hạn: <strong>${payload.autoRenewStatus ? 'Bật' : 'Tắt'}</strong></li>
+            <li>Số dư hiện tại: <strong>${formattedBalance} VND</strong></li>
+          </ul>
+          
+          <p>Nếu bạn muốn thay đổi trạng thái tự động gia hạn, vui lòng truy cập vào phần quản lý tài khoản trên hệ thống Rently.</p>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
+          <p>Email này được gửi tự động, vui lòng không trả lời. Nếu có thắc mắc, hãy liên hệ với chúng tôi qua phần Liên hệ trên website.</p>
+          <p>&copy; 2023 Rently. Đã đăng ký bản quyền.</p>
+        </div>
+      </div>
+    `
+
+    return this.resend.emails.send({
+      from: 'Rently <no-reply@rently.top>',
+      to: [payload.email],
+      subject,
+      html: defaultHtml,
+    })
+  }
 }
