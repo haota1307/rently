@@ -26,6 +26,13 @@ import {
   UpdateSubscriptionDto,
   RenewSubscriptionDto,
 } from './dto/landlord-subscription.dto'
+import { RolesGuard } from '../../shared/guards/roles.guard'
+import { Roles } from '../../shared/decorators/roles.decorator'
+import { RoleEnum } from '../../shared/enums/role.enum'
+import {
+  SubscriptionPlanDto,
+  UpdateSubscriptionPlansDto,
+} from './dto/subscription-plan.dto'
 
 @ApiTags('Landlord Subscription')
 @Controller('landlord-subscription')
@@ -267,5 +274,54 @@ export class LandlordSubscriptionController {
       throw new NotFoundException('Gói subscription không tồn tại')
     }
     return plan
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @Get('admin/plans')
+  @ApiOperation({
+    summary: '[ADMIN] Lấy tất cả gói subscription (cả inactive)',
+  })
+  async getAllSubscriptionPlans() {
+    return this.subscriptionService.getAllSubscriptionPlans()
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @Put('admin/plans')
+  @ApiOperation({
+    summary: '[ADMIN] Cập nhật toàn bộ danh sách gói subscription',
+  })
+  async updateSubscriptionPlans(
+    @Body() body: { plans: SubscriptionPlanDto[] }
+  ) {
+    return this.subscriptionService.updateSubscriptionPlans(body.plans)
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @Post('admin/plans')
+  @ApiOperation({ summary: '[ADMIN] Thêm gói subscription mới' })
+  async addSubscriptionPlan(@Body() plan: SubscriptionPlanDto) {
+    return this.subscriptionService.addSubscriptionPlan(plan)
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @Patch('admin/plans/:planId')
+  @ApiOperation({ summary: '[ADMIN] Cập nhật gói subscription' })
+  async updateSubscriptionPlan(
+    @Param('planId') planId: string,
+    @Body() plan: SubscriptionPlanDto
+  ) {
+    return this.subscriptionService.updateSubscriptionPlan(planId, plan)
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @Delete('admin/plans/:planId')
+  @ApiOperation({ summary: '[ADMIN] Xóa gói subscription' })
+  async deleteSubscriptionPlan(@Param('planId') planId: string) {
+    return this.subscriptionService.deleteSubscriptionPlan(planId)
   }
 }

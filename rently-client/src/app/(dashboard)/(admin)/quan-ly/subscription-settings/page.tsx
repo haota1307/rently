@@ -21,6 +21,7 @@ import {
   Shield,
   Info,
   AlertCircle,
+  Tag,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatPrice } from "@/lib/utils";
@@ -65,7 +66,17 @@ export default function SubscriptionSettingsPage() {
         <h1 className="text-base md:text-lg font-semibold">
           Cài đặt Subscription
         </h1>
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <Button
+            onClick={() =>
+              (window.location.href = "/quan-ly/subscription-settings/plans")
+            }
+            variant="outline"
+            size="sm"
+          >
+            <Tag className="h-4 w-4 mr-2" />
+            Quản lý gói subscription
+          </Button>
           <Button onClick={handleSave} disabled={isLoading} size="sm">
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? "Đang lưu..." : "Lưu cài đặt"}
@@ -246,6 +257,34 @@ export default function SubscriptionSettingsPage() {
                   {settings.landlord_subscription_grace_period_days} ngày
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Quản lý gói Subscription */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="h-5 w-5" />
+                Quản lý gói Subscription
+              </CardTitle>
+              <CardDescription>
+                Thiết lập và tùy chỉnh các gói subscription cho landlord
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>
+                Quản lý các gói subscription, thêm/sửa/xóa gói, cập nhật giá và
+                các tùy chọn cho từng gói.
+              </p>
+              <Button
+                onClick={() =>
+                  (window.location.href =
+                    "/quan-ly/subscription-settings/plans")
+                }
+                variant="default"
+              >
+                Quản lý gói Subscription
+              </Button>
             </CardContent>
           </Card>
         </div>

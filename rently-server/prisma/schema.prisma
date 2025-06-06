@@ -285,22 +285,23 @@ model Payment {
 }
 
 model PaymentTransaction {
-  id                 Int      @id @default(autoincrement())
-  gateway            String   @db.VarChar(100)
-  transactionDate    DateTime @default(now()) @db.Timestamptz(6)
-  accountNumber      String?  @db.VarChar(100)
-  subAccount         String?  @db.VarChar(250)
-  amountIn           Int      @default(0)
-  amountOut          Int      @default(0)
-  accumulated        Int      @default(0)
-  code               String?  @db.VarChar(250)
-  transactionContent String?
-  referenceNumber    String?  @db.VarChar(255)
-  body               String?
-  createdAt          DateTime @default(now()) @db.Timestamptz(6)
-  userId             Int?
-  payment            Payment?
-  user               User?    @relation(fields: [userId], references: [id])
+  id                  Int                   @id @default(autoincrement())
+  gateway             String                @db.VarChar(100)
+  transactionDate     DateTime              @default(now()) @db.Timestamptz(6)
+  accountNumber       String?               @db.VarChar(100)
+  subAccount          String?               @db.VarChar(250)
+  amountIn            Int                   @default(0)
+  amountOut           Int                   @default(0)
+  accumulated         Int                   @default(0)
+  code                String?               @db.VarChar(250)
+  transactionContent  String?
+  referenceNumber     String?               @db.VarChar(255)
+  body                String?
+  createdAt           DateTime              @default(now()) @db.Timestamptz(6)
+  userId              Int?
+  payment             Payment?
+  user                User?                 @relation(fields: [userId], references: [id])
+  SubscriptionHistory SubscriptionHistory[]
 
   @@index([transactionDate])
   @@index([gateway])
@@ -675,6 +676,30 @@ model RoomUtilityBill {
   @@index([isPaid])
 }
 
+model SubscriptionPlan {
+  id           String   @id
+  name         String
+  description  String?
+  price        Decimal  @db.Decimal(10, 2)
+  duration     Int
+  durationType String // "days", "months", "years"
+  features     Json? // Lưu các tính năng của gói dưới dạng mảng
+  isFreeTrial  Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  color        String?
+  badge        String?
+  icon         String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  // Relations
+  subscriptions LandlordSubscription[]
+
+  @@index([isActive])
+  @@index([price])
+  @@index([durationType])
+}
+
 model LandlordSubscription {
   id                    Int                   @id @default(autoincrement())
   userId                Int
@@ -690,6 +715,7 @@ model LandlordSubscription {
   updatedAt             DateTime              @updatedAt @db.Timestamptz(6)
   user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptionHistories SubscriptionHistory[]
+  plan                  SubscriptionPlan?     @relation(fields: [planId], references: [id])
 
   @@unique([userId, status], name: "unique_active_subscription", map: "LandlordSubscription_userId_status_key")
   @@index([userId])
@@ -711,7 +737,8 @@ model SubscriptionHistory {
   note           String?
   createdAt      DateTime             @default(now()) @db.Timestamptz(6)
   subscription   LandlordSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  payment        Payment?             @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  payment        PaymentTransaction?  @relation(fields: [paymentId], references: [id], onDelete: SetNull, map: "SubscriptionHistory_paymentTransactionId_fkey")
+  Payment        Payment?             @relation(fields: [paymentId], references: [id])
 
   @@index([subscriptionId])
 }

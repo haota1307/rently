@@ -37,45 +37,49 @@ export class LandlordSubscriptionService {
     userId: number,
     dto: CreateSubscriptionDto
   ): Promise<LandlordSubscription> {
-    // Kiểm tra xem user có subscription active không
-    const existingSubscription = await this.getActiveSubscription(userId)
+    // Kiểm tra user
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, balance: true },
+    })
+
+    if (!user) {
+      throw new BadRequestException('Người dùng không tồn tại')
+    }
+
+    // Kiểm tra xem người dùng đã có subscription active chưa
+    const existingSubscription =
+      await this.prisma.landlordSubscription.findFirst({
+        where: {
+          userId,
+          status: SubscriptionStatus.ACTIVE,
+        },
+      })
+
     if (existingSubscription) {
-      throw new BadRequestException('User đã có subscription đang hoạt động')
+      // Nếu đã có subscription, hiển thị thông báo lỗi
+      throw new BadRequestException(
+        'Bạn đã có gói subscription đang hoạt động. Vui lòng hủy gói hiện tại trước khi đăng ký gói mới.'
+      )
     }
 
-    // Lấy thông tin plan từ planId hoặc fallback sang cách cũ
-    let plan: any = null
-    let planId: string | null = null
+    let paymentId = undefined // Khởi tạo là undefined thay vì number | undefined
 
-    if (dto.planId) {
-      plan = await this.getSubscriptionPlanById(dto.planId)
-      if (!plan) {
-        throw new BadRequestException('Gói subscription không tồn tại')
-      }
-      planId = dto.planId
-    } else {
-      // Fallback: Tạo plan từ thông tin cũ
-      const monthlyFee = await this.getSystemSetting(
-        'landlord_subscription_monthly_fee',
-        299000
-      )
-      const freeTrialDays = await this.getSystemSetting(
-        'landlord_subscription_free_trial_days',
-        30
-      )
-
-      plan = {
-        id: dto.isFreeTrial ? 'free_trial' : 'basic_monthly',
-        name: dto.isFreeTrial ? 'Dùng thử miễn phí' : 'Gói cơ bản',
-        price: dto.isFreeTrial ? 0 : monthlyFee,
-        duration: dto.isFreeTrial ? freeTrialDays : 1,
-        durationType: dto.isFreeTrial ? 'days' : 'months',
-        isFreeTrial: dto.isFreeTrial || false,
-      }
-      planId = plan.id
+    // Lấy thông tin plan
+    let planId = dto.planId
+    if (!planId) {
+      // Fallback to default plan if planId is not provided
+      planId = dto.isFreeTrial ? 'free_trial' : 'monthly'
     }
 
-    // Nếu user yêu cầu free trial, kiểm tra xem đã từng dùng chưa
+    // Lấy thông tin plan từ cơ sở dữ liệu
+    const plan = await this.getSubscriptionPlanById(planId)
+
+    if (!plan) {
+      throw new BadRequestException(`Gói subscription không tồn tại: ${planId}`)
+    }
+
+    // Kiểm tra nếu đây là gói dùng thử và người dùng đã từng dùng thử
     if (plan.isFreeTrial) {
       const hasUsedFreeTrial = await this.hasUserUsedFreeTrial(userId)
       if (hasUsedFreeTrial) {
@@ -85,107 +89,148 @@ export class LandlordSubscriptionService {
       }
     }
 
+    // Tính toán ngày bắt đầu và kết thúc
     const startDate = new Date()
-    const endDate = new Date()
+    let endDate = new Date()
 
-    // Tính ngày kết thúc dựa trên plan
+    // Tính ngày kết thúc dựa trên duration và durationType của plan
     if (plan.durationType === 'days') {
-      endDate.setDate(startDate.getDate() + plan.duration)
+      endDate.setDate(endDate.getDate() + plan.duration)
     } else if (plan.durationType === 'months') {
-      endDate.setMonth(startDate.getMonth() + plan.duration)
+      endDate.setMonth(endDate.getMonth() + plan.duration)
     } else if (plan.durationType === 'years') {
-      endDate.setFullYear(startDate.getFullYear() + plan.duration)
+      endDate.setFullYear(endDate.getFullYear() + plan.duration)
+    } else {
+      // Fallback nếu durationType không hợp lệ
+      endDate.setMonth(endDate.getMonth() + 1) // Default: 1 tháng
     }
 
-    let paymentId: number | undefined = undefined
+    // Chuẩn bị các dữ liệu cần thiết
+    const subscriptionData = {
+      userId,
+      planType: dto.planType || 'BASIC',
+      planId,
+      startDate,
+      endDate,
+      amount: plan.price,
+      isFreeTrial: plan.isFreeTrial || false,
+      autoRenew: dto.autoRenew || true,
+      status: SubscriptionStatus.ACTIVE,
+    }
 
-    // Nếu không phải free trial, cần xử lý thanh toán
-    if (!plan.isFreeTrial && plan.price > 0) {
-      // Kiểm tra số dư tài khoản
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { balance: true, name: true, email: true },
-      })
+    let subscription
+    let paymentTransaction
 
-      if (!user) {
-        throw new NotFoundException('Không tìm thấy thông tin người dùng')
-      }
+    // Thực hiện các thao tác trong transaction để đảm bảo tính nhất quán
+    try {
+      if (!plan.isFreeTrial) {
+        // Kiểm tra số dư
+        const price = Number(plan.price)
+        if (user.balance < price) {
+          throw new BadRequestException(
+            `Số dư tài khoản không đủ để đăng ký gói. Cần ${price} VND, có ${user.balance} VND`
+          )
+        }
 
-      if (user.balance < plan.price) {
-        throw new BadRequestException(
-          `Số dư tài khoản không đủ. Cần ${plan.price.toLocaleString()} VND, hiện có ${user.balance.toLocaleString()} VND. Vui lòng nạp tiền trước khi đăng ký.`
-        )
-      }
+        // Sử dụng transaction để đảm bảo tính nhất quán của dữ liệu
+        const result = await this.prisma.$transaction(async tx => {
+          // 1. Tạo payment transaction
+          const payment = await tx.paymentTransaction.create({
+            data: {
+              userId,
+              gateway: 'internal',
+              amountOut: price,
+              transactionContent: `Thanh toán subscription: ${plan.name}`,
+              referenceNumber: `SUB_${userId}_${Date.now()}`,
+            },
+          })
 
-      // Sử dụng transaction để đảm bảo tính nhất quán
-      const paymentResult = await this.prisma.$transaction(async tx => {
-        // Trừ tiền từ tài khoản
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            balance: {
-              decrement: plan.price,
+          // 2. Trừ tiền từ tài khoản
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              balance: {
+                decrement: price,
+              },
+            },
+          })
+
+          // 3. Tạo subscription
+          const newSubscription = await tx.landlordSubscription.create({
+            data: subscriptionData,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  balance: true,
+                },
+              },
+            },
+          })
+
+          // 4. Tạo history trực tiếp trong transaction
+          await tx.subscriptionHistory.create({
+            data: {
+              subscriptionId: newSubscription.id,
+              action: 'CREATED',
+              newStatus: SubscriptionStatus.ACTIVE,
+              amount: Number(newSubscription.amount),
+              note: plan.isFreeTrial
+                ? `Tạo subscription miễn phí: ${plan.name}`
+                : `Tạo subscription trả phí: ${plan.name} - Đã trừ ${plan.price.toLocaleString()} VND từ tài khoản`,
+              planType: newSubscription.planType,
+              planId,
+            },
+          })
+
+          return {
+            subscription: newSubscription,
+            payment,
+          }
+        })
+
+        subscription = result.subscription
+        paymentTransaction = result.payment
+      } else {
+        // Với gói miễn phí, không cần transaction phức tạp
+        // Tạo subscription
+        subscription = await this.prisma.landlordSubscription.create({
+          data: subscriptionData,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                balance: true,
+              },
             },
           },
         })
 
-        // Tạo payment transaction
-        const payment = await tx.paymentTransaction.create({
+        // Ghi lại lịch sử trực tiếp
+        await this.prisma.subscriptionHistory.create({
           data: {
-            userId,
-            gateway: 'internal',
-            amountOut: plan.price,
-            transactionContent: `Thanh toán ${plan.name}`,
-            referenceNumber: `SUB_${userId}_${Date.now()}`,
+            subscriptionId: subscription.id,
+            action: 'CREATED',
+            newStatus: SubscriptionStatus.ACTIVE,
+            amount: Number(subscription.amount),
+            note: `Tạo subscription miễn phí: ${plan.name}`,
+            planType: subscription.planType,
+            planId,
           },
         })
+      }
 
-        return payment
-      })
-
-      paymentId = paymentResult.id
+      return subscription
+    } catch (error) {
+      console.error('Lỗi khi tạo subscription:', error)
+      throw new BadRequestException(
+        error.message || 'Không thể tạo subscription. Vui lòng thử lại.'
+      )
     }
-
-    const subscription = await this.prisma.landlordSubscription.create({
-      data: {
-        userId,
-        planType: dto.planType || 'BASIC',
-        planId,
-        startDate,
-        endDate,
-        amount: plan.price,
-        isFreeTrial: plan.isFreeTrial || false,
-        autoRenew: dto.autoRenew || true,
-        status: SubscriptionStatus.ACTIVE,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            balance: true,
-          },
-        },
-      },
-    })
-
-    // Ghi lại lịch sử
-    await this.createSubscriptionHistory(
-      subscription.id,
-      'CREATED',
-      undefined,
-      SubscriptionStatus.ACTIVE,
-      Number(subscription.amount),
-      paymentId,
-      plan.isFreeTrial
-        ? `Tạo subscription miễn phí: ${plan.name}`
-        : `Tạo subscription trả phí: ${plan.name} - Đã trừ ${plan.price.toLocaleString()} VND từ tài khoản`,
-      subscription.planType,
-      planId
-    )
-
-    return subscription
   }
 
   /**
@@ -761,36 +806,58 @@ export class LandlordSubscriptionService {
       )
     }
 
-    const updatedSubscription = await this.prisma.landlordSubscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status: SubscriptionStatus.SUSPENDED,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+    try {
+      // Tìm và cập nhật trạng thái các subscription SUSPENDED cũ của user này
+      // để tránh xung đột ràng buộc duy nhất
+      await this.prisma.landlordSubscription.updateMany({
+        where: {
+          userId: subscription.userId,
+          status: SubscriptionStatus.SUSPENDED,
+          id: { not: subscriptionId },
         },
-      },
-    })
+        data: {
+          status: SubscriptionStatus.EXPIRED,
+        },
+      })
 
-    // Ghi lại lịch sử
-    await this.createSubscriptionHistory(
-      subscriptionId,
-      'ADMIN_SUSPENDED',
-      subscription.status,
-      SubscriptionStatus.SUSPENDED,
-      undefined,
-      undefined,
-      reason || 'Admin tạm dừng subscription',
-      undefined,
-      undefined
-    )
+      const updatedSubscription = await this.prisma.landlordSubscription.update(
+        {
+          where: { id: subscriptionId },
+          data: {
+            status: SubscriptionStatus.SUSPENDED,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        }
+      )
 
-    return updatedSubscription
+      // Ghi lại lịch sử
+      await this.createSubscriptionHistory(
+        subscriptionId,
+        'ADMIN_SUSPENDED',
+        subscription.status,
+        SubscriptionStatus.SUSPENDED,
+        undefined,
+        undefined,
+        reason || 'Admin tạm dừng subscription',
+        undefined,
+        undefined
+      )
+
+      return updatedSubscription
+    } catch (error) {
+      console.error('Lỗi khi tạm dừng subscription:', error)
+      throw new BadRequestException(
+        'Không thể tạm dừng subscription. Vui lòng thử lại sau.'
+      )
+    }
   }
 
   /**
@@ -805,36 +872,58 @@ export class LandlordSubscriptionService {
       )
     }
 
-    const updatedSubscription = await this.prisma.landlordSubscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status: SubscriptionStatus.ACTIVE,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+    try {
+      // Tìm và cập nhật trạng thái các subscription ACTIVE cũ của user này
+      // để tránh xung đột ràng buộc duy nhất
+      await this.prisma.landlordSubscription.updateMany({
+        where: {
+          userId: subscription.userId,
+          status: SubscriptionStatus.ACTIVE,
+          id: { not: subscriptionId },
         },
-      },
-    })
+        data: {
+          status: SubscriptionStatus.EXPIRED,
+        },
+      })
 
-    // Ghi lại lịch sử
-    await this.createSubscriptionHistory(
-      subscriptionId,
-      'ADMIN_REACTIVATED',
-      subscription.status,
-      SubscriptionStatus.ACTIVE,
-      undefined,
-      undefined,
-      'Admin kích hoạt lại subscription',
-      undefined,
-      undefined
-    )
+      const updatedSubscription = await this.prisma.landlordSubscription.update(
+        {
+          where: { id: subscriptionId },
+          data: {
+            status: SubscriptionStatus.ACTIVE,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        }
+      )
 
-    return updatedSubscription
+      // Ghi lại lịch sử
+      await this.createSubscriptionHistory(
+        subscriptionId,
+        'ADMIN_REACTIVATED',
+        subscription.status,
+        SubscriptionStatus.ACTIVE,
+        undefined,
+        undefined,
+        'Admin kích hoạt lại subscription',
+        undefined,
+        undefined
+      )
+
+      return updatedSubscription
+    } catch (error) {
+      console.error('Lỗi khi kích hoạt lại subscription:', error)
+      throw new BadRequestException(
+        'Không thể kích hoạt lại subscription. Vui lòng thử lại sau.'
+      )
+    }
   }
 
   /**
@@ -847,37 +936,59 @@ export class LandlordSubscriptionService {
       throw new BadRequestException('Subscription đã được hủy')
     }
 
-    const updatedSubscription = await this.prisma.landlordSubscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status: SubscriptionStatus.CANCELED,
-        autoRenew: false,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+    try {
+      // Tìm và cập nhật trạng thái các subscription CANCELED cũ của user này
+      // để tránh xung đột ràng buộc duy nhất
+      await this.prisma.landlordSubscription.updateMany({
+        where: {
+          userId: subscription.userId,
+          status: SubscriptionStatus.CANCELED,
+          id: { not: subscriptionId },
         },
-      },
-    })
+        data: {
+          status: SubscriptionStatus.EXPIRED,
+        },
+      })
 
-    // Ghi lại lịch sử
-    await this.createSubscriptionHistory(
-      subscriptionId,
-      'ADMIN_CANCELED',
-      subscription.status,
-      SubscriptionStatus.CANCELED,
-      undefined,
-      undefined,
-      reason || 'Admin hủy subscription',
-      undefined,
-      undefined
-    )
+      const updatedSubscription = await this.prisma.landlordSubscription.update(
+        {
+          where: { id: subscriptionId },
+          data: {
+            status: SubscriptionStatus.CANCELED,
+            autoRenew: false,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        }
+      )
 
-    return updatedSubscription
+      // Ghi lại lịch sử
+      await this.createSubscriptionHistory(
+        subscriptionId,
+        'ADMIN_CANCELED',
+        subscription.status,
+        SubscriptionStatus.CANCELED,
+        undefined,
+        undefined,
+        reason || 'Admin hủy subscription',
+        undefined,
+        undefined
+      )
+
+      return updatedSubscription
+    } catch (error) {
+      console.error('Lỗi khi hủy subscription:', error)
+      throw new BadRequestException(
+        'Không thể hủy subscription. Vui lòng thử lại sau.'
+      )
+    }
   }
 
   /**
@@ -998,6 +1109,26 @@ export class LandlordSubscriptionService {
     planType?: string | null,
     planId?: string | null
   ) {
+    // Kiểm tra xem paymentId có hợp lệ không trước khi tạo history
+    if (paymentId !== undefined && paymentId !== null) {
+      try {
+        // Kiểm tra xem payment transaction có tồn tại không
+        const payment = await this.prisma.paymentTransaction.findUnique({
+          where: { id: paymentId },
+        })
+
+        if (!payment) {
+          console.warn(
+            `PaymentTransaction with ID ${paymentId} not found. Setting paymentId to null.`
+          )
+          paymentId = undefined // Không tồn tại payment, set thành undefined để tránh lỗi FK
+        }
+      } catch (error) {
+        console.error(`Error checking payment: ${error}`)
+        paymentId = undefined
+      }
+    }
+
     return this.prisma.subscriptionHistory.create({
       data: {
         subscriptionId,
@@ -1017,15 +1148,17 @@ export class LandlordSubscriptionService {
    * Lấy tất cả gói subscription có sẵn
    */
   async getAvailableSubscriptionPlans(): Promise<any[]> {
-    const plansJson = await this.getSystemSetting('subscription_plans', '[]')
-
     try {
-      const plans = JSON.parse(plansJson)
-      // Chỉ trả về các gói đang active
-      return plans.filter((plan: any) => plan.isActive === true)
+      // Lấy từ bảng SubscriptionPlan, chỉ lấy các gói đang active
+      const plans = await this.prisma.subscriptionPlan.findMany({
+        where: {
+          isActive: true,
+        },
+      })
+      return plans
     } catch (error) {
-      console.error('Error parsing subscription plans:', error)
-      // Fallback to default plans if JSON is invalid
+      console.error('Error fetching subscription plans:', error)
+      // Fallback to default plans if database access fails
       return [
         {
           id: 'free_trial',
@@ -1053,87 +1186,59 @@ export class LandlordSubscriptionService {
    * Lấy thông tin gói subscription theo ID
    */
   async getSubscriptionPlanById(planId: string): Promise<any | null> {
-    const plans = await this.getAvailableSubscriptionPlans()
-    return plans.find(plan => plan.id === planId) || null
-  }
-
-  /**
-   * [ADMIN] Cập nhật danh sách subscription plans
-   */
-  async updateSubscriptionPlans(plans: any[]): Promise<any[]> {
-    // Validate plans
-    const validatedPlans = plans.map((plan, index) => {
-      if (!plan.id || !plan.name || plan.price < 0) {
-        throw new BadRequestException(
-          `Plan tại vị trí ${index} có dữ liệu không hợp lệ`
-        )
-      }
-      return plan
+    return this.prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
     })
-
-    // Update SystemSetting
-    await this.prisma.systemSetting.upsert({
-      where: { key: 'subscription_plans' },
-      update: {
-        value: JSON.stringify(validatedPlans),
-      },
-      create: {
-        key: 'subscription_plans',
-        value: JSON.stringify(validatedPlans),
-        type: 'json',
-        group: 'PRICING',
-        description: 'Cấu hình các gói subscription cho landlord',
-      },
-    })
-
-    return validatedPlans
   }
 
   /**
    * [ADMIN] Thêm gói subscription mới
    */
-  async addSubscriptionPlan(newPlan: any): Promise<any[]> {
-    const currentPlans = await this.getAvailableSubscriptionPlans()
-
-    // Kiểm tra trùng ID
-    if (currentPlans.some(plan => plan.id === newPlan.id)) {
-      throw new ConflictException(`Gói với ID "${newPlan.id}" đã tồn tại`)
-    }
-
-    const updatedPlans = [...currentPlans, newPlan]
-    return this.updateSubscriptionPlans(updatedPlans)
+  async addSubscriptionPlan(plan: any): Promise<any> {
+    return this.prisma.subscriptionPlan.create({
+      data: {
+        ...plan,
+        features: plan.features || [],
+      },
+    })
   }
 
   /**
    * [ADMIN] Cập nhật gói subscription
    */
-  async updateSubscriptionPlan(
-    planId: string,
-    updatedPlan: any
-  ): Promise<any[]> {
-    const currentPlans = await this.getAvailableSubscriptionPlans()
+  async updateSubscriptionPlan(planId: string, updatedPlan: any): Promise<any> {
+    // Kiểm tra xem gói có tồn tại không
+    const existingPlan = await this.prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+    })
 
-    const planIndex = currentPlans.findIndex(plan => plan.id === planId)
-    if (planIndex === -1) {
+    if (!existingPlan) {
       throw new NotFoundException(`Không tìm thấy gói với ID "${planId}"`)
     }
 
-    currentPlans[planIndex] = {
-      ...currentPlans[planIndex],
-      ...updatedPlan,
-      id: planId,
-    }
-    return this.updateSubscriptionPlans(currentPlans)
+    // Cập nhật gói
+    return this.prisma.subscriptionPlan.update({
+      where: { id: planId },
+      data: {
+        ...updatedPlan,
+        features:
+          updatedPlan.features !== undefined
+            ? updatedPlan.features
+            : existingPlan.features,
+      },
+    })
   }
 
   /**
    * [ADMIN] Xóa gói subscription
    */
-  async deleteSubscriptionPlan(planId: string): Promise<any[]> {
-    const currentPlans = await this.getAvailableSubscriptionPlans()
+  async deleteSubscriptionPlan(planId: string): Promise<any> {
+    // Kiểm tra xem gói có tồn tại không
+    const existingPlan = await this.prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+    })
 
-    const planIndex = currentPlans.findIndex(plan => plan.id === planId)
-    if (planIndex === -1) {
+    if (!existingPlan) {
       throw new NotFoundException(`Không tìm thấy gói với ID "${planId}"`)
     }
 
@@ -1153,22 +1258,41 @@ export class LandlordSubscriptionService {
       )
     }
 
-    currentPlans.splice(planIndex, 1)
-    return this.updateSubscriptionPlans(currentPlans)
+    // Xóa gói
+    return this.prisma.subscriptionPlan.delete({
+      where: { id: planId },
+    })
   }
 
   /**
    * [ADMIN] Lấy tất cả subscription plans (bao gồm cả inactive)
    */
   async getAllSubscriptionPlans(): Promise<any[]> {
-    const plansJson = await this.getSystemSetting('subscription_plans', '[]')
+    return this.prisma.subscriptionPlan.findMany()
+  }
 
-    try {
-      return JSON.parse(plansJson)
-    } catch (error) {
-      console.error('Error parsing subscription plans:', error)
-      return []
-    }
+  /**
+   * [ADMIN] Cập nhật danh sách subscription plans
+   */
+  async updateSubscriptionPlans(plans: any[]): Promise<any[]> {
+    // Sử dụng transaction để cập nhật toàn bộ danh sách
+    await this.prisma.$transaction(async tx => {
+      // Xóa tất cả các plan hiện tại
+      await tx.subscriptionPlan.deleteMany({})
+
+      // Thêm lại danh sách plan mới
+      for (const plan of plans) {
+        await tx.subscriptionPlan.create({
+          data: {
+            ...plan,
+            features: plan.features || [],
+          },
+        })
+      }
+    })
+
+    // Trả về danh sách plans sau khi cập nhật
+    return this.prisma.subscriptionPlan.findMany()
   }
 
   /**

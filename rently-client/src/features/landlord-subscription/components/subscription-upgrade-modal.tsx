@@ -1,386 +1,518 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  Check,
+  Clock,
+  Crown,
+  Gift,
+  Loader2,
+  RefreshCw,
+  Calendar,
+  Star,
+  ArrowLeft,
+  Sparkles,
+  Award,
+  Diamond,
+  Gem,
+  Zap,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Check, Crown, Gift, Loader2, Wallet } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { toast } from "sonner";
+import { useAccountMe } from "@/features/profile/useProfile";
 import {
   useCreateSubscription,
   useRenewSubscription,
   useCheckSubscriptionAccess,
 } from "../useSubscription";
-import { LandlordSubscription } from "../subscription.api";
-import { useAccountMe } from "@/features/profile/useProfile";
+import {
+  LandlordSubscription,
+  SubscriptionPlan,
+  SubscriptionHistory,
+} from "../subscription.api";
+import subscriptionApiRequest from "../subscription.api";
+import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SubscriptionUpgradeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentSubscription?: LandlordSubscription | null;
+  onSuccess?: (payload: any) => void;
 }
-
-const MONTHLY_FEE = 299000; // 299k VND
-const FREE_TRIAL_DAYS = 30;
 
 export function SubscriptionUpgradeModal({
   open,
   onOpenChange,
   currentSubscription,
+  onSuccess,
 }: SubscriptionUpgradeModalProps) {
-  // Get access check data (includes free trial eligibility)
-  const { data: accessCheck } = useCheckSubscriptionAccess();
-
-  // Get user profile for balance info
+  // Hooks
   const { data: userProfile } = useAccountMe();
+  const { data: accessCheck } = useCheckSubscriptionAccess();
+  const createSubscriptionMutation = useCreateSubscription();
+  const renewSubscriptionMutation = useRenewSubscription();
+  const queryClient = useQueryClient();
 
-  const [selectedPlan, setSelectedPlan] = useState<"free_trial" | "monthly">(
-    currentSubscription
-      ? "monthly"
-      : accessCheck?.canUseFreeTrialAgain
-        ? "free_trial"
-        : "monthly"
-  );
+  // State
+  const [selectedPlan, setSelectedPlan] = useState("");
+  const [autoRenew, setAutoRenew] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [subscriptionPlans, setSubscriptionPlans] = useState<
+    SubscriptionPlan[]
+  >([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hideBackButton, setHideBackButton] = useState(true);
+  const [hasUsedFreeTrial, setHasUsedFreeTrial] = useState(false);
 
-  const createSubscription = useCreateSubscription();
-  const renewSubscription = useRenewSubscription();
+  const isExistingUser =
+    !!currentSubscription &&
+    (currentSubscription.status === "EXPIRED" ||
+      currentSubscription.status === "CANCELED" ||
+      currentSubscription.status === "SUSPENDED");
 
-  const isExistingUser = !!currentSubscription;
-  const isLoading = createSubscription.isPending || renewSubscription.isPending;
+  // Thêm hàm định dạng tiền tệ
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
-  // Check if user has enough balance for paid plans
-  const userBalance = userProfile?.payload?.balance || 0;
-  const needsPayment = selectedPlan === "monthly" || isExistingUser;
-  const hasInsufficientBalance = needsPayment && userBalance < MONTHLY_FEE;
+  // Thêm useEffect để lọc các gói subscription
+  useEffect(() => {
+    const fetchSubscriptionPlans = async () => {
+      try {
+        setIsLoading(true);
+        const response = await subscriptionApiRequest.getPlans();
 
-  // Update selected plan when access check data changes
-  useState(() => {
-    if (
-      !isExistingUser &&
-      !accessCheck?.canUseFreeTrialAgain &&
-      selectedPlan === "free_trial"
-    ) {
-      setSelectedPlan("monthly");
-    }
-  });
+        if (response.status === 200 && response.payload) {
+          // Lấy tất cả gói
+          const allPlans = response.payload;
+          setSubscriptionPlans(allPlans);
 
-  const handleSubmit = async () => {
-    try {
-      if (isExistingUser) {
-        // Gia hạn cho user đã có subscription
-        await renewSubscription.mutateAsync({});
-      } else {
-        // Tạo mới cho user chưa có subscription
-        await createSubscription.mutateAsync({
-          planType: "BASIC",
-          isFreeTrial: selectedPlan === "free_trial",
-          autoRenew: true,
-        });
+          // Kiểm tra xem người dùng đã từng dùng gói free trial chưa
+          let hasUsedFreeTrial = false;
+          if (currentSubscription) {
+            hasUsedFreeTrial = true; // Nếu đã có subscription thì không thể dùng free trial
+          } else {
+            try {
+              if (userProfile?.payload?.id) {
+                const historyResponse =
+                  await subscriptionApiRequest.getHistory();
+
+                // Kiểm tra trong lịch sử có gói free trial nào không
+                hasUsedFreeTrial =
+                  historyResponse.payload?.some(
+                    (history: SubscriptionHistory) => {
+                      // Kiểm tra nếu trong ghi chú có đề cập đến free trial hoặc miễn phí
+                      return (
+                        history.note?.toLowerCase().includes("miễn phí") ||
+                        history.note?.toLowerCase().includes("free trial") ||
+                        (history.action === "CREATED" && history.amount === 0)
+                      );
+                    }
+                  ) || false;
+              }
+            } catch (historyError) {
+              console.error(
+                "Không thể kiểm tra lịch sử subscription:",
+                historyError
+              );
+            }
+          }
+
+          // Lưu trạng thái đã dùng free trial
+          setHasUsedFreeTrial(hasUsedFreeTrial);
+
+          // Chọn gói mặc định phù hợp
+          if (allPlans.length > 0 && !selectedPlan) {
+            // Nếu đã dùng free trial, chọn gói tháng làm mặc định
+            if (hasUsedFreeTrial) {
+              const monthlyPlan = allPlans.find(
+                (plan: SubscriptionPlan) =>
+                  plan.durationType === "months" &&
+                  plan.duration === 1 &&
+                  !plan.isFreeTrial
+              );
+              if (monthlyPlan) {
+                setSelectedPlan(monthlyPlan.id);
+              } else {
+                // Nếu không có gói tháng, chọn gói đầu tiên không phải free trial
+                const nonFreeTrialPlan = allPlans.find(
+                  (plan: SubscriptionPlan) => !plan.isFreeTrial
+                );
+                if (nonFreeTrialPlan) {
+                  setSelectedPlan(nonFreeTrialPlan.id);
+                }
+              }
+            } else {
+              // Nếu chưa dùng free trial, chọn gói free trial làm mặc định
+              const freeTrialPlan = allPlans.find(
+                (plan: SubscriptionPlan) => plan.isFreeTrial
+              );
+              if (freeTrialPlan) {
+                setSelectedPlan(freeTrialPlan.id);
+              } else {
+                setSelectedPlan(allPlans[0].id);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách gói subscription:", error);
+        toast.error("Không thể tải danh sách gói subscription");
+      } finally {
+        setIsLoading(false);
       }
-      onOpenChange(false);
-    } catch (error) {
-      // Error đã được handle trong hooks
-    }
-  };
-
-  const getSelectedPlanDetails = () => {
-    if (isExistingUser) {
-      return {
-        title: "Gia hạn Subscription",
-        subtitle: "Tiếp tục sử dụng dịch vụ cho thuê",
-        price: MONTHLY_FEE,
-        duration: "1 tháng",
-        features: [
-          "Đăng bài cho thuê không giới hạn",
-          "Quản lý phòng trọ và hợp đồng",
-          "Nhận yêu cầu thuê và lịch xem phòng",
-          "Hỗ trợ khách hàng ưu tiên",
-          "Báo cáo thống kê chi tiết",
-        ],
-      };
-    }
-
-    if (selectedPlan === "free_trial") {
-      return {
-        title: "Dùng thử miễn phí",
-        subtitle: "Trải nghiệm đầy đủ tính năng",
-        price: 0,
-        duration: `${FREE_TRIAL_DAYS} ngày`,
-        features: [
-          "Đăng bài cho thuê không giới hạn",
-          "Quản lý phòng trọ và hợp đồng",
-          "Nhận yêu cầu thuê và lịch xem phòng",
-          "Hỗ trợ khách hàng",
-          "Tự động chuyển sang gói trả phí sau 30 ngày",
-        ],
-      };
-    }
-
-    return {
-      title: "Subscription hàng tháng",
-      subtitle: "Truy cập đầy đủ tính năng",
-      price: MONTHLY_FEE,
-      duration: "1 tháng",
-      features: [
-        "Đăng bài cho thuê không giới hạn",
-        "Quản lý phòng trọ và hợp đồng",
-        "Nhận yêu cầu thuê và lịch xem phòng",
-        "Hỗ trợ khách hàng ưu tiên",
-        "Báo cáo thống kê chi tiết",
-      ],
     };
+
+    if (open) {
+      fetchSubscriptionPlans();
+    }
+  }, [open, currentSubscription, userProfile, selectedPlan]);
+
+  const handleSubscribe = async () => {
+    if (!selectedPlan) {
+      toast.error("Vui lòng chọn một gói subscription");
+      return;
+    }
+
+    setIsSubmitting(true);
+    toast.loading("Đang xử lý đăng ký...");
+
+    try {
+      const response = await subscriptionApiRequest.create({
+        planId: selectedPlan,
+        autoRenew,
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        toast.dismiss();
+        toast.success("Đăng ký subscription thành công");
+
+        // Đóng modal trước
+        onOpenChange(false);
+
+        // Cập nhật query cache trực tiếp
+        queryClient.setQueryData(["subscription", "access"], {
+          hasAccess: true,
+          subscription: response.payload,
+        });
+
+        // Force refetch tất cả các query liên quan đến subscription
+        await queryClient.refetchQueries({
+          queryKey: ["subscription"],
+          exact: false,
+        });
+
+        // Chờ một chút để cập nhật UI trước khi chuyển hướng
+        setTimeout(() => {
+          onSuccess && onSuccess(response.payload);
+        }, 300);
+      }
+    } catch (error: any) {
+      toast.dismiss();
+      console.error("Lỗi khi đăng ký gói subscription:", { error });
+      toast.error(
+        error.payload?.message || "Không thể đăng ký gói. Vui lòng thử lại."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const planDetails = getSelectedPlanDetails();
+  const handleBack = () => {
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto w-[95vw] sm:w-full">
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <Crown className="h-5 w-5 md:h-6 md:w-6 text-amber-600" />
-            {isExistingUser ? "Gia hạn Subscription" : "Đăng ký Subscription"}
-          </DialogTitle>
+          <DialogTitle>Nâng cấp lên Landlord Pro</DialogTitle>
           <DialogDescription>
-            {isExistingUser
-              ? "Gia hạn để tiếp tục sử dụng tính năng cho thuê"
-              : "Chọn gói phù hợp để bắt đầu cho thuê"}
+            Nâng cấp tài khoản để đăng bài và quản lý danh sách nhà trọ của bạn
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left side - Plan Selection for new users */}
-          {!isExistingUser && (
-            <div className="lg:col-span-2 space-y-4">
-              <h4 className="font-medium text-lg">Chọn gói phù hợp</h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Free Trial Option - Only show if eligible */}
-                {accessCheck?.canUseFreeTrialAgain && (
-                  <Card
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedPlan === "free_trial"
-                        ? "ring-2 ring-blue-500 border-blue-200 shadow-md"
-                        : "hover:border-gray-300"
-                    }`}
-                    onClick={() => setSelectedPlan("free_trial")}
-                  >
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Gift className="h-5 w-5 text-green-600" />
-                          <CardTitle className="text-lg">
-                            Dùng thử miễn phí
-                          </CardTitle>
-                        </div>
-                        <Badge
-                          variant="secondary"
-                          className="bg-green-100 text-green-700 text-xs"
-                        >
-                          Khuyến nghị
-                        </Badge>
-                      </div>
-                      <CardDescription className="text-sm">
-                        {FREE_TRIAL_DAYS} ngày đầu hoàn toàn miễn phí
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-green-600 mb-1">
-                        Miễn phí
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Sau đó {formatPrice(MONTHLY_FEE)}/tháng
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Monthly Plan Option */}
-                <Card
-                  className={`cursor-pointer transition-all hover:shadow-md ${
-                    selectedPlan === "monthly"
-                      ? "ring-2 ring-blue-500 border-blue-200 shadow-md"
-                      : "hover:border-gray-300"
+        <div className="p-0 md:p-2 max-w-full">
+          <div className="space-y-4">
+            {/* Hiển thị các gói subscription với responsive grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {subscriptionPlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  onClick={() => {
+                    if (plan.isFreeTrial && hasUsedFreeTrial) {
+                      return;
+                    }
+                    setSelectedPlan(plan.id);
+                  }}
+                  className={`rounded-lg border p-4 cursor-pointer transition-all ${
+                    plan.isFreeTrial && hasUsedFreeTrial
+                      ? "opacity-60 cursor-not-allowed"
+                      : "hover:shadow-md hover:border-opacity-80"
+                  } h-full ${
+                    selectedPlan === plan.id
+                      ? `border-2 border-${plan.color || "primary"}-500 bg-${plan.color || "primary"}-50/20 shadow-md`
+                      : "border-border"
                   }`}
-                  onClick={() => setSelectedPlan("monthly")}
                 >
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Crown className="h-5 w-5 text-amber-600" />
-                        <CardTitle className="text-lg">
-                          Gói hàng tháng
-                        </CardTitle>
+                  <div className="relative h-full flex flex-col">
+                    {plan.isFreeTrial && hasUsedFreeTrial && (
+                      <div className="absolute -top-4 -right-4 bg-rose-500 text-white text-xs px-3 py-1 rounded-full font-medium shadow-sm">
+                        Đã sử dụng
                       </div>
-                      {!accessCheck?.canUseFreeTrialAgain && (
-                        <Badge
-                          variant="secondary"
-                          className="bg-amber-100 text-amber-700 text-xs"
+                    )}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center shadow-sm bg-${
+                            plan.color || "primary"
+                          }-100`}
                         >
-                          Duy nhất
-                        </Badge>
+                          {(() => {
+                            // Hiển thị icon tương ứng dựa trên tên
+                            switch (plan.icon) {
+                              case "gift":
+                                return (
+                                  <Gift
+                                    className={`h-4 w-4 text-${plan.color || "primary"}-500`}
+                                  />
+                                );
+                              case "crown":
+                                return (
+                                  <Crown
+                                    className={`h-4 w-4 text-${plan.color || "primary"}-500`}
+                                  />
+                                );
+                              case "star":
+                                return (
+                                  <Star
+                                    className={`h-4 w-4 text-${plan.color || "primary"}-500`}
+                                  />
+                                );
+                              case "calendar":
+                                return (
+                                  <Calendar
+                                    className={`h-4 w-4 text-${plan.color || "primary"}-500`}
+                                  />
+                                );
+                              default:
+                                return (
+                                  <Sparkles
+                                    className={`h-4 w-4 text-${plan.color || "primary"}-500`}
+                                  />
+                                );
+                            }
+                          })()}
+                        </div>
+                        <h3 className="text-base font-semibold text-gray-900">
+                          {plan.name}
+                        </h3>
+                      </div>
+                      {plan.badge && (
+                        <div
+                          className={`bg-${plan.color || "primary"}-100 text-${
+                            plan.color || "primary"
+                          }-500 text-xs font-medium rounded-full px-2.5 py-1`}
+                        >
+                          {plan.badge}
+                        </div>
                       )}
                     </div>
-                    <CardDescription className="text-sm">
-                      {accessCheck?.canUseFreeTrialAgain
-                        ? "Truy cập ngay lập tức"
-                        : "Bạn đã sử dụng gói dùng thử"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-amber-600 mb-1">
-                      {formatPrice(MONTHLY_FEE)}
-                    </div>
-                    <div className="text-sm text-gray-600">per tháng</div>
-                  </CardContent>
-                </Card>
-              </div>
 
-              {/* Free trial used notice */}
-              {!accessCheck?.canUseFreeTrialAgain && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Gift className="h-4 w-4 text-amber-600" />
-                    <span className="font-medium text-amber-800">
-                      Gói dùng thử đã sử dụng
-                    </span>
+                    <div className="mb-3">
+                      <div className="flex items-end gap-1 mb-1">
+                        <span className="text-xl font-bold">
+                          {formatCurrency(plan.price)}
+                        </span>
+                        <span className="text-muted-foreground text-xs font-medium mb-0.5">
+                          {plan.isFreeTrial
+                            ? ""
+                            : `/${
+                                plan.durationType === "months"
+                                  ? plan.duration === 1
+                                    ? "tháng"
+                                    : `${plan.duration} tháng`
+                                  : plan.duration === 1
+                                    ? "năm"
+                                    : `${plan.duration} năm`
+                              }`}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground text-sm line-clamp-2">
+                        {plan.description}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 my-3 flex-1">
+                      {plan.features?.map((feature, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div
+                            className={`text-${plan.color || "primary"}-500 mt-0.5`}
+                          >
+                            <Check className="h-4 w-4" />
+                          </div>
+                          <span className="text-sm text-gray-700">
+                            {feature}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-auto pt-3">
+                      <Button
+                        variant={
+                          selectedPlan === plan.id ? "default" : "outline"
+                        }
+                        className={`w-full text-xs sm:text-sm font-medium transition-all ${
+                          selectedPlan === plan.id
+                            ? `bg-${plan.color || "primary"}-500 hover:bg-${plan.color || "primary"}-600`
+                            : ""
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (plan.isFreeTrial && hasUsedFreeTrial) {
+                            return;
+                          }
+                          setSelectedPlan(plan.id);
+                        }}
+                        disabled={plan.isFreeTrial && hasUsedFreeTrial}
+                        size="sm"
+                      >
+                        {selectedPlan === plan.id ? (
+                          <>
+                            <Check className="mr-1.5 h-3.5 w-3.5" /> Đã chọn
+                          </>
+                        ) : plan.isFreeTrial && hasUsedFreeTrial ? (
+                          "Không khả dụng"
+                        ) : (
+                          "Chọn gói"
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm text-amber-700">
-                    Bạn đã sử dụng gói dùng thử miễn phí trước đây. Vui lòng
-                    chọn gói trả phí để tiếp tục sử dụng dịch vụ.
+                </div>
+              ))}
+            </div>
+
+            {/* Cải thiện phần tính năng chung cho responsive */}
+            <div className="mt-4 border rounded-lg p-3 bg-muted/30">
+              <h4 className="font-medium mb-2 text-sm">
+                Tất cả các gói đều bao gồm:
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {subscriptionPlans.length > 0 &&
+                  subscriptionPlans[0]?.features?.map(
+                    (feature: string, index: number) => (
+                      <div key={index} className="flex items-start gap-1">
+                        <Check className="h-3 w-3 text-green-500 mt-1 shrink-0" />
+                        <span className="text-xs">{feature}</span>
+                      </div>
+                    )
+                  )}
+              </div>
+            </div>
+
+            {/* User Balance Info - compact version */}
+            <div className="p-3 bg-blue-50 rounded-md mt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h5 className="text-sm font-medium">Số dư tài khoản</h5>
+                  <p className="text-sm">
+                    {userProfile?.payload ? (
+                      <span>
+                        {formatPrice(userProfile.payload.balance || 0)}{" "}
+                        <span className="text-xs text-muted-foreground">
+                          VND
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center">
+                        <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                        Đang tải...
+                      </span>
+                    )}
                   </p>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Right side - Plan Details */}
-          <div
-            className={`space-y-4 ${!isExistingUser ? "lg:col-span-1" : "lg:col-span-3"}`}
-          >
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border">
-              <div className="flex items-center gap-2 mb-4">
-                {selectedPlan === "free_trial" ? (
-                  <Gift className="h-5 w-5 text-green-600" />
-                ) : (
-                  <Crown className="h-5 w-5 text-amber-600" />
-                )}
-                <h4 className="font-semibold text-lg">{planDetails.title}</h4>
-              </div>
-
-              <p className="text-sm text-gray-600 mb-4">
-                {planDetails.subtitle}
-              </p>
-
-              <div className="bg-white p-4 rounded-lg mb-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">
-                    {planDetails.price === 0
-                      ? "Miễn phí"
-                      : formatPrice(planDetails.price)}
-                  </span>
-                  <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                    {planDetails.duration}
-                  </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center">
+                    <Switch
+                      id="auto-renew"
+                      checked={autoRenew}
+                      onCheckedChange={setAutoRenew}
+                      className="mr-2"
+                    />
+                    <Label htmlFor="auto-renew" className="text-xs">
+                      Tự động gia hạn
+                    </Label>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto h-8 text-xs"
+                    asChild
+                  >
+                    <Link href="/nap-tien">Nạp tiền</Link>
+                  </Button>
                 </div>
-              </div>
-
-              <div className="space-y-3">
-                <h5 className="font-medium text-sm">Tính năng bao gồm:</h5>
-                <ul className="space-y-2">
-                  {planDetails.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm">
-                      <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
             </div>
-
-            {/* User Balance Info */}
-            {(selectedPlan === "monthly" || isExistingUser) &&
-              userProfile?.payload && (
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Wallet className="h-4 w-4 text-blue-600" />
-                    <span className="font-medium text-blue-800">
-                      Số dư tài khoản
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-blue-700">
-                      Số dư hiện tại:
-                    </span>
-                    <span className="text-lg font-semibold text-blue-800">
-                      {formatPrice(userProfile.payload.balance || 0)}
-                    </span>
-                  </div>
-                  {(userProfile.payload.balance || 0) < MONTHLY_FEE && (
-                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                      ⚠️ Số dư không đủ để thanh toán. Vui lòng nạp thêm{" "}
-                      {formatPrice(
-                        MONTHLY_FEE - (userProfile.payload.balance || 0)
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-            {/* Additional info for existing users */}
-            {isExistingUser && (
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Crown className="h-4 w-4 text-amber-600" />
-                  <span className="font-medium text-amber-800">
-                    Thông tin gia hạn
-                  </span>
-                </div>
-                <p className="text-sm text-amber-700">
-                  Subscription sẽ được gia hạn thêm 1 tháng từ ngày hết hạn hiện
-                  tại. Tính năng sẽ được khôi phục ngay lập tức sau khi thanh
-                  toán thành công.
-                </p>
-              </div>
-            )}
           </div>
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 flex-col sm:flex-row sm:justify-between">
+          <div className="flex gap-2">
+            {!hideBackButton && (
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                className="text-xs sm:text-sm"
+              >
+                <ArrowLeft className="mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Quay lại
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="text-xs sm:text-sm"
+            >
+              Đóng
+            </Button>
+          </div>
           <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-            className="w-full sm:w-auto"
+            onClick={handleSubscribe}
+            disabled={!selectedPlan || isSubmitting}
+            className="text-xs sm:text-sm"
           >
-            Hủy
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isLoading || hasInsufficientBalance}
-            className="w-full sm:w-auto min-w-[120px]"
-          >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {hasInsufficientBalance
-              ? "Số dư không đủ"
-              : isExistingUser
-                ? "Gia hạn ngay"
-                : "Bắt đầu ngay"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />{" "}
+                Đang xử lý
+              </>
+            ) : (
+              <>
+                <Crown className="mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Nâng cấp ngay
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -59,6 +59,8 @@ import {
   Loader2,
   AlertCircle,
   MoreHorizontal,
+  Settings,
+  Tag,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -166,6 +168,18 @@ export default function AdminSubscriptionPage() {
           <h1 className="text-base md:text-lg font-semibold">
             Quản lý Subscription
           </h1>
+          <div className="ml-auto">
+            <Button
+              onClick={() =>
+                (window.location.href = "/quan-ly/subscription-settings")
+              }
+              variant="default"
+              size="sm"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Cài đặt Subscription
+            </Button>
+          </div>
         </header>
 
         <div className="p-2 md:p-4 space-y-4">
@@ -179,14 +193,24 @@ export default function AdminSubscriptionPage() {
                 Có lỗi xảy ra khi tải danh sách subscription. Vui lòng thử lại
                 sau.
               </p>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="mt-4"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Thử lại
-              </Button>
+              <div className="flex gap-3 mt-4">
+                <Button
+                  onClick={() =>
+                    (window.location.href = "/quan-ly/subscription-settings")
+                  }
+                  variant="default"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Đến trang cài đặt
+                </Button>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Thử lại
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -202,7 +226,17 @@ export default function AdminSubscriptionPage() {
         <h1 className="text-base md:text-lg font-semibold">
           Quản lý Subscription
         </h1>
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <Button
+            onClick={() =>
+              (window.location.href = "/quan-ly/subscription-settings")
+            }
+            variant="default"
+            size="sm"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Cài đặt Subscription
+          </Button>
           <Button
             onClick={() => window.location.reload()}
             variant="outline"
@@ -285,6 +319,45 @@ export default function AdminSubscriptionPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Quản lý gói subscription */}
+        <Card className="mb-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">
+              Quản lý gói Subscription
+            </CardTitle>
+            <CardDescription>
+              Tùy chỉnh các gói subscription và giá tiền
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-2">
+            <p className="text-sm text-muted-foreground mb-4">
+              Thiết lập các gói subscription cho landlord, thêm mới hoặc chỉnh
+              sửa giá tiền và thời hạn của gói.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={() =>
+                  (window.location.href = "/quan-ly/subscription-settings")
+                }
+                variant="outline"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Cài đặt chung
+              </Button>
+              <Button
+                onClick={() =>
+                  (window.location.href =
+                    "/quan-ly/subscription-settings/plans")
+                }
+                variant="default"
+              >
+                <Tag className="mr-2 h-4 w-4" />
+                Quản lý gói
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card>
