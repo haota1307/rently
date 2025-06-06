@@ -34,6 +34,7 @@ export const RevenueDataSchema = z.object({
   'đặt cọc': z.number().optional(),
   'phí đăng bài': z.number().optional(),
   'hoàn cọc': z.number().optional(),
+  'phí gói dịch vụ': z.number().optional(),
   date: z.string(),
 })
 

@@ -436,15 +436,15 @@ export class PaymentService {
   }
 
   /**
-   * Chuyển đổi dữ liệu từ model sang response
+   * Map dữ liệu transaction sang response format
+   * @param t Transaction record
    * @private
    */
   private mapToTransactionResponse(t: any) {
     // Xác định loại giao dịch để tạo code phù hợp
-    let transactionCode = t.transaction?.code || ''
+    let transactionCode = t.code || ''
     if (!transactionCode) {
-      const transactionContent =
-        t.transaction?.transactionContent || t.description || ''
+      const transactionContent = t.transactionContent || t.description || ''
       if (
         transactionContent.includes('NAP') ||
         transactionContent.includes('Nạp tiền')
@@ -459,6 +459,8 @@ export class PaymentService {
         transactionCode = `PHI${t.id}`
       } else if (transactionContent.includes('Đặt cọc')) {
         transactionCode = `COC${t.id}`
+      } else if (transactionContent.includes('Thanh toán subscription')) {
+        transactionCode = `SUB${t.id}`
       } else {
         transactionCode = `TRANS${t.id}`
       }
@@ -468,18 +470,16 @@ export class PaymentService {
       id: t.id.toString(),
       bank_brand_name: this.bankName,
       account_number: this.bankAccount,
-      transaction_date:
-        t.transaction?.transactionDate.toISOString() ||
-        t.createdAt.toISOString(),
-      amount_out: t.transaction?.amountOut.toString() || '0',
-      amount_in: t.transaction?.amountIn.toString() || t.amount.toString(),
-      accumulated: t.transaction?.accumulated.toString() || '0',
-      transaction_content: t.transaction?.transactionContent || t.description,
-      reference_number: t.transaction?.referenceNumber || null,
+      transaction_date: t.transactionDate.toISOString(),
+      amount_out: t.amountOut.toString() || '0',
+      amount_in: t.amountIn.toString() || '0',
+      accumulated: t.accumulated.toString() || '0',
+      transaction_content: t.transactionContent || '',
+      reference_number: t.referenceNumber || null,
       code: transactionCode,
-      sub_account: t.transaction?.subAccount || null,
+      sub_account: t.subAccount || null,
       bank_account_id: '1',
-      status: t.status,
+      status: t.payment?.status || 'COMPLETED',
       user: t.user
         ? {
             id: t.user.id.toString(),
@@ -554,11 +554,7 @@ export class PaymentService {
    */
   async getTransactionSummary(query: any) {
     // Lấy danh sách giao dịch
-    const transactions = await this.paymentRepo.getTransactions({
-      ...query,
-      // Chỉ lấy các giao dịch thành công
-      status: PaymentStatus.COMPLETED,
-    })
+    const transactions = await this.paymentRepo.getTransactions(query)
 
     console.log({ transactions })
 
@@ -567,24 +563,22 @@ export class PaymentService {
     let totalExpense = 0
 
     transactions.forEach(t => {
-      const transactionContent = t.transaction?.transactionContent || ''
+      const transactionContent = t.transactionContent || ''
 
       if (
-        t.transaction &&
         transactionContent.includes('SEVQR NAP') &&
-        t.transaction.amountIn &&
-        t.transaction.amountIn > 0
+        t.amountIn &&
+        t.amountIn > 0
       ) {
-        totalIncome += t.transaction.amountIn
+        totalIncome += t.amountIn
       } else if (
-        t.transaction &&
         (transactionContent.includes('RUT') ||
           transactionContent.includes('Rút tiền')) &&
         !transactionContent.includes('Phí') &&
-        t.transaction.amountOut &&
-        t.transaction.amountOut > 0
+        t.amountOut &&
+        t.amountOut > 0
       ) {
-        totalExpense += t.transaction.amountOut
+        totalExpense += t.amountOut
       }
 
       // Không tính các loại giao dịch khác vào thống kê tài chính tổng thể

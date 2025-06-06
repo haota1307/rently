@@ -21,6 +21,9 @@ import {
   Activity,
   Calendar,
   Eye,
+  Package,
+  CircleDollarSign,
+  ReceiptText,
 } from "lucide-react";
 import {
   useGetStatisticsOverview,
@@ -164,7 +167,13 @@ const LandlordPage = () => {
               if (
                 content.includes("phí đăng") ||
                 content.includes("phí quảng cáo") ||
-                content.includes("phí dịch vụ")
+                content.includes("phí dịch vụ") ||
+                content.includes("subscription") ||
+                content.includes("gia hạn subscription") ||
+                content.includes("tự động gia hạn") ||
+                content.includes("gói dịch vụ") ||
+                content.includes("nâng cấp gói") ||
+                content.includes("đăng ký gói")
               ) {
                 isDeposit = false;
               }
@@ -276,14 +285,24 @@ const LandlordPage = () => {
         return "Nạp tiền vào tài khoản";
       }
     } else {
-      if (
-        content.includes("phí đăng") ||
-        content.includes("phí quảng cáo") ||
-        content.includes("phí dịch vụ")
-      ) {
+      if (content.includes("phí đăng") || content.includes("phí quảng cáo")) {
         return "Phí đăng bài";
+      } else if (
+        content.includes("subscription") ||
+        content.includes("gia hạn subscription") ||
+        content.includes("tự động gia hạn") ||
+        content.includes("gói dịch vụ") ||
+        content.includes("nâng cấp gói") ||
+        content.includes("đăng ký gói")
+      ) {
+        return "Phí gói dịch vụ";
       } else if (content.includes("rút tiền")) {
         return "Rút tiền về tài khoản";
+      } else if (
+        content.includes("hoàn tiền") ||
+        content.includes("hoàn cọc")
+      ) {
+        return "Hoàn tiền cọc";
       } else {
         return "Chi phí dịch vụ";
       }
@@ -621,6 +640,15 @@ const LandlordPage = () => {
                       fill="#f59e0b"
                       fillOpacity={0.6}
                     />
+                    <Area
+                      type="monotone"
+                      dataKey="phí gói dịch vụ"
+                      name="Phí gói dịch vụ"
+                      stackId="4"
+                      stroke="#8b5cf6"
+                      fill="#8b5cf6"
+                      fillOpacity={0.6}
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -687,18 +715,32 @@ const LandlordPage = () => {
                                 "h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center",
                                 transaction.isDeposit
                                   ? "bg-green-100"
-                                  : "bg-red-100"
+                                  : getTransactionType(transaction) ===
+                                      "Phí gói dịch vụ"
+                                    ? "bg-purple-100"
+                                    : getTransactionType(transaction) ===
+                                        "Hoàn tiền cọc"
+                                      ? "bg-amber-100"
+                                      : "bg-red-100"
                               )}
                             >
                               {transaction.isDeposit ? (
                                 <ArrowDownCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
+                              ) : getTransactionType(transaction) ===
+                                "Phí gói dịch vụ" ? (
+                                <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
+                              ) : getTransactionType(transaction) ===
+                                "Hoàn tiền cọc" ? (
+                                <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-amber-600" />
                               ) : (
                                 <ArrowUpCircle className="h-4 w-4 md:h-5 md:w-5 text-red-600" />
                               )}
                             </div>
                             <div>
                               <p className="text-sm md:text-base font-medium">
-                                {transaction.isDeposit ? "Tiền vào" : "Tiền ra"}
+                                {transaction.isDeposit
+                                  ? "Tiền vào"
+                                  : getTransactionType(transaction)}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {getTimeAgo(transaction.transactionDate)}
@@ -849,25 +891,45 @@ const LandlordPage = () => {
                       "h-10 w-10 rounded-full flex items-center justify-center",
                       selectedTransaction.isDeposit
                         ? "bg-green-100"
-                        : "bg-red-100"
+                        : getTransactionType(selectedTransaction) ===
+                            "Phí gói dịch vụ"
+                          ? "bg-purple-100"
+                          : getTransactionType(selectedTransaction) ===
+                              "Hoàn tiền cọc"
+                            ? "bg-amber-100"
+                            : "bg-red-100"
                     )}
                   >
                     {selectedTransaction.isDeposit ? (
                       <ArrowDownCircle className="h-6 w-6 text-green-600" />
+                    ) : getTransactionType(selectedTransaction) ===
+                      "Phí gói dịch vụ" ? (
+                      <DollarSign className="h-6 w-6 text-purple-600" />
+                    ) : getTransactionType(selectedTransaction) ===
+                      "Hoàn tiền cọc" ? (
+                      <DollarSign className="h-6 w-6 text-amber-600" />
                     ) : (
                       <ArrowUpCircle className="h-6 w-6 text-red-600" />
                     )}
                   </div>
                   <div>
                     <span className="block text-sm font-medium">
-                      {selectedTransaction.isDeposit ? "Tiền vào" : "Tiền ra"}
+                      {selectedTransaction.isDeposit
+                        ? "Tiền vào"
+                        : getTransactionType(selectedTransaction)}
                     </span>
                     <span
                       className={cn(
                         "text-lg font-bold",
                         selectedTransaction.isDeposit
                           ? "text-green-600"
-                          : "text-red-600"
+                          : getTransactionType(selectedTransaction) ===
+                              "Phí gói dịch vụ"
+                            ? "text-purple-600"
+                            : getTransactionType(selectedTransaction) ===
+                                "Hoàn tiền cọc"
+                              ? "text-amber-600"
+                              : "text-red-600"
                       )}
                     >
                       {selectedTransaction.isDeposit ? "+" : "-"}

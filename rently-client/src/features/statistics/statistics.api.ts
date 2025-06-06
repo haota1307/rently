@@ -20,6 +20,7 @@ export interface RevenueDataPoint {
   "đặt cọc"?: number;
   "phí đăng bài"?: number;
   "hoàn cọc"?: number;
+  "phí gói dịch vụ"?: number;
   date: string;
 }
 
