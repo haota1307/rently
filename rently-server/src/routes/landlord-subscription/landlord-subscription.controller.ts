@@ -31,6 +31,7 @@ import { Roles } from '../../shared/decorators/roles.decorator'
 import { RoleEnum } from '../../shared/enums/role.enum'
 import {
   SubscriptionPlanDto,
+  PartialSubscriptionPlanDto,
   UpdateSubscriptionPlansDto,
 } from './dto/subscription-plan.dto'
 
@@ -325,7 +326,7 @@ export class LandlordSubscriptionController {
   @ApiOperation({ summary: '[ADMIN] Cập nhật gói subscription' })
   async updateSubscriptionPlan(
     @Param('planId') planId: string,
-    @Body() plan: SubscriptionPlanDto
+    @Body() plan: PartialSubscriptionPlanDto
   ) {
     return this.subscriptionService.updateSubscriptionPlan(planId, plan)
   }

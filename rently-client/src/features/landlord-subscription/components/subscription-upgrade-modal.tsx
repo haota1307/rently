@@ -103,8 +103,12 @@ export function SubscriptionUpgradeModal({
         const response = await subscriptionApiRequest.getPlans();
 
         if (response.status === 200 && response.payload) {
-          // Lấy tất cả gói
-          const allPlans = response.payload;
+          // Lấy tất cả gói và sắp xếp theo giá từ thấp đến cao
+          const allPlans = response.payload.sort(
+            (a: SubscriptionPlan, b: SubscriptionPlan) => {
+              return a.price - b.price;
+            }
+          );
           setSubscriptionPlans(allPlans);
 
           // Kiểm tra xem người dùng đã từng dùng gói free trial chưa
@@ -207,6 +211,15 @@ export function SubscriptionUpgradeModal({
         toast.dismiss();
         toast.success("Đăng ký subscription thành công");
 
+        // Kiểm tra xem gói vừa đăng ký có phải free trial không
+        const selectedSubscriptionPlan = subscriptionPlans.find(
+          (plan) => plan.id === selectedPlan
+        );
+        if (selectedSubscriptionPlan?.isFreeTrial) {
+          // Cập nhật state ngay lập tức nếu đăng ký free trial
+          setHasUsedFreeTrial(true);
+        }
+
         // Đóng modal trước
         onOpenChange(false);
 
@@ -218,6 +231,12 @@ export function SubscriptionUpgradeModal({
 
         // Force refetch tất cả các query liên quan đến subscription
         await queryClient.refetchQueries({
+          queryKey: ["subscription"],
+          exact: false,
+        });
+
+        // Invalidate cache để đảm bảo dữ liệu mới nhất khi mở modal lần sau
+        queryClient.invalidateQueries({
           queryKey: ["subscription"],
           exact: false,
         });
