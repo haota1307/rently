@@ -830,6 +830,24 @@ export class StatisticsRepo {
           ${landlordId ? 'AND "userId" = $3' : ''}
           AND ("transactionContent" LIKE '%Hoàn tiền đặt cọc%' OR "transactionContent" LIKE '%Hoàn cọc%')
           GROUP BY period
+        ),
+        -- Phí đăng ký gói subscription
+        subscription_fee_data AS (
+          SELECT
+            DATE_TRUNC('day', "transactionDate") as period,
+            SUM("amountOut") as subscription_fee_amount
+          FROM "PaymentTransaction"
+          WHERE "transactionDate" >= $1 AND "transactionDate" <= $2
+          ${landlordId ? 'AND "userId" = $3' : ''}
+          AND (
+            "transactionContent" LIKE '%subscription%' OR
+            "transactionContent" LIKE '%gói dịch vụ%' OR
+            "transactionContent" LIKE '%Gia hạn subscription%' OR
+            "transactionContent" LIKE '%Tự động gia hạn subscription%' OR
+            "transactionContent" LIKE '%nâng cấp gói%' OR
+            "transactionContent" LIKE '%đăng ký gói%'
+          )
+          GROUP BY period
         )
         SELECT
           ds.date_point as period,
@@ -837,11 +855,13 @@ export class StatisticsRepo {
           COALESCE(dd.deposit_amount, 0) as deposit_amount,
           COALESCE(pf.fee_amount, 0) as fee_amount,
           COALESCE(rd.refund_amount, 0) as refund_amount,
+          COALESCE(sf.subscription_fee_amount, 0) as subscription_fee_amount,
           TO_CHAR(ds.date_point, 'YYYY-MM-DD') as date_str
         FROM date_series ds
         LEFT JOIN deposit_data dd ON DATE_TRUNC('day', ds.date_point) = dd.period
         LEFT JOIN post_fee_data pf ON DATE_TRUNC('day', ds.date_point) = pf.period
         LEFT JOIN refund_data rd ON DATE_TRUNC('day', ds.date_point) = rd.period
+        LEFT JOIN subscription_fee_data sf ON DATE_TRUNC('day', ds.date_point) = sf.period
         ORDER BY ds.date_point ASC
       `
 
@@ -858,6 +878,7 @@ export class StatisticsRepo {
         'đặt cọc': parseInt(row.deposit_amount) || 0,
         'phí đăng bài': parseInt(row.fee_amount) || 0,
         'hoàn cọc': parseInt(row.refund_amount) || 0,
+        'phí gói dịch vụ': parseInt(row.subscription_fee_amount) || 0,
         date: row.date_str,
       }))
     } catch (error) {

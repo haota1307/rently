@@ -6,8 +6,13 @@ import { FileDown } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
+// Mở rộng interface RevenueDataPoint để hỗ trợ trường phí gói dịch vụ
+interface ExtendedRevenueDataPoint extends RevenueDataPoint {
+  "phí gói dịch vụ"?: number;
+}
+
 interface RevenueReportProps {
-  data: RevenueDataPoint[];
+  data: ExtendedRevenueDataPoint[];
   timeRange: number;
   dateFilter: {
     from: Date | undefined;
@@ -33,7 +38,8 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
     (item) =>
       item["đặt cọc"] !== undefined ||
       item["phí đăng bài"] !== undefined ||
-      item["hoàn cọc"] !== undefined
+      item["hoàn cọc"] !== undefined ||
+      item["phí gói dịch vụ"] !== undefined
   );
 
   // Tính tổng thu chi
@@ -44,7 +50,10 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
   const totalExpense = hasDepositFeeData
     ? data?.reduce(
         (sum, item) =>
-          sum + (item["phí đăng bài"] || 0) + (item["hoàn cọc"] || 0),
+          sum +
+          (item["phí đăng bài"] || 0) +
+          (item["hoàn cọc"] || 0) +
+          (item["phí gói dịch vụ"] || 0),
         0
       ) || 0
     : data?.reduce((sum, item) => sum + (item.rút || 0), 0) || 0;
@@ -52,6 +61,11 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
   // Tính tổng hoàn cọc riêng (để hiển thị trong báo cáo)
   const totalRefund = hasDepositFeeData
     ? data?.reduce((sum, item) => sum + (item["hoàn cọc"] || 0), 0) || 0
+    : 0;
+
+  // Tính tổng phí gói dịch vụ riêng
+  const totalSubscriptionFee = hasDepositFeeData
+    ? data?.reduce((sum, item) => sum + (item["phí gói dịch vụ"] || 0), 0) || 0
     : 0;
 
   const balance = totalIncome - totalExpense;
@@ -76,6 +90,7 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
     const column1Name = hasDepositFeeData ? "Tiền đặt cọc" : "Nạp tiền";
     const column2Name = hasDepositFeeData ? "Phí đăng bài" : "Rút tiền";
     const column3Name = hasDepositFeeData ? "Hoàn tiền cọc" : "";
+    const column4Name = hasDepositFeeData ? "Phí gói dịch vụ" : "";
     const summary1Name = hasDepositFeeData
       ? "Tổng tiền đặt cọc:"
       : "Tổng nạp tiền:";
@@ -83,6 +98,7 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
       ? "Tổng phí đăng bài:"
       : "Tổng rút tiền:";
     const summary3Name = "Tổng hoàn tiền cọc:";
+    const summary4Name = "Tổng phí gói dịch vụ:";
 
     // Tạo nội dung HTML cho cửa sổ in
     const reportContent = `
@@ -193,6 +209,10 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
             <span>${formatCurrency(totalRefund)}</span>
           </div>
           <div class="summary-row">
+            <span>${summary4Name}</span>
+            <span>${formatCurrency(totalSubscriptionFee)}</span>
+          </div>
+          <div class="summary-row">
             <span>Chênh lệch:</span>
             <span>${formatCurrency(summaryData?.balance || balance)}</span>
           </div>
@@ -206,6 +226,7 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
               <th style="width: 25%">${column1Name}</th>
               <th style="width: 25%">${column2Name}</th>
               <th style="width: 25%">${column3Name}</th>
+              <th style="width: 25%">${column4Name}</th>
             </tr>
           </thead>
           <tbody>
@@ -217,6 +238,7 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
                 <td class="amount">${formatCurrency(hasDepositFeeData ? item["đặt cọc"] || 0 : item.nạp || 0)}</td>
                 <td class="amount">${formatCurrency(hasDepositFeeData ? item["phí đăng bài"] || 0 : item.rút || 0)}</td>
                 <td class="amount">${formatCurrency(hasDepositFeeData ? item["hoàn cọc"] || 0 : 0)}</td>
+                <td class="amount">${formatCurrency(hasDepositFeeData ? item["phí gói dịch vụ"] || 0 : 0)}</td>
               </tr>
             `
               )

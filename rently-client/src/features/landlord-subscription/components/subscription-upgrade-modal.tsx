@@ -46,7 +46,7 @@ import subscriptionApiRequest from "../subscription.api";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 
 interface SubscriptionUpgradeModalProps {
   open: boolean;
@@ -71,13 +71,40 @@ export function SubscriptionUpgradeModal({
   // State
   const [selectedPlan, setSelectedPlan] = useState("");
   const [autoRenew, setAutoRenew] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
-  const [subscriptionPlans, setSubscriptionPlans] = useState<
-    SubscriptionPlan[]
-  >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hideBackButton, setHideBackButton] = useState(true);
   const [hasUsedFreeTrial, setHasUsedFreeTrial] = useState(false);
+
+  // 🚀 React Query hooks for better performance
+  const { data: subscriptionPlans = [], isLoading: isLoadingPlans } = useQuery({
+    queryKey: ["subscription", "plans"],
+    queryFn: async () => {
+      const response = await subscriptionApiRequest.getPlans();
+      if (response.status === 200 && response.payload) {
+        // Sắp xếp theo giá từ thấp đến cao
+        return response.payload.sort(
+          (a: SubscriptionPlan, b: SubscriptionPlan) => a.price - b.price
+        );
+      }
+      return [];
+    },
+    enabled: open, // Chỉ fetch khi modal mở
+    staleTime: 5 * 60 * 1000, // Cache 5 phút
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: subscriptionHistory, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ["subscription", "history"],
+    queryFn: async () => {
+      const response = await subscriptionApiRequest.getHistory();
+      return response.payload || [];
+    },
+    enabled: open && !currentSubscription && !!userProfile?.payload?.id, // Chỉ fetch khi cần
+    staleTime: 2 * 60 * 1000, // Cache 2 phút
+    refetchOnWindowFocus: false,
+  });
+
+  const isLoading = isLoadingPlans || isLoadingHistory;
 
   const isExistingUser =
     !!currentSubscription &&
@@ -95,98 +122,70 @@ export function SubscriptionUpgradeModal({
     }).format(amount);
   };
 
-  // Thêm useEffect để lọc các gói subscription
+  // ⚡ Tính toán hasUsedFreeTrial và selectedPlan dựa trên React Query data
   useEffect(() => {
-    const fetchSubscriptionPlans = async () => {
-      try {
-        setIsLoading(true);
-        const response = await subscriptionApiRequest.getPlans();
+    if (!open || isLoading) return;
 
-        if (response.status === 200 && response.payload) {
-          // Lấy tất cả gói
-          const allPlans = response.payload;
-          setSubscriptionPlans(allPlans);
+    // Kiểm tra xem người dùng đã từng dùng gói free trial chưa
+    let hasUsedFreeTrialComputed = false;
+    if (currentSubscription) {
+      hasUsedFreeTrialComputed = true; // Nếu đã có subscription thì không thể dùng free trial
+    } else if (subscriptionHistory && subscriptionHistory.length > 0) {
+      // Kiểm tra trong lịch sử có gói free trial nào không
+      hasUsedFreeTrialComputed = subscriptionHistory.some(
+        (history: SubscriptionHistory) => {
+          return (
+            history.note?.toLowerCase().includes("miễn phí") ||
+            history.note?.toLowerCase().includes("free trial") ||
+            (history.action === "CREATED" && history.amount === 0)
+          );
+        }
+      );
+    }
 
-          // Kiểm tra xem người dùng đã từng dùng gói free trial chưa
-          let hasUsedFreeTrial = false;
-          if (currentSubscription) {
-            hasUsedFreeTrial = true; // Nếu đã có subscription thì không thể dùng free trial
-          } else {
-            try {
-              if (userProfile?.payload?.id) {
-                const historyResponse =
-                  await subscriptionApiRequest.getHistory();
+    setHasUsedFreeTrial(hasUsedFreeTrialComputed);
 
-                // Kiểm tra trong lịch sử có gói free trial nào không
-                hasUsedFreeTrial =
-                  historyResponse.payload?.some(
-                    (history: SubscriptionHistory) => {
-                      // Kiểm tra nếu trong ghi chú có đề cập đến free trial hoặc miễn phí
-                      return (
-                        history.note?.toLowerCase().includes("miễn phí") ||
-                        history.note?.toLowerCase().includes("free trial") ||
-                        (history.action === "CREATED" && history.amount === 0)
-                      );
-                    }
-                  ) || false;
-              }
-            } catch (historyError) {
-              console.error(
-                "Không thể kiểm tra lịch sử subscription:",
-                historyError
-              );
-            }
-          }
-
-          // Lưu trạng thái đã dùng free trial
-          setHasUsedFreeTrial(hasUsedFreeTrial);
-
-          // Chọn gói mặc định phù hợp
-          if (allPlans.length > 0 && !selectedPlan) {
-            // Nếu đã dùng free trial, chọn gói tháng làm mặc định
-            if (hasUsedFreeTrial) {
-              const monthlyPlan = allPlans.find(
-                (plan: SubscriptionPlan) =>
-                  plan.durationType === "months" &&
-                  plan.duration === 1 &&
-                  !plan.isFreeTrial
-              );
-              if (monthlyPlan) {
-                setSelectedPlan(monthlyPlan.id);
-              } else {
-                // Nếu không có gói tháng, chọn gói đầu tiên không phải free trial
-                const nonFreeTrialPlan = allPlans.find(
-                  (plan: SubscriptionPlan) => !plan.isFreeTrial
-                );
-                if (nonFreeTrialPlan) {
-                  setSelectedPlan(nonFreeTrialPlan.id);
-                }
-              }
-            } else {
-              // Nếu chưa dùng free trial, chọn gói free trial làm mặc định
-              const freeTrialPlan = allPlans.find(
-                (plan: SubscriptionPlan) => plan.isFreeTrial
-              );
-              if (freeTrialPlan) {
-                setSelectedPlan(freeTrialPlan.id);
-              } else {
-                setSelectedPlan(allPlans[0].id);
-              }
-            }
+    // Chọn gói mặc định phù hợp
+    if (subscriptionPlans.length > 0 && !selectedPlan) {
+      if (hasUsedFreeTrialComputed) {
+        // Nếu đã dùng free trial, chọn gói tháng làm mặc định
+        const monthlyPlan = subscriptionPlans.find(
+          (plan: SubscriptionPlan) =>
+            plan.durationType === "months" &&
+            plan.duration === 1 &&
+            !plan.isFreeTrial
+        );
+        if (monthlyPlan) {
+          setSelectedPlan(monthlyPlan.id);
+        } else {
+          // Nếu không có gói tháng, chọn gói đầu tiên không phải free trial
+          const nonFreeTrialPlan = subscriptionPlans.find(
+            (plan: SubscriptionPlan) => !plan.isFreeTrial
+          );
+          if (nonFreeTrialPlan) {
+            setSelectedPlan(nonFreeTrialPlan.id);
           }
         }
-      } catch (error) {
-        console.error("Lỗi khi lấy danh sách gói subscription:", error);
-        toast.error("Không thể tải danh sách gói subscription");
-      } finally {
-        setIsLoading(false);
+      } else {
+        // Nếu chưa dùng free trial, chọn gói free trial làm mặc định
+        const freeTrialPlan = subscriptionPlans.find(
+          (plan: SubscriptionPlan) => plan.isFreeTrial
+        );
+        if (freeTrialPlan) {
+          setSelectedPlan(freeTrialPlan.id);
+        } else if (subscriptionPlans[0]) {
+          setSelectedPlan(subscriptionPlans[0].id);
+        }
       }
-    };
-
-    if (open) {
-      fetchSubscriptionPlans();
     }
-  }, [open, currentSubscription, userProfile, selectedPlan]);
+  }, [
+    open,
+    subscriptionPlans,
+    subscriptionHistory,
+    currentSubscription,
+    selectedPlan,
+    isLoading,
+  ]);
 
   const handleSubscribe = async () => {
     if (!selectedPlan) {
@@ -207,6 +206,15 @@ export function SubscriptionUpgradeModal({
         toast.dismiss();
         toast.success("Đăng ký subscription thành công");
 
+        // Kiểm tra xem gói vừa đăng ký có phải free trial không
+        const selectedSubscriptionPlan = subscriptionPlans.find(
+          (plan) => plan.id === selectedPlan
+        );
+        if (selectedSubscriptionPlan?.isFreeTrial) {
+          // Cập nhật state ngay lập tức nếu đăng ký free trial
+          setHasUsedFreeTrial(true);
+        }
+
         // Đóng modal trước
         onOpenChange(false);
 
@@ -218,6 +226,12 @@ export function SubscriptionUpgradeModal({
 
         // Force refetch tất cả các query liên quan đến subscription
         await queryClient.refetchQueries({
+          queryKey: ["subscription"],
+          exact: false,
+        });
+
+        // Invalidate cache để đảm bảo dữ liệu mới nhất khi mở modal lần sau
+        queryClient.invalidateQueries({
           queryKey: ["subscription"],
           exact: false,
         });

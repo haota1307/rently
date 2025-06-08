@@ -717,7 +717,6 @@ model LandlordSubscription {
   subscriptionHistories SubscriptionHistory[]
   plan                  SubscriptionPlan?     @relation(fields: [planId], references: [id])
 
-  @@unique([userId, status], name: "unique_active_subscription", map: "LandlordSubscription_userId_status_key")
   @@index([userId])
   @@index([status])
   @@index([endDate])

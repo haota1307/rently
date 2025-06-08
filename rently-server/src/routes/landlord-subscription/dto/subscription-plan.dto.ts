@@ -23,6 +23,13 @@ export const SubscriptionPlanSchema = z.object({
 // DTO từ Zod schema
 export class SubscriptionPlanDto extends createZodDto(SubscriptionPlanSchema) {}
 
+// Schema cho partial update (chỉ update một số fields)
+export const PartialSubscriptionPlanSchema = SubscriptionPlanSchema.partial()
+
+export class PartialSubscriptionPlanDto extends createZodDto(
+  PartialSubscriptionPlanSchema
+) {}
+
 // Schema cho cập nhật danh sách plans
 export const UpdateSubscriptionPlansSchema = z.object({
   plans: z.array(SubscriptionPlanSchema),

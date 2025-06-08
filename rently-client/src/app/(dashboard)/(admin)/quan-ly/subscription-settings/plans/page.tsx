@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -57,6 +57,43 @@ import { SubscriptionPlan } from "@/features/landlord-subscription/subscription.
 export default function SubscriptionPlansPage() {
   const { plans, isLoading, updatePlan, addPlan, deletePlan } =
     useSubscriptionPlans();
+
+  // Đơn giản hóa: chỉ sử dụng local state cho UI, update API khi onBlur
+  const [localPrices, setLocalPrices] = useState<Record<string, number>>({});
+
+  // Khởi tạo local prices từ plans (chỉ khi chưa có data)
+  useEffect(() => {
+    if (plans && plans.length > 0) {
+      setLocalPrices((prev) => {
+        // Chỉ init những plan chưa có trong local state
+        const newPrices = { ...prev };
+        let hasNewPlans = false;
+
+        plans.forEach((plan) => {
+          if (!(plan.id in newPrices)) {
+            newPrices[plan.id] = plan.price;
+            hasNewPlans = true;
+          }
+        });
+
+        return hasNewPlans ? newPrices : prev;
+      });
+    }
+  }, [plans]);
+
+  // Function để handle price update khi blur
+  const handlePriceUpdate = useCallback(
+    (planId: string, newPrice: number) => {
+      const originalPlan = plans?.find((p) => p.id === planId);
+      if (originalPlan && Math.abs(originalPlan.price - newPrice) > 0.01) {
+        updatePlan({
+          planId,
+          plan: { price: newPrice },
+        });
+      }
+    },
+    [plans, updatePlan]
+  );
 
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [isAddingPlan, setIsAddingPlan] = useState(false);
@@ -212,13 +249,22 @@ export default function SubscriptionPlansPage() {
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
-                            value={plan.price}
-                            onChange={(e) =>
-                              updatePlan({
-                                planId: plan.id,
-                                plan: { price: Number(e.target.value) },
-                              })
-                            }
+                            value={localPrices[plan.id] ?? plan.price}
+                            onChange={(e) => {
+                              const newPrice = Number(e.target.value);
+                              if (!isNaN(newPrice)) {
+                                setLocalPrices((prev) => ({
+                                  ...prev,
+                                  [plan.id]: newPrice,
+                                }));
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const newPrice = Number(e.target.value);
+                              if (!isNaN(newPrice)) {
+                                handlePriceUpdate(plan.id, newPrice);
+                              }
+                            }}
                             className="w-24"
                           />
                           <span className="text-muted-foreground">VND</span>
@@ -328,16 +374,17 @@ export default function SubscriptionPlansPage() {
       {/* Modal chỉnh sửa plan */}
       {editingPlan && (
         <Dialog open={!!editingPlan} onOpenChange={() => setEditingPlan(null)}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Chỉnh sửa gói subscription</DialogTitle>
               <DialogDescription>
                 Thay đổi thông tin gói subscription
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-name" className="text-right">
+            <div className="grid gap-6 py-4">
+              {/* Tên gói */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-name" className="text-sm font-medium">
                   Tên gói
                 </Label>
                 <Input
@@ -346,11 +393,13 @@ export default function SubscriptionPlansPage() {
                   onChange={(e) =>
                     setEditingPlan({ ...editingPlan, name: e.target.value })
                   }
-                  className="col-span-3"
+                  placeholder="Nhập tên gói subscription"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-desc" className="text-right">
+
+              {/* Mô tả */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-desc" className="text-sm font-medium">
                   Mô tả
                 </Label>
                 <Textarea
@@ -362,65 +411,73 @@ export default function SubscriptionPlansPage() {
                       description: e.target.value,
                     })
                   }
-                  className="col-span-3"
+                  placeholder="Mô tả chi tiết về gói subscription"
+                  className="min-h-[80px]"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-price" className="text-right">
-                  Giá (VND)
-                </Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  value={editingPlan.price}
-                  onChange={(e) =>
-                    setEditingPlan({
-                      ...editingPlan,
-                      price: Number(e.target.value),
-                    })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Thời hạn</Label>
-                <div className="col-span-3 flex gap-2">
+
+              {/* Giá và Thời hạn */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-price" className="text-sm font-medium">
+                    Giá (VND)
+                  </Label>
                   <Input
+                    id="edit-price"
                     type="number"
-                    value={editingPlan.duration}
+                    value={editingPlan.price}
                     onChange={(e) =>
                       setEditingPlan({
                         ...editingPlan,
-                        duration: Number(e.target.value),
+                        price: Number(e.target.value),
                       })
                     }
-                    className="w-24"
+                    placeholder="299000"
                   />
-                  <Select
-                    value={editingPlan.durationType as string}
-                    onValueChange={(val) =>
-                      setEditingPlan({
-                        ...editingPlan,
-                        durationType: val as "days" | "months" | "years",
-                      })
-                    }
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue placeholder="Đơn vị" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="days">Ngày</SelectItem>
-                      <SelectItem value="months">Tháng</SelectItem>
-                      <SelectItem value="years">Năm</SelectItem>
-                    </SelectContent>
-                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Thời hạn</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      value={editingPlan.duration}
+                      onChange={(e) =>
+                        setEditingPlan({
+                          ...editingPlan,
+                          duration: Number(e.target.value),
+                        })
+                      }
+                      placeholder="1"
+                      className="flex-1"
+                    />
+                    <Select
+                      value={editingPlan.durationType as string}
+                      onValueChange={(val) =>
+                        setEditingPlan({
+                          ...editingPlan,
+                          durationType: val as "days" | "months" | "years",
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-[100px] sm:w-[120px]">
+                        <SelectValue placeholder="Đơn vị" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="days">Ngày</SelectItem>
+                        <SelectItem value="months">Tháng</SelectItem>
+                        <SelectItem value="years">Năm</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-features" className="text-right">
+
+              {/* Tính năng */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-features" className="text-sm font-medium">
                   Tính năng
                 </Label>
-                <div className="col-span-3 space-y-2">
+                <div className="space-y-3">
                   {editingPlan?.features?.map((feature, index) => (
                     <div key={index} className="flex gap-2">
                       <Input
@@ -433,6 +490,7 @@ export default function SubscriptionPlansPage() {
                             features: newFeatures,
                           });
                         }}
+                        placeholder={`Tính năng ${index + 1}`}
                         className="flex-1"
                       />
                       <Button
@@ -447,6 +505,7 @@ export default function SubscriptionPlansPage() {
                             features: newFeatures,
                           });
                         }}
+                        className="shrink-0"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -463,61 +522,69 @@ export default function SubscriptionPlansPage() {
                         features: newFeatures,
                       });
                     }}
+                    className="w-full sm:w-auto"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Thêm tính năng
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-color" className="text-right">
-                  Màu sắc
-                </Label>
-                <div className="col-span-3 flex gap-2">
-                  <Select
-                    value={editingPlan.color || ""}
-                    onValueChange={(val) =>
-                      setEditingPlan({ ...editingPlan, color: val })
+
+              {/* Màu sắc và Badge */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-color" className="text-sm font-medium">
+                    Màu sắc
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={editingPlan.color || ""}
+                      onValueChange={(val) =>
+                        setEditingPlan({ ...editingPlan, color: val })
+                      }
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Chọn màu" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="green">Xanh lá</SelectItem>
+                        <SelectItem value="blue">Xanh dương</SelectItem>
+                        <SelectItem value="amber">Vàng cam</SelectItem>
+                        <SelectItem value="red">Đỏ</SelectItem>
+                        <SelectItem value="purple">Tím</SelectItem>
+                        <SelectItem value="pink">Hồng</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {editingPlan.color && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
+                        <div
+                          className={`w-4 h-4 rounded-full bg-${editingPlan.color}-500`}
+                        />
+                        <span className="text-xs hidden sm:inline">
+                          {editingPlan.color}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-badge" className="text-sm font-medium">
+                    Badge
+                  </Label>
+                  <Input
+                    id="edit-badge"
+                    value={editingPlan.badge || ""}
+                    onChange={(e) =>
+                      setEditingPlan({ ...editingPlan, badge: e.target.value })
                     }
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue placeholder="Chọn màu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="green">Xanh lá</SelectItem>
-                      <SelectItem value="blue">Xanh dương</SelectItem>
-                      <SelectItem value="amber">Vàng cam</SelectItem>
-                      <SelectItem value="red">Đỏ</SelectItem>
-                      <SelectItem value="purple">Tím</SelectItem>
-                      <SelectItem value="pink">Hồng</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {editingPlan.color && (
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-6 h-6 rounded-full bg-${editingPlan.color}-500`}
-                      />
-                      <span className="text-sm">{editingPlan.color}</span>
-                    </div>
-                  )}
+                    placeholder="Phổ biến, Khuyến nghị..."
+                  />
                 </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-badge" className="text-right">
-                  Badge
-                </Label>
-                <Input
-                  id="edit-badge"
-                  value={editingPlan.badge || ""}
-                  onChange={(e) =>
-                    setEditingPlan({ ...editingPlan, badge: e.target.value })
-                  }
-                  className="col-span-3"
-                  placeholder="Phổ biến, Khuyến nghị, Tiết kiệm, v.v."
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-icon" className="text-right">
+
+              {/* Icon */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-icon" className="text-sm font-medium">
                   Icon
                 </Label>
                 <Input
@@ -526,42 +593,57 @@ export default function SubscriptionPlansPage() {
                   onChange={(e) =>
                     setEditingPlan({ ...editingPlan, icon: e.target.value })
                   }
-                  className="col-span-3"
-                  placeholder="gift, calendar, crown, v.v."
+                  placeholder="gift, calendar, crown, star..."
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Dùng thử</Label>
-                <div className="flex items-center space-x-2">
+
+              {/* Switches */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <Label className="text-sm font-medium">
+                      Dùng thử miễn phí
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Cho phép người dùng dùng thử
+                    </p>
+                  </div>
                   <Switch
                     checked={editingPlan.isFreeTrial}
                     onCheckedChange={(checked) =>
                       setEditingPlan({ ...editingPlan, isFreeTrial: checked })
                     }
                   />
-                  <span>{editingPlan.isFreeTrial ? "Có" : "Không"}</span>
                 </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Trạng thái</Label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <Label className="text-sm font-medium">
+                      Trạng thái hoạt động
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {editingPlan.isActive ? "Đang hoạt động" : "Tạm dừng"}
+                    </p>
+                  </div>
                   <Switch
                     checked={editingPlan.isActive}
                     onCheckedChange={(checked) =>
                       setEditingPlan({ ...editingPlan, isActive: checked })
                     }
                   />
-                  <span>
-                    {editingPlan.isActive ? "Đang hoạt động" : "Tạm dừng"}
-                  </span>
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingPlan(null)}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditingPlan(null)}
+                className="w-full sm:w-auto"
+              >
                 Hủy
               </Button>
-              <Button onClick={handleUpdatePlan}>Lưu thay đổi</Button>
+              <Button onClick={handleUpdatePlan} className="w-full sm:w-auto">
+                Lưu thay đổi
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -569,42 +651,47 @@ export default function SubscriptionPlansPage() {
 
       {/* Modal thêm plan mới */}
       <Dialog open={isAddingPlan} onOpenChange={setIsAddingPlan}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Thêm gói subscription mới</DialogTitle>
             <DialogDescription>
               Nhập thông tin cho gói subscription mới
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-id" className="text-right">
-                ID gói
-              </Label>
-              <Input
-                id="add-id"
-                value={newPlan.id}
-                onChange={(e) => setNewPlan({ ...newPlan, id: e.target.value })}
-                className="col-span-3"
-                placeholder="basic_monthly"
-              />
+          <div className="grid gap-6 py-4">
+            {/* ID và Tên gói */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-id" className="text-sm font-medium">
+                  ID gói <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="add-id"
+                  value={newPlan.id}
+                  onChange={(e) =>
+                    setNewPlan({ ...newPlan, id: e.target.value })
+                  }
+                  placeholder="basic_monthly"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-name" className="text-sm font-medium">
+                  Tên gói <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="add-name"
+                  value={newPlan.name}
+                  onChange={(e) =>
+                    setNewPlan({ ...newPlan, name: e.target.value })
+                  }
+                  placeholder="Gói cơ bản"
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-name" className="text-right">
-                Tên gói
-              </Label>
-              <Input
-                id="add-name"
-                value={newPlan.name}
-                onChange={(e) =>
-                  setNewPlan({ ...newPlan, name: e.target.value })
-                }
-                className="col-span-3"
-                placeholder="Gói cơ bản"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-desc" className="text-right">
+
+            {/* Mô tả */}
+            <div className="space-y-2">
+              <Label htmlFor="add-desc" className="text-sm font-medium">
                 Mô tả
               </Label>
               <Textarea
@@ -616,68 +703,75 @@ export default function SubscriptionPlansPage() {
                     description: e.target.value,
                   })
                 }
-                className="col-span-3"
                 placeholder="Mô tả chi tiết về gói subscription"
+                className="min-h-[80px]"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-price" className="text-right">
-                Giá (VND)
-              </Label>
-              <Input
-                id="add-price"
-                type="number"
-                value={newPlan.price}
-                onChange={(e) =>
-                  setNewPlan({
-                    ...newPlan,
-                    price: Number(e.target.value),
-                  })
-                }
-                className="col-span-3"
-                placeholder="299000"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Thời hạn</Label>
-              <div className="col-span-3 flex gap-2">
+
+            {/* Giá và Thời hạn */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-price" className="text-sm font-medium">
+                  Giá (VND) <span className="text-red-500">*</span>
+                </Label>
                 <Input
+                  id="add-price"
                   type="number"
-                  value={newPlan.duration}
+                  value={newPlan.price}
                   onChange={(e) =>
                     setNewPlan({
                       ...newPlan,
-                      duration: Number(e.target.value),
+                      price: Number(e.target.value),
                     })
                   }
-                  className="w-24"
-                  placeholder="1"
+                  placeholder="299000"
                 />
-                <Select
-                  value={newPlan.durationType as string}
-                  onValueChange={(val) =>
-                    setNewPlan({
-                      ...newPlan,
-                      durationType: val as "days" | "months" | "years",
-                    })
-                  }
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="Đơn vị" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="days">Ngày</SelectItem>
-                    <SelectItem value="months">Tháng</SelectItem>
-                    <SelectItem value="years">Năm</SelectItem>
-                  </SelectContent>
-                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Thời hạn <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    value={newPlan.duration}
+                    onChange={(e) =>
+                      setNewPlan({
+                        ...newPlan,
+                        duration: Number(e.target.value),
+                      })
+                    }
+                    placeholder="1"
+                    className="flex-1"
+                  />
+                  <Select
+                    value={newPlan.durationType as string}
+                    onValueChange={(val) =>
+                      setNewPlan({
+                        ...newPlan,
+                        durationType: val as "days" | "months" | "years",
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-[100px] sm:w-[120px]">
+                      <SelectValue placeholder="Đơn vị" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="days">Ngày</SelectItem>
+                      <SelectItem value="months">Tháng</SelectItem>
+                      <SelectItem value="years">Năm</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-features" className="text-right">
+
+            {/* Tính năng */}
+            <div className="space-y-2">
+              <Label htmlFor="add-features" className="text-sm font-medium">
                 Tính năng
               </Label>
-              <div className="col-span-3 space-y-2">
+              <div className="space-y-3">
                 {newPlan.features?.map((feature, index) => (
                   <div key={index} className="flex gap-2">
                     <Input
@@ -690,6 +784,7 @@ export default function SubscriptionPlansPage() {
                           features: newFeatures,
                         });
                       }}
+                      placeholder={`Tính năng ${index + 1}`}
                       className="flex-1"
                     />
                     <Button
@@ -704,6 +799,7 @@ export default function SubscriptionPlansPage() {
                           features: newFeatures,
                         });
                       }}
+                      className="shrink-0"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -720,61 +816,69 @@ export default function SubscriptionPlansPage() {
                       features: newFeatures,
                     });
                   }}
+                  className="w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Thêm tính năng
                 </Button>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-color" className="text-right">
-                Màu sắc
-              </Label>
-              <div className="col-span-3 flex gap-2">
-                <Select
-                  value={newPlan.color || ""}
-                  onValueChange={(val) =>
-                    setNewPlan({ ...newPlan, color: val })
+
+            {/* Màu sắc và Badge */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-color" className="text-sm font-medium">
+                  Màu sắc
+                </Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={newPlan.color || ""}
+                    onValueChange={(val) =>
+                      setNewPlan({ ...newPlan, color: val })
+                    }
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Chọn màu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="green">Xanh lá</SelectItem>
+                      <SelectItem value="blue">Xanh dương</SelectItem>
+                      <SelectItem value="amber">Vàng cam</SelectItem>
+                      <SelectItem value="red">Đỏ</SelectItem>
+                      <SelectItem value="purple">Tím</SelectItem>
+                      <SelectItem value="pink">Hồng</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {newPlan.color && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
+                      <div
+                        className={`w-4 h-4 rounded-full bg-${newPlan.color}-500`}
+                      />
+                      <span className="text-xs hidden sm:inline">
+                        {newPlan.color}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-badge" className="text-sm font-medium">
+                  Badge
+                </Label>
+                <Input
+                  id="add-badge"
+                  value={newPlan.badge || ""}
+                  onChange={(e) =>
+                    setNewPlan({ ...newPlan, badge: e.target.value })
                   }
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="Chọn màu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="green">Xanh lá</SelectItem>
-                    <SelectItem value="blue">Xanh dương</SelectItem>
-                    <SelectItem value="amber">Vàng cam</SelectItem>
-                    <SelectItem value="red">Đỏ</SelectItem>
-                    <SelectItem value="purple">Tím</SelectItem>
-                    <SelectItem value="pink">Hồng</SelectItem>
-                  </SelectContent>
-                </Select>
-                {newPlan.color && (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-6 h-6 rounded-full bg-${newPlan.color}-500`}
-                    />
-                    <span className="text-sm">{newPlan.color}</span>
-                  </div>
-                )}
+                  placeholder="Phổ biến, Khuyến nghị..."
+                />
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-badge" className="text-right">
-                Badge
-              </Label>
-              <Input
-                id="add-badge"
-                value={newPlan.badge || ""}
-                onChange={(e) =>
-                  setNewPlan({ ...newPlan, badge: e.target.value })
-                }
-                className="col-span-3"
-                placeholder="Phổ biến, Khuyến nghị, Tiết kiệm, v.v."
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-icon" className="text-right">
+
+            {/* Icon */}
+            <div className="space-y-2">
+              <Label htmlFor="add-icon" className="text-sm font-medium">
                 Icon
               </Label>
               <Input
@@ -783,28 +887,42 @@ export default function SubscriptionPlansPage() {
                 onChange={(e) =>
                   setNewPlan({ ...newPlan, icon: e.target.value })
                 }
-                className="col-span-3"
-                placeholder="gift, calendar, crown, v.v."
+                placeholder="gift, calendar, crown, star..."
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Dùng thử</Label>
-              <div className="flex items-center space-x-2">
+
+            {/* Switch Dùng thử */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Tùy chọn nâng cao</Label>
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <Label className="text-sm font-medium">
+                    Dùng thử miễn phí
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Cho phép người dùng dùng thử gói này
+                  </p>
+                </div>
                 <Switch
                   checked={newPlan.isFreeTrial}
                   onCheckedChange={(checked) =>
                     setNewPlan({ ...newPlan, isFreeTrial: checked })
                   }
                 />
-                <span>{newPlan.isFreeTrial ? "Có" : "Không"}</span>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddingPlan(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsAddingPlan(false)}
+              className="w-full sm:w-auto"
+            >
               Hủy
             </Button>
-            <Button onClick={handleAddPlan}>Thêm gói</Button>
+            <Button onClick={handleAddPlan} className="w-full sm:w-auto">
+              Thêm gói
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
