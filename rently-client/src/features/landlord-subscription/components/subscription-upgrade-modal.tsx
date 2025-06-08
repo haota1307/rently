@@ -260,7 +260,7 @@ export function SubscriptionUpgradeModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>Nâng cấp lên Landlord Pro</DialogTitle>
+          <DialogTitle>Gói nâng cấp tài khoản</DialogTitle>
           <DialogDescription>
             Nâng cấp tài khoản để đăng bài và quản lý danh sách nhà trọ của bạn
           </DialogDescription>
