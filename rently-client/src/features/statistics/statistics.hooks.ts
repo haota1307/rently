@@ -9,10 +9,10 @@ import {
 } from "./statistics.api";
 import { format } from "date-fns";
 
-export const useGetStatisticsOverview = () => {
+export const useGetStatisticsOverview = (global?: boolean) => {
   return useQuery({
-    queryKey: ["statistics", "overview"],
-    queryFn: getStatisticsOverview,
+    queryKey: ["statistics", "overview", global],
+    queryFn: () => getStatisticsOverview(global),
     staleTime: 5 * 60 * 1000, // 5 phút
   });
 };
@@ -97,10 +97,10 @@ export const useGetLandlordTransactionData = (
   });
 };
 
-export const useGetRoomDistribution = () => {
+export const useGetRoomDistribution = (global?: boolean) => {
   return useQuery({
-    queryKey: ["statistics", "room-distribution"],
-    queryFn: getRoomDistribution,
+    queryKey: ["statistics", "room-distribution", global],
+    queryFn: () => getRoomDistribution(global),
     staleTime: 15 * 60 * 1000, // 15 phút
   });
 };

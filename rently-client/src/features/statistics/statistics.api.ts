@@ -41,8 +41,11 @@ export interface PopularArea {
   trend: string;
 }
 
-export const getStatisticsOverview = async () => {
-  const { payload } = await http.get<StatisticsOverview>("statistics/overview");
+export const getStatisticsOverview = async (global?: boolean) => {
+  const url = global
+    ? "statistics/overview?global=true"
+    : "statistics/overview";
+  const { payload } = await http.get<StatisticsOverview>(url);
   return payload;
 };
 
@@ -113,10 +116,11 @@ export const getLandlordTransactionData = async (
   return payload;
 };
 
-export const getRoomDistribution = async () => {
-  const { payload } = await http.get<RoomDistribution[]>(
-    "statistics/room-distribution"
-  );
+export const getRoomDistribution = async (global?: boolean) => {
+  const url = global
+    ? "statistics/room-distribution?global=true"
+    : "statistics/room-distribution";
+  const { payload } = await http.get<RoomDistribution[]>(url);
   return payload;
 };
 

@@ -23,6 +23,7 @@ export const StatisticsQuerySchema = z
     transaction_content: z.string().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
+    global: z.coerce.boolean().optional(),
   })
   .strict()
 

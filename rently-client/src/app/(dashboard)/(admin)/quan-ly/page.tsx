@@ -116,7 +116,7 @@ const MapWithGeocodeDynamic = dynamic(
 );
 
 const DashboardPage = () => {
-  const { data, isLoading, error } = useGetStatisticsOverview();
+  const { data, isLoading, error } = useGetStatisticsOverview(true); // Admin xem toàn bộ hệ thống
   const [timeRange, setTimeRange] = useState<number>(7);
   // Khai báo dateFilter trước khi sử dụng
   const [dateFilter, setDateFilter] = useState<{
@@ -141,7 +141,7 @@ const DashboardPage = () => {
     useState<Transaction | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: roomDistribution, isLoading: isLoadingRoomDistribution } =
-    useGetRoomDistribution();
+    useGetRoomDistribution(true); // Admin xem toàn bộ hệ thống
   const {
     data: postsByArea,
     isLoading: isLoadingPostsByArea,
