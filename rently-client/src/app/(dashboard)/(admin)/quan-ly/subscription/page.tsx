@@ -95,6 +95,8 @@ export default function AdminSubscriptionPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const itemsPerPage = 10;
 
   // Prepare filters for API
@@ -459,106 +461,14 @@ export default function AdminSubscriptionPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <AlertDialog>
-                                <AlertDialogTrigger className="flex w-full cursor-pointer items-center px-2 py-1.5 text-sm">
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  <span>Chi tiết</span>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Chi tiết Subscription
-                                    </AlertDialogTitle>
-                                  </AlertDialogHeader>
-                                  <div className="space-y-2">
-                                    <div className="grid grid-cols-2 gap-2">
-                                      <div className="text-sm font-medium">
-                                        ID:
-                                      </div>
-                                      <div>{subscription.id}</div>
-                                      <div className="text-sm font-medium">
-                                        Người dùng:
-                                      </div>
-                                      <div>{subscription.user?.name}</div>
-                                      <div className="text-sm font-medium">
-                                        Email:
-                                      </div>
-                                      <div>{subscription.user?.email}</div>
-                                      <div className="text-sm font-medium">
-                                        Trạng thái:
-                                      </div>
-                                      <div>
-                                        <Badge
-                                          variant="outline"
-                                          className={getSubscriptionStatusColor(
-                                            subscription.status
-                                          )}
-                                        >
-                                          {getSubscriptionStatusText(
-                                            subscription.status
-                                          )}
-                                        </Badge>
-                                      </div>
-                                      <div className="text-sm font-medium">
-                                        Loại gói:
-                                      </div>
-                                      <div>
-                                        {subscription.isFreeTrial
-                                          ? "Dùng thử"
-                                          : subscription.planType}
-                                      </div>
-                                      <div className="text-sm font-medium">
-                                        Ngày bắt đầu:
-                                      </div>
-                                      <div>
-                                        {formatDateString(
-                                          subscription.startDate
-                                        )}
-                                      </div>
-                                      <div className="text-sm font-medium">
-                                        Ngày kết thúc:
-                                      </div>
-                                      <div>
-                                        {formatDateString(subscription.endDate)}
-                                      </div>
-                                      <div className="text-sm font-medium">
-                                        Giá:
-                                      </div>
-                                      <div>
-                                        {formatPrice(
-                                          Number(subscription.amount)
-                                        )}
-                                      </div>
-                                      <div className="text-sm font-medium">
-                                        Auto Renew:
-                                      </div>
-                                      <div>
-                                        {subscription.autoRenew ? "Bật" : "Tắt"}
-                                      </div>
-                                      <div className="text-sm font-medium">
-                                        Ngày tạo:
-                                      </div>
-                                      <div>
-                                        {formatDateString(
-                                          subscription.createdAt
-                                        )}
-                                      </div>
-                                      <div className="text-sm font-medium">
-                                        Cập nhật lần cuối:
-                                      </div>
-                                      <div>
-                                        {formatDateString(
-                                          subscription.updatedAt
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Đóng</AlertDialogCancel>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedSubscription(subscription);
+                                setShowDetailDialog(true);
+                              }}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              <span>Chi tiết</span>
                             </DropdownMenuItem>
                             {subscription.status === "ACTIVE" && (
                               <DropdownMenuItem asChild>
@@ -726,6 +636,69 @@ export default function AdminSubscriptionPage() {
           </div>
         )}
       </div>
+
+      {/* Dialog chi tiết subscription */}
+      <AlertDialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Chi tiết Subscription</AlertDialogTitle>
+          </AlertDialogHeader>
+          {selectedSubscription && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-sm font-medium">ID:</div>
+                <div>{selectedSubscription.id}</div>
+
+                <div className="text-sm font-medium">Người dùng:</div>
+                <div>{selectedSubscription.user?.name}</div>
+
+                <div className="text-sm font-medium">Email:</div>
+                <div>{selectedSubscription.user?.email}</div>
+
+                <div className="text-sm font-medium">Trạng thái:</div>
+                <div>
+                  <Badge
+                    variant="outline"
+                    className={getSubscriptionStatusColor(
+                      selectedSubscription.status
+                    )}
+                  >
+                    {getSubscriptionStatusText(selectedSubscription.status)}
+                  </Badge>
+                </div>
+
+                <div className="text-sm font-medium">Loại gói:</div>
+                <div>
+                  {selectedSubscription.isFreeTrial
+                    ? "Dùng thử"
+                    : selectedSubscription.planType}
+                </div>
+
+                <div className="text-sm font-medium">Ngày bắt đầu:</div>
+                <div>{formatDateString(selectedSubscription.startDate)}</div>
+
+                <div className="text-sm font-medium">Ngày kết thúc:</div>
+                <div>{formatDateString(selectedSubscription.endDate)}</div>
+
+                <div className="text-sm font-medium">Giá:</div>
+                <div>{formatPrice(Number(selectedSubscription.amount))}</div>
+
+                <div className="text-sm font-medium">Auto Renew:</div>
+                <div>{selectedSubscription.autoRenew ? "Bật" : "Tắt"}</div>
+
+                <div className="text-sm font-medium">Ngày tạo:</div>
+                <div>{formatDateString(selectedSubscription.createdAt)}</div>
+
+                <div className="text-sm font-medium">Cập nhật lần cuối:</div>
+                <div>{formatDateString(selectedSubscription.updatedAt)}</div>
+              </div>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Đóng</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarInset>
   );
 }
