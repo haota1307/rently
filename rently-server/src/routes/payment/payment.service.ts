@@ -488,6 +488,14 @@ export class PaymentService {
             phoneNumber: t.user.phoneNumber || '',
           }
         : undefined,
+      payment: t.payment
+        ? {
+            id: t.payment.id,
+            status: t.payment.status,
+            amount: t.payment.amount,
+            metadata: t.payment.metadata,
+          }
+        : undefined,
     }
   }
 

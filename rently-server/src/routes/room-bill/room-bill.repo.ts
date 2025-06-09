@@ -128,10 +128,13 @@ export class RoomBillRepository {
 
   async findActiveContractByRoomId(roomId: number) {
     const now = new Date()
+    // Cho phép tạo hóa đơn cho hợp đồng sắp bắt đầu trong vòng 24 giờ
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+
     return this.prisma.rentalContract.findFirst({
       where: {
         roomId: roomId,
-        startDate: { lte: now },
+        startDate: { lte: tomorrow }, // Thay vì chỉ kiểm tra <= now
         endDate: { gte: now },
         status: 'ACTIVE',
       },
