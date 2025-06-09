@@ -203,8 +203,21 @@ const WithdrawManagementPage = () => {
               bankAccountName = transaction.user?.name || "Không rõ";
             }
 
+            // Sử dụng Payment.id nếu có, nếu không thì trích xuất từ transaction content
+            let paymentId = parseInt(transaction.id); // Fallback sử dụng transaction.id
+
+            if (transaction.payment && transaction.payment.id) {
+              paymentId = transaction.payment.id;
+            } else if (transaction.transaction_content) {
+              const rutMatch =
+                transaction.transaction_content.match(/RUT(\d+)/);
+              if (rutMatch && rutMatch[1]) {
+                paymentId = parseInt(rutMatch[1]);
+              }
+            }
+
             return {
-              id: parseInt(transaction.id),
+              id: paymentId, // Sử dụng Payment.id thay vì PaymentTransaction.id
               userId: transaction.user?.id ? parseInt(transaction.user.id) : 0,
               userName: transaction.user?.name || "Không rõ",
               userEmail: transaction.user?.email || "",
@@ -333,8 +346,21 @@ const WithdrawManagementPage = () => {
                   bankAccountName = transactionData.user?.name || "Không rõ";
                 }
 
+                // Sử dụng Payment.id nếu có, nếu không thì trích xuất từ transaction content
+                let paymentId = parseInt(transactionData.id);
+
+                if (transactionData.payment && transactionData.payment.id) {
+                  paymentId = transactionData.payment.id;
+                } else if (transactionData.transaction_content) {
+                  const rutMatch =
+                    transactionData.transaction_content.match(/RUT(\d+)/);
+                  if (rutMatch && rutMatch[1]) {
+                    paymentId = parseInt(rutMatch[1]);
+                  }
+                }
+
                 const newRequest: WithdrawRequest = {
-                  id: parseInt(transactionData.id),
+                  id: paymentId, // Sử dụng Payment.id thay vì PaymentTransaction.id
                   userId: transactionData.user?.id
                     ? parseInt(transactionData.user.id)
                     : 0,
@@ -657,6 +683,7 @@ const WithdrawManagementPage = () => {
     try {
       // Tải thông tin chi tiết trước để đảm bảo có dữ liệu chính xác
       const detailedRequest = await loadWithdrawDetail(request);
+      console.log("detailedRequest", detailedRequest);
       setSelectedRequest(detailedRequest);
 
       // Gọi API để lấy thông tin chuyển khoản
