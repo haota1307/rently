@@ -167,4 +167,22 @@ export class StatisticsController {
     // Nếu không phải admin, giới hạn theo khu vực của người dùng
     return this.statisticsService.getPopularAreas(limit, userId)
   }
+
+  @Get('debug-transactions')
+  async debugTransactions(
+    @Query() query: StatisticsQueryDTO,
+    @ActiveUser('userId') userId: number,
+    @ActiveUser('roleName') roleName: string
+  ) {
+    // Chỉ admin mới được debug
+    if (roleName !== 'ADMIN') {
+      throw new Error('Unauthorized')
+    }
+
+    return this.statisticsService.debugTransactions(
+      query.days || 7,
+      query.landlordId,
+      query.transaction_content
+    )
+  }
 }

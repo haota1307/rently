@@ -118,7 +118,22 @@ export class StatisticsRepo {
   ): Promise<RevenueDataType[]> {
     try {
       // Đầu tiên, lấy giao dịch mới nhất và cũ nhất để biết phạm vi dữ liệu thực tế
-      let transactionDateCondition: any = {}
+      let transactionDateCondition: any = {
+        // Chỉ lấy giao dịch hoàn thành:
+        // 1. Có Payment relation với status COMPLETED
+        // 2. Hoặc không có Payment relation nhưng có amount > 0 (giao dịch tự động của hệ thống)
+        OR: [
+          {
+            payment: {
+              status: 'COMPLETED',
+            },
+          },
+          {
+            payment: null,
+            OR: [{ amountIn: { gt: 0 } }, { amountOut: { gt: 0 } }],
+          },
+        ],
+      }
 
       // Thêm điều kiện lọc theo người dùng nếu có
       if (landlordId) {
@@ -138,7 +153,6 @@ export class StatisticsRepo {
       if (transaction_content) {
         if (transaction_content === 'ALL') {
           // Không lọc theo nội dung giao dịch, lấy tất cả
-          // Chỉ giữ lại điều kiện lọc theo userId (nếu có)
           console.log('Using ALL mode - no content filter applied')
         } else if (transaction_content === 'SEVQR NAP') {
           transactionDateCondition.transactionContent = { contains: 'NAP' }
@@ -147,6 +161,7 @@ export class StatisticsRepo {
           transactionDateCondition.OR = contents.map(content => ({
             transactionContent: { contains: content },
           }))
+          console.log('🔍 Using content filter:', contents)
         }
       } else {
         // Mặc định tìm theo giao dịch nạp và rút
@@ -154,29 +169,8 @@ export class StatisticsRepo {
           { transactionContent: { contains: 'NAP' } },
           { transactionContent: { contains: 'RUT' } },
         ]
+        console.log('🔍 Using default NAP|RUT filter')
       }
-
-      const latestTransaction =
-        await this.prismaService.paymentTransaction.findFirst({
-          where: transactionDateCondition,
-          orderBy: {
-            transactionDate: 'desc',
-          },
-          select: {
-            transactionDate: true,
-          },
-        })
-
-      const earliestTransaction =
-        await this.prismaService.paymentTransaction.findFirst({
-          where: transactionDateCondition,
-          orderBy: {
-            transactionDate: 'asc',
-          },
-          select: {
-            transactionDate: true,
-          },
-        })
 
       // Xác định resolution dựa trên số ngày
       let resolution = 'day'
@@ -190,54 +184,16 @@ export class StatisticsRepo {
       let start: Date
       let end: Date
 
-      // Ưu tiên sử dụng dữ liệu thực tế nếu có
-      if (latestTransaction) {
-        // Sử dụng ngày của giao dịch mới nhất làm mốc
-        end = new Date(latestTransaction.transactionDate)
-        // Đảm bảo end là cuối ngày để bao gồm toàn bộ ngày kết thúc
+      // Luôn sử dụng thời gian hiện tại thay vì dựa vào giao dịch cũ
+      if (startDate && endDate) {
+        start = new Date(startDate)
+        end = new Date(endDate)
+        // Đảm bảo end là cuối ngày
         end.setHours(23, 59, 59, 999)
-
-        // Tính ngày bắt đầu dựa trên số ngày yêu cầu
-        start = new Date(end)
-        start.setDate(end.getDate() - days + 1)
-        start.setHours(0, 0, 0, 0)
-
-        // Nếu có giao dịch cũ nhất và nó nằm trong khoảng, mở rộng khoảng thời gian
-        if (earliestTransaction) {
-          const earliestDate = new Date(earliestTransaction.transactionDate)
-          if (earliestDate < start) {
-            // Mở rộng khoảng thời gian để bao gồm giao dịch cũ nhất
-            start = new Date(earliestDate)
-            start.setHours(0, 0, 0, 0)
-
-            // Đảm bảo khoảng thời gian không vượt quá số ngày yêu cầu
-            const actualDays =
-              Math.ceil(
-                (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-              ) + 1
-            if (actualDays > days) {
-              // Nếu vượt quá, điều chỉnh lại resolution
-              if (actualDays > 60) {
-                resolution = 'week'
-              }
-              if (actualDays > 180) {
-                resolution = 'month'
-              }
-            }
-          }
-        }
       } else {
-        // Nếu không có dữ liệu, sử dụng thời gian hiện tại
-        if (startDate && endDate) {
-          start = new Date(startDate)
-          end = new Date(endDate)
-          // Đảm bảo end là cuối ngày
-          end.setHours(23, 59, 59, 999)
-        } else {
-          end = new Date()
-          start = subDays(end, days - 1)
-          start.setHours(0, 0, 0, 0)
-        }
+        end = new Date()
+        start = subDays(end, days - 1)
+        start.setHours(0, 0, 0, 0)
       }
 
       // Tạo điều kiện where cơ bản
@@ -246,14 +202,38 @@ export class StatisticsRepo {
           gte: start,
           lte: end,
         },
+        // Chỉ lấy giao dịch hoàn thành
+        OR: [
+          {
+            payment: {
+              status: 'COMPLETED',
+            },
+          },
+          {
+            payment: null,
+            OR: [{ amountIn: { gt: 0 } }, { amountOut: { gt: 0 } }],
+          },
+        ],
         ...transactionDateCondition,
       }
 
-      delete whereCondition.OR // Tránh trùng lặp OR
+      // Xóa OR từ transactionDateCondition để tránh conflict
+      if (transactionDateCondition.OR) {
+        delete transactionDateCondition.OR
+      }
 
       // Kiểm tra xem có dữ liệu trong khoảng thời gian này không
       const dataCount = await this.prismaService.paymentTransaction.count({
         where: whereCondition,
+      })
+
+      console.log('📈 getRevenueData query result:', {
+        dataCount,
+        whereCondition: JSON.stringify(whereCondition, null, 2),
+        dateRange: {
+          start: start.toISOString(),
+          end: end.toISOString(),
+        },
       })
 
       // Với khoảng thời gian lớn, sử dụng SQL trực tiếp để tối ưu
@@ -309,7 +289,7 @@ export class StatisticsRepo {
 
         // Thêm điều kiện lọc theo người dùng nếu có
         if (landlordId) {
-          whereClause.push(`"userId" = $3`)
+          whereClause.push(`pt."userId" = $3`)
           params.push(landlordId)
         }
 
@@ -326,12 +306,17 @@ export class StatisticsRepo {
           ),
           aggregated_data AS (
             SELECT
-              DATE_TRUNC('${resolution}', "transactionDate") as period,
-              SUM(CASE WHEN ${depositCondition} OR "transactionContent" LIKE '%Nạp tiền%' THEN "amountIn" ELSE 0 END) as deposit,
-              SUM(CASE WHEN ${withdrawCondition} OR "transactionContent" LIKE '%Rút tiền%' THEN "amountOut" ELSE 0 END) as withdraw
-            FROM "PaymentTransaction"
-            WHERE "transactionDate" >= $1 AND "transactionDate" <= $2
-            ${landlordId ? 'AND "userId" = $3' : ''}
+              DATE_TRUNC('${resolution}', pt."transactionDate") as period,
+              SUM(CASE WHEN ${depositCondition} OR pt."transactionContent" LIKE '%Nạp tiền%' THEN pt."amountIn" ELSE 0 END) as deposit,
+              SUM(CASE WHEN ${withdrawCondition} OR pt."transactionContent" LIKE '%Rút tiền%' THEN pt."amountOut" ELSE 0 END) as withdraw
+            FROM "PaymentTransaction" pt
+            LEFT JOIN "Payment" p ON pt.id = p."transactionId"
+            WHERE pt."transactionDate" >= $1 AND pt."transactionDate" <= $2
+            AND (
+              (p."status" = 'COMPLETED') OR 
+              (p.id IS NULL AND (pt."amountIn" > 0 OR pt."amountOut" > 0))
+            )
+            ${whereConditionSql}
             GROUP BY period
             ORDER BY period
           )
@@ -400,6 +385,12 @@ export class StatisticsRepo {
         resultsCount: results.length,
       })
 
+      console.log('📊 Final getRevenueData results:', {
+        results,
+        totalDeposit: results.reduce((sum, r) => sum + (r.nạp || 0), 0),
+        totalWithdraw: results.reduce((sum, r) => sum + (r.rút || 0), 0),
+      })
+
       return results
     } catch (error) {
       throw new InternalServerErrorException(error.message)
@@ -417,105 +408,209 @@ export class StatisticsRepo {
     landlordId?: number,
     transaction_content?: string
   ): Promise<RevenueDataType> {
-    // Query giao dịch trong ngày từ database
+    // Điều kiện where cơ bản
     const whereCondition: any = {
       transactionDate: {
         gte: startOfDay,
         lte: endOfDay,
       },
+      // Chỉ lấy giao dịch hoàn thành
+      OR: [
+        {
+          payment: {
+            status: 'COMPLETED',
+          },
+        },
+        {
+          payment: null,
+          OR: [{ amountIn: { gt: 0 } }, { amountOut: { gt: 0 } }],
+        },
+      ],
+      ...(landlordId ? { userId: landlordId } : {}),
     }
 
-    // Thêm điều kiện lọc theo người dùng nếu có
-    if (landlordId) {
-      whereCondition.userId = landlordId
-    }
-
-    // Tối ưu truy vấn nội dung giao dịch
-    if (transaction_content) {
-      // Ưu tiên exact match trước khi sử dụng contains để tận dụng index
-      if (transaction_content === 'ALL') {
-        // Đối với ALL, cần thực hiện 2 query riêng biệt để phân loại đúng
-        // 1. Query cho tiền vào (nạp tiền, tiền đặt cọc, nhận thanh toán)
-        const depositQuery =
-          await this.prismaService.paymentTransaction.aggregate({
-            _sum: {
-              amountIn: true,
+    // Xử lý đặc biệt cho transaction_content = 'ALL'
+    if (transaction_content && transaction_content === 'ALL') {
+      // Đối với ALL, cần thực hiện 2 query riêng biệt để phân loại đúng
+      // 1. Query cho tiền vào (nạp tiền, tiền đặt cọc, nhận thanh toán)
+      const depositQuery =
+        await this.prismaService.paymentTransaction.aggregate({
+          _sum: {
+            amountIn: true,
+          },
+          where: {
+            transactionDate: {
+              gte: startOfDay,
+              lte: endOfDay,
             },
-            where: {
-              transactionDate: {
-                gte: startOfDay,
-                lte: endOfDay,
+            ...(landlordId ? { userId: landlordId } : {}),
+            amountIn: { gt: 0 },
+            // Combine payment status filter and content filter
+            AND: [
+              // Chỉ lấy giao dịch hoàn thành
+              {
+                OR: [
+                  {
+                    payment: {
+                      status: 'COMPLETED',
+                    },
+                  },
+                  {
+                    payment: null,
+                  },
+                ],
               },
-              ...(landlordId ? { userId: landlordId } : {}),
-              amountIn: { gt: 0 },
-              OR: [
-                { transactionContent: { contains: 'NAP' } },
-                { transactionContent: { contains: 'tiền đặt' } },
-                { transactionContent: { contains: 'nhận tiền' } },
-                { transactionContent: { contains: 'thanh toán từ' } },
-              ],
-            },
-          })
-
-        // 2. Query cho tiền ra (rút tiền, các loại phí)
-        const withdrawQuery =
-          await this.prismaService.paymentTransaction.aggregate({
-            _sum: {
-              amountOut: true,
-            },
-            where: {
-              transactionDate: {
-                gte: startOfDay,
-                lte: endOfDay,
+              // Content filter
+              {
+                OR: [
+                  { transactionContent: { contains: 'NAP' } },
+                  { transactionContent: { contains: 'tiền đặt' } },
+                  { transactionContent: { contains: 'nhận tiền' } },
+                  { transactionContent: { contains: 'thanh toán từ' } },
+                ],
               },
-              ...(landlordId ? { userId: landlordId } : {}),
-              amountOut: { gt: 0 },
-              OR: [
-                { transactionContent: { contains: 'RUT' } },
-                { transactionContent: { contains: 'phí' } },
-              ],
-            },
-          })
-
-        // Tổng hợp kết quả
-        const totalDeposit = depositQuery._sum.amountIn || 0
-        const totalWithdraw = withdrawQuery._sum.amountOut || 0
-
-        // Log kết quả để debug
-        console.log(`Day ${dateStr} results (ALL mode):`, {
-          deposit: totalDeposit,
-          withdraw: totalWithdraw,
-          query: {
-            depositConditions: [
-              'NAP',
-              'tiền đặt',
-              'nhận tiền',
-              'thanh toán từ',
             ],
-            withdrawConditions: ['RUT', 'phí'],
           },
         })
 
-        return {
-          name: displayDate,
-          nạp: totalDeposit,
-          rút: totalWithdraw,
-          date: dateStr,
-        }
-      } else if (transaction_content === 'SEVQR NAP') {
-        whereCondition.transactionContent = { contains: 'NAP' }
+      // 2. Query cho tiền ra (rút tiền, các loại phí)
+      const withdrawQuery =
+        await this.prismaService.paymentTransaction.aggregate({
+          _sum: {
+            amountOut: true,
+          },
+          where: {
+            transactionDate: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+            ...(landlordId ? { userId: landlordId } : {}),
+            amountOut: { gt: 0 },
+            // Combine payment status filter and content filter
+            AND: [
+              // Chỉ lấy giao dịch hoàn thành
+              {
+                OR: [
+                  {
+                    payment: {
+                      status: 'COMPLETED',
+                    },
+                  },
+                  {
+                    payment: null,
+                  },
+                ],
+              },
+              // Content filter
+              {
+                OR: [
+                  { transactionContent: { contains: 'RUT' } },
+                  { transactionContent: { contains: 'phí' } },
+                ],
+              },
+            ],
+          },
+        })
+
+      // Tổng hợp kết quả với null safety
+      const totalDeposit = depositQuery._sum?.amountIn || 0
+      const totalWithdraw = withdrawQuery._sum?.amountOut || 0
+
+      // Log kết quả để debug
+      console.log(`Day ${dateStr} results (ALL mode):`, {
+        deposit: totalDeposit,
+        withdraw: totalWithdraw,
+        query: {
+          depositConditions: ['NAP', 'tiền đặt', 'nhận tiền', 'thanh toán từ'],
+          withdrawConditions: ['RUT', 'phí'],
+        },
+      })
+
+      return {
+        name: displayDate,
+        nạp: totalDeposit,
+        rút: totalWithdraw,
+        date: dateStr,
+      }
+    } else if (transaction_content) {
+      // Lọc theo nội dung giao dịch cụ thể
+      if (transaction_content === 'SEVQR NAP') {
+        whereCondition.AND = [
+          // Giữ nguyên payment status filter
+          {
+            OR: [
+              {
+                payment: {
+                  status: 'COMPLETED',
+                },
+              },
+              {
+                payment: null,
+                OR: [{ amountIn: { gt: 0 } }, { amountOut: { gt: 0 } }],
+              },
+            ],
+          },
+          // Thêm content filter
+          {
+            transactionContent: { contains: 'NAP' },
+          },
+        ]
+        // Xóa OR cũ để tránh conflict
+        delete whereCondition.OR
       } else {
         const contents = transaction_content.split('|')
-        whereCondition.OR = contents.map(content => ({
-          transactionContent: { contains: content },
-        }))
+        whereCondition.AND = [
+          // Giữ nguyên payment status filter
+          {
+            OR: [
+              {
+                payment: {
+                  status: 'COMPLETED',
+                },
+              },
+              {
+                payment: null,
+                OR: [{ amountIn: { gt: 0 } }, { amountOut: { gt: 0 } }],
+              },
+            ],
+          },
+          // Thêm content filter
+          {
+            OR: contents.map(content => ({
+              transactionContent: { contains: content },
+            })),
+          },
+        ]
+        // Xóa OR cũ để tránh conflict
+        delete whereCondition.OR
       }
     } else {
       // Mặc định tìm theo giao dịch nạp và rút
-      whereCondition.OR = [
-        { transactionContent: { contains: 'NAP' } },
-        { transactionContent: { contains: 'RUT' } },
+      whereCondition.AND = [
+        // Giữ nguyên payment status filter
+        {
+          OR: [
+            {
+              payment: {
+                status: 'COMPLETED',
+              },
+            },
+            {
+              payment: null,
+              OR: [{ amountIn: { gt: 0 } }, { amountOut: { gt: 0 } }],
+            },
+          ],
+        },
+        // Thêm content filter
+        {
+          OR: [
+            { transactionContent: { contains: 'NAP' } },
+            { transactionContent: { contains: 'RUT' } },
+          ],
+        },
       ]
+      // Xóa OR cũ để tránh conflict
+      delete whereCondition.OR
     }
 
     // Sử dụng cách cũ cho các trường hợp khác
@@ -528,9 +623,9 @@ export class StatisticsRepo {
         where: whereCondition,
       })
 
-    // Tổng hợp số tiền nạp và rút
-    const totalDeposit = aggregateResult._sum.amountIn || 0
-    const totalWithdraw = aggregateResult._sum.amountOut || 0
+    // Tổng hợp số tiền nạp và rút với null safety
+    const totalDeposit = aggregateResult._sum?.amountIn || 0
+    const totalWithdraw = aggregateResult._sum?.amountOut || 0
 
     return {
       name: displayDate,
@@ -883,6 +978,98 @@ export class StatisticsRepo {
       }))
     } catch (error) {
       console.error('Error in getLandlordTransactionData:', error)
+      throw new InternalServerErrorException(error.message)
+    }
+  }
+
+  async debugTransactions(
+    days: number = 7,
+    landlordId?: number,
+    transaction_content?: string
+  ) {
+    try {
+      const end = new Date()
+      const start = subDays(end, days - 1)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+
+      // Lấy tất cả transactions trong 7 ngày qua
+      const whereCondition: any = {
+        transactionDate: {
+          gte: start,
+          lte: end,
+        },
+      }
+
+      if (landlordId) {
+        whereCondition.userId = landlordId
+      }
+
+      if (transaction_content && transaction_content !== 'ALL') {
+        if (transaction_content === 'SEVQR NAP') {
+          whereCondition.transactionContent = { contains: 'NAP' }
+        } else {
+          const contents = transaction_content.split('|')
+          whereCondition.OR = contents.map(content => ({
+            transactionContent: { contains: content },
+          }))
+        }
+      }
+
+      const transactions = await this.prismaService.paymentTransaction.findMany(
+        {
+          where: whereCondition,
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+            payment: {
+              select: { status: true, amount: true },
+            },
+          },
+          orderBy: {
+            transactionDate: 'desc',
+          },
+        }
+      )
+
+      // Tính tổng
+      const summary = {
+        totalTransactions: transactions.length,
+        totalAmountIn: transactions.reduce(
+          (sum, t) => sum + (t.amountIn || 0),
+          0
+        ),
+        totalAmountOut: transactions.reduce(
+          (sum, t) => sum + (t.amountOut || 0),
+          0
+        ),
+        dateRange: {
+          start: start.toISOString(),
+          end: end.toISOString(),
+        },
+        filterApplied: {
+          days,
+          landlordId,
+          transaction_content,
+        },
+      }
+
+      return {
+        summary,
+        transactions: transactions.map(t => ({
+          id: t.id,
+          transactionDate: t.transactionDate,
+          transactionContent: t.transactionContent,
+          amountIn: t.amountIn,
+          amountOut: t.amountOut,
+          gateway: t.gateway,
+          code: t.code,
+          user: t.user,
+          payment: t.payment,
+        })),
+      }
+    } catch (error) {
       throw new InternalServerErrorException(error.message)
     }
   }

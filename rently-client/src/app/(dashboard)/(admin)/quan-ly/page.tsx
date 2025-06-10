@@ -100,6 +100,7 @@ interface Transaction {
   isDeposit: boolean;
   transactionDate: Date;
   description: string;
+  status: string; // Thêm trạng thái giao dịch
 }
 
 // Kiểu dữ liệu cho tổng kết giao dịch
@@ -129,7 +130,8 @@ const DashboardPage = () => {
   const { data: revenueData, isLoading: isLoadingRevenue } = useGetRevenueData(
     timeRange,
     dateFilter.from,
-    dateFilter.to
+    dateFilter.to,
+    false // Admin mode, nên dùng "NAP|RUT" filter để đồng bộ với transaction summary
   );
 
   console.log({ revenueData });
@@ -182,19 +184,25 @@ const DashboardPage = () => {
       try {
         setLoadingSummary(true);
 
-        // Thêm tham số để lọc CHÍNH XÁC giao dịch nạp tiền
+        // Thêm tham số để lọc giao dịch nạp tiền và rút tiền (giống như danh sách)
+        // Server sẽ tự động filter COMPLETED cho thống kê
         const params = {
-          transaction_content: "SEVQR NAP",
+          transaction_content: "NAP|RUT",
         };
 
         const response = await paymentApiRequest.getTransactionSummary(params);
 
+        console.log("Transaction Summary Response:", response);
+
         if (response.status === 200 && response.payload?.summary) {
-          setTransactionSummary({
+          const summary = {
             totalIncome: response.payload.summary.totalIncome || 0,
             totalExpense: response.payload.summary.totalExpense || 0,
             balance: response.payload.summary.balance || 0,
-          });
+          };
+
+          console.log("Setting transaction summary:", summary);
+          setTransactionSummary(summary);
         }
       } catch (error) {
         console.error("Lỗi khi tải tổng kết giao dịch:", error);
@@ -219,10 +227,13 @@ const DashboardPage = () => {
         };
 
         // Thêm tham số để chỉ lọc giao dịch nạp tiền và rút tiền
+        // Server sẽ tự động filter COMPLETED khi có NAP|RUT
         params.transaction_content = "NAP|RUT";
 
         // Gọi API với tham số đã lọc
         const response = await paymentApiRequest.getTransactions(params);
+
+        console.log("Transactions Response:", response);
 
         if (response.status === 200 && response.payload?.transactions) {
           // Chuyển đổi dữ liệu API thành định dạng cần hiển thị
@@ -232,6 +243,7 @@ const DashboardPage = () => {
               const transactionContent = transaction.transaction_content || "";
 
               // Chỉ lấy giao dịch nạp tiền hoặc rút tiền
+              // Server đã filter COMPLETED rồi nên không cần check lại
               if (
                 transactionContent.includes("NAP") ||
                 transactionContent.includes("RUT")
@@ -251,6 +263,7 @@ const DashboardPage = () => {
                     (isDeposit
                       ? "Nạp tiền vào tài khoản"
                       : "Rút tiền từ tài khoản"),
+                  status: transaction.status, // Thêm trạng thái để debug
                 };
               }
               return null;
@@ -1041,12 +1054,26 @@ const DashboardPage = () => {
                                 </div>
                               </div>
                               <div className="flex justify-between items-center mt-2">
-                                <span className="text-[10px] md:text-xs text-muted-foreground truncate max-w-[50%] sm:max-w-[70%]">
-                                  {transaction.description ||
-                                    (transaction.isDeposit
-                                      ? "Nạp tiền vào tài khoản"
-                                      : "Rút tiền từ tài khoản")}
-                                </span>
+                                <div className="flex items-center gap-2 max-w-[60%] sm:max-w-[70%]">
+                                  <span className="text-[10px] md:text-xs text-muted-foreground truncate">
+                                    {transaction.description ||
+                                      (transaction.isDeposit
+                                        ? "Nạp tiền vào tài khoản"
+                                        : "Rút tiền từ tài khoản")}
+                                  </span>
+                                  <Badge
+                                    variant={
+                                      transaction.status === "COMPLETED"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                    className="text-[8px] md:text-[9px] px-1 py-0.5 h-4"
+                                  >
+                                    {transaction.status === "COMPLETED"
+                                      ? "Hoàn thành"
+                                      : transaction.status}
+                                  </Badge>
+                                </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -2087,6 +2114,22 @@ const DashboardPage = () => {
                   <span className="font-medium">
                     {selectedTransaction.userId}
                   </span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Trạng thái:</span>
+                  <Badge
+                    variant={
+                      selectedTransaction.status === "COMPLETED"
+                        ? "default"
+                        : "secondary"
+                    }
+                    className="text-xs"
+                  >
+                    {selectedTransaction.status === "COMPLETED"
+                      ? "Hoàn thành"
+                      : selectedTransaction.status}
+                  </Badge>
                 </div>
 
                 <div className="flex justify-between text-sm">

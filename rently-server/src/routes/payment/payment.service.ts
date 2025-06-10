@@ -520,6 +520,17 @@ export class PaymentService {
    * @returns Danh sách giao dịch
    */
   async getTransactions(query: any) {
+    // Nếu query có transaction_content (NAP/RUT) và không chỉ định status
+    // thì mặc định chỉ lấy giao dịch hoàn thành để đảm bảo tính chính xác
+    if (query.transaction_content && !query.status) {
+      const hasNapOrRut =
+        query.transaction_content.includes('NAP') ||
+        query.transaction_content.includes('RUT')
+      if (hasNapOrRut) {
+        query.status = 'COMPLETED'
+      }
+    }
+
     const transactions = await this.paymentRepo.getTransactions(query)
 
     const mappedTransactions = transactions.map(t =>
@@ -561,10 +572,24 @@ export class PaymentService {
    * @returns Tổng tiền vào/ra và số dư
    */
   async getTransactionSummary(query: any) {
+    // Mặc định chỉ lấy giao dịch đã hoàn thành cho thống kê chính xác
+    if (!query.status) {
+      query.status = 'COMPLETED'
+    }
+
     // Lấy danh sách giao dịch
     const transactions = await this.paymentRepo.getTransactions(query)
 
-    console.log({ transactions })
+    console.log('Summary transactions:', {
+      count: transactions.length,
+      transactions: transactions.map(t => ({
+        id: t.id,
+        content: t.transactionContent,
+        amountIn: t.amountIn,
+        amountOut: t.amountOut,
+        status: t.payment?.status,
+      })),
+    })
 
     // Tính tổng tiền vào và tiền ra
     let totalIncome = 0
@@ -573,23 +598,27 @@ export class PaymentService {
     transactions.forEach(t => {
       const transactionContent = t.transactionContent || ''
 
-      if (
-        transactionContent.includes('SEVQR NAP') &&
-        t.amountIn &&
-        t.amountIn > 0
-      ) {
+      // Tính tiền nạp: bao gồm tất cả giao dịch có chứa "NAP" và có amountIn > 0
+      if (transactionContent.includes('NAP') && t.amountIn && t.amountIn > 0) {
         totalIncome += t.amountIn
-      } else if (
-        (transactionContent.includes('RUT') ||
-          transactionContent.includes('Rút tiền')) &&
-        !transactionContent.includes('Phí') &&
+        console.log('Income +', t.amountIn, 'Content:', transactionContent)
+      }
+
+      // Tính tiền rút: bao gồm tất cả giao dịch có chứa "RUT" và có amountOut > 0
+      if (
+        transactionContent.includes('RUT') &&
         t.amountOut &&
         t.amountOut > 0
       ) {
         totalExpense += t.amountOut
+        console.log('Expense +', t.amountOut, 'Content:', transactionContent)
       }
+    })
 
-      // Không tính các loại giao dịch khác vào thống kê tài chính tổng thể
+    console.log('Summary result:', {
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
     })
 
     const balance = totalIncome - totalExpense
