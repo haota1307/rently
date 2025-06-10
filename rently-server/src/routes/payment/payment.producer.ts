@@ -1,6 +1,6 @@
-import { InjectQueue } from '@nestjs/bull'
+import { InjectQueue } from '@nestjs/bullmq'
 import { Injectable } from '@nestjs/common'
-import { Queue } from 'bull'
+import { Queue } from 'bullmq'
 import {
   CANCEL_PAYMENT_JOB_NAME,
   CANCEL_WITHDRAW_JOB_NAME,
@@ -13,64 +13,12 @@ import {
 
 @Injectable()
 export class PaymentProducer {
-  constructor(@InjectQueue('payment') private paymentQueue: Queue) {}
-
-  async addCheckExpiredPaymentJob() {
-    const job = await this.paymentQueue.add(
-      'check-expired-payment',
-      {},
-      {
-        repeat: { cron: '0 */5 * * * *' }, // Chạy mỗi 5 phút
-        removeOnComplete: 10,
-        removeOnFail: 5,
-      }
-    )
-
-    const jobs = await this.paymentQueue.getJobs([
-      'waiting',
-      'active',
-      'completed',
-    ])
-
-    return { jobId: job.id, totalJobs: jobs.length }
-  }
-
-  async addCancelPaymentJob(
-    paymentId: number,
-    delayTime: number = 30 * 60 * 1000
+  constructor(
+    @InjectQueue(PAYMENT_QUEUE_NAME) private readonly paymentQueue: Queue
   ) {
-    const job = await this.paymentQueue.add(
-      'cancel-payment',
-      { paymentId },
-      {
-        delay: delayTime,
-        removeOnComplete: 5,
-        removeOnFail: 3,
-      }
-    )
-
-    const counts = await this.paymentQueue.getJobCounts()
-
-    return { jobId: job.id, queueStats: counts }
-  }
-
-  async addCancelWithdrawJob(
-    withdrawId: number,
-    delayTime: number = 5 * 60 * 1000
-  ) {
-    const job = await this.paymentQueue.add(
-      'cancel-withdraw',
-      { withdrawId },
-      {
-        delay: delayTime,
-        removeOnComplete: 5,
-        removeOnFail: 3,
-      }
-    )
-
-    const counts = await this.paymentQueue.getJobCounts()
-
-    return { jobId: job.id, queueStats: counts }
+    this.paymentQueue.getJobs().then(jobs => {
+      console.log(jobs)
+    })
   }
 
   async cancelPaymentJob(paymentId: number) {
@@ -84,6 +32,10 @@ export class PaymentProducer {
         removeOnFail: true,
       }
     )
+
+    this.paymentQueue.getJobCounts().then(counts => {
+      console.log('Cancel payment job added', counts)
+    })
   }
 
   async removeCancelPaymentJob(paymentId: number) {
@@ -101,6 +53,10 @@ export class PaymentProducer {
         removeOnFail: true,
       }
     )
+
+    this.paymentQueue.getJobCounts().then(counts => {
+      console.log('Cancel withdraw job added', counts)
+    })
   }
 
   async removeCancelWithdrawJob(withdrawId: number) {
