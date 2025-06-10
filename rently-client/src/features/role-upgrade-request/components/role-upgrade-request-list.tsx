@@ -307,14 +307,14 @@ export function RoleUpgradeRequestList({
           }
         }}
       >
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chi tiết yêu cầu nâng cấp</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Thông tin người dùng */}
-            <div className="col-span-1 space-y-4">
+            <div className="lg:col-span-1 space-y-4">
               <div className="text-lg font-semibold">Thông tin người dùng</div>
               <div className="flex flex-col items-center space-y-3 p-4 rounded-lg border">
                 <Avatar className="w-24 h-24">
@@ -376,9 +376,9 @@ export function RoleUpgradeRequestList({
             </div>
 
             {/* Ảnh CCCD */}
-            <div className="col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-4">
               <div className="text-lg font-semibold">Ảnh CCCD</div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Mặt trước</Label>
                   <div className="relative aspect-[3/2] rounded-lg border overflow-hidden">
@@ -423,7 +423,7 @@ export function RoleUpgradeRequestList({
               Đóng
             </Button>
             {detailRequest?.status === "PENDING" && (
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={() => {
                     handleApprove(detailRequest);

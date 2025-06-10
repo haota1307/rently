@@ -1087,7 +1087,7 @@ const WithdrawManagementPage = () => {
 
       {/* Dialog hiển thị mã QR để chuyển khoản */}
       <Dialog open={openQrDialog} onOpenChange={setOpenQrDialog}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

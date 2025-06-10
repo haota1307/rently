@@ -22,7 +22,7 @@ export function CreateContractButton() {
           <span>Tạo hợp đồng</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Tạo hợp đồng mới</DialogTitle>
           <DialogDescription>

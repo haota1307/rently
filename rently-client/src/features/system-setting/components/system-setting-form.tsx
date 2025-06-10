@@ -337,7 +337,7 @@ export function SystemSettingForm({
       </Form>
 
       <Dialog open={showTemplateGallery} onOpenChange={setShowTemplateGallery}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogTitle>Chọn mẫu cài đặt</DialogTitle>
           <SystemSettingTemplateGallery
             onSelectTemplate={handleSelectTemplate}
@@ -348,7 +348,7 @@ export function SystemSettingForm({
       </Dialog>
 
       <Dialog open={showEmailTemplates} onOpenChange={setShowEmailTemplates}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogTitle>Chọn mẫu email từ server</DialogTitle>
           <EmailTemplateGallery
             onSelectTemplate={(template) => {
