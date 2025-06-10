@@ -140,20 +140,10 @@ export class StatisticsRepo {
         transactionDateCondition.userId = landlordId
       }
 
-      // Log tham số để debug
-      console.log('getRevenueData params:', {
-        days,
-        landlordId,
-        transaction_content,
-        startDate,
-        endDate,
-      })
-
       // Lọc theo loại giao dịch (nếu có)
       if (transaction_content) {
         if (transaction_content === 'ALL') {
           // Không lọc theo nội dung giao dịch, lấy tất cả
-          console.log('Using ALL mode - no content filter applied')
         } else if (transaction_content === 'SEVQR NAP') {
           transactionDateCondition.transactionContent = { contains: 'NAP' }
         } else {
@@ -161,7 +151,6 @@ export class StatisticsRepo {
           transactionDateCondition.OR = contents.map(content => ({
             transactionContent: { contains: content },
           }))
-          console.log('🔍 Using content filter:', contents)
         }
       } else {
         // Mặc định tìm theo giao dịch nạp và rút
@@ -169,7 +158,6 @@ export class StatisticsRepo {
           { transactionContent: { contains: 'NAP' } },
           { transactionContent: { contains: 'RUT' } },
         ]
-        console.log('🔍 Using default NAP|RUT filter')
       }
 
       // Xác định resolution dựa trên số ngày
@@ -227,15 +215,6 @@ export class StatisticsRepo {
         where: whereCondition,
       })
 
-      console.log('📈 getRevenueData query result:', {
-        dataCount,
-        whereCondition: JSON.stringify(whereCondition, null, 2),
-        dateRange: {
-          start: start.toISOString(),
-          end: end.toISOString(),
-        },
-      })
-
       // Với khoảng thời gian lớn, sử dụng SQL trực tiếp để tối ưu
       if (
         days > 30 ||
@@ -265,12 +244,6 @@ export class StatisticsRepo {
               '("amountIn" > 0 AND ("transactionContent" ILIKE \'%NAP%\' OR "transactionContent" ILIKE \'%tiền đặt%\' OR "transactionContent" ILIKE \'%nhận tiền%\' OR "transactionContent" ILIKE \'%thanh toán từ%\'))'
             withdrawCondition =
               '("amountOut" > 0 AND ("transactionContent" ILIKE \'%RUT%\' OR "transactionContent" ILIKE \'%phí%\'))'
-
-            // Log điều kiện SQL để debug
-            console.log('ALL mode SQL conditions:', {
-              depositCondition,
-              withdrawCondition,
-            })
           } else {
             const contents = transaction_content.split('|')
             if (contents.length > 1) {
@@ -375,21 +348,6 @@ export class StatisticsRepo {
 
       // Chờ tất cả promises hoàn thành
       const results = await Promise.all(datePromises)
-
-      // Log kết quả để kiểm tra
-      console.log('Date range:', {
-        start: start.toISOString(),
-        end: end.toISOString(),
-        dataCount,
-        resolution,
-        resultsCount: results.length,
-      })
-
-      console.log('📊 Final getRevenueData results:', {
-        results,
-        totalDeposit: results.reduce((sum, r) => sum + (r.nạp || 0), 0),
-        totalWithdraw: results.reduce((sum, r) => sum + (r.rút || 0), 0),
-      })
 
       return results
     } catch (error) {
@@ -515,16 +473,6 @@ export class StatisticsRepo {
       // Tổng hợp kết quả với null safety
       const totalDeposit = depositQuery._sum?.amountIn || 0
       const totalWithdraw = withdrawQuery._sum?.amountOut || 0
-
-      // Log kết quả để debug
-      console.log(`Day ${dateStr} results (ALL mode):`, {
-        deposit: totalDeposit,
-        withdraw: totalWithdraw,
-        query: {
-          depositConditions: ['NAP', 'tiền đặt', 'nhận tiền', 'thanh toán từ'],
-          withdrawConditions: ['RUT', 'phí'],
-        },
-      })
 
       return {
         name: displayDate,

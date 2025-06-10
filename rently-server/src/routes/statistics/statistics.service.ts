@@ -23,16 +23,6 @@ export class StatisticsService {
     startDate?: string,
     endDate?: string
   ): Promise<RevenueDataType[]> {
-    console.log('🔍 getRevenueData called with:', {
-      days,
-      landlordId,
-      transaction_content,
-      startDate,
-      endDate,
-    })
-
-    console.log('🔄 Fetching from database...')
-
     const data = await this.statisticsRepo.getRevenueData(
       days,
       landlordId,
@@ -40,8 +30,6 @@ export class StatisticsService {
       startDate,
       endDate
     )
-
-    console.log('📊 Fresh data from database:', data)
 
     return data
   }

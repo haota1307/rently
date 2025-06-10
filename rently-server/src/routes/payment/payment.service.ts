@@ -580,17 +580,6 @@ export class PaymentService {
     // Lấy danh sách giao dịch
     const transactions = await this.paymentRepo.getTransactions(query)
 
-    console.log('Summary transactions:', {
-      count: transactions.length,
-      transactions: transactions.map(t => ({
-        id: t.id,
-        content: t.transactionContent,
-        amountIn: t.amountIn,
-        amountOut: t.amountOut,
-        status: t.payment?.status,
-      })),
-    })
-
     // Tính tổng tiền vào và tiền ra
     let totalIncome = 0
     let totalExpense = 0
@@ -601,7 +590,6 @@ export class PaymentService {
       // Tính tiền nạp: bao gồm tất cả giao dịch có chứa "NAP" và có amountIn > 0
       if (transactionContent.includes('NAP') && t.amountIn && t.amountIn > 0) {
         totalIncome += t.amountIn
-        console.log('Income +', t.amountIn, 'Content:', transactionContent)
       }
 
       // Tính tiền rút: bao gồm tất cả giao dịch có chứa "RUT" và có amountOut > 0
@@ -611,14 +599,7 @@ export class PaymentService {
         t.amountOut > 0
       ) {
         totalExpense += t.amountOut
-        console.log('Expense +', t.amountOut, 'Content:', transactionContent)
       }
-    })
-
-    console.log('Summary result:', {
-      totalIncome,
-      totalExpense,
-      balance: totalIncome - totalExpense,
     })
 
     const balance = totalIncome - totalExpense

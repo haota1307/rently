@@ -103,8 +103,6 @@ const WithdrawManagementPage = () => {
   const [openQrDialog, setOpenQrDialog] = useState(false);
   const qrImageRef = useRef<HTMLImageElement>(null);
 
-  console.log("withdrawRequests", withdrawRequests);
-
   // Lấy socket từ store
   const socket = useAppStore((state) => state.socket);
   const emitSocketEvent = useAppStore((state) => state.emitSocketEvent);
@@ -120,11 +118,7 @@ const WithdrawManagementPage = () => {
         ...(status && status !== "all" && { status }),
       });
 
-      console.log("API Response:", response);
-
       if (response.payload?.transactions) {
-        console.log("Raw transactions:", response.payload.transactions);
-
         // Lọc các giao dịch là yêu cầu rút tiền
         const withdrawRequests = response.payload.transactions
           .filter((transaction: any) => {

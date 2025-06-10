@@ -274,8 +274,6 @@ export class RentalRepo {
         include: { rooms: true },
       })
 
-      console.log({ rental })
-
       if (!rental) {
         throw NotFoundRecordException
       }
@@ -297,5 +295,22 @@ export class RentalRepo {
       }
       throw new InternalServerErrorException(error.message)
     }
+  }
+
+  async findDetails(id: number) {
+    const rental = await this.prismaService.rental.findUnique({
+      where: { id },
+      include: {
+        landlord: true,
+        rentalImages: true,
+        rooms: {
+          include: {
+            roomImages: true,
+          },
+        },
+      },
+    })
+
+    return rental
   }
 }

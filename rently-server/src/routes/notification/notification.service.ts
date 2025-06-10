@@ -19,22 +19,8 @@ export class NotificationService {
   }
 
   async create(data: CreateNotificationBodyType) {
-    try {
-      console.log('Creating notification:', data)
-      const notification = await this.notificationRepo.create(data)
-      console.log('Notification created:', notification)
-
-      // Gửi thông báo realtime đến client - đảm bảo userId là number
-      this.notificationGateway.sendNotificationToUser(
-        Number(data.userId),
-        notification
-      )
-
-      return notification
-    } catch (error) {
-      console.error('Error creating notification:', error)
-      throw error
-    }
+    const notification = await this.notificationRepo.create(data)
+    return notification
   }
 
   async markAsRead(id: number) {

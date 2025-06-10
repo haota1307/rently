@@ -22,11 +22,8 @@ export class StatisticsController {
     @ActiveUser('userId') userId: number,
     @ActiveUser('roleName') roleName: string
   ) {
-    console.log('🔍 DEBUG overview:', { userId, roleName, query })
-
     // Nếu là admin và có tham số "global=true", xem toàn hệ thống
     if (roleName === 'ADMIN' && query.global === true) {
-      console.log('👤 ADMIN accessing GLOBAL overview')
       return this.statisticsService.getOverview(query.landlordId)
     }
 
@@ -34,10 +31,6 @@ export class StatisticsController {
     const targetUserId =
       roleName === 'ADMIN' && query.landlordId ? query.landlordId : userId
 
-    console.log(
-      '🏠 User accessing personal overview data, targetId:',
-      targetUserId
-    )
     return this.statisticsService.getOverview(targetUserId)
   }
 
@@ -84,18 +77,12 @@ export class StatisticsController {
     const startDate = query.startDate
     const endDate = query.endDate
 
-    console.log('🔍 DEBUG landlord-transaction:', { userId, roleName, query })
-
     // API này dành cho trang landlord cá nhân (/cho-thue)
     // Dù là Admin hay Landlord, đều chỉ xem dữ liệu của chính mình
     // Chỉ khi Admin muốn xem của landlord khác thì truyền landlordId
     const targetLandlordId =
       roleName === 'ADMIN' && query.landlordId ? query.landlordId : userId
 
-    console.log(
-      '🏠 User accessing own landlord transaction data, targetId:',
-      targetLandlordId
-    )
     return this.statisticsService.getLandlordTransactionData(
       days,
       targetLandlordId,
@@ -111,11 +98,8 @@ export class StatisticsController {
     @ActiveUser('userId') userId: number,
     @ActiveUser('roleName') roleName: string
   ) {
-    console.log('🔍 DEBUG room-distribution:', { userId, roleName, query })
-
     // Nếu là admin và có tham số "global=true", xem toàn hệ thống
     if (roleName === 'ADMIN' && query.global === true) {
-      console.log('👤 ADMIN accessing GLOBAL room distribution')
       return this.statisticsService.getRoomDistribution(query.landlordId)
     }
 
@@ -123,10 +107,6 @@ export class StatisticsController {
     const targetUserId =
       roleName === 'ADMIN' && query.landlordId ? query.landlordId : userId
 
-    console.log(
-      '🏠 User accessing personal room distribution, targetId:',
-      targetUserId
-    )
     return this.statisticsService.getRoomDistribution(targetUserId)
   }
 
@@ -156,8 +136,6 @@ export class StatisticsController {
     @ActiveUser('roleName') roleName: string
   ) {
     const limit = query.limit || 5
-
-    console.log({ limit, userId, roleName })
 
     // Nếu là admin, xem tất cả khu vực phổ biến (toàn hệ thống)
     if (roleName === 'ADMIN') {

@@ -134,8 +134,6 @@ const DashboardPage = () => {
     false // Admin mode, nên dùng "NAP|RUT" filter để đồng bộ với transaction summary
   );
 
-  console.log({ revenueData });
-
   // Cập nhật khai báo state và giá trị mặc định
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(3);
@@ -159,8 +157,6 @@ const DashboardPage = () => {
     useState<TransactionSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
-
-  console.log({ transactionSummary });
 
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showUserFilter, setShowUserFilter] = useState(false);
@@ -192,8 +188,6 @@ const DashboardPage = () => {
 
         const response = await paymentApiRequest.getTransactionSummary(params);
 
-        console.log("Transaction Summary Response:", response);
-
         if (response.status === 200 && response.payload?.summary) {
           const summary = {
             totalIncome: response.payload.summary.totalIncome || 0,
@@ -201,7 +195,6 @@ const DashboardPage = () => {
             balance: response.payload.summary.balance || 0,
           };
 
-          console.log("Setting transaction summary:", summary);
           setTransactionSummary(summary);
         }
       } catch (error) {
@@ -232,8 +225,6 @@ const DashboardPage = () => {
 
         // Gọi API với tham số đã lọc
         const response = await paymentApiRequest.getTransactions(params);
-
-        console.log("Transactions Response:", response);
 
         if (response.status === 200 && response.payload?.transactions) {
           // Chuyển đổi dữ liệu API thành định dạng cần hiển thị

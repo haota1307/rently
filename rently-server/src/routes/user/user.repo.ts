@@ -16,8 +16,6 @@ export class UserRepo {
     const skip = (pagination.page - 1) * pagination.limit
     const take = pagination.limit
 
-    console.log('Received query params:', pagination)
-
     // Tạo điều kiện where cho filter
     const whereClause: any = {
       deletedAt: null,
