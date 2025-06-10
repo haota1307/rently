@@ -270,13 +270,7 @@ export class UserService {
       )
 
       // Gửi thông báo qua socket tới người dùng bị khóa
-      console.log(
-        `[DEBUG] Gửi thông báo khóa tài khoản cho user ${id}, reason: ${reason || 'không có lý do'}`
-      )
       const notified = this.eventsGateway.notifyUserBlocked(id, reason)
-      console.log(
-        `[DEBUG] Kết quả gửi thông báo: ${notified ? 'Thành công' : 'Không có socket kết nối'}`
-      )
 
       return {
         message: 'Block user successfully',

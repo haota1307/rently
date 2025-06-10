@@ -305,7 +305,7 @@ export function RentalHistoryTab() {
         open={isContractDialogOpen}
         onOpenChange={setIsContractDialogOpen}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chi tiết hợp đồng thuê phòng</DialogTitle>
           </DialogHeader>

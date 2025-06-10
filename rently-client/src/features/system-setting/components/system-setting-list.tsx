@@ -182,66 +182,69 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
             </div>
           ) : filteredSettings && filteredSettings.length > 0 ? (
             <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead className="w-[250px]">Khóa</TableHead>
-                    <TableHead>Giá trị</TableHead>
-                    <TableHead className="w-[100px]">Loại</TableHead>
-                    <TableHead className="w-[120px]">Nhóm</TableHead>
-                    <TableHead className="w-[80px] text-right">
-                      Thao tác
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSettings.map((setting) => (
-                    <TableRow key={setting.key} className="hover:bg-muted/30">
-                      <TableCell className="font-medium">
-                        {setting.key}
-                      </TableCell>
-                      <TableCell className="max-w-[300px] truncate">
-                        {formatValuePreview(setting)}
-                      </TableCell>
-                      <TableCell>{typeLabel(setting.type)}</TableCell>
-                      <TableCell>{groupLabel(setting.group)}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Mở menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleView(setting)}
-                            >
-                              <FileEdit className="mr-2 h-4 w-4" /> Xem chi tiết
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleEdit(setting)}
-                            >
-                              <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedSetting(setting);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                              className="text-red-600"
-                            >
-                              <Trash className="mr-2 h-4 w-4" /> Xóa
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">Khóa</TableHead>
+                      <TableHead className="min-w-[150px]">Giá trị</TableHead>
+                      <TableHead className="min-w-[80px]">Loại</TableHead>
+                      <TableHead className="min-w-[100px]">Nhóm</TableHead>
+                      <TableHead className="min-w-[80px] text-right">
+                        Thao tác
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSettings.map((setting) => (
+                      <TableRow key={setting.key} className="hover:bg-muted/30">
+                        <TableCell className="font-medium">
+                          {setting.key}
+                        </TableCell>
+                        <TableCell className="max-w-[300px] truncate">
+                          {formatValuePreview(setting)}
+                        </TableCell>
+                        <TableCell>{typeLabel(setting.type)}</TableCell>
+                        <TableCell>{groupLabel(setting.group)}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Mở menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleView(setting)}
+                              >
+                                <FileEdit className="mr-2 h-4 w-4" /> Xem chi
+                                tiết
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleEdit(setting)}
+                              >
+                                <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedSetting(setting);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                                className="text-red-600"
+                              >
+                                <Trash className="mr-2 h-4 w-4" /> Xóa
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           ) : (
             <div className="flex justify-center items-center h-24 bg-muted/10 rounded-lg border border-dashed">
@@ -253,7 +256,7 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
 
       {/* Dialog thêm cài đặt mới */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="w-[95vw] sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Thêm cài đặt mới</DialogTitle>
           <SystemSettingForm
             onSuccess={() => {
@@ -266,7 +269,7 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
 
       {/* Dialog chỉnh sửa cài đặt */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="w-[95vw] sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Chỉnh sửa cài đặt</DialogTitle>
           <SystemSettingForm
             initialData={selectedSetting || undefined}
@@ -280,7 +283,7 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
 
       {/* Dialog xem chi tiết cài đặt */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-auto">
+        <DialogContent className="w-[95vw] sm:max-w-[700px] max-h-[90vh] overflow-auto">
           <DialogTitle>Chi tiết cài đặt</DialogTitle>
           {selectedSetting && (
             <SystemSettingValueDisplay setting={selectedSetting} />

@@ -59,57 +59,10 @@ export class NotificationRepo {
 
   async create(data: CreateNotificationBodyType) {
     try {
-      console.log('NotificationRepo - Creating notification in DB:', data)
-
-      // Map giá trị string thành đúng kiểu enum Prisma
-      let typeValue: any
-      if (typeof data.type === 'string') {
-        // Xử lý kiểu string trực tiếp
-        switch (data.type) {
-          case 'CONTRACT_RENEWED':
-            typeValue = 'CONTRACT_RENEWED'
-            break
-          case 'CONTRACT_TERMINATED':
-            typeValue = 'CONTRACT_TERMINATED'
-            break
-          case 'CONTRACT_EXPIRED':
-            typeValue = 'CONTRACT_EXPIRED'
-            break
-          case 'CONTRACT_SIGNED':
-            typeValue = 'CONTRACT_SIGNED'
-            break
-          case 'PAYMENT':
-            typeValue = 'PAYMENT'
-            break
-          case 'INTERACTION':
-            typeValue = 'INTERACTION'
-            break
-          case 'RENTAL_REQUEST':
-            typeValue = 'RENTAL_REQUEST'
-            break
-          case 'VIEWING_SCHEDULE':
-            typeValue = 'VIEWING_SCHEDULE'
-            break
-          case 'POST':
-            typeValue = 'POST'
-            break
-          case 'SYSTEM':
-            typeValue = 'SYSTEM'
-            break
-          default:
-            // Giá trị mặc định nếu không khớp
-            typeValue = 'SYSTEM'
-        }
-      } else {
-        // Nếu là enum, lấy giá trị string tương ứng
-        typeValue = data.type
-      }
-
-      // Đảm bảo dữ liệu phù hợp với schema Prisma
       const notification = await this.prismaService.notification.create({
         data: {
           userId: Number(data.userId),
-          type: typeValue,
+          type: data.type,
           title: data.title,
           message: data.message,
           relatedId: data.relatedId ? Number(data.relatedId) : null,
@@ -118,17 +71,9 @@ export class NotificationRepo {
         },
       })
 
-      console.log(
-        'NotificationRepo - Notification created in DB:',
-        notification
-      )
       return notification
     } catch (error) {
-      console.error(
-        'NotificationRepo - Error creating notification in DB:',
-        error
-      )
-      throw new InternalServerErrorException(error.message)
+      throw new InternalServerErrorException('Không thể tạo thông báo')
     }
   }
 

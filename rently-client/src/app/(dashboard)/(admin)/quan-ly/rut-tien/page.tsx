@@ -103,8 +103,6 @@ const WithdrawManagementPage = () => {
   const [openQrDialog, setOpenQrDialog] = useState(false);
   const qrImageRef = useRef<HTMLImageElement>(null);
 
-  console.log("withdrawRequests", withdrawRequests);
-
   // Lấy socket từ store
   const socket = useAppStore((state) => state.socket);
   const emitSocketEvent = useAppStore((state) => state.emitSocketEvent);
@@ -120,11 +118,7 @@ const WithdrawManagementPage = () => {
         ...(status && status !== "all" && { status }),
       });
 
-      console.log("API Response:", response);
-
       if (response.payload?.transactions) {
-        console.log("Raw transactions:", response.payload.transactions);
-
         // Lọc các giao dịch là yêu cầu rút tiền
         const withdrawRequests = response.payload.transactions
           .filter((transaction: any) => {
@@ -1093,7 +1087,7 @@ const WithdrawManagementPage = () => {
 
       {/* Dialog hiển thị mã QR để chuyển khoản */}
       <Dialog open={openQrDialog} onOpenChange={setOpenQrDialog}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

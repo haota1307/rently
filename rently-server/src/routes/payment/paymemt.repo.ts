@@ -249,6 +249,13 @@ export class PaymentRepo {
       }
     }
 
+    // Lọc theo trạng thái payment (COMPLETED, PENDING, CANCELED)
+    if (query.status) {
+      where.payment = {
+        status: query.status,
+      }
+    }
+
     // Giới hạn số lượng bản ghi
     const limit = query.limit ? parseInt(query.limit, 10) : 20
 
@@ -292,6 +299,40 @@ export class PaymentRepo {
       where.transactionDate = {
         ...where.transactionDate,
         lte: new Date(query.endDate + 'T23:59:59.999Z'),
+      }
+    }
+
+    // Lọc theo nội dung giao dịch
+    if (query.transaction_content) {
+      const contents = query.transaction_content.split('|')
+
+      const contentFilters = contents.map((content: string) => ({
+        OR: [
+          {
+            transactionContent: {
+              contains: content,
+              mode: 'insensitive',
+            },
+          },
+          {
+            code: {
+              contains: content,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }))
+
+      // Thêm điều kiện OR cho nhiều loại giao dịch
+      if (contentFilters.length > 0) {
+        where.OR = contentFilters
+      }
+    }
+
+    // Lọc theo trạng thái payment (COMPLETED, PENDING, CANCELED)
+    if (query.status) {
+      where.payment = {
+        status: query.status,
       }
     }
 

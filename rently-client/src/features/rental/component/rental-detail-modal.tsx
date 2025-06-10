@@ -45,7 +45,7 @@ export function RentalDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-4xl max-h-[90vh] p-0 overflow-hidden rounded-lg">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] p-0 overflow-hidden rounded-lg">
         {/* Header with gradient background */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-90"></div>

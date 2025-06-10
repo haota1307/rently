@@ -80,6 +80,8 @@ export const GetTransactionParamsSchema = z.object({
   reference_number: z.string().optional(),
   amount_in: z.string().optional(),
   amount_out: z.string().optional(),
+  transaction_content: z.string().optional(),
+  status: z.string().optional(),
 })
 
 export const GetTransactionDetailSchema = z.object({
