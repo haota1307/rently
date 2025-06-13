@@ -25,6 +25,11 @@ import { ChatbotMessageAnalysisSimplifiedService } from './services/message-anal
     ChatbotMessageAnalysisSimplifiedService,
     ChatbotService,
   ],
-  exports: [ChatbotService],
+  exports: [
+    ChatbotService,
+    ChatbotMessageAnalysisSimplifiedService,
+    ChatbotSearchService,
+    ChatbotCacheService,
+  ],
 })
 export class ChatbotModule {}

@@ -1,6 +1,7 @@
 "use client";
 
-import { HeroSection } from "@/components/hero-section";
+import { SmartHeroSection } from "@/components/smart-hero-section";
+import { SearchResults } from "@/features/smart-search/components/SmartSearchBox";
 import { MobileFilters } from "@/components/moblie-filters";
 import { PageHeader } from "@/components/page-header";
 import { NearbyPostsSection } from "@/components/nearby-posts-section";
@@ -14,6 +15,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [smartSearchResults, setSmartSearchResults] = useState<any>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +54,18 @@ export default function Home() {
     });
   };
 
+  const handleSmartSearchResults = (results: any) => {
+    setSmartSearchResults(results);
+    setHasSearched(true);
+    // Scroll to results when we have smart search results
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 300);
+  };
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* Thêm hiệu ứng hình học trang trí */}
@@ -61,9 +75,22 @@ export default function Home() {
         style={{ animationDelay: "1.5s" }}
       ></div>
 
-      <HeroSection onSearch={handleSearch} />
+      <SmartHeroSection onSearchResults={handleSmartSearchResults} />
       <div className=" mx-auto px-4 md:px-8 py-16 relative">
         <div className="absolute inset-0 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] -z-10" />
+
+        {/* Smart Search Results */}
+        {smartSearchResults && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-16"
+            ref={resultsRef}
+          >
+            <SearchResults results={smartSearchResults} />
+          </motion.div>
+        )}
 
         <motion.div
           className="relative z-10"

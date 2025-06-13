@@ -38,6 +38,7 @@ import envConfig from 'src/shared/config'
 import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
 import { RoomBillModule } from './routes/room-bill/room-bill.module'
 import { LandlordSubscriptionModule } from './routes/landlord-subscription/landlord-subscription.module'
+import { SmartSearchModule } from './routes/smart-search/smart-search.module'
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { LandlordSubscriptionModule } from './routes/landlord-subscription/landl
     RentalContractModule,
     RoomBillModule,
     LandlordSubscriptionModule,
+    SmartSearchModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
