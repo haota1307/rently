@@ -26,6 +26,12 @@ interface RoleUpgradeRequestPayload {
   reason: string;
   frontImage: string;
   backImage: string;
+  selfieImage?: string;
+  faceVerificationData?: {
+    similarity: number;
+    isVerified: boolean;
+    timestamp: string;
+  };
 }
 
 export const useCreateRoleUpgradeRequest = () => {

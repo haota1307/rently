@@ -30,8 +30,9 @@ import { vi } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
 import { RoleUpgradeRequestStatus } from "@/constants/type";
 import { cn } from "@/lib/utils";
-import { Eye } from "lucide-react";
+import { Eye, CheckCircle, XCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 interface RoleUpgradeRequest {
   id: number;
@@ -39,6 +40,13 @@ interface RoleUpgradeRequest {
   reason: string | null;
   frontImage: string;
   backImage: string;
+  selfieImage: string | null;
+  faceVerificationData: {
+    similarity: number;
+    isVerified: boolean;
+    timestamp: string;
+    apiResponseCode?: string;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
   userId: number;
@@ -184,6 +192,7 @@ export function RoleUpgradeRequestList({
               <TableHead>Người yêu cầu</TableHead>
               <TableHead>Thời gian</TableHead>
               <TableHead>Trạng thái</TableHead>
+              <TableHead>Xác thực khuôn mặt</TableHead>
               <TableHead>Lý do</TableHead>
               <TableHead>CCCD</TableHead>
               <TableHead>Thao tác</TableHead>
@@ -210,6 +219,43 @@ export function RoleUpgradeRequestList({
                   <Badge className={cn(statusMap[request.status].color)}>
                     {statusMap[request.status].label}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {request.faceVerificationData ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            request.faceVerificationData.isVerified
+                              ? "default"
+                              : "destructive"
+                          }
+                          className={
+                            request.faceVerificationData.isVerified
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }
+                        >
+                          {request.faceVerificationData.isVerified
+                            ? "✓ Đã xác thực"
+                            : "✗ Thất bại"}
+                        </Badge>
+                        {request.faceVerificationData.apiResponseCode && (
+                          <StatusBadge
+                            code={request.faceVerificationData.apiResponseCode}
+                            compact
+                          />
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {request.faceVerificationData.similarity.toFixed(1)}%
+                      </div>
+                    </div>
+                  ) : (
+                    <Badge variant="outline" className="text-gray-500">
+                      Chưa xác thực
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell>{request.reason || "-"}</TableCell>
                 <TableCell>
@@ -375,36 +421,142 @@ export function RoleUpgradeRequestList({
               </div>
             </div>
 
-            {/* Ảnh CCCD */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="text-lg font-semibold">Ảnh CCCD</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Mặt trước</Label>
-                  <div className="relative aspect-[3/2] rounded-lg border overflow-hidden">
-                    <img
-                      src={detailRequest?.frontImage}
-                      alt="Mặt trước CCCD"
-                      className="object-contain w-full h-full"
-                    />
+            {/* Ảnh CCCD và Xác thực khuôn mặt */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="space-y-4">
+                <div className="text-lg font-semibold">Ảnh CCCD</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Mặt trước</Label>
+                    <div className="relative aspect-[3/2] rounded-lg border overflow-hidden">
+                      <img
+                        src={detailRequest?.frontImage}
+                        alt="Mặt trước CCCD"
+                        className="object-contain w-full h-full"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Mặt sau</Label>
-                  <div className="relative aspect-[3/2] rounded-lg border overflow-hidden">
-                    <img
-                      src={detailRequest?.backImage}
-                      alt="Mặt sau CCCD"
-                      className="object-contain w-full h-full"
-                    />
+                  <div className="space-y-2">
+                    <Label>Mặt sau</Label>
+                    <div className="relative aspect-[3/2] rounded-lg border overflow-hidden">
+                      <img
+                        src={detailRequest?.backImage}
+                        alt="Mặt sau CCCD"
+                        className="object-contain w-full h-full"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
+              {/* Xác thực khuôn mặt */}
+              <div className="space-y-4">
+                <div className="text-lg font-semibold">Xác thực khuôn mặt</div>
+                {detailRequest?.selfieImage &&
+                detailRequest?.faceVerificationData ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Ảnh selfie</Label>
+                      <div className="relative aspect-[3/4] rounded-lg border overflow-hidden">
+                        <img
+                          src={detailRequest.selfieImage}
+                          alt="Ảnh selfie"
+                          className="object-contain w-full h-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <Label>Kết quả xác thực</Label>
+                      <div className="space-y-3 p-4 rounded-lg border">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            Trạng thái:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={
+                                detailRequest.faceVerificationData.isVerified
+                                  ? "default"
+                                  : "destructive"
+                              }
+                              className={
+                                detailRequest.faceVerificationData.isVerified
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }
+                            >
+                              {detailRequest.faceVerificationData.isVerified
+                                ? "✓ Đã xác thực"
+                                : "✗ Thất bại"}
+                            </Badge>
+                          </div>
+                        </div>
+                        {detailRequest.faceVerificationData.apiResponseCode && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              API Response:
+                            </span>
+                            <StatusBadge
+                              code={
+                                detailRequest.faceVerificationData
+                                  .apiResponseCode
+                              }
+                            />
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            Độ giống nhau:
+                          </span>
+                          <span className="text-sm font-mono">
+                            {detailRequest.faceVerificationData.similarity.toFixed(
+                              2
+                            )}
+                            %
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            Thời gian:
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {format(
+                              new Date(
+                                detailRequest.faceVerificationData.timestamp
+                              ),
+                              "HH:mm dd/MM/yyyy",
+                              { locale: vi }
+                            )}
+                          </span>
+                        </div>
+                        {detailRequest.faceVerificationData.similarity >= 80 ? (
+                          <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+                            ✓ Vượt ngưỡng chấp nhận (≥80%)
+                          </div>
+                        ) : (
+                          <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                            ✗ Dưới ngưỡng chấp nhận (&lt;80%)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-lg border border-dashed text-center text-muted-foreground">
+                    <div className="text-sm">
+                      Chưa thực hiện xác thực khuôn mặt
+                    </div>
+                    <div className="text-xs mt-1">
+                      Yêu cầu được tạo trước khi có tính năng xác thực
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {detailRequest?.reason && (
-                <div className="mt-4">
+                <div className="space-y-2">
                   <Label>Lý do yêu cầu</Label>
-                  <div className="mt-1 p-3 rounded-lg bg-muted">
+                  <div className="p-3 rounded-lg bg-muted">
                     {detailRequest.reason}
                   </div>
                 </div>

@@ -5,6 +5,14 @@ export const CreateRoleUpgradeRequestBodySchema = z
     reason: z.string().optional(),
     frontImage: z.string(),
     backImage: z.string(),
+    selfieImage: z.string().optional(),
+    faceVerificationData: z
+      .object({
+        similarity: z.number(),
+        isVerified: z.boolean(),
+        timestamp: z.string(),
+      })
+      .optional(),
   })
   .strict()
 

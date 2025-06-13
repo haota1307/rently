@@ -7,6 +7,15 @@ export const RoleUpgradeRequestSchema = z.object({
   note: z.string().nullable(),
   frontImage: z.string(),
   backImage: z.string(),
+  selfieImage: z.string().nullable(),
+  faceVerificationData: z
+    .object({
+      similarity: z.number(),
+      isVerified: z.boolean(),
+      timestamp: z.string(),
+      apiResponseCode: z.string().optional(),
+    })
+    .nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
   userId: z.number(),
@@ -52,6 +61,15 @@ export const CreateRoleUpgradeRequestBodySchema = z
     reason: z.string().min(1, "Vui lòng nhập lý do"),
     frontImage: z.string(),
     backImage: z.string(),
+    selfieImage: z.string().optional(),
+    faceVerificationData: z
+      .object({
+        similarity: z.number(),
+        isVerified: z.boolean(),
+        timestamp: z.string(),
+        apiResponseCode: z.string().optional(),
+      })
+      .optional(),
   })
   .strict();
 

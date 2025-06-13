@@ -101,6 +101,8 @@ export class RoleUpgradeRequestRepo {
         status: 'PENDING',
         frontImage: data.frontImage,
         backImage: data.backImage,
+        selfieImage: data.selfieImage,
+        faceVerificationData: data.faceVerificationData,
       },
       include: {
         user: {

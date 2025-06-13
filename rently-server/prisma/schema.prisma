@@ -398,18 +398,20 @@ model Comment {
 }
 
 model RoleUpgradeRequest {
-  id            Int                      @id @default(autoincrement())
-  status        RoleUpgradeRequestStatus @default(PENDING)
-  reason        String?
-  createdAt     DateTime                 @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime                 @updatedAt @db.Timestamptz(6)
-  userId        Int
-  processedById Int?
-  frontImage    String
-  backImage     String
-  note          String?
-  processedBy   User?                    @relation("ProcessedRequests", fields: [processedById], references: [id])
-  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   Int                      @id @default(autoincrement())
+  status               RoleUpgradeRequestStatus @default(PENDING)
+  reason               String?
+  createdAt            DateTime                 @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime                 @updatedAt @db.Timestamptz(6)
+  userId               Int
+  processedById        Int?
+  frontImage           String
+  backImage            String
+  selfieImage          String?
+  faceVerificationData Json?
+  note                 String?
+  processedBy          User?                    @relation("ProcessedRequests", fields: [processedById], references: [id])
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
