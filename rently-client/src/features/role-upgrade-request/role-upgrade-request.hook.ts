@@ -31,6 +31,7 @@ interface RoleUpgradeRequestPayload {
     similarity: number;
     isVerified: boolean;
     timestamp: string;
+    apiResponseCode?: string;
   };
 }
 
