@@ -223,30 +223,22 @@ export function RoleUpgradeRequestList({
                 <TableCell>
                   {request.faceVerificationData ? (
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            request.faceVerificationData.isVerified
-                              ? "default"
-                              : "destructive"
-                          }
-                          className={
-                            request.faceVerificationData.isVerified
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }
-                        >
-                          {request.faceVerificationData.isVerified
-                            ? "✓ Đã xác thực"
-                            : "✗ Thất bại"}
-                        </Badge>
-                        {request.faceVerificationData.apiResponseCode && (
-                          <StatusBadge
-                            code={request.faceVerificationData.apiResponseCode}
-                            compact
-                          />
-                        )}
-                      </div>
+                      <Badge
+                        variant={
+                          request.faceVerificationData.isVerified
+                            ? "default"
+                            : "destructive"
+                        }
+                        className={
+                          request.faceVerificationData.isVerified
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }
+                      >
+                        {request.faceVerificationData.isVerified
+                          ? "✓ Đã xác thực"
+                          : "✗ Thất bại"}
+                      </Badge>
                       <div className="text-xs text-muted-foreground">
                         {request.faceVerificationData.similarity.toFixed(1)}%
                       </div>
@@ -472,38 +464,23 @@ export function RoleUpgradeRequestList({
                           <span className="text-sm font-medium">
                             Trạng thái:
                           </span>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant={
-                                detailRequest.faceVerificationData.isVerified
-                                  ? "default"
-                                  : "destructive"
-                              }
-                              className={
-                                detailRequest.faceVerificationData.isVerified
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }
-                            >
-                              {detailRequest.faceVerificationData.isVerified
-                                ? "✓ Đã xác thực"
-                                : "✗ Thất bại"}
-                            </Badge>
-                          </div>
+                          <Badge
+                            variant={
+                              detailRequest.faceVerificationData.isVerified
+                                ? "default"
+                                : "destructive"
+                            }
+                            className={
+                              detailRequest.faceVerificationData.isVerified
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }
+                          >
+                            {detailRequest.faceVerificationData.isVerified
+                              ? "✓ Đã xác thực"
+                              : "✗ Thất bại"}
+                          </Badge>
                         </div>
-                        {detailRequest.faceVerificationData.apiResponseCode && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">
-                              API Response:
-                            </span>
-                            <StatusBadge
-                              code={
-                                detailRequest.faceVerificationData
-                                  .apiResponseCode
-                              }
-                            />
-                          </div>
-                        )}
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">
                             Độ giống nhau:

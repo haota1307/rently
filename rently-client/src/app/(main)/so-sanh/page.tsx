@@ -31,6 +31,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+// Import recommendation system
+import { RoomRecommendations } from "@/features/recommendation";
+
 export default function ComparisonPage() {
   const { items, removeItem, clearAll } = useComparisonStore();
   const router = useRouter();
@@ -309,6 +312,21 @@ export default function ComparisonPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* 🎯 HỆ THỐNG GỢI Ý - SO SÁNH */}
+      <div className="mt-12">
+        <div className="bg-gray-50 rounded-xl p-6">
+          <RoomRecommendations
+            roomId={items[0]?.room?.id || 1} // Dựa trên phòng đầu tiên trong so sánh
+            method="CONTENT_BASED"
+            limit={4}
+            title="Phòng tương tự có thể bạn quan tâm"
+            showMetadata={false}
+            showSimilarityBreakdown={false}
+            className=""
+          />
+        </div>
+      </div>
     </div>
   );
 }

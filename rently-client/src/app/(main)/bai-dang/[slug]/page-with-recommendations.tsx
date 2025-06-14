@@ -11,6 +11,7 @@ import { Role } from "@/constants/type";
 import { useAuth } from "@/hooks/use-auth";
 import { ReportPostButton } from "@/features/post-report/components";
 
+// Import components bài đăng
 import { PostDetailSkeleton } from "@/app/(main)/bai-dang/_components/post-detail-skeleton";
 import { ImageGallery } from "@/app/(main)/bai-dang/_components/image-gallery";
 import { PostHeader } from "@/app/(main)/bai-dang/_components/post-header";
@@ -26,7 +27,6 @@ import { PostDetailsCard } from "@/app/(main)/bai-dang/_components/post-details-
 import { RentalRequestSection } from "@/app/(main)/bai-dang/_components/rental-request-section";
 import { ViewingScheduleSection } from "@/app/(main)/bai-dang/_components/viewing-schedule-section";
 import { CommentSection } from "@/app/(main)/bai-dang/_components/comment-section";
-import { RelatedPostsSection } from "@/app/(main)/bai-dang/_components/related-posts";
 
 // Import recommendation system
 import { RoomRecommendations } from "@/features/recommendation";
@@ -37,7 +37,9 @@ interface PostDetailPageProps {
   }>;
 }
 
-export default function PostDetailPage({ params }: PostDetailPageProps) {
+export default function PostDetailPageWithRecommendations({
+  params,
+}: PostDetailPageProps) {
   const { slug } = use(params);
 
   // Trích xuất ID từ slug theo định dạng ".-i-{id}"
@@ -45,8 +47,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const postId = idMatch ? parseInt(idMatch[1]) : 0;
 
   const { data: post, isLoading, error } = useGetPostDetail(postId);
-
-  console.log("post", post);
 
   // Lấy thông tin về lịch hẹn xem phòng hiện tại của người dùng
   const { getViewingSchedules } = useViewingSchedule();
@@ -69,16 +69,12 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   // Kiểm tra xem người dùng có phải là chủ nhà hay không
   const isLandlord = post?.landlord?.id === userId;
 
-  // Add a check for existing rental request (if user already has a rental request for this post)
+  // Add a check for existing rental request
   const [hasExistingRequest, setHasExistingRequest] = useState(false);
 
   // Check for existing rental request
   useEffect(() => {
     if (!userId || !post) return;
-
-    // Kiểm tra xem người dùng đã có yêu cầu thuê cho bài đăng này chưa
-    // Logic này sẽ được triển khai trong component thực tế
-    // Ở đây chỉ giữ lại phần xử lý state để giữ logic UI
     setHasExistingRequest(false);
   }, [userId, post]);
 
@@ -219,7 +215,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             {/* Phần bình luận */}
             <CommentSection postId={postId} />
 
-            {/* 🎯 HỆ THỐNG GỢI Ý - PHÒNG TRỌ TƯƠNG TỰ */}
+            {/* 🎯 RECOMMENDATION SYSTEM - VỊ TRÍ CHÍNH */}
             {room?.id && (
               <div className="mt-12 mb-8">
                 <RoomRecommendations
@@ -234,7 +230,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </div>
             )}
 
-            {/* 🎯 HỆ THỐNG GỢI Ý - PHÒNG PHỔ BIẾN */}
+            {/* 🎯 RECOMMENDATION SYSTEM - PHẦN PHỔ BIẾN */}
             {room?.id && (
               <div className="mt-8 mb-8">
                 <RoomRecommendations
@@ -248,15 +244,12 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 />
               </div>
             )}
-
-            {/* Bài đăng liên quan */}
-            <RelatedPostsSection postId={postId} rentalId={rental?.id || 0} />
           </div>
 
           {/* Sidebar với thông tin chủ nhà và nhà trọ */}
           <div>
             <div className="mt-4 block lg:hidden"></div>
-            <div className="lg:sticky lg:top-20">
+            <div className="lg:sticky lg:top-20 space-y-4">
               {/* Thông tin người cho thuê */}
               <LandlordInfo
                 landlord={{
@@ -269,9 +262,9 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 isLandlord={isLandlord}
               />
 
-              {/* 🎯 HỆ THỐNG GỢI Ý - SIDEBAR COMPACT */}
+              {/* 🎯 RECOMMENDATION SYSTEM - SIDEBAR COMPACT */}
               {room?.id && (
-                <div className="bg-white rounded-lg border p-4 mb-4">
+                <div className="bg-white rounded-lg border p-4">
                   <RoomRecommendations
                     roomId={room.id}
                     method="LOCATION_BASED"

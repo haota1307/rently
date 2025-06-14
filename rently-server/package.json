@@ -12,6 +12,8 @@
   "scripts": {
     "init-seed-data": "ts-node initialScript",
     "create-permissions": "ts-node initialScript/create-permissions.ts",
+    "seed:recommendation": "ts-node src/scripts/seed-recommendation-data.ts",
+    "data": "node gen-data.js",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",

@@ -14,6 +14,9 @@ import { CustomPagination } from "@/components/ui/custom-pagination";
 import { FavoriteWithRentalType } from "@/schemas/favorite.schema";
 import { Container } from "@/components/container";
 
+// Import recommendation system
+import { RoomRecommendations } from "@/features/recommendation";
+
 export default function SavedListingsPage() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
@@ -138,6 +141,21 @@ export default function SavedListingsPage() {
               />
             </div>
           )}
+
+          {/* 🎯 HỆ THỐNG GỢI Ý - TIN ĐÃ LƯU */}
+          <div className="mt-12">
+            <div className="bg-gray-50 rounded-xl p-6">
+              <RoomRecommendations
+                roomId={1} // Sử dụng roomId mặc định cho collaborative filtering
+                method="COLLABORATIVE"
+                limit={4}
+                title="Có thể bạn cũng thích"
+                showMetadata={false}
+                showSimilarityBreakdown={false}
+                className=""
+              />
+            </div>
+          </div>
         </>
       )}
     </Container>

@@ -39,6 +39,7 @@ import { PaymentConsumer } from 'src/routes/queues/payment.consumer'
 import { RoomBillModule } from './routes/room-bill/room-bill.module'
 import { LandlordSubscriptionModule } from './routes/landlord-subscription/landlord-subscription.module'
 import { SmartSearchModule } from './routes/smart-search/smart-search.module'
+import { RecommendationModule } from './routes/recommendation/recommendation.module'
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { SmartSearchModule } from './routes/smart-search/smart-search.module'
     RoomBillModule,
     LandlordSubscriptionModule,
     SmartSearchModule,
+    RecommendationModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

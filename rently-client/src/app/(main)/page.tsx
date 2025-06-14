@@ -10,6 +10,9 @@ import SearchFilters, { FilterValues } from "@/components/search-filters";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
+// Import recommendation system
+import { RoomRecommendations } from "@/features/recommendation";
+
 export default function Home() {
   const [activeFilters, setActiveFilters] = useState<FilterValues>({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -174,6 +177,41 @@ export default function Home() {
 
               <div className="relative z-10">
                 <NearbyPostsSection />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 🎯 HỆ THỐNG GỢI Ý - TRANG CHỦ */}
+          <motion.div
+            className="mt-24"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            <div className="relative mb-12">
+              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 w-40 h-1.5 bg-gradient-to-r from-purple-300 via-pink-300 to-red-300 dark:from-purple-600 dark:via-pink-600 dark:to-red-600 rounded-full opacity-70 blur-sm"></div>
+
+              <PageHeader
+                title="Gợi ý dành cho bạn"
+                description="Những phòng trọ được quan tâm nhiều nhất trong khu vực"
+              />
+            </div>
+
+            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+              {/* Hiệu ứng trang trí góc */}
+              <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-purple-200/40 via-pink-200/30 to-red-200/40 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-red-900/20 rounded-full blur-2xl"></div>
+              <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-pink-200/30 via-red-200/20 to-orange-200/30 dark:from-pink-900/20 dark:via-red-900/20 dark:to-orange-900/20 rounded-full blur-2xl"></div>
+
+              <div className="relative z-10">
+                <RoomRecommendations
+                  roomId={1} // Sử dụng roomId mặc định cho popularity
+                  method="POPULARITY"
+                  limit={6}
+                  title=""
+                  showMetadata={true}
+                  showSimilarityBreakdown={false}
+                  className=""
+                />
               </div>
             </div>
           </motion.div>
