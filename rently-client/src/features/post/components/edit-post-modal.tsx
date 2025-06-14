@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useUpdatePost } from "@/features/post/usePost";
-import { useGetRooms } from "@/features/rooms/useRoom";
+import { useGetMyRooms } from "@/features/rooms/useRoom";
 import { toast } from "sonner";
 import { RentalPostStatus } from "@/schemas/post.schema";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,7 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
   });
 
   const { mutateAsync: updatePost, isPending } = useUpdatePost();
-  const { data: roomsData, isLoading: isRoomsLoading } = useGetRooms({
+  const { data: roomsData, isLoading: isRoomsLoading } = useGetMyRooms({
     limit: 100,
     page: 1,
   });

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useCreatePost } from "@/features/post/usePost";
-import { useGetRooms } from "@/features/rooms/useRoom";
+import { useGetMyRooms } from "@/features/rooms/useRoom";
 import { useGetRentalsById } from "@/features/rental/useRental";
 import { toast } from "sonner";
 import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
@@ -78,7 +78,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     }
   );
 
-  const { data: roomsData, isLoading: isRoomsLoading } = useGetRooms({
+  const { data: roomsData, isLoading: isRoomsLoading } = useGetMyRooms({
     limit: 100,
     page: 1,
     status: "available",
