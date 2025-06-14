@@ -20,8 +20,9 @@ export class RecommendationController {
   constructor(private readonly recommendationService: RecommendationService) {}
 
   /**
-   * GET /recommendations?roomId=123&limit=8&method=CONTENT_BASED
-   * Lấy danh sách phòng trọ được gợi ý dựa trên roomId
+   * GET /recommendations?roomId=123&limit=8
+   * Lấy danh sách phòng trọ được gợi ý thông minh dựa trên roomId
+   * Sử dụng thuật toán Hybrid tự động điều chỉnh theo context
    * Public endpoint - không cần auth
    */
   @Get()
@@ -29,7 +30,7 @@ export class RecommendationController {
   async getRecommendations(
     @Query('roomId') roomId: string,
     @Query('limit') limit: string = '8',
-    @Query('method') method: string = 'CONTENT_BASED',
+    @Query('method') method: string = 'HYBRID',
     @Query('maxDistance') maxDistance: string = '5000',
     @Query('priceVariance') priceVariance: string = '0.3',
     @Query('areaVariance') areaVariance: string = '0.4',
@@ -128,9 +129,12 @@ export class RecommendationController {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         features: [
+          'hybrid intelligent recommendations',
           'content-based filtering',
+          'collaborative filtering',
           'popularity-based filtering',
           'location-based filtering',
+          'context-aware weighting',
           'click tracking',
           'similarity explanation',
         ],
@@ -141,13 +145,14 @@ export class RecommendationController {
   /**
    * GET /recommendations/room/:roomId
    * Alternative endpoint với roomId trong path
+   * Sử dụng thuật toán Hybrid thông minh
    */
   @Get('room/:roomId')
   @IsPublic()
   async getRecommendationsForRoom(
     @Param('roomId') roomId: string,
     @Query('limit') limit: string = '8',
-    @Query('method') method: string = 'CONTENT_BASED',
+    @Query('method') method: string = 'HYBRID',
     @ActiveUser('userId') userId?: number
   ) {
     try {

@@ -63,7 +63,7 @@ export const GetRecommendationsQuerySchema = z
     method: z
       .nativeEnum(RecommendationMethod)
       .optional()
-      .default(RecommendationMethod.CONTENT_BASED),
+      .default(RecommendationMethod.HYBRID),
     includeExplanations: z.coerce.boolean().default(true),
     maxDistance: z.coerce.number().positive().default(5000), // meters
     priceVariance: z.coerce.number().min(0).max(1).default(0.3), // 30% variance

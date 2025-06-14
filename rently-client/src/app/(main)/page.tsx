@@ -204,12 +204,13 @@ export default function Home() {
 
               <div className="relative z-10">
                 <RoomRecommendations
-                  roomId={1} // Sử dụng roomId mặc định cho popularity
-                  method="POPULARITY"
-                  limit={6}
+                  roomId={1} // Sử dụng roomId mặc định cho recommendations
+                  method="HYBRID"
+                  limit={8}
                   title=""
                   showMetadata={true}
                   showSimilarityBreakdown={false}
+                  defaultViewMode="grid"
                   className=""
                 />
               </div>

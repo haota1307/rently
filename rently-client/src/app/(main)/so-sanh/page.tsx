@@ -318,11 +318,12 @@ export default function ComparisonPage() {
         <div className="bg-gray-50 rounded-xl p-6">
           <RoomRecommendations
             roomId={items[0]?.room?.id || 1} // Dựa trên phòng đầu tiên trong so sánh
-            method="CONTENT_BASED"
-            limit={4}
+            method="HYBRID"
+            limit={6}
             title="Phòng tương tự có thể bạn quan tâm"
             showMetadata={false}
             showSimilarityBreakdown={false}
+            defaultViewMode="grid"
             className=""
           />
         </div>

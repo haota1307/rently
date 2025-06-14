@@ -8,6 +8,8 @@ import {
   BarChart3,
   TrendingUp,
   Target,
+  Grid3X3,
+  List,
 } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +20,7 @@ import {
   useTrackRecommendationClick,
 } from "../hooks/useRecommendations";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface RoomRecommendationsProps {
   roomId?: number;
@@ -30,6 +33,7 @@ interface RoomRecommendationsProps {
   showMetadata?: boolean;
   showSimilarityBreakdown?: boolean;
   className?: string;
+  defaultViewMode?: "grid" | "list";
 }
 
 const methodLabels: Record<
@@ -54,7 +58,10 @@ export function RoomRecommendations({
   showMetadata = true,
   showSimilarityBreakdown = false,
   className,
+  defaultViewMode = "grid",
 }: RoomRecommendationsProps) {
+  const [viewMode, setViewMode] = useState<"grid" | "list">(defaultViewMode);
+
   const { data, isLoading, error, refetch } = useRecommendations({
     roomId,
     method,
@@ -163,10 +170,21 @@ export function RoomRecommendations({
             {title}
           </h3>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          className={cn(
+            viewMode === "grid"
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              : "space-y-4"
+          )}
+        >
           {Array.from({ length: limit }).map((_, index) => (
             <div key={index} className="animate-pulse">
-              <div className="bg-gray-200 rounded-lg aspect-[4/3] mb-3"></div>
+              <div
+                className={cn(
+                  "bg-gray-200 rounded-lg mb-3",
+                  viewMode === "grid" ? "aspect-[4/3]" : "h-32"
+                )}
+              ></div>
               <div className="space-y-2">
                 <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                 <div className="h-3 bg-gray-200 rounded w-1/2"></div>
@@ -200,32 +218,69 @@ export function RoomRecommendations({
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between">
-        {title && (
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <Icon className="h-5 w-5" />
-            {title}
-          </h3>
-        )}
+        <div className="flex items-center gap-2">
+          {title && (
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <Icon className="h-5 w-5" />
+              {title}
+            </h3>
+          )}
+        </div>
 
-        {showMetadata && (
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={cn("text-white", methodConfig.color)}
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center border rounded-lg p-1">
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="h-8 w-8 p-0"
+              title="Xem dạng lưới"
             >
-              <Icon className="h-3 w-3 mr-1" />
-              {methodConfig.label}
-            </Badge>
-            <Badge variant="secondary">{recommendations.length} phòng</Badge>
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="h-8 w-8 p-0"
+              title="Xem dạng danh sách"
+            >
+              <List className="h-4 w-4" />
+            </Button>
           </div>
-        )}
+
+          {showMetadata && (
+            <>
+              <Badge
+                variant="outline"
+                className={cn("text-white", methodConfig.color)}
+              >
+                <Icon className="h-3 w-3 mr-1" />
+                {methodConfig.label}
+              </Badge>
+              <Badge variant="secondary">{recommendations.length} phòng</Badge>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div
+        className={cn(
+          viewMode === "grid"
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            : "space-y-4"
+        )}
+      >
         {recommendations.map((room) => (
           <div key={room.id} className="relative group">
             {/* Recommendation metadata overlay */}
-            <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+            <div
+              className={cn(
+                "absolute top-2 left-2 z-20 flex gap-1",
+                viewMode === "list" ? "flex-row" : "flex-col"
+              )}
+            >
               <Badge
                 variant="outline"
                 className={cn("text-white text-xs", methodConfig.color)}
@@ -244,7 +299,7 @@ export function RoomRecommendations({
             <div onClick={() => handleRoomClick(room.id)}>
               <RentalCard
                 rental={convertToRental(room)}
-                viewMode="grid"
+                viewMode={viewMode}
                 isNearbyPost={method === "LOCATION_BASED"}
               />
             </div>

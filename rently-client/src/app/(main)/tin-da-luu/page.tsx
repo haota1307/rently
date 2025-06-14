@@ -146,12 +146,13 @@ export default function SavedListingsPage() {
           <div className="mt-12">
             <div className="bg-gray-50 rounded-xl p-6">
               <RoomRecommendations
-                roomId={1} // Sử dụng roomId mặc định cho collaborative filtering
-                method="COLLABORATIVE"
-                limit={4}
+                roomId={1} // Sử dụng roomId mặc định cho recommendations
+                method="HYBRID"
+                limit={6}
                 title="Có thể bạn cũng thích"
                 showMetadata={false}
                 showSimilarityBreakdown={false}
+                defaultViewMode="grid"
                 className=""
               />
             </div>

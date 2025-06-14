@@ -219,32 +219,18 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             {/* Phần bình luận */}
             <CommentSection postId={postId} />
 
-            {/* 🎯 HỆ THỐNG GỢI Ý - PHÒNG TRỌ TƯƠNG TỰ */}
+            {/* 🎯 HỆ THỐNG GỢI Ý - PHÒNG TRỌ CÓ THỂ BẠN QUAN TÂM */}
             {room?.id && (
               <div className="mt-12 mb-8">
                 <RoomRecommendations
                   roomId={room.id}
-                  method="CONTENT_BASED"
+                  method="HYBRID"
                   limit={8}
                   title="Phòng trọ có thể bạn quan tâm"
                   showMetadata={true}
                   showSimilarityBreakdown={false}
+                  defaultViewMode="list"
                   className="bg-gray-50 rounded-xl p-6"
-                />
-              </div>
-            )}
-
-            {/* 🎯 HỆ THỐNG GỢI Ý - PHÒNG PHỔ BIẾN */}
-            {room?.id && (
-              <div className="mt-8 mb-8">
-                <RoomRecommendations
-                  roomId={room.id}
-                  method="POPULARITY"
-                  limit={4}
-                  title="Phòng được quan tâm nhiều trong khu vực"
-                  showMetadata={false}
-                  showSimilarityBreakdown={false}
-                  className="bg-white border rounded-xl p-6"
                 />
               </div>
             )}
@@ -268,21 +254,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 }}
                 isLandlord={isLandlord}
               />
-
-              {/* 🎯 HỆ THỐNG GỢI Ý - SIDEBAR COMPACT */}
-              {room?.id && (
-                <div className="bg-white rounded-lg border p-4 mb-4">
-                  <RoomRecommendations
-                    roomId={room.id}
-                    method="LOCATION_BASED"
-                    limit={3}
-                    title="Phòng gần đây"
-                    showMetadata={false}
-                    showSimilarityBreakdown={false}
-                    className=""
-                  />
-                </div>
-              )}
 
               {/* Thông tin đặt cọc */}
               <DepositInfo deposit={post.deposit} />

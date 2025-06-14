@@ -440,20 +440,182 @@ export class RecommendationRepo {
         }
       })
 
-      // Ensure weights sum to 1
-      const sum =
+      // Đảm bảo tổng trọng số = 1
+      const total =
         weights.location + weights.price + weights.area + weights.amenities
-      if (Math.abs(sum - 1) > 0.001) {
-        this.logger.warn(`Recommendation weights sum to ${sum}, using defaults`)
-        return DEFAULT_SIMILARITY_WEIGHTS
+      if (Math.abs(total - 1) > 0.001) {
+        // Normalize weights
+        weights.location /= total
+        weights.price /= total
+        weights.area /= total
+        weights.amenities /= total
       }
 
       return weights
     } catch (error) {
-      this.logger.warn(
-        'Failed to get recommendation weights from settings, using defaults'
-      )
+      this.logger.error('Error getting recommendation weights:', error)
       return DEFAULT_SIMILARITY_WEIGHTS
+    }
+  }
+
+  /**
+   * 🤝 COLLABORATIVE FILTERING SUPPORT
+   * Lấy danh sách user active có tương tác để tính collaborative filtering
+   */
+  async getActiveUsers(excludeUserId: number, limit: number = 100) {
+    try {
+      return await this.prismaService.user.findMany({
+        where: {
+          id: { not: excludeUserId },
+          role: {
+            name: 'CLIENT',
+          }, // Chỉ lấy user CLIENT
+          // Có ít nhất 1 tương tác trong 6 tháng qua
+          OR: [
+            {
+              favorites: {
+                some: {
+                  createdAt: {
+                    gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000), // 6 months
+                  },
+                },
+              },
+            },
+            {
+              tenantViewingSchedules: {
+                some: {
+                  createdAt: {
+                    gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+                  },
+                },
+              },
+            },
+            {
+              tenantRentalRequests: {
+                some: {
+                  createdAt: {
+                    gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+                  },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          favorites: {
+            where: {
+              createdAt: {
+                gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+              },
+            },
+            include: {
+              rental: {
+                include: {
+                  rooms: {
+                    where: { isAvailable: true },
+                    include: {
+                      roomAmenities: {
+                        include: { amenity: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          tenantViewingSchedules: {
+            where: {
+              createdAt: {
+                gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+              },
+            },
+            include: {
+              post: {
+                include: {
+                  room: {
+                    include: {
+                      rental: true,
+                      roomAmenities: {
+                        include: { amenity: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          tenantRentalRequests: {
+            where: {
+              createdAt: {
+                gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+              },
+            },
+            include: {
+              post: {
+                include: {
+                  room: {
+                    include: {
+                      rental: true,
+                      roomAmenities: {
+                        include: { amenity: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        take: limit,
+        orderBy: [
+          // Ưu tiên user có nhiều tương tác gần đây
+          { favorites: { _count: 'desc' } },
+          { tenantViewingSchedules: { _count: 'desc' } },
+          { tenantRentalRequests: { _count: 'desc' } },
+        ],
+      })
+    } catch (error) {
+      this.logger.error('Error getting active users:', error)
+      throw new InternalServerErrorException('Failed to get active users')
+    }
+  }
+
+  /**
+   * Đếm số lượng tương tác của một user
+   */
+  async getUserInteractionCount(userId: number): Promise<number> {
+    try {
+      const [favoritesCount, viewingCount, requestCount] = await Promise.all([
+        this.prismaService.favorite.count({
+          where: {
+            userId,
+            createdAt: {
+              gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+            },
+          },
+        }),
+        this.prismaService.viewingSchedule.count({
+          where: {
+            tenantId: userId,
+            createdAt: {
+              gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+            },
+          },
+        }),
+        this.prismaService.rentalRequest.count({
+          where: {
+            tenantId: userId,
+            createdAt: {
+              gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+            },
+          },
+        }),
+      ])
+
+      return favoritesCount + viewingCount + requestCount
+    } catch (error) {
+      this.logger.error('Error getting user interaction count:', error)
+      return 0
     }
   }
 }
