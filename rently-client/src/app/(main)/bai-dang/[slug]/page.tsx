@@ -1,7 +1,7 @@
 "use client";
 
 import { useGetPostDetail } from "@/features/post/usePost";
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +30,7 @@ import { RelatedPostsSection } from "@/app/(main)/bai-dang/_components/related-p
 
 // Import recommendation system
 import { RoomRecommendations } from "@/features/recommendation";
+import { useRoomHistory } from "@/hooks/use-room-history";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -72,15 +73,22 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   // Add a check for existing rental request (if user already has a rental request for this post)
   const [hasExistingRequest, setHasExistingRequest] = useState(false);
 
+  const { addToHistory } = useRoomHistory();
+  const savedToHistoryRef = useRef(false);
+
   // Check for existing rental request
   useEffect(() => {
     if (!userId || !post) return;
-
-    // Kiểm tra xem người dùng đã có yêu cầu thuê cho bài đăng này chưa
-    // Logic này sẽ được triển khai trong component thực tế
-    // Ở đây chỉ giữ lại phần xử lý state để giữ logic UI
     setHasExistingRequest(false);
   }, [userId, post]);
+
+  // Lưu roomId vào lịch sử xem khi user xem trang chi tiết
+  useEffect(() => {
+    if (post?.room?.id && !savedToHistoryRef.current) {
+      addToHistory(post.room.id, post.title);
+      savedToHistoryRef.current = true;
+    }
+  }, [post?.room?.id, post?.title, addToHistory]);
 
   if (isLoading) {
     return <PostDetailSkeleton />;
@@ -225,11 +233,12 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 <RoomRecommendations
                   roomId={room.id}
                   method="HYBRID"
-                  limit={8}
+                  limit={6}
                   title="Phòng trọ có thể bạn quan tâm"
                   showMetadata={true}
                   showSimilarityBreakdown={false}
-                  defaultViewMode="list"
+                  defaultViewMode="grid"
+                  maxColumns={3}
                   className="bg-gray-50 rounded-xl p-6"
                 />
               </div>

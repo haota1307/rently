@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 
 // Import recommendation system
 import { RoomRecommendations } from "@/features/recommendation";
+import { useRoomHistory } from "@/hooks/use-room-history";
 
 export default function Home() {
   const [activeFilters, setActiveFilters] = useState<FilterValues>({});
@@ -19,11 +20,28 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [smartSearchResults, setSmartSearchResults] = useState<any>(null);
+  const [recommendationRoomId, setRecommendationRoomId] = useState<number>(1);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  const { getSmartRoomId, hasHistory } = useRoomHistory();
 
   useEffect(() => {
     setIsLoaded(true);
-  }, []);
+    // Lấy roomId thông minh cho recommendations
+    const smartRoomId = getSmartRoomId();
+    setRecommendationRoomId(smartRoomId);
+  }, []); // Chỉ chạy một lần khi mount
+
+  // Refresh recommendations khi user quay lại trang (focus event)
+  useEffect(() => {
+    const handleFocus = () => {
+      const smartRoomId = getSmartRoomId();
+      setRecommendationRoomId(smartRoomId);
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []); // Chỉ setup listener một lần
 
   // Scroll đến kết quả khi tìm kiếm
   useEffect(() => {
@@ -193,7 +211,11 @@ export default function Home() {
 
               <PageHeader
                 title="Gợi ý dành cho bạn"
-                description="Những phòng trọ được quan tâm nhiều nhất trong khu vực"
+                description={
+                  recommendationRoomId === 1
+                    ? "Những phòng trọ được quan tâm nhiều nhất trong khu vực"
+                    : "Dựa trên phòng bạn đã xem gần đây"
+                }
               />
             </div>
 
@@ -204,7 +226,7 @@ export default function Home() {
 
               <div className="relative z-10">
                 <RoomRecommendations
-                  roomId={1} // Sử dụng roomId mặc định cho recommendations
+                  roomId={recommendationRoomId} // Sử dụng roomId thông minh dựa trên lịch sử xem
                   method="HYBRID"
                   limit={8}
                   title=""

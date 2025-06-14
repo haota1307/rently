@@ -9,73 +9,68 @@ datasource db {
 }
 
 model User {
-  id                                             Int                        @id @default(autoincrement())
+  id                                             Int                    @id @default(autoincrement())
   name                                           String
   avatar                                         String?
   phoneNumber                                    String?
-  email                                          String                     @unique
+  email                                          String                 @unique
   password                                       String
-  status                                         UserStatus                 @default(INACTIVE)
-  balance                                        Int                        @default(0)
+  status                                         UserStatus             @default(INACTIVE)
+  balance                                        Int                    @default(0)
   roleId                                         Int
   deletedAt                                      DateTime?
-  createdAt                                      DateTime                   @default(now()) @db.Timestamptz(6)
-  updatedAt                                      DateTime                   @updatedAt @db.Timestamptz(6)
+  createdAt                                      DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt                                      DateTime               @updatedAt @db.Timestamptz(6)
   createdById                                    Int?
   deletedById                                    Int?
   updatedById                                    Int?
   ChatbotMessage                                 ChatbotMessage[]
   comments                                       Comment[]
-  respondedContacts                              Contact[]                  @relation("UserRespondedContacts")
+  respondedContacts                              Contact[]              @relation("UserRespondedContacts")
   Contact                                        Contact[]
   ContractAttachment                             ContractAttachment[]
   ContractSignature                              ContractSignature[]
   contractTemplates                              ContractTemplate[]
-  conversationsOne                               Conversation[]             @relation("UserOneConversations")
-  conversationsTwo                               Conversation[]             @relation("UserTwoConversations")
+  conversationsOne                               Conversation[]         @relation("UserOneConversations")
+  conversationsTwo                               Conversation[]         @relation("UserTwoConversations")
   conversationMessages                           ConversationMessage[]
   favorites                                      Favorite[]
   notifications                                  Notification[]
   payments                                       Payment[]
   paymentTransactions                            PaymentTransaction[]
-  PermissionCreatedBy                            Permission[]               @relation("PermissionCreatedBy")
-  deletedPermissions                             Permission[]               @relation("PermissionDeletedBy")
-  PermissionUpdatedBy                            Permission[]               @relation("PermissionUpdatedBy")
+  PermissionCreatedBy                            Permission[]           @relation("PermissionCreatedBy")
+  deletedPermissions                             Permission[]           @relation("PermissionDeletedBy")
+  PermissionUpdatedBy                            Permission[]           @relation("PermissionUpdatedBy")
   Permission                                     Permission[]
-  processedReports                               PostReport[]               @relation("ProcessedReports")
-  reportedPosts                                  PostReport[]               @relation("UserReports")
+  processedReports                               PostReport[]           @relation("ProcessedReports")
+  reportedPosts                                  PostReport[]           @relation("UserReports")
   PostReport                                     PostReport[]
   refreshTokens                                  RefreshToken[]
-  rentals                                        Rental[]                   @relation("LandlordRentals")
-  RentalContract_RentalContract_landlordIdToUser RentalContract[]           @relation("RentalContract_landlordIdToUser")
-  RentalContract_RentalContract_tenantIdToUser   RentalContract[]           @relation("RentalContract_tenantIdToUser")
-  rentalPosts                                    RentalPost[]               @relation("LandlordRentalPosts")
-  landlordRentalRequests                         RentalRequest[]            @relation("LandlordRentalRequests")
-  tenantRentalRequests                           RentalRequest[]            @relation("TenantRentalRequests")
-  reviews                                        Review[]                   @relation("TenantReviews")
-  RoleCreatedBy                                  Role[]                     @relation("RoleCreatedBy")
-  Role                                           Role[]                     @relation("RoledeletedByIdBy")
-  RoleUpdatedBy                                  Role[]                     @relation("RoleUpdatedBy")
-  processedRequests                              RoleUpgradeRequest[]       @relation("ProcessedRequests")
+  rentals                                        Rental[]               @relation("LandlordRentals")
+  RentalContract_RentalContract_landlordIdToUser RentalContract[]       @relation("RentalContract_landlordIdToUser")
+  RentalContract_RentalContract_tenantIdToUser   RentalContract[]       @relation("RentalContract_tenantIdToUser")
+  rentalPosts                                    RentalPost[]           @relation("LandlordRentalPosts")
+  landlordRentalRequests                         RentalRequest[]        @relation("LandlordRentalRequests")
+  tenantRentalRequests                           RentalRequest[]        @relation("TenantRentalRequests")
+  reviews                                        Review[]               @relation("TenantReviews")
+  RoleCreatedBy                                  Role[]                 @relation("RoleCreatedBy")
+  Role                                           Role[]                 @relation("RoledeletedByIdBy")
+  RoleUpdatedBy                                  Role[]                 @relation("RoleUpdatedBy")
+  processedRequests                              RoleUpgradeRequest[]   @relation("ProcessedRequests")
   roleUpgradeRequests                            RoleUpgradeRequest[]
-  createdSettings                                SystemSetting[]            @relation("SettingCreatedBy")
-  updatedSettings                                SystemSetting[]            @relation("SettingUpdatedBy")
-  createdBy                                      User?                      @relation("CreatorUsers", fields: [createdById], references: [id], onUpdate: NoAction)
-  createdUsers                                   User[]                     @relation("CreatorUsers")
-  deletedBy                                      User?                      @relation("DeletorUsers", fields: [deletedById], references: [id], onUpdate: NoAction)
-  deletedUsers                                   User[]                     @relation("DeletorUsers")
-  role                                           Role                       @relation(fields: [roleId], references: [id])
-  updatedBy                                      User?                      @relation("UpdatorUsers", fields: [updatedById], references: [id], onUpdate: NoAction)
-  updatedUsers                                   User[]                     @relation("UpdatorUsers")
-  landlordViewingSchedules                       ViewingSchedule[]          @relation("LandlordViewingSchedules")
-  tenantViewingSchedules                         ViewingSchedule[]          @relation("TenantViewingSchedules")
+  createdSettings                                SystemSetting[]        @relation("SettingCreatedBy")
+  updatedSettings                                SystemSetting[]        @relation("SettingUpdatedBy")
+  createdBy                                      User?                  @relation("CreatorUsers", fields: [createdById], references: [id], onUpdate: NoAction)
+  createdUsers                                   User[]                 @relation("CreatorUsers")
+  deletedBy                                      User?                  @relation("DeletorUsers", fields: [deletedById], references: [id], onUpdate: NoAction)
+  deletedUsers                                   User[]                 @relation("DeletorUsers")
+  role                                           Role                   @relation(fields: [roleId], references: [id])
+  updatedBy                                      User?                  @relation("UpdatorUsers", fields: [updatedById], references: [id], onUpdate: NoAction)
+  updatedUsers                                   User[]                 @relation("UpdatorUsers")
+  landlordViewingSchedules                       ViewingSchedule[]      @relation("LandlordViewingSchedules")
+  tenantViewingSchedules                         ViewingSchedule[]      @relation("TenantViewingSchedules")
   createdRoomUtilityBills                        RoomUtilityBill[]
   LandlordSubscription                           LandlordSubscription[]
-  recommendationClicks                           RecommendationClick[]      @relation("RecommendationClicks")
-  recommendationImpressions                      RecommendationImpression[] @relation("RecommendationImpressions")
-  userPreference                                 UserPreference?            @relation("UserPreferences")
-  recommendationCache                            RecommendationCache[]      @relation("UserRecommendationCache")
-  recommendationFeedbacks                        RecommendationFeedback[]   @relation("RecommendationFeedbacks")
 
   @@index([name])
   @@index([status])
@@ -174,27 +169,21 @@ model Rental {
 }
 
 model Room {
-  id                    Int                        @id @default(autoincrement())
-  title                 String
-  price                 Decimal
-  isAvailable           Boolean                    @default(true)
-  createdAt             DateTime                   @default(now()) @db.Timestamptz(6)
-  updatedAt             DateTime                   @updatedAt @db.Timestamptz(6)
-  rentalId              Int
-  area                  Int
-  RentalContract        RentalContract[]
-  RentalPost            RentalPost[]
-  reviews               Review[]
-  rental                Rental                     @relation(fields: [rentalId], references: [id], onDelete: Cascade)
-  roomAmenities         RoomAmenity[]
-  roomImages            RoomImage[]
-  utilityBills          RoomUtilityBill[]
-  sourceRoomClicks      RecommendationClick[]      @relation("SourceRoomClicks")
-  targetRoomClicks      RecommendationClick[]      @relation("TargetRoomClicks")
-  roomImpressions       RecommendationImpression[] @relation("RoomImpressions")
-  cachedRecommendations RecommendationCache[]      @relation("CachedRecommendations")
-  roomFeedbacks         RecommendationFeedback[]   @relation("RoomFeedbacks")
-  sourceRoomFeedbacks   RecommendationFeedback[]   @relation("SourceRoomFeedbacks")
+  id             Int               @id @default(autoincrement())
+  title          String
+  price          Decimal
+  isAvailable    Boolean           @default(true)
+  createdAt      DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @db.Timestamptz(6)
+  rentalId       Int
+  area           Int
+  RentalContract RentalContract[]
+  RentalPost     RentalPost[]
+  reviews        Review[]
+  rental         Rental            @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  roomAmenities  RoomAmenity[]
+  roomImages     RoomImage[]
+  utilityBills   RoomUtilityBill[]
 
   @@index([rentalId])
   @@index([isAvailable])
@@ -849,140 +838,4 @@ enum ContractStatus {
   EXPIRED
   TERMINATED
   RENEWED
-}
-
-// 🎯 RECOMMENDATION SYSTEM MODELS
-
-model RecommendationClick {
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  sourceRoomId    Int // Phòng đang xem
-  targetRoomId    Int // Phòng được click
-  method          String // CONTENT_BASED, COLLABORATIVE, POPULARITY, LOCATION_BASED, HYBRID
-  rank            Int // Vị trí trong danh sách gợi ý (1, 2, 3...)
-  similarityScore Decimal // Điểm tương đồng
-  sessionId       String? // Session ID để track user journey
-  createdAt       DateTime @default(now()) @db.Timestamptz(6)
-
-  // Relations
-  user       User @relation("RecommendationClicks", fields: [userId], references: [id], onDelete: Cascade)
-  sourceRoom Room @relation("SourceRoomClicks", fields: [sourceRoomId], references: [id], onDelete: Cascade)
-  targetRoom Room @relation("TargetRoomClicks", fields: [targetRoomId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([sourceRoomId])
-  @@index([targetRoomId])
-  @@index([method])
-  @@index([createdAt])
-  @@index([userId, createdAt])
-}
-
-model RecommendationImpression {
-  id           Int      @id @default(autoincrement())
-  userId       Int? // Có thể null cho anonymous user
-  roomId       Int // Phòng được hiển thị
-  method       String // Phương pháp gợi ý
-  rank         Int // Vị trí hiển thị
-  sessionId    String? // Session tracking
-  viewDuration Int? // Thời gian xem (milliseconds)
-  createdAt    DateTime @default(now()) @db.Timestamptz(6)
-
-  // Relations
-  user User? @relation("RecommendationImpressions", fields: [userId], references: [id], onDelete: Cascade)
-  room Room  @relation("RoomImpressions", fields: [roomId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([roomId])
-  @@index([method])
-  @@index([createdAt])
-}
-
-model UserPreference {
-  id                 Int      @id @default(autoincrement())
-  userId             Int      @unique
-  preferredMinPrice  Decimal? // Giá tối thiểu ưa thích
-  preferredMaxPrice  Decimal? // Giá tối đa ưa thích
-  preferredMinArea   Int? // Diện tích tối thiểu
-  preferredMaxArea   Int? // Diện tích tối đa
-  preferredAmenities Json? // Mảng ID tiện ích ưa thích
-  preferredLocations Json? // Mảng tọa độ/khu vực ưa thích
-  searchHistory      Json? // Lịch sử tìm kiếm
-  interactionWeights Json? // Trọng số cá nhân hóa {location: 0.4, price: 0.3, ...}
-  lastUpdated        DateTime @updatedAt @db.Timestamptz(6)
-  createdAt          DateTime @default(now()) @db.Timestamptz(6)
-
-  // Relations
-  user User @relation("UserPreferences", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model RecommendationCache {
-  id        Int      @id @default(autoincrement())
-  cacheKey  String   @unique // Format: "method:roomId:userId"
-  method    String // Phương pháp gợi ý
-  roomId    Int // Phòng gốc
-  userId    Int? // User (có thể null)
-  results   Json // Kết quả gợi ý đã serialize
-  metadata  Json? // Metadata (execution time, weights, etc.)
-  expiresAt DateTime @db.Timestamptz(6)
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-
-  // Relations
-  room Room  @relation("CachedRecommendations", fields: [roomId], references: [id], onDelete: Cascade)
-  user User? @relation("UserRecommendationCache", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([cacheKey])
-  @@index([expiresAt])
-  @@index([roomId])
-  @@index([userId])
-}
-
-model RecommendationFeedback {
-  id           Int                        @id @default(autoincrement())
-  userId       Int
-  roomId       Int // Phòng được feedback
-  sourceRoomId Int? // Phòng gốc (nếu từ recommendation)
-  type         RecommendationFeedbackType
-  rating       Int? // 1-5 stars (cho RATING type)
-  comment      String? // Feedback text
-  method       String? // Phương pháp gợi ý (nếu từ recommendation)
-  createdAt    DateTime                   @default(now()) @db.Timestamptz(6)
-
-  // Relations
-  user       User  @relation("RecommendationFeedbacks", fields: [userId], references: [id], onDelete: Cascade)
-  room       Room  @relation("RoomFeedbacks", fields: [roomId], references: [id], onDelete: Cascade)
-  sourceRoom Room? @relation("SourceRoomFeedbacks", fields: [sourceRoomId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([roomId])
-  @@index([type])
-  @@index([createdAt])
-}
-
-model RecommendationMetrics {
-  id                     Int      @id @default(autoincrement())
-  date                   DateTime @db.Date // Ngày thống kê
-  method                 String // Phương pháp gợi ý
-  totalImpressions       Int      @default(0)
-  totalClicks            Int      @default(0)
-  clickThroughRate       Decimal  @default(0) @db.Decimal(5, 4) // CTR = clicks/impressions
-  averageSimilarityScore Decimal  @default(0) @db.Decimal(3, 2)
-  uniqueUsers            Int      @default(0)
-  conversionRate         Decimal  @default(0) @db.Decimal(5, 4) // Tỷ lệ chuyển đổi
-  createdAt              DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt              DateTime @updatedAt @db.Timestamptz(6)
-
-  @@unique([date, method])
-  @@index([date])
-  @@index([method])
-  @@index([clickThroughRate])
-}
-
-enum RecommendationFeedbackType {
-  LIKE // Thích
-  DISLIKE // Không thích
-  NOT_RELEVANT // Không liên quan
-  RATING // Đánh giá sao
-  COMMENT // Bình luận
 }

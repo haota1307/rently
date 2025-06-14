@@ -34,6 +34,7 @@ interface RoomRecommendationsProps {
   showSimilarityBreakdown?: boolean;
   className?: string;
   defaultViewMode?: "grid" | "list";
+  maxColumns?: 3 | 4; // Số columns tối đa cho grid view
 }
 
 const methodLabels: Record<
@@ -59,6 +60,7 @@ export function RoomRecommendations({
   showSimilarityBreakdown = false,
   className,
   defaultViewMode = "grid",
+  maxColumns = 4,
 }: RoomRecommendationsProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">(defaultViewMode);
 
@@ -90,6 +92,12 @@ export function RoomRecommendations({
 
   const methodConfig = methodLabels[method];
   const Icon = methodConfig.icon;
+
+  // Dynamic grid classes based on maxColumns
+  const gridClasses =
+    maxColumns === 4
+      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+      : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
 
   // Convert recommendation data to rental format for RentalCard
   const convertToRental = (room: any): RentalType => {
@@ -170,13 +178,7 @@ export function RoomRecommendations({
             {title}
           </h3>
         )}
-        <div
-          className={cn(
-            viewMode === "grid"
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              : "space-y-4"
-          )}
-        >
+        <div className={cn(viewMode === "grid" ? gridClasses : "space-y-4")}>
           {Array.from({ length: limit }).map((_, index) => (
             <div key={index} className="animate-pulse">
               <div
@@ -252,49 +254,28 @@ export function RoomRecommendations({
 
           {showMetadata && (
             <>
-              <Badge
-                variant="outline"
-                className={cn("text-white", methodConfig.color)}
-              >
-                <Icon className="h-3 w-3 mr-1" />
-                {methodConfig.label}
-              </Badge>
               <Badge variant="secondary">{recommendations.length} phòng</Badge>
             </>
           )}
         </div>
       </div>
 
-      <div
-        className={cn(
-          viewMode === "grid"
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            : "space-y-4"
-        )}
-      >
+      <div className={cn(viewMode === "grid" ? gridClasses : "space-y-4")}>
         {recommendations.map((room) => (
           <div key={room.id} className="relative group">
             {/* Recommendation metadata overlay */}
-            <div
-              className={cn(
-                "absolute top-2 left-2 z-20 flex gap-1",
-                viewMode === "list" ? "flex-row" : "flex-col"
-              )}
-            >
-              <Badge
-                variant="outline"
-                className={cn("text-white text-xs", methodConfig.color)}
+            {showSimilarityBreakdown && room.similarityScore && (
+              <div
+                className={cn(
+                  "absolute top-2 left-2 z-20 flex gap-1",
+                  viewMode === "list" ? "flex-row" : "flex-col"
+                )}
               >
-                <Icon className="h-3 w-3 mr-1" />
-                {methodConfig.label}
-              </Badge>
-
-              {showSimilarityBreakdown && room.similarityScore && (
                 <Badge variant="secondary" className="text-xs">
                   {Math.round(room.similarityScore * 100)}% phù hợp
                 </Badge>
-              )}
-            </div>
+              </div>
+            )}
 
             <div onClick={() => handleRoomClick(room.id)}>
               <RentalCard
