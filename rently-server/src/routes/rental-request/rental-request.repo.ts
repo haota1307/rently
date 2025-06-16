@@ -122,10 +122,20 @@ export class RentalRequestRepo {
 
       // Nếu có userId, filter theo role
       if (userId) {
-        if (role === 'TENANT') {
+        // Ưu tiên query.role từ client, nếu không có thì dùng role từ user auth
+        const filterRole = query.role || role
+
+        // Debug log
+        this.logger.log(
+          `Debug - userId: ${userId}, query.role: ${query.role}, userRole: ${role}, filterRole: ${filterRole}`
+        )
+
+        if (filterRole === 'TENANT') {
           where.tenantId = userId
-        } else if (role === 'LANDLORD') {
+          this.logger.log(`Filter by tenantId: ${userId}`)
+        } else if (filterRole === 'LANDLORD') {
           where.landlordId = userId
+          this.logger.log(`Filter by landlordId: ${userId}`)
         }
       }
 

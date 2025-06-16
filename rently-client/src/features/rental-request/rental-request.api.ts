@@ -10,11 +10,17 @@ import {
 const rentalRequestApiRequest = {
   // Lấy danh sách yêu cầu thuê
   list: async (params: GetRentalRequestsQueryType) => {
-    const response = await http.get<any>(`rental-requests`, {
-      headers: {
-        "query-params": JSON.stringify(params),
-      },
-    });
+    const queryString = new URLSearchParams();
+
+    // Thêm các params vào query string
+    if (params.page) queryString.append("page", params.page.toString());
+    if (params.limit) queryString.append("limit", params.limit.toString());
+    if (params.status) queryString.append("status", params.status);
+    if (params.role) queryString.append("role", params.role);
+
+    const response = await http.get<any>(
+      `rental-requests?${queryString.toString()}`
+    );
     return response.payload || response;
   },
 

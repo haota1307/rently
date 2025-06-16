@@ -7,12 +7,23 @@ import {
   UpdateRoomBillType,
 } from "@/schemas/room-bill.schema";
 
-// Hook lấy danh sách hóa đơn
+// Hook lấy danh sách hóa đơn (cho landlord)
 export const useGetRoomBills = (queryParams: GetRoomBillQueryType) => {
   return useQuery({
     queryKey: ["room-bills", queryParams],
     queryFn: async () => {
       const res = await roomBillApiRequest.list(queryParams);
+      return res.payload;
+    },
+  });
+};
+
+// Hook lấy danh sách hóa đơn (cho tenant)
+export const useGetTenantRoomBills = (queryParams: GetRoomBillQueryType) => {
+  return useQuery({
+    queryKey: ["tenant-room-bills", queryParams],
+    queryFn: async () => {
+      const res = await roomBillApiRequest.listTenantBills(queryParams);
       return res.payload;
     },
   });

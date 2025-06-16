@@ -85,6 +85,28 @@ const roomBillApiRequest = {
 
   getLatestBillInfo: (roomId: number) =>
     http.get(`${prefix}/room/${roomId}/latest-bill`),
+
+  listTenantBills: (params: GetRoomBillQueryType) => {
+    // Tạo đối tượng query với kiểu dữ liệu any để có thể thêm thuộc tính động
+    const queryParams: Record<string, any> = {
+      page: params.page,
+      limit: params.limit,
+      ...(params.roomId && { roomId: params.roomId }),
+      ...(params.isPaid !== undefined && { isPaid: params.isPaid }),
+    };
+
+    // Xử lý riêng cho trường billingMonth
+    if (params.billingMonth) {
+      const date = new Date(params.billingMonth);
+      date.setDate(1); // Luôn lấy ngày đầu tháng
+      date.setHours(0, 0, 0, 0);
+      queryParams.billingMonth = date.toISOString();
+    }
+
+    return http.get<GetRoomBillsResType>(
+      `${prefix}/tenant/my-bills?${queryString.stringify(queryParams)}`
+    );
+  },
 };
 
 export default roomBillApiRequest;

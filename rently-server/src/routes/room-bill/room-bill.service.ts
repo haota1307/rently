@@ -320,6 +320,17 @@ export class RoomBillService {
     }
   }
 
+  async listTenantBills(params: {
+    roomId?: number
+    isPaid?: boolean
+    billingMonth?: Date
+    page: number
+    limit: number
+    tenantId?: number
+  }) {
+    return this.roomBillRepository.listByTenant(params)
+  }
+
   async getLatestBillInfo(roomId: number) {
     // Tìm hóa đơn gần nhất của phòng
     const latestBill =

@@ -34,12 +34,14 @@ interface RoomBillDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   billId: number;
+  hideActions?: boolean; // Ẩn các nút action (dành cho tenant)
 }
 
 export const RoomBillDetailModal: React.FC<RoomBillDetailModalProps> = ({
   open,
   onOpenChange,
   billId,
+  hideActions = false,
 }) => {
   const [email, setEmail] = useState("");
   const [showEmailInput, setShowEmailInput] = useState(false);
@@ -272,7 +274,7 @@ export const RoomBillDetailModal: React.FC<RoomBillDetailModalProps> = ({
             </div>
           </div>
 
-          {showEmailInput ? (
+          {!hideActions && showEmailInput ? (
             <div className="flex gap-2">
               <Input
                 placeholder="Nhập email người nhận"
@@ -295,7 +297,7 @@ export const RoomBillDetailModal: React.FC<RoomBillDetailModalProps> = ({
           ) : null}
 
           <DialogFooter className="gap-2">
-            {!bill.isPaid && (
+            {!hideActions && !bill.isPaid && (
               <Button
                 variant="outline"
                 onClick={handleMarkAsPaid}
@@ -309,13 +311,15 @@ export const RoomBillDetailModal: React.FC<RoomBillDetailModalProps> = ({
                 Đánh dấu đã thanh toán
               </Button>
             )}
-            <Button
-              variant="secondary"
-              onClick={() => setShowEmailInput(!showEmailInput)}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              {!showEmailInput ? "Gửi qua email" : "Hủy gửi email"}
-            </Button>
+            {!hideActions && (
+              <Button
+                variant="secondary"
+                onClick={() => setShowEmailInput(!showEmailInput)}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {!showEmailInput ? "Gửi qua email" : "Hủy gửi email"}
+              </Button>
+            )}
             <Button variant="default" onClick={() => onOpenChange(false)}>
               Đóng
             </Button>

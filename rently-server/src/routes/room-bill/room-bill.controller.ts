@@ -87,4 +87,16 @@ export class RoomBillController {
   async getLatestBillInfo(@Param('roomId') roomId: string) {
     return this.roomBillService.getLatestBillInfo(Number(roomId))
   }
+
+  @Get('tenant/my-bills')
+  @ZodSerializerDto(GetRoomBillsResDTO)
+  listTenantBills(
+    @Query() query: GetRoomBillQueryDTO,
+    @ActiveUser('userId') userId: number
+  ) {
+    return this.roomBillService.listTenantBills({
+      ...query,
+      tenantId: userId,
+    })
+  }
 }

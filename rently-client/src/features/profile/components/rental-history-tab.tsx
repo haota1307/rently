@@ -13,7 +13,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { AlertCircle, Eye, FileText, Loader2, Download } from "lucide-react";
+import {
+  AlertCircle,
+  Eye,
+  FileText,
+  Loader2,
+  Download,
+  Receipt,
+} from "lucide-react";
 import { useGetTenantRentalRequests } from "@/features/rental-request";
 import {
   RentalRequestStatus,
@@ -36,6 +43,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { SignContractButton } from "@/features/rental-contract/components/sign-contract-button";
+import { useGetTenantRoomBills } from "@/features/rooms/useRoomBill";
+import { RoomBillDetailModal } from "@/features/rooms/components/room-bill-detail-modal";
+import { RoomBillType } from "@/schemas/room-bill.schema";
 
 // Xác định kiểu dữ liệu cho tệp đính kèm
 interface ContractAttachment {
@@ -104,6 +114,10 @@ export function RentalHistoryTab() {
   const [selectedContract, setSelectedContract] = useState<number | null>(null);
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+  const [isBillsDialogOpen, setIsBillsDialogOpen] = useState(false);
+  const [selectedBillId, setSelectedBillId] = useState<number | null>(null);
+  const [isBillDetailOpen, setIsBillDetailOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const {
@@ -118,6 +132,14 @@ export function RentalHistoryTab() {
   // Kiểm tra cấu trúc dữ liệu - API trả về trực tiếp data, không có payload
   const rentalRequests: RentalRequestType[] =
     rentalRequestsResponse?.data || [];
+
+  // Lấy danh sách hóa đơn cho phòng được chọn
+  const { data: roomBillsData, isLoading: isBillsLoading } =
+    useGetTenantRoomBills({
+      roomId: selectedRoomId || undefined,
+      page: 1,
+      limit: 50,
+    });
 
   // Truy vấn hợp đồng khi chọn một phòng đã thuê
   const {
@@ -184,6 +206,17 @@ export function RentalHistoryTab() {
     }
   };
 
+  const handleViewBills = (roomId: number | undefined) => {
+    if (!roomId) return;
+    setSelectedRoomId(roomId);
+    setIsBillsDialogOpen(true);
+  };
+
+  const handleViewBillDetail = (billId: number) => {
+    setSelectedBillId(billId);
+    setIsBillDetailOpen(true);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -237,7 +270,7 @@ export function RentalHistoryTab() {
                   <TableHead>Thời hạn thuê</TableHead>
                   <TableHead>Tiền cọc</TableHead>
                   <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Hợp đồng</TableHead>
+                  <TableHead className="text-right">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -283,14 +316,27 @@ export function RentalHistoryTab() {
                     </TableCell>
                     <TableCell className="text-right">
                       {rental.status === RentalRequestStatus.APPROVED && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewContract(rental.id)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          Xem hợp đồng
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewContract(rental.id)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Hợp đồng
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              handleViewBills(rental.post.room?.id)
+                            }
+                            disabled={!rental.post.room?.id}
+                          >
+                            <Receipt className="mr-2 h-4 w-4" />
+                            Hóa đơn
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
@@ -518,6 +564,105 @@ export function RentalHistoryTab() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog hiển thị danh sách hóa đơn */}
+      <Dialog open={isBillsDialogOpen} onOpenChange={setIsBillsDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Danh sách hóa đơn phòng trọ</DialogTitle>
+          </DialogHeader>
+
+          {isBillsLoading ? (
+            <div className="flex justify-center items-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : roomBillsData?.data && roomBillsData.data.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Kỳ hóa đơn</TableHead>
+                  <TableHead>Điện</TableHead>
+                  <TableHead>Nước</TableHead>
+                  <TableHead>Tổng tiền</TableHead>
+                  <TableHead>Hạn thanh toán</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="text-right">Hành động</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {roomBillsData.data.map((bill: RoomBillType) => (
+                  <TableRow key={bill.id}>
+                    <TableCell className="font-medium">
+                      {format(new Date(bill.billingMonth), "MM/yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      {bill.electricityNew - bill.electricityOld} kWh
+                      <div className="text-sm text-muted-foreground">
+                        {(
+                          (bill.electricityNew - bill.electricityOld) *
+                          bill.electricityPrice
+                        ).toLocaleString()}{" "}
+                        đ
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {bill.waterNew - bill.waterOld} m³
+                      <div className="text-sm text-muted-foreground">
+                        {(
+                          (bill.waterNew - bill.waterOld) *
+                          bill.waterPrice
+                        ).toLocaleString()}{" "}
+                        đ
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {bill.totalAmount.toLocaleString()} đ
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(bill.dueDate), "dd/MM/yyyy", {
+                        locale: vi,
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={bill.isPaid ? "default" : "destructive"}>
+                        {bill.isPaid ? "Đã thanh toán" : "Chưa thanh toán"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewBillDetail(bill.id)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Chi tiết
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Chưa có hóa đơn</AlertTitle>
+              <AlertDescription>
+                Phòng này chưa có hóa đơn nào được tạo.
+              </AlertDescription>
+            </Alert>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal chi tiết hóa đơn */}
+      {selectedBillId && (
+        <RoomBillDetailModal
+          open={isBillDetailOpen}
+          onOpenChange={setIsBillDetailOpen}
+          billId={selectedBillId}
+          hideActions={true}
+        />
+      )}
     </>
   );
 }

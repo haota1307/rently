@@ -213,4 +213,78 @@ export class RoomBillRepository {
       },
     })
   }
+
+  async listByTenant(params: {
+    roomId?: number
+    isPaid?: boolean
+    billingMonth?: Date
+    page: number
+    limit: number
+    tenantId?: number
+  }) {
+    const { page, limit, isPaid, billingMonth, roomId, tenantId } = params
+    const skip = (page - 1) * limit
+
+    const where: Prisma.RoomUtilityBillWhereInput = {}
+
+    if (roomId) {
+      where.roomId = roomId
+    }
+
+    if (isPaid !== undefined) {
+      where.isPaid = isPaid
+    }
+
+    if (billingMonth) {
+      const startOfMonth = new Date(billingMonth)
+      startOfMonth.setDate(1)
+      startOfMonth.setHours(0, 0, 0, 0)
+
+      const endOfMonth = new Date(billingMonth)
+      endOfMonth.setMonth(endOfMonth.getMonth() + 1)
+      endOfMonth.setDate(0)
+      endOfMonth.setHours(23, 59, 59, 999)
+
+      where.billingMonth = {
+        gte: startOfMonth,
+        lte: endOfMonth,
+      }
+    }
+
+    if (tenantId) {
+      where.room = {
+        RentalContract: {
+          some: {
+            tenantId,
+            status: 'ACTIVE',
+          },
+        },
+      }
+    }
+
+    const [data, totalItems] = await Promise.all([
+      this.prisma.roomUtilityBill.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          room: {
+            include: {
+              rental: true,
+            },
+          },
+        },
+      }),
+      this.prisma.roomUtilityBill.count({ where }),
+    ])
+
+    return {
+      data,
+      totalItems,
+      page,
+      limit,
+      totalPages: Math.ceil(totalItems / limit),
+    }
+  }
 }
