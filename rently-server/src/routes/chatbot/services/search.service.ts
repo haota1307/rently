@@ -327,7 +327,7 @@ Hãy đưa ra phản hồi ngắn gọn, thân thiện với người dùng, bao
       return await this.openaiService.generateCompletion(
         prompt,
         'gpt-4o-mini',
-        0.7,
+        0.3,
         300
       )
     } catch (error) {

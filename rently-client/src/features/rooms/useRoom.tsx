@@ -1,6 +1,7 @@
 import roomApiRequest from "@/features/rooms/room.api";
 import {
   CreateRoomBodyType,
+  CreateBulkRoomsBodyType,
   GetRoomDetailResType,
   GetRoomsQueryType,
   UpdateRoomBodyType,
@@ -45,6 +46,20 @@ export const useCreateRoom = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    },
+  });
+};
+
+export const useCreateBulkRooms = (onSuccessCallback?: () => void) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: CreateBulkRoomsBodyType) => {
+      const res = await roomApiRequest.createBulk(body);
+      return res.payload;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      onSuccessCallback?.();
     },
   });
 };

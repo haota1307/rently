@@ -4,6 +4,8 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 import { Decimal } from '@prisma/client/runtime/library'
 import {
   CreateRoomBodyType,
+  CreateBulkRoomsBodyType,
+  CreateBulkRoomsResType,
   GetRoomsQueryType,
   GetRoomsResType,
   RoomType,
@@ -90,6 +92,7 @@ export class RoomRepo {
           where,
           skip,
           take,
+          orderBy: { createdAt: 'desc' },
         }),
       ])
 
@@ -278,6 +281,145 @@ export class RoomRepo {
         where: { id },
       })
       return this.formatRoom(room)
+    } catch (error) {
+      throw new InternalServerErrorException(error.message)
+    }
+  }
+
+  async createBulkRooms({
+    data,
+    landlordId,
+  }: {
+    data: CreateBulkRoomsBodyType
+    landlordId: number
+  }): Promise<CreateBulkRoomsResType> {
+    try {
+      const {
+        amenityIds,
+        roomImages,
+        baseName,
+        startNumber,
+        count,
+        ...baseRoomData
+      } = data
+
+      // Kiểm tra xem rental có thuộc về landlord không
+      const rental = await this.prismaService.rental.findFirst({
+        where: {
+          id: baseRoomData.rentalId,
+          landlordId: landlordId,
+        },
+      })
+
+      if (!rental) {
+        throw new InternalServerErrorException(
+          'Nhà trọ không tồn tại hoặc không thuộc về người cho thuê này'
+        )
+      }
+
+      // Kiểm tra xem có phòng nào đã tồn tại với tên tương tự không
+      const existingRooms = await this.prismaService.room.findMany({
+        where: {
+          rentalId: baseRoomData.rentalId,
+          title: {
+            in: Array.from(
+              { length: count },
+              (_, index) => `${baseName} ${startNumber + index}`
+            ),
+          },
+        },
+      })
+
+      if (existingRooms.length > 0) {
+        throw new InternalServerErrorException(
+          `Một số phòng đã tồn tại: ${existingRooms.map(room => room.title).join(', ')}`
+        )
+      }
+
+      // Tạo danh sách phòng cần tạo
+      const roomsToCreate = Array.from({ length: count }, (_, index) => ({
+        ...baseRoomData,
+        title: `${baseName} ${startNumber + index}`,
+      }))
+
+      // Sử dụng transaction để đảm bảo tính nhất quán với timeout tăng lên
+      const createdRooms = await this.prismaService.$transaction(
+        async prisma => {
+          // Tạo tất cả phòng cùng lúc để tối ưu performance
+          await prisma.room.createMany({
+            data: roomsToCreate,
+          })
+
+          // Lấy các phòng vừa tạo
+          const rooms = await prisma.room.findMany({
+            where: {
+              rentalId: baseRoomData.rentalId,
+              title: {
+                in: roomsToCreate.map(room => room.title),
+              },
+            },
+            orderBy: { id: 'asc' },
+          })
+
+          // Nếu có amenities, tạo roomAmenities cho tất cả phòng
+          if (amenityIds && amenityIds.length > 0) {
+            const roomAmenityData = rooms.flatMap(room =>
+              amenityIds.map(amenityId => ({
+                roomId: room.id,
+                amenityId,
+              }))
+            )
+
+            if (roomAmenityData.length > 0) {
+              await prisma.roomAmenity.createMany({
+                data: roomAmenityData,
+              })
+            }
+          }
+
+          // Nếu có hình ảnh, tạo roomImages cho tất cả phòng
+          if (roomImages && roomImages.length > 0) {
+            const roomImageData = rooms.flatMap(room =>
+              roomImages.map(image => ({
+                roomId: room.id,
+                order: image.order || 0,
+                imageUrl: image.imageUrl,
+              }))
+            )
+
+            if (roomImageData.length > 0) {
+              await prisma.roomImage.createMany({
+                data: roomImageData,
+              })
+            }
+          }
+
+          // Lấy lại rooms với đầy đủ thông tin
+          return await prisma.room.findMany({
+            where: {
+              id: { in: rooms.map(room => room.id) },
+            },
+            include: {
+              roomAmenities: {
+                include: {
+                  amenity: true,
+                },
+              },
+              roomImages: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          })
+        },
+        {
+          timeout: 30000, // Tăng timeout lên 30 giây
+        }
+      )
+
+      return {
+        message: `Đã tạo thành công ${createdRooms.length} phòng trọ`,
+        createdRooms: createdRooms.map(this.formatRoom),
+        totalCreated: createdRooms.length,
+      }
     } catch (error) {
       throw new InternalServerErrorException(error.message)
     }

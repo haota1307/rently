@@ -90,6 +90,40 @@ export const CreateRoomBodySchema = z
 
 export const UpdateRoomBodySchema = CreateRoomBodySchema;
 
+// Schema cho tạo phòng hàng loạt
+export const CreateBulkRoomsBodySchema = z
+  .object({
+    rentalId: z.number(),
+    baseName: z.string().min(1, "Tên cơ bản không được để trống"), // Tên cơ bản, ví dụ: "Phòng"
+    startNumber: z.number().int().positive().default(1), // Số bắt đầu
+    count: z
+      .number()
+      .int()
+      .positive()
+      .min(1, "Phải tạo ít nhất 1 phòng")
+      .max(50, "Tối đa 50 phòng"), // Số lượng phòng (tối đa 50)
+    price: z.number().positive("Giá phòng phải lớn hơn 0"),
+    area: z.number().positive("Diện tích phải lớn hơn 0"),
+    isAvailable: z.boolean().optional().default(true),
+    amenityIds: z.array(z.number()).optional(),
+    // Mỗi phòng sẽ có thể có ảnh riêng hoặc dùng chung
+    roomImages: z
+      .array(
+        z.object({
+          imageUrl: z.string(),
+          order: z.number().optional(),
+        })
+      )
+      .optional(),
+  })
+  .strict();
+
+export const CreateBulkRoomsResSchema = z.object({
+  message: z.string(),
+  createdRooms: z.array(RoomSchema),
+  totalCreated: z.number(),
+});
+
 export type RoomType = z.infer<typeof RoomSchema>;
 export type GetRoomsResType = z.infer<typeof GetRoomsResSchema>;
 export type GetRoomsQueryType = z.infer<typeof GetRoomsQuerySchema>;
@@ -97,3 +131,5 @@ export type GetRoomParamsType = z.infer<typeof GetRoomParamsSchema>;
 export type GetRoomDetailResType = z.infer<typeof GetRoomDetailResSchema>;
 export type CreateRoomBodyType = z.infer<typeof CreateRoomBodySchema>;
 export type UpdateRoomBodyType = z.infer<typeof UpdateRoomBodySchema>;
+export type CreateBulkRoomsBodyType = z.infer<typeof CreateBulkRoomsBodySchema>;
+export type CreateBulkRoomsResType = z.infer<typeof CreateBulkRoomsResSchema>;

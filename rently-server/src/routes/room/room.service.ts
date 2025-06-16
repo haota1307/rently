@@ -3,6 +3,7 @@ import { RoomRepo } from 'src/routes/room/room.repo'
 import { NotFoundRecordException } from 'src/shared/error'
 import {
   CreateRoomBodyType,
+  CreateBulkRoomsBodyType,
   GetRoomsQueryType,
   UpdateRoomBodyType,
 } from 'src/shared/models/shared-room.model'
@@ -52,5 +53,15 @@ export class RoomService {
     } catch (error) {
       throw NotFoundRecordException
     }
+  }
+
+  async createBulkRooms({
+    data,
+    landlordId,
+  }: {
+    data: CreateBulkRoomsBodyType
+    landlordId: number
+  }) {
+    return this.roomRepo.createBulkRooms({ data, landlordId })
   }
 }

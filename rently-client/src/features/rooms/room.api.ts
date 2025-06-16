@@ -1,6 +1,8 @@
 import http from "@/lib/http";
 import {
   CreateRoomBodyType,
+  CreateBulkRoomsBodyType,
+  CreateBulkRoomsResType,
   GetRoomDetailResType,
   GetRoomsQueryType,
   GetRoomsResType,
@@ -38,6 +40,9 @@ const roomApiRequest = {
 
   create: (body: CreateRoomBodyType) =>
     http.post<GetRoomDetailResType>(`${prefix}`, body),
+
+  createBulk: (body: CreateBulkRoomsBodyType) =>
+    http.post<CreateBulkRoomsResType>(`${prefix}/bulk`, body),
 
   createForLandlord: (body: CreateRoomBodyType & { landlordId: number }) =>
     http.post<GetRoomDetailResType>(

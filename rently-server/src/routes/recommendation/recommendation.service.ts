@@ -909,9 +909,6 @@ export class RecommendationService {
       // 2. Tính toán trọng số động cho từng phương pháp
       const methodWeights = this.calculateMethodWeights(context)
 
-      this.logger.log(`Hybrid context: ${JSON.stringify(context)}`)
-      this.logger.log(`Hybrid weights: ${JSON.stringify(methodWeights)}`)
-
       // 3. Chạy song song các phương pháp (với optimization)
       const [
         contentResults,
@@ -933,20 +930,6 @@ export class RecommendationService {
           ? this.getLocationBasedRecommendations(targetRoom, query, userId)
           : Promise.resolve([]),
       ])
-
-      // Log kết quả từng method
-      this.logger.log(
-        `Content results: ${contentResults.status === 'fulfilled' ? contentResults.value.length : 0}`
-      )
-      this.logger.log(
-        `Collaborative results: ${collaborativeResults.status === 'fulfilled' ? collaborativeResults.value.length : 0}`
-      )
-      this.logger.log(
-        `Popularity results: ${popularityResults.status === 'fulfilled' ? popularityResults.value.length : 0}`
-      )
-      this.logger.log(
-        `Location results: ${locationResults.status === 'fulfilled' ? locationResults.value.length : 0}`
-      )
 
       // 4. Kết hợp kết quả với trọng số
       const combinedResults = this.combineRecommendationResults(
@@ -992,8 +975,7 @@ export class RecommendationService {
       }))
     } catch (error) {
       this.logger.error('Error in hybrid recommendations:', error)
-      // Fallback to content-based với logging
-      this.logger.warn('Falling back to content-based recommendations')
+
       return this.getContentBasedRecommendations(targetRoom, query, userId)
     }
   }

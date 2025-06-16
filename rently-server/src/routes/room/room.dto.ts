@@ -1,6 +1,8 @@
 import { createZodDto } from 'nestjs-zod'
 import {
   CreateRoomBodySchema,
+  CreateBulkRoomsBodySchema,
+  CreateBulkRoomsResSchema,
   GetRoomDetailResSchema,
   GetRoomParamsSchema,
   GetRoomsQuerySchema,
@@ -14,3 +16,9 @@ export class GetRoomParamsDTO extends createZodDto(GetRoomParamsSchema) {}
 export class GetRoomDetailResDTO extends createZodDto(GetRoomDetailResSchema) {}
 export class CreateRoomBodyDTO extends createZodDto(CreateRoomBodySchema) {}
 export class UpdateRoomBodyDTO extends createZodDto(UpdateRoomBodySchema) {}
+export class CreateBulkRoomsBodyDTO extends createZodDto(
+  CreateBulkRoomsBodySchema
+) {}
+export class CreateBulkRoomsResDTO extends createZodDto(
+  CreateBulkRoomsResSchema
+) {}

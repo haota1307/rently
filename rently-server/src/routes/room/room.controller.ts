@@ -11,6 +11,8 @@ import {
 import { ZodSerializerDto } from 'nestjs-zod'
 import {
   CreateRoomBodyDTO,
+  CreateBulkRoomsBodyDTO,
+  CreateBulkRoomsResDTO,
   GetRoomDetailResDTO,
   GetRoomParamsDTO,
   GetRoomsQueryDTO,
@@ -53,6 +55,15 @@ export class RoomController {
     @ActiveUser('userId') userId: number
   ) {
     return this.roomService.create({ data: body, landlordId: userId })
+  }
+
+  @Post('bulk')
+  @ZodSerializerDto(CreateBulkRoomsResDTO)
+  createBulkRooms(
+    @Body() body: CreateBulkRoomsBodyDTO,
+    @ActiveUser('userId') userId: number
+  ) {
+    return this.roomService.createBulkRooms({ data: body, landlordId: userId })
   }
 
   @Post('admin/create-for-landlord')

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Receipt } from "lucide-react";
+import { Plus, MoreHorizontal, Receipt, ChevronDown, Copy } from "lucide-react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { roomColumns } from "@/features/dashboard/components/columns/room-columns";
@@ -11,6 +11,7 @@ import { RoomFilters } from "@/features/dashboard/components/filters/room-filter
 import { CommonFilterLayout } from "@/features/dashboard/components/filters/common-filter-layout";
 import { useGetMyRooms } from "@/features/rooms/useRoom";
 import { CreateRoomModal } from "@/features/rooms/components/create-room-modal";
+import { CreateBulkRoomsModal } from "@/features/rooms/components/create-bulk-rooms-modal";
 import { EditRoomModal } from "@/features/rooms/components/edit-room-modal";
 import { DeleteRoomConfirm } from "@/features/rooms/components/delete-room-confirm";
 import { CreateRoomBillModal } from "@/features/rooms/components/create-room-bill-modal";
@@ -32,6 +33,8 @@ export default function RoomsPage() {
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [searchInput, setSearchInput] = useState<string>("");
   const [isAddRoomDialogOpen, setIsAddRoomDialogOpen] = useState(false);
+  const [isAddBulkRoomsDialogOpen, setIsAddBulkRoomsDialogOpen] =
+    useState(false);
 
   // State cho chức năng chỉnh sửa và xóa
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -50,8 +53,7 @@ export default function RoomsPage() {
 
   const { data, isLoading, error } = useGetMyRooms(queryParams);
   const roomsData = data?.data ?? [];
-  const totalCount = data?.totalPages ?? 0;
-  const totalPages = Math.ceil(totalCount / limit);
+  const totalPages = data?.totalPages ?? 0;
 
   const handleStatusFilterChange = (status: string) => {
     setPage(1);
@@ -174,10 +176,29 @@ export default function RoomsPage() {
           }
           searchPlaceholder="Tìm kiếm theo tiêu đề..."
           actionButton={
-            <Button onClick={() => setIsAddRoomDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              <span>Thêm phòng trọ</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Thêm phòng trọ</span>
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Loại tạo phòng</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsAddRoomDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tạo phòng đơn lẻ
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsAddBulkRoomsDialogOpen(true)}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Tạo phòng hàng loạt
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           }
           filterControls={
             <RoomFilters
@@ -194,6 +215,12 @@ export default function RoomsPage() {
         <CreateRoomModal
           open={isAddRoomDialogOpen}
           onOpenChange={setIsAddRoomDialogOpen}
+        />
+
+        <CreateBulkRoomsModal
+          open={isAddBulkRoomsDialogOpen}
+          onOpenChange={setIsAddBulkRoomsDialogOpen}
+          onSuccess={() => setPage(1)}
         />
 
         {isLoading ? (
