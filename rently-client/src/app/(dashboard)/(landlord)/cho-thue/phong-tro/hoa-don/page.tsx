@@ -10,7 +10,9 @@ import { roomBillColumns } from "@/features/dashboard/components/columns/room-bi
 import { RoomBillFilters } from "@/features/rooms/components/room-bill-filters";
 import { CommonFilterLayout } from "@/features/dashboard/components/filters/common-filter-layout";
 import { useGetRoomBills } from "@/features/rooms/useRoomBill";
+import { useGetMyRooms } from "@/features/rooms/useRoom";
 import { RoomBillDetailModal } from "@/features/rooms/components/room-bill-detail-modal";
+import { CreateRoomBillModal } from "@/features/rooms/components/create-room-bill-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +21,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 
 export default function RoomBillsPage() {
@@ -27,7 +36,9 @@ export default function RoomBillsPage() {
   const [monthFilter, setMonthFilter] = useState<Date | undefined>(undefined);
   const [searchInput, setSearchInput] = useState<string>("");
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
 
   const limit = 10;
   const queryParams = {
@@ -39,8 +50,14 @@ export default function RoomBillsPage() {
 
   const { data, isLoading, error } = useGetRoomBills(queryParams);
   const billsData = data?.data ?? [];
-  const totalCount = data?.totalPages ?? 0;
-  const totalPages = Math.ceil(totalCount / limit);
+  const totalPages = data?.totalPages ?? 0;
+
+  // Lấy danh sách phòng đang cho thuê
+  const { data: roomsData } = useGetMyRooms({
+    limit: 100,
+    page: 1,
+    status: "rented", // Chỉ lấy phòng đang cho thuê
+  });
 
   const handleStatusFilterChange = (status: string) => {
     setPage(1);
@@ -63,6 +80,14 @@ export default function RoomBillsPage() {
   const handleViewBill = (bill: any) => {
     setSelectedBill(bill);
     setIsDetailModalOpen(true);
+  };
+
+  // Callback khi người dùng chọn tạo hóa đơn mới
+  const handleCreateBill = () => {
+    if (!selectedRoomId) {
+      return;
+    }
+    setIsCreateModalOpen(true);
   };
 
   const columns = [
@@ -123,10 +148,27 @@ export default function RoomBillsPage() {
           }
           searchPlaceholder="Tìm kiếm theo phòng..."
           actionButton={
-            <Button onClick={() => {}}>
-              <Plus className="mr-2 h-4 w-4" />
-              <span>Tạo hóa đơn mới</span>
-            </Button>
+            <div className="flex gap-2">
+              <Select
+                value={selectedRoomId?.toString() || ""}
+                onValueChange={(value) => setSelectedRoomId(Number(value))}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Chọn phòng" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roomsData?.data?.map((room) => (
+                    <SelectItem key={room.id} value={room.id.toString()}>
+                      {room.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleCreateBill} disabled={!selectedRoomId}>
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Tạo hóa đơn mới</span>
+              </Button>
+            </div>
           }
           filterControls={
             <RoomBillFilters
@@ -160,6 +202,14 @@ export default function RoomBillsPage() {
           open={isDetailModalOpen}
           onOpenChange={setIsDetailModalOpen}
           billId={selectedBill.id}
+        />
+      )}
+
+      {selectedRoomId && (
+        <CreateRoomBillModal
+          open={isCreateModalOpen}
+          onOpenChange={setIsCreateModalOpen}
+          roomId={selectedRoomId}
         />
       )}
     </SidebarInset>
