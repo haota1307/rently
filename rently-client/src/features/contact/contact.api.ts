@@ -1,7 +1,14 @@
 import http from "@/lib/http";
-import { ContactFormType } from "@/schemas/contact.schema";
+import {
+  ContactFormType,
+  SendUserEmailType,
+  SendUserEmailSchema,
+  SendBulkEmailSchema,
+} from "@/schemas/contact.schema";
 import { MessageResType } from "@/types/message.type";
 import { PaginationParams } from "@/types/pagination.type";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 
 export interface Contact {
   id: number;
@@ -65,6 +72,65 @@ const contactApiRequest = {
 
   // Close a contact
   closeContact: (id: number) => http.put<Contact>(`/contact/${id}/close`, {}),
+
+  // Admin send email directly to user
+  sendUserEmail: (userId: number, body: SendUserEmailType) =>
+    http.post<MessageResType>(`/contact/send-user-email/${userId}`, body),
+
+  // Send bulk email
+  sendBulkEmail: (body: z.infer<typeof SendBulkEmailSchema>) =>
+    http.post<{ message: string; jobId: string; estimatedRecipients: number }>(
+      "/contact/send-bulk-email",
+      body
+    ),
+
+  // Get bulk email job status
+  getBulkEmailStatus: (jobId: string) =>
+    http.get<{ message: string }>(`/contact/bulk-email-status/${jobId}`),
+};
+
+// Custom hook for sending email to user
+export const useSendUserEmail = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      data,
+    }: {
+      userId: number;
+      data: z.infer<typeof SendUserEmailSchema>;
+    }) => contactApiRequest.sendUserEmail(userId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    },
+  });
+};
+
+// Custom hook for sending bulk email
+export const useSendBulkEmail = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: z.infer<typeof SendBulkEmailSchema>) =>
+      contactApiRequest.sendBulkEmail(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    },
+  });
+};
+
+// Custom hook for getting bulk email status
+export const useGetBulkEmailStatus = (
+  jobId: string,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: ["bulk-email-status", jobId],
+    queryFn: () => contactApiRequest.getBulkEmailStatus(jobId),
+    enabled: enabled && !!jobId,
+    refetchInterval: 2000, // Refetch every 2 seconds to track progress
+  });
 };
 
 export default contactApiRequest;

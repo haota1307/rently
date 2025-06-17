@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod'
 import { z } from 'zod'
-import { ContactStatus } from '@prisma/client'
+import { ContactStatus, UserStatus } from '@prisma/client'
 
 // DTO cho việc tạo liên hệ mới
 export const CreateContactSchema = z.object({
@@ -50,4 +50,38 @@ export const ContactListResponseSchema = z.object({
 
 export class ContactListResponseDTO extends createZodDto(
   ContactListResponseSchema
+) {}
+
+export class SendUserEmailDTO extends createZodDto(
+  z.object({
+    subject: z.string().min(1, 'Tiêu đề không được để trống'),
+    message: z.string().min(10, 'Nội dung phải có ít nhất 10 ký tự'),
+  })
+) {}
+
+export class SendUserEmailResponseDTO extends createZodDto(
+  z.object({
+    message: z.string(),
+  })
+) {}
+
+// DTO cho bulk email
+export class SendBulkEmailDTO extends createZodDto(
+  z.object({
+    subject: z.string().min(1, 'Tiêu đề không được để trống'),
+    message: z.string().min(10, 'Nội dung phải có ít nhất 10 ký tự'),
+    targetAudience: z.object({
+      roleIds: z.array(z.number()).optional(), // Gửi theo role (1: admin, 2: landlord, 3: client)
+      userStatus: z.nativeEnum(UserStatus).optional(), // Gửi theo trạng thái user
+      userIds: z.array(z.number()).optional(), // Gửi cho user cụ thể
+    }),
+  })
+) {}
+
+export class SendBulkEmailResponseDTO extends createZodDto(
+  z.object({
+    message: z.string(),
+    jobId: z.string(),
+    estimatedRecipients: z.number(),
+  })
 ) {}

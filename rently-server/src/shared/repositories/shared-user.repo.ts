@@ -22,6 +22,16 @@ export class SharedUserRepository {
     })
   }
 
+  findMany(params: {
+    where?: any
+    select?: any
+    include?: any
+    skip?: number
+    take?: number
+  }): Promise<UserType[]> {
+    return this.prismaService.user.findMany(params)
+  }
+
   findUniqueIncludeRolePermissions(
     where: WhereUniqueUserType
   ): Promise<UserIncludeRolePermissionsType | null> {

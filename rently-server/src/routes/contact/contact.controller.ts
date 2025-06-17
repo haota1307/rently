@@ -16,6 +16,10 @@ import {
   ContactResponseDTO,
   CreateContactDTO,
   RespondContactDTO,
+  SendUserEmailDTO,
+  SendUserEmailResponseDTO,
+  SendBulkEmailDTO,
+  SendBulkEmailResponseDTO,
 } from './contact.dto'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 import { IsPublic } from 'src/shared/decorators/auth.decorator'
@@ -82,5 +86,39 @@ export class ContactController {
     @ActiveUser('userId') userId: number
   ) {
     return this.contactService.close(id)
+  }
+
+  /**
+   * Admin gửi email trực tiếp đến user
+   */
+  @Post('send-user-email/:userId')
+  @ZodSerializerDto(SendUserEmailResponseDTO)
+  sendUserEmail(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() sendEmailDto: SendUserEmailDTO,
+    @ActiveUser('userId') adminId: number
+  ) {
+    return this.contactService.sendUserEmail(userId, sendEmailDto, adminId)
+  }
+
+  /**
+   * Admin gửi email hàng loạt
+   */
+  @Post('send-bulk-email')
+  @ZodSerializerDto(SendBulkEmailResponseDTO)
+  sendBulkEmail(
+    @Body() sendBulkEmailDto: SendBulkEmailDTO,
+    @ActiveUser('userId') adminId: number
+  ) {
+    return this.contactService.sendBulkEmail(sendBulkEmailDto, adminId)
+  }
+
+  /**
+   * Lấy trạng thái job bulk email
+   */
+  @Get('bulk-email-status/:jobId')
+  @ZodSerializerDto(MessageResDTO)
+  getBulkEmailStatus(@Param('jobId') jobId: string) {
+    return this.contactService.getBulkEmailStatus(jobId)
   }
 }

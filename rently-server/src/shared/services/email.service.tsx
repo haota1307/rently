@@ -544,76 +544,236 @@ export class EmailService {
     autoRenewStatus: boolean
     balance: number
   }) {
-    const subject = `Gói subscription của bạn đã được tự động gia hạn`
-    const templateKey = 'email_auto_renew_notification_template'
-
-    // Định dạng số tiền
-    const formattedAmount = new Intl.NumberFormat('vi-VN').format(
-      payload.amount
-    )
-    const formattedBalance = new Intl.NumberFormat('vi-VN').format(
-      payload.balance
-    )
-    const formattedEndDate = new Date(payload.newEndDate).toLocaleDateString(
-      'vi-VN'
-    )
-
-    // Thử lấy template từ database
-    const dbTemplate = await this.getEmailTemplateFromDB(templateKey)
-
-    // Nếu có template trong database thì dùng
-    if (dbTemplate) {
-      const html = this.renderTemplate(dbTemplate, {
-        user_name: payload.userName,
-        plan_name: payload.planName,
-        amount: formattedAmount,
-        new_end_date: formattedEndDate,
-        auto_renew_status: payload.autoRenewStatus ? 'Bật' : 'Tắt',
-        balance: formattedBalance,
-      })
-
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.email],
-        subject,
-        html,
-      })
-    }
-
-    // Nếu không có template trong database, dùng template mặc định
-    const defaultHtml = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; color: #333;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #4F46E5;">Thông báo tự động gia hạn gói subscription</h1>
-        </div>
-        
-        <div style="background: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-          <p>Xin chào <strong>${payload.userName}</strong>,</p>
-          
-          <p>Gói subscription <strong>${payload.planName}</strong> của bạn đã được tự động gia hạn thành công.</p>
-          
-          <ul style="line-height: 1.6;">
-            <li>Số tiền thanh toán: <strong>${formattedAmount} VND</strong></li>
-            <li>Ngày hết hạn mới: <strong>${formattedEndDate}</strong></li>
-            <li>Trạng thái tự động gia hạn: <strong>${payload.autoRenewStatus ? 'Bật' : 'Tắt'}</strong></li>
-            <li>Số dư hiện tại: <strong>${formattedBalance} VND</strong></li>
-          </ul>
-          
-          <p>Nếu bạn muốn thay đổi trạng thái tự động gia hạn, vui lòng truy cập vào phần quản lý tài khoản trên hệ thống Rently.</p>
-        </div>
-        
-        <div style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
-          <p>Email này được gửi tự động, vui lòng không trả lời. Nếu có thắc mắc, hãy liên hệ với chúng tôi qua phần Liên hệ trên website.</p>
-          <p>&copy; 2023 Rently. Đã đăng ký bản quyền.</p>
-        </div>
-      </div>
-    `
+    const subject = `Thông báo gia hạn tự động gói ${payload.planName}`
 
     return this.resend.emails.send({
       from: 'Rently <no-reply@rently.top>',
       to: [payload.email],
       subject,
-      html: defaultHtml,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+          <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #2563eb; margin: 0; font-size: 24px; font-weight: bold;">Rently</h1>
+              <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 14px;">Nền tảng cho thuê nhà trọ</p>
+            </div>
+            
+            <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 20px;">Thông báo gia hạn tự động</h2>
+            
+            <p style="color: #374151; line-height: 1.6; margin-bottom: 15px;">Xin chào <strong>${payload.userName}</strong>,</p>
+            
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0;">
+              <p style="color: #374151; margin: 0 0 10px 0;"><strong>Gói dịch vụ:</strong> ${payload.planName}</p>
+              <p style="color: #374151; margin: 0 0 10px 0;"><strong>Số tiền:</strong> ${payload.amount.toLocaleString()} VND</p>
+              <p style="color: #374151; margin: 0 0 10px 0;"><strong>Ngày hết hạn mới:</strong> ${payload.newEndDate.toLocaleDateString('vi-VN')}</p>
+              <p style="color: #374151; margin: 0 0 10px 0;"><strong>Số dư hiện tại:</strong> ${payload.balance.toLocaleString()} VND</p>
+              <p style="color: #374151; margin: 0;"><strong>Trạng thái gia hạn tự động:</strong> ${payload.autoRenewStatus ? 'Đã bật' : 'Đã tắt'}</p>
+            </div>
+            
+            <p style="color: #374151; line-height: 1.6; margin-bottom: 20px;">
+              ${
+                payload.autoRenewStatus
+                  ? 'Gói dịch vụ của bạn đã được gia hạn tự động thành công. Cảm ơn bạn đã tin tưởng sử dụng dịch vụ của chúng tôi!'
+                  : 'Gói dịch vụ của bạn đã hết hạn. Vui lòng gia hạn để tiếp tục sử dụng dịch vụ.'
+              }
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL}/dashboard" 
+                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+                Truy cập Dashboard
+              </a>
+            </div>
+            
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; text-align: center; color: #6b7280; font-size: 14px;">
+              <p style="margin: 0;">Đây là email tự động, vui lòng không phản hồi.</p>
+              <p style="margin: 5px 0 0 0;">© 2024 Rently. Tất cả quyền được bảo lưu.</p>
+            </div>
+          </div>
+        </div>
+      `,
+    })
+  }
+
+  /**
+   * Admin gửi email trực tiếp đến user
+   */
+  async sendAdminDirectEmail(payload: {
+    to: string
+    userName: string
+    subject: string
+    message: string
+    adminName: string
+    adminEmail: string
+  }) {
+    const subject = `[Rently Admin] ${payload.subject}`
+    const templateKey = 'email_admin_direct_template'
+
+    // Thử lấy template từ database trước
+    const dbTemplate = await this.getEmailTemplateFromDB(templateKey)
+
+    // Nếu có template HTML trong database thì dùng
+    if (dbTemplate) {
+      console.log(
+        '[EmailService] Sử dụng HTML template từ database cho admin direct email'
+      )
+      const html = this.renderTemplate(dbTemplate, {
+        user_name: payload.userName,
+        subject: payload.subject,
+        message: payload.message,
+        admin_name: payload.adminName,
+        admin_email: payload.adminEmail,
+      })
+      return this.resend.emails.send({
+        from: 'Rently <no-reply@rently.top>',
+        to: [payload.to],
+        subject,
+        html,
+        replyTo: payload.adminEmail, // Cho phép user reply trực tiếp về admin
+      })
+    }
+
+    // Nếu không có template trong database thì dùng HTML mặc định
+    console.log(
+      '[EmailService] Sử dụng HTML template mặc định cho admin direct email'
+    )
+
+    return this.resend.emails.send({
+      from: 'Rently <no-reply@rently.top>',
+      to: [payload.to],
+      subject,
+      replyTo: payload.adminEmail, // Cho phép user reply trực tiếp về admin
+      html: `
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Tin nhắn từ Rently Admin</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8f9fa;">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f8f9fa;">
+            <tr>
+              <td align="center" style="padding: 20px;">
+                <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: white; border-radius: 8px;">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 30px 30px 0 30px; text-align: center;">
+                      <h1 style="color: #2563eb; margin: 0; font-size: 24px; font-weight: bold;">Rently</h1>
+                      <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 14px;">Nền tảng cho thuê nhà trọ</p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Alert Banner -->
+                  <tr>
+                    <td style="padding: 30px 30px 0 30px;">
+                      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px;">
+                        <tr>
+                          <td style="padding: 15px;">
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                              <tr>
+                                <td width="30" style="vertical-align: middle;">
+                                  <div style="background-color: #f59e0b; color: white; border-radius: 50%; width: 20px; height: 20px; text-align: center; line-height: 20px; font-size: 12px; font-weight: bold;">!</div>
+                                </td>
+                                <td style="vertical-align: middle;">
+                                  <span style="color: #92400e; font-weight: 500; font-size: 14px;">Tin nhắn từ quản trị viên Rently</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  
+                  <!-- Subject -->
+                  <tr>
+                    <td style="padding: 25px 30px 0 30px;">
+                      <h2 style="color: #1f2937; margin: 0; font-size: 20px; font-weight: bold;">${payload.subject}</h2>
+                    </td>
+                  </tr>
+                  
+                  <!-- Greeting -->
+                  <tr>
+                    <td style="padding: 20px 30px 0 30px;">
+                      <p style="color: #374151; line-height: 1.6; margin: 0; font-size: 16px;">Xin chào <strong>${payload.userName}</strong>,</p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Message Content -->
+                  <tr>
+                    <td style="padding: 25px 30px 0 30px;">
+                      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f9fafb; border-left: 4px solid #2563eb; border-radius: 4px;">
+                        <tr>
+                          <td style="padding: 20px;">
+                            <div style="color: #374151; line-height: 1.6; font-size: 16px; white-space: pre-wrap; word-wrap: break-word;">${payload.message}</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  
+                  <!-- Sender Info -->
+                  <tr>
+                    <td style="padding: 25px 30px 0 30px;">
+                      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f3f4f6; border-radius: 6px;">
+                        <tr>
+                          <td style="padding: 15px;">
+                            <p style="color: #6b7280; margin: 0; font-size: 14px;">
+                              <strong>Người gửi:</strong> ${payload.adminName}<br>
+                              <strong>Email:</strong> ${payload.adminEmail}
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  
+                  <!-- Instructions -->
+                  <tr>
+                    <td style="padding: 25px 30px 0 30px;">
+                      <p style="color: #6b7280; line-height: 1.6; margin: 0; font-size: 14px;">
+                        Nếu bạn có câu hỏi hoặc cần hỗ trợ, vui lòng phản hồi trực tiếp email này hoặc liên hệ với chúng tôi qua các kênh hỗ trợ khác.
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- CTA Button -->
+                  <tr>
+                    <td style="padding: 30px; text-align: center;">
+                      <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                        <tr>
+                          <td style="background-color: #2563eb; border-radius: 6px;">
+                            <a href="${process.env.FRONTEND_URL || 'https://rently.top'}" 
+                               style="display: inline-block; color: white; padding: 12px 24px; text-decoration: none; font-weight: 500; font-size: 16px;">
+                              Truy cập Rently
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 0 30px 30px 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+                      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                          <td style="padding-top: 20px; text-align: center;">
+                            <p style="margin: 0; color: #6b7280; font-size: 14px;">Bạn có thể phản hồi email này để liên hệ trực tiếp với quản trị viên.</p>
+                            <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 14px;">© 2024 Rently. Tất cả quyền được bảo lưu.</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
     })
   }
 }

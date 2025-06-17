@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Mail } from "lucide-react";
 import { UserFilters } from "@/features/dashboard/components/filters/user-filters";
 import {
   userColumns,
@@ -17,6 +17,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { CreateUserModal } from "@/features/dashboard/components/modals/create-user-modal";
 import { EditUserModal } from "@/features/dashboard/components/modals/edit-user-modal";
 import { ViewUserModal } from "@/features/dashboard/components/modals/view-user-modal";
+import { SendBulkEmailModal } from "@/features/contact/components/send-bulk-email-modal";
 import {
   useGetUsers,
   useDeleteUser,
@@ -56,6 +57,7 @@ export default function UsersPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isBulkEmailModalOpen, setIsBulkEmailModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
   const [isUnblockDialogOpen, setIsUnblockDialogOpen] = useState(false);
@@ -228,13 +230,24 @@ export default function UsersPage() {
                 />
               </div>
 
-              <Button
-                className="w-full sm:w-auto self-start"
-                onClick={() => setIsCreateModalOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                <span>Thêm người dùng</span>
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={() => setIsCreateModalOpen(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Thêm người dùng</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => setIsBulkEmailModalOpen(true)}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  <span>Gửi email hàng loạt</span>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -273,6 +286,11 @@ export default function UsersPage() {
           isOpen={isViewModalOpen}
           onClose={() => setIsViewModalOpen(false)}
           user={selectedUser}
+        />
+
+        <SendBulkEmailModal
+          open={isBulkEmailModalOpen}
+          onOpenChange={setIsBulkEmailModalOpen}
         />
 
         {/* Dialog xác nhận khóa tài khoản */}
