@@ -4,10 +4,28 @@ import { useState } from "react";
 import { SystemSetting } from "@/features/system-setting/system-setting.api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { render, pretty } from "@react-email/render";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, Code, FileText } from "lucide-react";
+import {
+  EyeIcon,
+  Code,
+  FileText,
+  Copy,
+  CheckCircle,
+  Calendar,
+  Tag,
+  ExternalLink,
+  Info,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
+import {
+  SYSTEM_SETTING_GROUP_COLORS,
+  SYSTEM_SETTING_GROUP_LABELS,
+  SYSTEM_SETTING_TYPE_LABELS,
+} from "./system-setting-constants";
 
 type SystemSettingValueDisplayProps = {
   setting: SystemSetting;
@@ -20,35 +38,22 @@ export function SystemSettingValueDisplay({
   const [previewLoading, setPreviewLoading] = useState<boolean>(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState<string | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
 
   const groupLabel = (groupName: string) => {
-    switch (groupName) {
-      case "interface":
-        return "Giao diện";
-      case "email":
-        return "Mẫu Email";
-      case "pricing":
-        return "Giá dịch vụ";
-      default:
-        return groupName;
-    }
+    return (
+      SYSTEM_SETTING_GROUP_LABELS[
+        groupName as keyof typeof SYSTEM_SETTING_GROUP_LABELS
+      ] || groupName
+    );
   };
 
   const typeLabel = (typeName: string) => {
-    switch (typeName) {
-      case "string":
-        return "Chuỗi";
-      case "number":
-        return "Số";
-      case "boolean":
-        return "Boolean";
-      case "json":
-        return "JSON";
-      case "file":
-        return "Tệp tin";
-      default:
-        return typeName;
-    }
+    return (
+      SYSTEM_SETTING_TYPE_LABELS[
+        typeName as keyof typeof SYSTEM_SETTING_TYPE_LABELS
+      ] || typeName
+    );
   };
 
   const formatJsonValue = (value: string, type: string): string => {
@@ -60,6 +65,19 @@ export function SystemSettingValueDisplay({
       }
     }
     return value;
+  };
+
+  const handleCopyValue = () => {
+    navigator.clipboard.writeText(setting.value);
+    setCopied(true);
+    toast.success("Đã sao chép giá trị vào clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleOpenLink = () => {
+    if (setting.value.startsWith("http")) {
+      window.open(setting.value, "_blank");
+    }
   };
 
   const handleGeneratePreview = () => {
@@ -243,16 +261,16 @@ Một số thông tin sẽ được hiển thị trong email thực tế như:
     switch (setting.type) {
       case "json":
         return (
-          <ScrollArea className="h-[250px] w-full rounded-md border p-4 bg-gray-50">
+          <ScrollArea className="h-[250px] w-full rounded-md border p-4 bg-muted/30">
             <pre className="text-sm font-mono">{value}</pre>
           </ScrollArea>
         );
 
       case "file":
-        if (setting.value.match(/\.(jpeg|jpg|gif|png|svg)$/i)) {
+        if (setting.value.match(/\.(jpeg|jpg|gif|png|svg|ico|webp)$/i)) {
           return (
-            <div className="mt-2 flex justify-center">
-              <div className="border rounded-md p-2 bg-gray-50 max-w-full">
+            <div className="mt-2 flex flex-col items-center gap-2">
+              <div className="border rounded-md p-2 bg-muted/30 max-w-full">
                 <img
                   src={setting.value}
                   alt={setting.key}
@@ -264,11 +282,22 @@ Một số thông tin sẽ được hiển thị trong email thực tế như:
                   }}
                 />
               </div>
+              {setting.value.startsWith("http") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenLink}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Mở liên kết
+                </Button>
+              )}
             </div>
           );
         } else {
           return (
-            <div className="mt-2 p-3 border rounded-md bg-gray-50">
+            <div className="mt-2 p-3 border rounded-md bg-muted/30">
               <p className="text-sm truncate">{setting.value}</p>
             </div>
           );
@@ -287,28 +316,51 @@ Một số thông tin sẽ được hiển thị trong email thực tế như:
               </ScrollArea>
             </div>
           );
-        } else if (setting.key.includes("color")) {
-          // Hiển thị màu sắc
+        } else if (setting.value.startsWith("http")) {
+          // Hiển thị URL với nút mở liên kết
           return (
-            <div className="mt-2 flex items-center gap-2">
-              <div
-                className="w-6 h-6 rounded border"
-                style={{ backgroundColor: setting.value }}
-              />
-              <p className="text-sm">{setting.value}</p>
+            <div className="mt-2 space-y-2">
+              <ScrollArea className="h-[100px] w-full rounded-md border p-3 bg-muted/30">
+                <p className="text-sm break-all">{value}</p>
+              </ScrollArea>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenLink}
+                className="flex items-center gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Mở liên kết
+              </Button>
             </div>
           );
         } else {
           return (
-            <ScrollArea className="h-[180px] w-full rounded-md border p-3">
-              <p className="text-sm">{value}</p>
+            <ScrollArea className="h-[150px] w-full rounded-md border p-3 bg-muted/30">
+              <p className="text-sm whitespace-pre-wrap">{value}</p>
             </ScrollArea>
           );
         }
 
+      case "boolean":
+        return (
+          <div className="mt-2 p-3 border rounded-md bg-muted/30">
+            <Badge variant={value === "true" ? "success" : "destructive"}>
+              {value === "true" ? "True" : "False"}
+            </Badge>
+          </div>
+        );
+
+      case "number":
+        return (
+          <div className="mt-2 p-3 border rounded-md bg-muted/30 font-mono">
+            <p className="text-sm">{Number(value).toLocaleString("vi-VN")}</p>
+          </div>
+        );
+
       default:
         return (
-          <p className="text-sm my-2 p-2 bg-gray-50 rounded-md">{value}</p>
+          <p className="text-sm my-2 p-2 bg-muted/30 rounded-md">{value}</p>
         );
     }
   };
@@ -342,39 +394,79 @@ Một số thông tin sẽ được hiển thị trong email thực tế như:
       );
 
     return (
-      <ScrollArea className="max-h-[400px] w-full rounded-md border p-4 bg-gray-50">
+      <ScrollArea className="max-h-[400px] w-full rounded-md border p-4 bg-muted/30">
         <pre className="text-sm whitespace-pre-wrap">{previewText}</pre>
       </ScrollArea>
     );
   };
 
+  const getGroupBadgeColor = (groupName: string) => {
+    return (
+      SYSTEM_SETTING_GROUP_COLORS[
+        groupName as keyof typeof SYSTEM_SETTING_GROUP_COLORS
+      ] || SYSTEM_SETTING_GROUP_COLORS.default
+    );
+  };
+
+  const getTypeIcon = (typeName: string) => {
+    switch (typeName) {
+      case "string":
+        return <Tag className="h-4 w-4" />;
+      case "number":
+        return <Tag className="h-4 w-4" />;
+      case "boolean":
+        return <CheckCircle className="h-4 w-4" />;
+      case "json":
+        return <Code className="h-4 w-4" />;
+      case "file":
+        return <FileText className="h-4 w-4" />;
+      default:
+        return <Tag className="h-4 w-4" />;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, "PPpp", { locale: vi });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   return (
-    <Card className="w-full">
+    <Card className="w-full shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="flex justify-between items-center text-base">
-          <div>
-            {setting.key}
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              ({typeLabel(setting.type)})
-            </span>
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <span className="font-medium">{setting.key}</span>
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 font-normal"
+              >
+                {getTypeIcon(setting.type)}
+                <span>{typeLabel(setting.type)}</span>
+              </Badge>
+            </CardTitle>
+            <Badge
+              className={`font-normal ${getGroupBadgeColor(setting.group)}`}
+            >
+              {groupLabel(setting.group)}
+            </Badge>
           </div>
-          <span className="text-sm font-normal px-2 py-1 bg-gray-100 rounded-full">
-            {groupLabel(setting.group)}
-          </span>
-        </CardTitle>
+
+          {setting.description && (
+            <div className="bg-blue-50 text-blue-800 p-2 rounded-md flex items-start gap-2 text-sm">
+              <Info className="h-4 w-4 mt-0.5" />
+              <span>{setting.description}</span>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3 py-0">
-        {setting.description && (
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Mô tả:</p>
-            <p className="text-sm text-muted-foreground">
-              {setting.description}
-            </p>
-          </div>
-        )}
-
-        {setting.group === "email" && (
-          <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          {setting.group === "email" && (
             <Button
               size="sm"
               variant="outline"
@@ -385,8 +477,27 @@ Một số thông tin sẽ được hiển thị trong email thực tế như:
               <EyeIcon className="h-4 w-4" />
               {previewLoading ? "Đang tạo bản xem trước..." : "Xem trước Email"}
             </Button>
-          </div>
-        )}
+          )}
+
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1 ml-auto"
+            onClick={handleCopyValue}
+          >
+            {copied ? (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                <span>Đã sao chép</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                <span>Sao chép giá trị</span>
+              </>
+            )}
+          </Button>
+        </div>
 
         {setting.group === "email" && (previewHtml || previewText) ? (
           <Tabs
@@ -433,10 +544,14 @@ Một số thông tin sẽ được hiển thị trong email thực tế như:
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mt-3 pt-2 border-t">
-          <div>Tạo: {new Date(setting.createdAt).toLocaleString("vi-VN")}</div>
-          <div>
-            Cập nhật: {new Date(setting.updatedAt).toLocaleString("vi-VN")}
+        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mt-4 pt-3 border-t">
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>Tạo: {formatDate(setting.createdAt)}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>Cập nhật: {formatDate(setting.updatedAt)}</span>
           </div>
         </div>
       </CardContent>

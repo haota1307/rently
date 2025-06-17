@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -28,8 +28,25 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { SystemSetting } from "@/features/system-setting/system-setting.api";
 import { useDeleteSetting, useGetAllSettings } from "../useSystemSetting";
-import { MoreHorizontal, Plus, Trash, Edit, FileEdit } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  MoreHorizontal,
+  Plus,
+  Trash,
+  Edit,
+  FileEdit,
+  Search,
+  Filter,
+  Loader2,
+  RefreshCw,
+  ChevronDown,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { SystemSettingForm } from "./system-setting-form";
 
 import {
@@ -44,7 +61,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SystemSettingValueDisplay } from "@/features/system-setting/components/system-setting-value-display";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SYSTEM_SETTING_GROUPS } from "./system-setting-constants";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SystemSettingListProps = {
   group?: string;
@@ -52,6 +80,7 @@ type SystemSettingListProps = {
 
 export function SystemSettingList({ group }: SystemSettingListProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAddConfirmDialogOpen, setIsAddConfirmDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -59,19 +88,39 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
     null
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const { data: settings, isLoading, refetch } = useGetAllSettings();
-  const { mutateAsync: deleteSetting } = useDeleteSetting();
+  const {
+    data: settings,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useGetAllSettings();
+  const { mutateAsync: deleteSetting, isPending: isDeleting } =
+    useDeleteSetting();
 
+  // Lọc và sắp xếp cài đặt
   const filteredSettings = (
     group ? settings?.filter((setting) => setting.group === group) : settings
-  )?.filter(
-    (setting) =>
-      !searchQuery ||
-      setting.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (setting.description &&
-        setting.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  )
+    ?.filter(
+      (setting) =>
+        (!searchQuery ||
+          setting.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (setting.description &&
+            setting.description
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()))) &&
+        (!typeFilter || typeFilter === "all" || setting.type === typeFilter)
+    )
+    ?.sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.key.localeCompare(b.key);
+      } else {
+        return b.key.localeCompare(a.key);
+      }
+    });
 
   const groupLabel = (groupName: string) => {
     switch (groupName) {
@@ -110,6 +159,7 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
       await deleteSetting(selectedSetting.key);
       toast.success("Xóa cài đặt thành công");
       setIsDeleteDialogOpen(false);
+      refetch();
     } catch (error) {
       toast.error("Không thể xóa cài đặt này");
     }
@@ -146,6 +196,41 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
     return setting.value;
   };
 
+  const getGroupBadgeColor = (groupName: string) => {
+    switch (groupName) {
+      case "interface":
+        return "bg-blue-100 text-blue-800";
+      case "email":
+        return "bg-green-100 text-green-800";
+      case "pricing":
+        return "bg-amber-100 text-amber-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const handleAddSetting = () => {
+    setIsAddConfirmDialogOpen(true);
+  };
+
+  const confirmAddSetting = () => {
+    setIsAddConfirmDialogOpen(false);
+    setIsAddDialogOpen(true);
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  };
+
+  // Hàm reset tất cả các bộ lọc
+  const resetFilters = () => {
+    setSearchQuery("");
+    setTypeFilter("all");
+  };
+
+  // Kiểm tra xem có bộ lọc nào đang được áp dụng không
+  const hasActiveFilters = searchQuery || typeFilter;
+
   return (
     <>
       <Card className="shadow-sm">
@@ -160,6 +245,29 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
                 : "Quản lý tất cả các cài đặt hệ thống"}
             </CardDescription>
           </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              className="flex items-center gap-1"
+            >
+              {isRefetching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">Làm mới</span>
+            </Button>
+            <Button
+              onClick={handleAddSetting}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />{" "}
+              <span className="hidden sm:inline">Thêm cài đặt</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -173,12 +281,40 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+              <div className="flex gap-2">
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Lọc theo loại" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả loại</SelectItem>
+                    <SelectItem value="string">Chuỗi</SelectItem>
+                    <SelectItem value="number">Số</SelectItem>
+                    <SelectItem value="boolean">Boolean</SelectItem>
+                    <SelectItem value="json">JSON</SelectItem>
+                    <SelectItem value="file">File</SelectItem>
+                  </SelectContent>
+                </Select>
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="flex items-center gap-1"
+                  >
+                    <span>Xóa bộ lọc</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center items-center h-24">
-              <p className="text-muted-foreground">Đang tải...</p>
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
             </div>
           ) : filteredSettings && filteredSettings.length > 0 ? (
             <div className="border rounded-lg overflow-hidden">
@@ -186,7 +322,17 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
-                      <TableHead className="min-w-[200px]">Khóa</TableHead>
+                      <TableHead className="min-w-[200px]">
+                        <div
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={toggleSortOrder}
+                        >
+                          Khóa
+                          <ChevronDown
+                            className={`h-4 w-4 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
+                          />
+                        </div>
+                      </TableHead>
                       <TableHead className="min-w-[150px]">Giá trị</TableHead>
                       <TableHead className="min-w-[80px]">Loại</TableHead>
                       <TableHead className="min-w-[100px]">Nhóm</TableHead>
@@ -200,12 +346,32 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
                       <TableRow key={setting.key} className="hover:bg-muted/30">
                         <TableCell className="font-medium">
                           {setting.key}
+                          {setting.description && (
+                            <p className="text-xs text-muted-foreground mt-1 truncate max-w-[250px]">
+                              {setting.description}
+                            </p>
+                          )}
                         </TableCell>
                         <TableCell className="max-w-[300px] truncate">
-                          {formatValuePreview(setting)}
+                          <div
+                            className="cursor-pointer hover:underline"
+                            onClick={() => handleView(setting)}
+                          >
+                            {formatValuePreview(setting)}
+                          </div>
                         </TableCell>
-                        <TableCell>{typeLabel(setting.type)}</TableCell>
-                        <TableCell>{groupLabel(setting.group)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {typeLabel(setting.type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`font-normal ${getGroupBadgeColor(setting.group)}`}
+                          >
+                            {groupLabel(setting.group)}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -245,23 +411,68 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
                   </TableBody>
                 </Table>
               </div>
+              <div className="py-2 px-4 bg-muted/20 text-sm text-muted-foreground">
+                Hiển thị {filteredSettings.length} cài đặt{" "}
+                {hasActiveFilters ? "(đã lọc)" : ""}
+              </div>
             </div>
           ) : (
-            <div className="flex justify-center items-center h-24 bg-muted/10 rounded-lg border border-dashed">
-              <p className="text-muted-foreground">Không có dữ liệu</p>
+            <div className="flex flex-col justify-center items-center h-32 bg-muted/10 rounded-lg border border-dashed gap-3">
+              {hasActiveFilters ? (
+                <>
+                  <p className="text-muted-foreground">
+                    Không tìm thấy cài đặt nào phù hợp với bộ lọc
+                  </p>
+                  <Button variant="outline" onClick={resetFilters}>
+                    Xóa bộ lọc
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted-foreground">Không có dữ liệu</p>
+                  <Button variant="outline" onClick={handleAddSetting}>
+                    <Plus className="h-4 w-4 mr-2" /> Thêm cài đặt mới
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog xác nhận thêm cài đặt */}
+      <Dialog
+        open={isAddConfirmDialogOpen}
+        onOpenChange={setIsAddConfirmDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogTitle>Xác nhận thêm cài đặt</DialogTitle>
+          <DialogDescription>
+            Bạn có chắc chắn muốn thêm cài đặt mới? Hãy đảm bảo rằng bạn hiểu rõ
+            về cài đặt bạn sắp thêm và tác động của nó đến hệ thống.
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddConfirmDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button onClick={confirmAddSetting}>Tiếp tục</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog thêm cài đặt mới */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="w-[95vw] sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Thêm cài đặt mới</DialogTitle>
           <SystemSettingForm
+            initialGroup={group}
             onSuccess={() => {
               refetch();
               setIsAddDialogOpen(false);
+              toast.success("Đã thêm cài đặt mới thành công");
             }}
           />
         </DialogContent>
@@ -276,6 +487,7 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
             onSuccess={() => {
               refetch();
               setIsEditDialogOpen(false);
+              toast.success("Đã cập nhật cài đặt thành công");
             }}
           />
         </DialogContent>
@@ -309,8 +521,15 @@ export function SystemSettingList({ group }: SystemSettingListProps) {
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
             >
-              Xóa
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang xóa...
+                </>
+              ) : (
+                "Xóa"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

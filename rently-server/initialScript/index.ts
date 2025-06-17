@@ -290,7 +290,7 @@ const main = async () => {
             where: { key: templateKey },
             data: {
               value: emailContent,
-              type: 'file',
+              type: 'string',
               group: SYSTEM_SETTING_GROUPS.EMAIL,
               description: `Mẫu email ${fileName} (React Email Components)`,
             },
@@ -303,7 +303,7 @@ const main = async () => {
             data: {
               key: templateKey,
               value: emailContent,
-              type: 'file',
+              type: 'string',
               group: SYSTEM_SETTING_GROUPS.EMAIL,
               description: `Mẫu email ${fileName} (React Email Components)`,
             },

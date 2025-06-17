@@ -28,14 +28,6 @@ export const interfaceTemplates: SettingTemplate[] = [
     label: "Favicon",
   },
   {
-    key: "primary_color",
-    value: "#3b82f6",
-    type: "string",
-    group: SYSTEM_SETTING_GROUPS.INTERFACE,
-    description: "Màu chính của hệ thống",
-    label: "Màu chủ đạo",
-  },
-  {
     key: "footer_text",
     value: "© 2024 Rently. Đã đăng ký bản quyền.",
     type: "string",

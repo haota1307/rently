@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppProvider } from "@/components/app-provider";
 import NextTopLoader from "nextjs-toploader";
 import { DynamicFavicon } from "./dynamic-favicon";
+import { DynamicMetadata } from "./dynamic-metadata";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -48,6 +49,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <DynamicFavicon />
+            <DynamicMetadata />
             {children}
             <Toaster />
           </ThemeProvider>

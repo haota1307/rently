@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { FooterContactForm } from "@/features/contact/components/contact-form";
+import { useUiSettings } from "@/features/system-setting/hooks/useUiSettings";
 
 // Import động cho bản đồ để tránh lỗi SSR
 const RentalsMap = dynamic(() => import("@/features/map/rentals-map"), {
@@ -107,6 +108,8 @@ const FooterLinkSection = ({
 );
 
 export const Footer = () => {
+  const { settings, isLoading, defaultSettings } = useUiSettings();
+
   return (
     <footer className="bg-white dark:bg-gray-950 border-t dark:border-gray-800">
       <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
@@ -193,7 +196,7 @@ export const Footer = () => {
 
         {/* Footer cuối */}
         <div className="py-4 sm:py-6 border-t dark:border-gray-800 text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-          <p>© 2025 Rently. Mọi quyền được bảo lưu.</p>
+          <p>{settings.footerCopyright}</p>
           <p className="mt-1">
             Website này được tạo với mục đích học tập, không vì mục đích kinh
             doanh.

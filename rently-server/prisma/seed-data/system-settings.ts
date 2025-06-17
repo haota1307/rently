@@ -107,18 +107,6 @@ export async function seedSystemSettings(prisma: PrismaClient) {
     },
   })
 
-  await prisma.systemSetting.upsert({
-    where: { key: 'primary_color' },
-    update: {},
-    create: {
-      key: 'primary_color',
-      value: '#1890ff',
-      type: SYSTEM_SETTING_TYPES.STRING,
-      group: SYSTEM_SETTING_GROUPS.INTERFACE,
-      description: 'Màu chính của trang web',
-    },
-  })
-
   // Mẫu email thông báo
   await prisma.systemSetting.upsert({
     where: { key: 'email_welcome_template' },
@@ -148,12 +136,12 @@ export async function seedSystemSettings(prisma: PrismaClient) {
     where: { key: 'email_otp_template' },
     update: {
       value: otpEmailTemplate,
-      type: SYSTEM_SETTING_TYPES.FILE,
+      type: SYSTEM_SETTING_TYPES.STRING,
     },
     create: {
       key: 'email_otp_template',
       value: otpEmailTemplate,
-      type: SYSTEM_SETTING_TYPES.FILE,
+      type: SYSTEM_SETTING_TYPES.STRING,
       group: SYSTEM_SETTING_GROUPS.EMAIL,
       description: 'Mẫu email OTP (React Email Components)',
     },
@@ -164,12 +152,12 @@ export async function seedSystemSettings(prisma: PrismaClient) {
     where: { key: 'email_viewing_reminder_template' },
     update: {
       value: viewingReminderTemplate,
-      type: SYSTEM_SETTING_TYPES.FILE,
+      type: SYSTEM_SETTING_TYPES.STRING,
     },
     create: {
       key: 'email_viewing_reminder_template',
       value: viewingReminderTemplate,
-      type: SYSTEM_SETTING_TYPES.FILE,
+      type: SYSTEM_SETTING_TYPES.STRING,
       group: SYSTEM_SETTING_GROUPS.EMAIL,
       description: 'Mẫu email nhắc lịch xem phòng (React Email Components)',
     },
@@ -198,12 +186,12 @@ export async function seedSystemSettings(prisma: PrismaClient) {
     where: { key: 'email_new_rental_request_template' },
     update: {
       value: rentalRequestTemplate,
-      type: SYSTEM_SETTING_TYPES.FILE,
+      type: SYSTEM_SETTING_TYPES.STRING,
     },
     create: {
       key: 'email_new_rental_request_template',
       value: rentalRequestTemplate,
-      type: SYSTEM_SETTING_TYPES.FILE,
+      type: SYSTEM_SETTING_TYPES.STRING,
       group: SYSTEM_SETTING_GROUPS.EMAIL,
       description:
         'Mẫu email thông báo yêu cầu thuê mới (React Email Components)',
@@ -215,12 +203,12 @@ export async function seedSystemSettings(prisma: PrismaClient) {
     where: { key: 'email_rental_request_status_update_template' },
     update: {
       value: rentalStatusUpdateTemplate,
-      type: SYSTEM_SETTING_TYPES.FILE,
+      type: SYSTEM_SETTING_TYPES.STRING,
     },
     create: {
       key: 'email_rental_request_status_update_template',
       value: rentalStatusUpdateTemplate,
-      type: SYSTEM_SETTING_TYPES.FILE,
+      type: SYSTEM_SETTING_TYPES.STRING,
       group: SYSTEM_SETTING_GROUPS.EMAIL,
       description:
         'Mẫu email thông báo cập nhật trạng thái yêu cầu thuê (React Email Components)',
