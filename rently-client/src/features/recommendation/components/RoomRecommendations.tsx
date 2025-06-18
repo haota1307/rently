@@ -10,6 +10,7 @@ import {
   Target,
   Grid3X3,
   List,
+  AlertCircle,
 } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
 import { Badge } from "@/components/ui/badge";
@@ -259,6 +260,19 @@ export function RoomRecommendations({
           )}
         </div>
       </div>
+
+      {/* Thông báo khi room gốc đã được cho thuê */}
+      {data?.metadata?.targetRoom?.isAvailable === false && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-amber-800">
+            <AlertCircle className="h-4 w-4" />
+            <p className="text-sm">
+              <span className="font-medium">Phòng này đã được cho thuê!</span>{" "}
+              Dưới đây là các phòng trọ tương tự có thể bạn quan tâm.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className={cn(viewMode === "grid" ? gridClasses : "space-y-4")}>
         {recommendations.map((room) => (

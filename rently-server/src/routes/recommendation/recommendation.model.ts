@@ -89,6 +89,7 @@ export const GetRecommendationsResSchema = z.object({
       title: z.string(),
       price: z.number(),
       area: z.number(),
+      isAvailable: z.boolean(),
     }),
   }),
 })

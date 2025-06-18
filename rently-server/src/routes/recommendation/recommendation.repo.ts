@@ -28,7 +28,8 @@ export class RecommendationRepo {
       return await this.prismaService.room.findUnique({
         where: {
           id: roomId,
-          isAvailable: true,
+          // Bỏ điều kiện isAvailable: true để cho phép lấy thông tin room ngay cả khi đã được cho thuê
+          // Điều này cần thiết để API recommendations vẫn hoạt động cho room đã thuê
         },
         include: {
           rental: {

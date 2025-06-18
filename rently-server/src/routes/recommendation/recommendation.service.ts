@@ -36,6 +36,13 @@ export class RecommendationService {
         throw new NotFoundException(`Room with ID ${query.roomId} not found`)
       }
 
+      // Log warning nếu room không available để tracking
+      if (!targetRoom.isAvailable) {
+        this.logger.warn(
+          `Getting recommendations for unavailable room ${query.roomId}. Room may have been rented.`
+        )
+      }
+
       const selectedMethod = await this.selectOptimalMethod(
         query.method,
         query.roomId,
@@ -101,6 +108,7 @@ export class RecommendationService {
             title: targetRoom.title,
             price: this.convertToNumber(targetRoom.price),
             area: this.convertToNumber(targetRoom.area),
+            isAvailable: targetRoom.isAvailable,
           },
         },
       }

@@ -80,6 +80,7 @@ export interface TargetRoom {
   title: string;
   price: number;
   area: number;
+  isAvailable: boolean;
 }
 
 export interface RecommendationMetadata {
