@@ -12,6 +12,7 @@ import { RecommendationService } from './recommendation.service'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
+import { ActiveUserData } from 'src/shared/interfaces/active-user-data.interface'
 
 @Controller('recommendations')
 export class RecommendationController {
@@ -181,5 +182,20 @@ export class RecommendationController {
       )
       throw error
     }
+  }
+
+  /**
+   * AI Comparison Analysis cho comparison page
+   */
+  @Post('ai-comparison')
+  @IsPublic()
+  async generateAIComparison(
+    @Body() roomIds: number[],
+    @ActiveUser() user?: ActiveUserData
+  ) {
+    return this.recommendationService.generateAIComparison(
+      roomIds,
+      user?.userId
+    )
   }
 }

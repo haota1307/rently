@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { RecommendationRepo } from './recommendation.repo'
 import { Decimal } from '@prisma/client/runtime/library'
+import { ChatbotOpenAIService } from '../chatbot/services/openai.service'
 import {
   GetRecommendationsQueryType,
   GetRecommendationsResType,
@@ -16,7 +17,10 @@ import {
 export class RecommendationService {
   private readonly logger = new Logger(RecommendationService.name)
 
-  constructor(private readonly recommendationRepo: RecommendationRepo) {}
+  constructor(
+    private readonly recommendationRepo: RecommendationRepo,
+    private readonly openaiService: ChatbotOpenAIService
+  ) {}
 
   private convertToNumber(value: number | Decimal): number {
     return value instanceof Decimal ? value.toNumber() : value
@@ -1243,5 +1247,111 @@ export class RecommendationService {
     if (weights.location > 0.1) activeMethods.push('vị trí địa lý')
 
     return activeMethods.join(', ')
+  }
+
+  /**
+   * AI Comparison Analysis cho comparison page
+   */
+  async generateAIComparison(roomIds: number[], userId?: number) {
+    try {
+      this.logger.log(
+        `Generating AI comparison for rooms: ${roomIds.join(', ')}`
+      )
+
+      // Lấy thông tin chi tiết các phòng
+      const roomsData = await Promise.all(
+        roomIds.map(async roomId => {
+          const room = await this.recommendationRepo.getRoomDetails(roomId)
+          if (!room) {
+            throw new NotFoundException(`Room with ID ${roomId} not found`)
+          }
+          return room
+        })
+      )
+
+      // Tạo prompt cho AI analysis
+      const prompt = this.createAIComparisonPrompt(roomsData)
+
+      // Gọi OpenAI để phân tích
+      const aiResponse = await this.openaiService.generateCompletion(
+        prompt,
+        'gpt-4o-mini',
+        0.7,
+        2000
+      )
+
+      return {
+        success: true,
+        message: 'AI analysis completed successfully',
+        data: {
+          analysis: aiResponse,
+          roomsCount: roomsData.length,
+          timestamp: new Date().toISOString(),
+          rooms: roomsData.map(room => ({
+            id: room.id,
+            title: room.title,
+            price: this.convertToNumber(room.price),
+            area: this.convertToNumber(room.area),
+            address: room.rental?.address || 'N/A',
+            isAvailable: room.isAvailable,
+            amenitiesCount: room.roomAmenities?.length || 0,
+          })),
+        },
+      }
+    } catch (error) {
+      this.logger.error('Error generating AI comparison:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Tạo prompt cho AI comparison analysis
+   */
+  private createAIComparisonPrompt(rooms: any[]): string {
+    const roomsInfo = rooms
+      .map((room, index) => {
+        const amenitiesCount = room.roomAmenities?.length || 0
+        const distance = room.rental?.distance || 'N/A'
+
+        return `
+📍 **Phòng ${index + 1}: ${room.title}**
+- Giá: ${this.convertToNumber(room.price).toLocaleString('vi-VN')} VNĐ/tháng
+- Diện tích: ${this.convertToNumber(room.area)} m²
+- Địa chỉ: ${room.rental?.address || 'N/A'}
+- Khoảng cách đến trường: ${distance === 'N/A' ? 'N/A' : distance + ' km'}
+- Số lượng tiện ích: ${amenitiesCount} tiện ích
+- Trạng thái: ${room.isAvailable ? 'Có sẵn' : 'Đã cho thuê'}
+- Tỷ lệ giá/diện tích: ${(this.convertToNumber(room.price) / this.convertToNumber(room.area)).toLocaleString('vi-VN')} VNĐ/m²`
+      })
+      .join('\n\n')
+
+    return `
+Bạn là chuyên gia tư vấn bất động sản thông minh của Rently. Hãy phân tích so sánh các phòng trọ sau đây và đưa ra báo cáo chi tiết:
+
+${roomsInfo}
+
+🎯 **YÊU CẦU PHÂN TÍCH:**
+
+**1. ĐÁNH GIÁ VÀ XẾP HẠNG:**
+- Xếp hạng các phòng từ tốt nhất đến kém nhất (1-${rooms.length})
+- Cho điểm từng phòng theo 4 tiêu chí: Giá cả (30%), Vị trí (30%), Diện tích (20%), Tiện ích (20%)
+- Điểm tổng từ 0-100 cho mỗi phòng
+
+**2. PHÂN TÍCH ƯU NHƯỢC ĐIỂM:**
+- Ưu điểm nổi bật của từng phòng
+- Nhược điểm cần lưu ý
+- So sánh tương đối giữa các phòng
+
+**3. GỢI Ý THÔNG MINH:**
+- Phòng nào phù hợp với sinh viên có ngân sách hạn chế?
+- Phòng nào tốt nhất cho người ưu tiên tiện nghi?
+- Phòng nào có tỷ lệ giá/chất lượng tốt nhất?
+
+**4. KẾT LUẬN VÀ KHUYẾN NGHỊ:**
+- Phòng được khuyến nghị hàng đầu và lý do
+- Lời khuyên cuối cùng cho người thuê
+
+Hãy viết bằng tiếng Việt, phong cách chuyên nghiệp nhưng thân thiện, dễ hiểu. Sử dụng emoji và format markdown để dễ đọc.
+`
   }
 }
