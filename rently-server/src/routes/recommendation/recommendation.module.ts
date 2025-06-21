@@ -3,9 +3,10 @@ import { ScheduleModule } from '@nestjs/schedule'
 import { RecommendationController } from './recommendation.controller'
 import { RecommendationService } from './recommendation.service'
 import { RecommendationRepo } from './recommendation.repo'
-import { RecommendationOptimizedRepo } from './recommendation-optimized.repo'
+
 import { RecommendationCacheService } from './recommendation-cache.service'
 import { RecommendationPerformanceService } from './recommendation-performance.service'
+import { MemoryCacheService } from './memory-cache.service'
 import { SharedModule } from 'src/shared/shared.module'
 import { ChatbotOpenAIService } from '../chatbot/services/openai.service'
 
@@ -18,17 +19,17 @@ import { ChatbotOpenAIService } from '../chatbot/services/openai.service'
   providers: [
     RecommendationService,
     RecommendationRepo,
-    RecommendationOptimizedRepo,
     RecommendationCacheService,
     RecommendationPerformanceService,
+    MemoryCacheService,
     ChatbotOpenAIService,
   ],
   exports: [
     RecommendationService,
     RecommendationRepo,
-    RecommendationOptimizedRepo,
     RecommendationCacheService,
     RecommendationPerformanceService,
+    MemoryCacheService,
   ],
 })
 export class RecommendationModule {}

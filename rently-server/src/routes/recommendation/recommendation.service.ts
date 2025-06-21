@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { RecommendationRepo } from './recommendation.repo'
-import { RecommendationOptimizedRepo } from './recommendation-optimized.repo'
 import { RecommendationCacheService } from './recommendation-cache.service'
 import { RecommendationPerformanceService } from './recommendation-performance.service'
+import { MemoryCacheService } from './memory-cache.service'
 import { Decimal } from '@prisma/client/runtime/library'
 import { ChatbotOpenAIService } from '../chatbot/services/openai.service'
 import {
@@ -22,9 +22,9 @@ export class RecommendationService {
 
   constructor(
     private readonly recommendationRepo: RecommendationRepo,
-    private readonly optimizedRepo: RecommendationOptimizedRepo,
     private readonly cacheService: RecommendationCacheService,
     private readonly performanceService: RecommendationPerformanceService,
+    private readonly memoryCacheService: MemoryCacheService,
     private readonly openaiService: ChatbotOpenAIService
   ) {}
 
@@ -39,12 +39,37 @@ export class RecommendationService {
     const startTime = Date.now()
 
     try {
-      // 🚀 Check cache first
+      // 🚀 Check L1 Memory Cache first (ultra-fast)
       const selectedMethod = await this.selectOptimalMethod(
         query.method,
         query.roomId,
         userId
       )
+
+      const memoryCached =
+        await this.memoryCacheService.getCachedRecommendations(
+          query.roomId,
+          userId,
+          selectedMethod
+        )
+      if (memoryCached) {
+        // 📊 Track memory cache hit performance
+        await this.performanceService.trackQueryPerformance({
+          method: selectedMethod,
+          executionTime: Date.now() - startTime,
+          resultCount: memoryCached.data.data.length,
+          cacheHit: true,
+          roomId: query.roomId,
+          userId,
+        })
+
+        this.logger.log(
+          `Memory Cache HIT for room ${query.roomId}, method ${selectedMethod}`
+        )
+        return memoryCached.data
+      }
+
+      // 🚀 Check L2 Redis Cache if memory cache miss
       const cacheKey = this.cacheService.generateCacheKey(
         selectedMethod,
         query.roomId,
@@ -64,8 +89,16 @@ export class RecommendationService {
           userId,
         })
 
+        // Promote to memory cache for next time
+        await this.memoryCacheService.setCachedRecommendations(
+          query.roomId,
+          cachedResult,
+          userId,
+          selectedMethod
+        )
+
         this.logger.log(
-          `Cache HIT for room ${query.roomId}, method ${selectedMethod}`
+          `Redis Cache HIT for room ${query.roomId}, method ${selectedMethod} (promoted to memory)`
         )
         return cachedResult
       }
@@ -148,8 +181,14 @@ export class RecommendationService {
         },
       }
 
-      // 💾 Cache the result for future requests
+      // 💾 Cache the result in both memory and Redis for future requests
       await this.cacheService.setCachedRecommendations(cacheKey, result)
+      await this.memoryCacheService.setCachedRecommendations(
+        query.roomId,
+        result,
+        userId,
+        selectedMethod
+      )
 
       // 📊 Track performance metrics
       await this.performanceService.trackQueryPerformance({
