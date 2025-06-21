@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common'
 import { ZodSerializerDto } from 'nestjs-zod'
 import { RecommendationService } from './recommendation.service'
+import { RecommendationPerformanceService } from './recommendation-performance.service'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
@@ -18,7 +19,10 @@ import { ActiveUserData } from 'src/shared/interfaces/active-user-data.interface
 export class RecommendationController {
   private readonly logger = new Logger(RecommendationController.name)
 
-  constructor(private readonly recommendationService: RecommendationService) {}
+  constructor(
+    private readonly recommendationService: RecommendationService,
+    private readonly performanceService: RecommendationPerformanceService
+  ) {}
 
   /**
    * GET /recommendations?roomId=123&limit=8
@@ -197,5 +201,70 @@ export class RecommendationController {
       roomIds,
       user?.userId
     )
+  }
+
+  /**
+   * GET /recommendations/performance-stats
+   * Performance monitoring endpoint
+   */
+  @Get('performance-stats')
+  async getPerformanceStats(@Query('days') days: string = '7') {
+    try {
+      const daysNum = parseInt(days, 10) || 7
+      const stats = await this.performanceService.getPerformanceStats(daysNum)
+      const recommendations =
+        await this.performanceService.getOptimizationRecommendations()
+
+      return {
+        success: true,
+        message: 'Performance statistics retrieved successfully',
+        data: {
+          ...stats,
+          recommendations,
+          period: `${daysNum} days`,
+          timestamp: new Date().toISOString(),
+        },
+      }
+    } catch (error) {
+      this.logger.error('Error getting performance stats:', error)
+      return {
+        success: false,
+        message: 'Error retrieving performance statistics',
+        data: {
+          avgResponseTime: 0,
+          cacheHitRate: 0,
+          queryCount: 0,
+          errorRate: 0,
+          recommendations: ['Unable to retrieve performance data'],
+        },
+      }
+    }
+  }
+
+  /**
+   * GET /recommendations/health-check
+   * System health check endpoint
+   */
+  @Get('health-check')
+  async systemHealthCheck() {
+    try {
+      const health = await this.performanceService.healthCheck()
+
+      return {
+        success: true,
+        message: 'Health check completed',
+        data: health,
+      }
+    } catch (error) {
+      this.logger.error('Error in health check:', error)
+      return {
+        success: false,
+        message: 'Health check failed',
+        data: {
+          status: 'unhealthy',
+          error: error.message,
+        },
+      }
+    }
   }
 }

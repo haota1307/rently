@@ -1,5 +1,8 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { RecommendationRepo } from './recommendation.repo'
+import { RecommendationOptimizedRepo } from './recommendation-optimized.repo'
+import { RecommendationCacheService } from './recommendation-cache.service'
+import { RecommendationPerformanceService } from './recommendation-performance.service'
 import { Decimal } from '@prisma/client/runtime/library'
 import { ChatbotOpenAIService } from '../chatbot/services/openai.service'
 import {
@@ -19,6 +22,9 @@ export class RecommendationService {
 
   constructor(
     private readonly recommendationRepo: RecommendationRepo,
+    private readonly optimizedRepo: RecommendationOptimizedRepo,
+    private readonly cacheService: RecommendationCacheService,
+    private readonly performanceService: RecommendationPerformanceService,
     private readonly openaiService: ChatbotOpenAIService
   ) {}
 
@@ -33,6 +39,36 @@ export class RecommendationService {
     const startTime = Date.now()
 
     try {
+      // 🚀 Check cache first
+      const selectedMethod = await this.selectOptimalMethod(
+        query.method,
+        query.roomId,
+        userId
+      )
+      const cacheKey = this.cacheService.generateCacheKey(
+        selectedMethod,
+        query.roomId,
+        userId
+      )
+
+      const cachedResult =
+        await this.cacheService.getCachedRecommendations(cacheKey)
+      if (cachedResult) {
+        // 📊 Track cache hit performance
+        await this.performanceService.trackQueryPerformance({
+          method: selectedMethod,
+          executionTime: Date.now() - startTime,
+          resultCount: cachedResult.data.length,
+          cacheHit: true,
+          roomId: query.roomId,
+          userId,
+        })
+
+        this.logger.log(
+          `Cache HIT for room ${query.roomId}, method ${selectedMethod}`
+        )
+        return cachedResult
+      }
       const targetRoom = await this.recommendationRepo.getRoomDetails(
         query.roomId
       )
@@ -47,11 +83,6 @@ export class RecommendationService {
         )
       }
 
-      const selectedMethod = await this.selectOptimalMethod(
-        query.method,
-        query.roomId,
-        userId
-      )
       let recommendations: RecommendedRoomType[]
 
       switch (selectedMethod) {
@@ -100,7 +131,7 @@ export class RecommendationService {
       const executionTime = Date.now() - startTime
       const weights = await this.recommendationRepo.getRecommendationWeights()
 
-      return {
+      const result: GetRecommendationsResType = {
         data: recommendations,
         metadata: {
           totalCandidates: recommendations.length,
@@ -116,6 +147,25 @@ export class RecommendationService {
           },
         },
       }
+
+      // 💾 Cache the result for future requests
+      await this.cacheService.setCachedRecommendations(cacheKey, result)
+
+      // 📊 Track performance metrics
+      await this.performanceService.trackQueryPerformance({
+        method: selectedMethod,
+        executionTime,
+        resultCount: recommendations.length,
+        cacheHit: false,
+        roomId: query.roomId,
+        userId,
+      })
+
+      this.logger.log(
+        `Generated ${recommendations.length} recommendations for room ${query.roomId} in ${executionTime}ms using ${selectedMethod}`
+      )
+
+      return result
     } catch (error) {
       this.logger.error('Error getting recommendations:', error)
       throw error
