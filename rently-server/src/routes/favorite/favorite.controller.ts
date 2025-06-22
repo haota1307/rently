@@ -55,8 +55,6 @@ export class FavoriteController {
     @Body() body: CreateFavoriteBodyDTO,
     @ActiveUser('userId') userId: number
   ) {
-    console.log('DEBUG - Toggle favorite request:', { body, userId })
-    console.log('DEBUG - Body postId:', body.postId, typeof body.postId)
     return this.favoriteService.toggleFavorite(userId, body)
   }
 

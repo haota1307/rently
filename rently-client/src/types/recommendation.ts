@@ -66,6 +66,7 @@ export interface RecommendedRoom {
   rental: Rental;
   roomImages?: RoomImage[];
   roomAmenities?: RoomAmenity[];
+  RentalPost?: Array<{ id: number; title: string; status: string }>;
 }
 
 export interface SimilarityWeights {

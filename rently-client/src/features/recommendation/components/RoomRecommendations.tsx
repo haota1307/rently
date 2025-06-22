@@ -296,6 +296,7 @@ export function RoomRecommendations({
                 rental={convertToRental(room)}
                 viewMode={viewMode}
                 isNearbyPost={method === "LOCATION_BASED"}
+                postId={room.RentalPost?.[0]?.id}
               />
             </div>
           </div>

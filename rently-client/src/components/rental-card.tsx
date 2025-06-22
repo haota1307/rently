@@ -36,6 +36,7 @@ export interface RentalCardProps {
   viewMode?: "grid" | "list";
   onContactClick?: () => void;
   isNearbyPost?: boolean;
+  postId?: number; // Optional postId override
 }
 
 export const RentalCard = ({
@@ -44,6 +45,7 @@ export const RentalCard = ({
   viewMode = "grid",
   onContactClick = () => {},
   isNearbyPost = false,
+  postId,
 }: RentalCardProps) => {
   const processedListing = rental
     ? {
@@ -195,7 +197,7 @@ export const RentalCard = ({
 
             <div className="flex justify-between items-center">
               <FavoriteButton
-                rentalId={Number(processedListing.id)}
+                postId={postId || Number(processedListing.id)}
                 variant="outline"
                 size="sm"
                 className="text-xs px-2"
@@ -330,7 +332,7 @@ export const RentalCard = ({
 
             <div className="flex justify-between items-center mt-auto">
               <FavoriteButton
-                rentalId={Number(processedListing.id)}
+                postId={postId || Number(processedListing.id)}
                 variant="outline"
                 size="sm"
               />
