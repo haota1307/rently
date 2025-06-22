@@ -37,6 +37,7 @@ export interface RentalCardProps {
   onContactClick?: () => void;
   isNearbyPost?: boolean;
   postId?: number; // Optional postId override
+  rentalId?: number; // Optional rentalId fallback
 }
 
 export const RentalCard = ({
@@ -46,6 +47,7 @@ export const RentalCard = ({
   onContactClick = () => {},
   isNearbyPost = false,
   postId,
+  rentalId,
 }: RentalCardProps) => {
   const processedListing = rental
     ? {
@@ -76,6 +78,12 @@ export const RentalCard = ({
   if (!processedListing) {
     return null;
   }
+
+  // Determine final postId with priority:
+  // 1. explicit postId (preferred - actual post ID)
+  // 2. explicit rentalId (fallback - when postId is null/unavailable)
+  // 3. processedListing.id (default - from data)
+  const finalPostId = postId || rentalId || Number(processedListing.id);
 
   // Tạo slug cho bài đăng
   const postSlug = createPostSlug(processedListing.title, processedListing.id);
@@ -197,7 +205,7 @@ export const RentalCard = ({
 
             <div className="flex justify-between items-center">
               <FavoriteButton
-                postId={postId || Number(processedListing.id)}
+                postId={finalPostId}
                 variant="outline"
                 size="sm"
                 className="text-xs px-2"
@@ -332,7 +340,7 @@ export const RentalCard = ({
 
             <div className="flex justify-between items-center mt-auto">
               <FavoriteButton
-                postId={postId || Number(processedListing.id)}
+                postId={finalPostId}
                 variant="outline"
                 size="sm"
               />
