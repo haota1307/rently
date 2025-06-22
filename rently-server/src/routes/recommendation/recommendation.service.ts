@@ -20,6 +20,11 @@ import {
 export class RecommendationService {
   private readonly logger = new Logger(RecommendationService.name)
 
+  // 🧠 Smart calculation cache for performance
+  private readonly distanceCache = new Map<string, number>()
+  private readonly similarityCache = new Map<string, SimilarityBreakdownType>()
+  private readonly cacheExpiry = 10 * 60 * 1000 // 10 minutes
+
   constructor(
     private readonly recommendationRepo: RecommendationRepo,
     private readonly cacheService: RecommendationCacheService,
@@ -66,7 +71,9 @@ export class RecommendationService {
         this.logger.log(
           `Memory Cache HIT for room ${query.roomId}, method ${selectedMethod}`
         )
-        return memoryCached.data
+
+        // 🎯 RESPONSE OPTIMIZATION: Compress and optimize response
+        return this.optimizeResponse(memoryCached.data)
       }
 
       // 🚀 Check L2 Redis Cache if memory cache miss
@@ -100,7 +107,9 @@ export class RecommendationService {
         this.logger.log(
           `Redis Cache HIT for room ${query.roomId}, method ${selectedMethod} (promoted to memory)`
         )
-        return cachedResult
+
+        // 🎯 RESPONSE OPTIMIZATION: Compress and optimize response
+        return this.optimizeResponse(cachedResult)
       }
       const targetRoom = await this.recommendationRepo.getRoomDetails(
         query.roomId
@@ -201,59 +210,242 @@ export class RecommendationService {
       })
 
       this.logger.log(
-        `Generated ${recommendations.length} recommendations for room ${query.roomId} in ${executionTime}ms using ${selectedMethod}`
+        `🎯 Recommendations generated: ${recommendations.length} rooms in ${executionTime}ms (method: ${selectedMethod})`
       )
 
-      return result
+      // 🎯 RESPONSE OPTIMIZATION: Compress and optimize response
+      return this.optimizeResponse(result)
     } catch (error) {
       this.logger.error('Error getting recommendations:', error)
       throw error
     }
   }
 
+  /**
+   * 🎯 RESPONSE OPTIMIZATION - Reduce payload size and optimize JSON
+   */
+  private optimizeResponse(
+    response: GetRecommendationsResType
+  ): GetRecommendationsResType {
+    return {
+      data: response.data.map(room => ({
+        ...room,
+        // 🔧 Add distance to room level if it exists
+        ...(room.rental?.distance !== undefined && {
+          distance: Math.round(room.rental.distance * 1000) / 1000, // Round to 3 decimal places
+        }),
+        // 🔧 Truncate unnecessary data
+        rental: {
+          ...room.rental,
+          // Remove heavy data that's not needed for UI
+          rentalImages: room.rental.rentalImages?.slice(0, 2), // Max 2 images
+          // Only truncate description if it exists
+          ...((room.rental as any).description && {
+            description:
+              (room.rental as any).description.substring(0, 200) +
+              ((room.rental as any).description.length > 200 ? '...' : ''),
+          }),
+        },
+        roomImages: room.roomImages?.slice(0, 2), // Max 2 room images
+        roomAmenities: room.roomAmenities?.slice(0, 5), // Max 5 amenities
+        // Round numbers to 2 decimal places
+        price: Math.round(room.price * 100) / 100,
+        area: Math.round(room.area * 100) / 100,
+        similarityScore: Math.round(room.similarityScore * 1000) / 1000,
+      })),
+      metadata: {
+        ...response.metadata,
+        // Optimize metadata
+        executionTime: Math.round(response.metadata.executionTime),
+        weights: {
+          location: Math.round(response.metadata.weights.location * 100) / 100,
+          price: Math.round(response.metadata.weights.price * 100) / 100,
+          area: Math.round(response.metadata.weights.area * 100) / 100,
+          amenities:
+            Math.round(response.metadata.weights.amenities * 100) / 100,
+        },
+      },
+    }
+  }
+
+  /**
+   * 🎯 Content-based recommendations với Early Termination Algorithm
+   */
   private async getContentBasedRecommendations(
     targetRoom: any,
     query: GetRecommendationsQueryType,
     userId?: number
   ): Promise<RecommendedRoomType[]> {
-    const candidateRooms = await this.recommendationRepo.getCandidateRooms(
-      targetRoom.id,
-      query,
-      userId
-    )
+    const startTime = Date.now()
 
-    if (candidateRooms.length === 0) return []
-
-    const weights = await this.recommendationRepo.getRecommendationWeights()
-
-    const scoredRooms = candidateRooms.map(room => {
-      const similarity = this.calculateContentSimilarity(
-        targetRoom,
-        room,
-        weights,
-        query
+    // 🚀 Use parallel data fetching for maximum performance
+    const { candidateRooms, weights } =
+      await this.recommendationRepo.getRecommendationDataParallel(
+        targetRoom.id,
+        query,
+        userId
       )
 
-      return {
-        ...this.recommendationRepo.formatRoom(room),
-        similarityScore: similarity.overall,
-        method: RecommendationMethod.CONTENT_BASED,
-        explanation: this.generateContentBasedExplanation(
+    this.logger.debug(
+      `🔥 Content-based: Processing ${candidateRooms.length} candidates for room ${targetRoom.id}`
+    )
+
+    // 🎯 Apply early termination algorithm for faster processing
+    const recommendations = await this.applyEarlyTerminationAlgorithm(
+      targetRoom,
+      candidateRooms,
+      weights,
+      query
+    )
+
+    const executionTime = Date.now() - startTime
+    this.logger.debug(
+      `✅ Content-based completed: ${recommendations.length} recommendations in ${executionTime}ms`
+    )
+
+    return recommendations
+  }
+
+  /**
+   * 🚀 Early Termination Algorithm - Core optimization
+   */
+  private async applyEarlyTerminationAlgorithm(
+    targetRoom: any,
+    candidateRooms: any[],
+    weights: SimilarityWeightsType,
+    query: GetRecommendationsQueryType
+  ): Promise<RecommendedRoomType[]> {
+    const startTime = Date.now()
+    const results: Array<any> = []
+    const processedCount = { value: 0 }
+    const earlySkipCount = { value: 0 }
+
+    const maxCandidates = query.limit * 3 // Dynamic threshold
+    const scoreThreshold = 0.25 // Skip rooms with very low similarity
+    const excellentThreshold = 0.9 // Excellent recommendation threshold
+
+    this.logger.debug(
+      `🎯 Early termination: Processing up to ${maxCandidates} candidates`
+    )
+
+    // 🚀 PARALLEL BATCH PROCESSING for better performance
+    const batchSize = 20 // Process 20 rooms at a time
+    const totalBatches = Math.ceil(candidateRooms.length / batchSize)
+
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const batchStart = batchIndex * batchSize
+      const batchEnd = Math.min(batchStart + batchSize, candidateRooms.length)
+      const batch = candidateRooms.slice(batchStart, batchEnd)
+
+      // 🔥 Process batch in parallel
+      const batchPromises = batch.map(candidateRoom => {
+        processedCount.value++
+
+        // 🚀 OPTIMIZED: Use pre-computed distance to university
+        const distanceToUniversity = this.convertToNumber(
+          candidateRoom.rental.distance || 0
+        )
+
+        // Skip if too far (beyond maxDistance) - distance already in km
+        if (distanceToUniversity > query.maxDistance / 1000) {
+          // Convert maxDistance from meters to km
+          earlySkipCount.value++
+          return null
+        }
+
+        // Calculate full similarity
+        const similarity = this.calculateContentSimilarityCached(
           targetRoom,
-          room,
-          similarity
-        ),
-        similarityBreakdown: similarity,
-        rank: 0,
+          candidateRoom,
+          weights,
+          query
+        )
+
+        // 🎯 Early skip low-quality matches
+        if (similarity.overall < scoreThreshold) {
+          earlySkipCount.value++
+          return null
+        }
+
+        // 🏠 Create recommended room object
+        const recommendedRoom: RecommendedRoomType = {
+          ...this.recommendationRepo.formatRoom(candidateRoom),
+          similarityScore: similarity.overall,
+          method: RecommendationMethod.CONTENT_BASED,
+          explanation: this.generateContentBasedExplanation(
+            targetRoom,
+            candidateRoom,
+            similarity,
+            distanceToUniversity
+          ),
+          similarityBreakdown: similarity,
+          rank: 0, // Will be set after sorting
+          rental: {
+            ...candidateRoom.rental,
+            distance: distanceToUniversity, // 🔧 Distance to university in km
+          },
+        }
+
+        return recommendedRoom
+      })
+
+      // Wait for batch completion and collect results
+      const batchResults = (await Promise.all(batchPromises)).filter(Boolean)
+      results.push(...batchResults)
+
+      // 🎯 EARLY TERMINATION CONDITIONS
+      const executionTime = Date.now() - startTime
+      const excellentResults = results.filter(
+        r => r.similarityScore >= excellentThreshold
+      )
+
+      // Condition 1: Enough excellent results
+      if (excellentResults.length >= query.limit) {
+        this.logger.debug(
+          `✅ Early termination: Found ${excellentResults.length} excellent results`
+        )
+        break
       }
-    })
 
-    const sortedRooms = this.diversifyAndSortResults(scoredRooms, query.limit)
+      // Condition 2: Processed enough candidates
+      if (processedCount.value >= maxCandidates) {
+        this.logger.debug(
+          `✅ Early termination: Processed ${processedCount.value} candidates (limit reached)`
+        )
+        break
+      }
 
-    return sortedRooms.map((room, index) => ({
-      ...room,
-      rank: index + 1,
-    }))
+      // Condition 3: Good results + time limit
+      if (results.length >= query.limit && executionTime > 500) {
+        this.logger.debug(
+          `✅ Early termination: Time limit (${executionTime}ms) with ${results.length} results`
+        )
+        break
+      }
+
+      // Condition 4: Diminishing returns
+      if (results.length >= query.limit * 2 && executionTime > 300) {
+        this.logger.debug(
+          `✅ Early termination: Diminishing returns after ${executionTime}ms`
+        )
+        break
+      }
+    }
+
+    // 📊 Optimization tracking
+    const finalExecutionTime = Date.now() - startTime
+    const reductionPercentage = (
+      ((candidateRooms.length - processedCount.value) / candidateRooms.length) *
+      100
+    ).toFixed(1)
+
+    this.logger.debug(
+      `🎯 Early termination stats: ${processedCount.value}/${candidateRooms.length} processed ` +
+        `(${reductionPercentage}% reduction), ${earlySkipCount.value} early skips, ${finalExecutionTime}ms`
+    )
+
+    // 🎯 Final sorting and limiting with diversity
+    return this.diversifyAndSortResults(results, query.limit)
   }
 
   private async getPopularityBasedRecommendations(
@@ -265,66 +457,127 @@ export class RecommendationService {
       query.limit
     )
 
-    return popularRooms.map((room, index) => ({
-      ...this.recommendationRepo.formatRoom(room),
-      similarityScore: 0.5,
-      method: RecommendationMethod.POPULARITY,
-      explanation: {
-        reasons: ['Phòng trọ phổ biến được nhiều người quan tâm'],
-        distance: undefined,
-        priceDifference: undefined,
-        areaDifference: undefined,
-        commonAmenities: [],
-      },
-      similarityBreakdown: {
-        location: 0,
-        price: 0,
-        area: 0,
-        amenities: 0,
-        overall: 0.5,
-      },
-      rank: index + 1,
-    }))
+    return popularRooms.map((room, index) => {
+      // Use pre-computed distance to university
+      const distanceToUniversity = this.convertToNumber(
+        room.rental.distance || 0
+      )
+
+      return {
+        ...this.recommendationRepo.formatRoom(room),
+        similarityScore: 0.5,
+        method: RecommendationMethod.POPULARITY,
+        explanation: {
+          reasons: [
+            'Phòng trọ phổ biến được nhiều người quan tâm',
+            distanceToUniversity < 0.5
+              ? `Rất gần Đại học Nam Cần Thơ (${Math.round(distanceToUniversity * 1000)}m)`
+              : distanceToUniversity < 2
+                ? `Gần Đại học Nam Cần Thơ (${distanceToUniversity.toFixed(1)}km)`
+                : `Cách Đại học Nam Cần Thơ ${distanceToUniversity.toFixed(1)}km`,
+          ],
+          distance: Math.round(distanceToUniversity * 1000),
+          priceDifference: undefined,
+          areaDifference: undefined,
+          commonAmenities: [],
+        },
+        similarityBreakdown: {
+          location: 0,
+          price: 0,
+          area: 0,
+          amenities: 0,
+          overall: 0.5,
+        },
+        rank: index + 1,
+        rental: {
+          ...room.rental,
+          distance: distanceToUniversity, // Pre-computed distance to university
+        },
+      }
+    })
   }
 
+  /**
+   * 🗺️ Location-based recommendations với Geographic Optimization
+   */
   private async getLocationBasedRecommendations(
     targetRoom: any,
     query: GetRecommendationsQueryType,
     userId?: number
   ): Promise<RecommendedRoomType[]> {
-    const candidateRooms = await this.recommendationRepo.getCandidateRooms(
-      targetRoom.id,
-      query,
-      userId
-    )
+    // 🚀 Use optimized candidate fetching với tighter geographic constraints
+    const optimizedQuery = {
+      ...query,
+      maxDistance: Math.min(query.maxDistance, 3000), // Giới hạn 3km cho location-based
+    }
 
-    const locationScoredRooms = candidateRooms.map(room => {
-      const distance = this.calculateDistance(
-        this.convertToNumber(targetRoom.rental.lat),
-        this.convertToNumber(targetRoom.rental.lng),
-        this.convertToNumber(room.rental.lat),
-        this.convertToNumber(room.rental.lng)
+    const candidateRooms =
+      await this.recommendationRepo.getCandidateRoomsOptimized(
+        targetRoom.id,
+        targetRoom,
+        optimizedQuery,
+        userId
       )
+
+    if (candidateRooms.length === 0) {
+      return []
+    }
+
+    // 🎯 Apply early termination với distance-first sorting
+    const startTime = Date.now()
+    const scoredRooms: RecommendedRoomType[] = []
+
+    // Sort by distance to university first để ưu tiên phòng gần trường nhất
+    candidateRooms.sort((a, b) => {
+      const distA = this.convertToNumber(a.rental.distance || 0)
+      const distB = this.convertToNumber(b.rental.distance || 0)
+      return distA - distB
+    })
+
+    const MAX_DISTANCE_THRESHOLD = optimizedQuery.maxDistance
+    let processedCount = 0
+    const maxProcess = query.limit * 2 // Ít hơn so với content-based do đã sort theo distance
+
+    for (const candidateRoom of candidateRooms) {
+      if (scoredRooms.length >= query.limit && processedCount >= maxProcess) {
+        break
+      }
+
+      // Use pre-computed distance to university
+      const distanceToUniversity = this.convertToNumber(
+        candidateRoom.rental.distance || 0
+      )
+
+      // Skip nếu quá xa (distance already in km)
+      if (distanceToUniversity > MAX_DISTANCE_THRESHOLD / 1000) {
+        continue
+      }
 
       const locationScore = this.calculateLocationScore(
-        distance,
-        query.maxDistance
+        distanceToUniversity,
+        MAX_DISTANCE_THRESHOLD / 1000 // Convert to km
       )
 
-      return {
-        ...this.recommendationRepo.formatRoom(room),
+      // Early skip nếu location score quá thấp
+      if (locationScore < 0.3) {
+        processedCount++
+        continue
+      }
+
+      const recommendedRoom: RecommendedRoomType = {
+        ...this.recommendationRepo.formatRoom(candidateRoom),
         similarityScore: locationScore,
         method: RecommendationMethod.LOCATION_BASED,
         explanation: {
           reasons: [
-            distance < 1000
-              ? `Rất gần (${Math.round(distance)}m)`
-              : `Cùng khu vực (${(distance / 1000).toFixed(1)}km)`,
+            `Cách Đại học Nam Cần Thơ ${distanceToUniversity.toFixed(1)}km`,
+            distanceToUniversity < 0.5
+              ? 'Rất gần trường, có thể đi bộ'
+              : distanceToUniversity < 1.5
+                ? 'Khoảng cách hợp lý đến trường'
+                : 'Trong khu vực gần trường',
           ],
-          distance: Math.round(distance),
-          priceDifference: undefined,
-          areaDifference: undefined,
-          commonAmenities: [],
+          distance: Math.round(distanceToUniversity * 1000),
         },
         similarityBreakdown: {
           location: locationScore,
@@ -334,35 +587,107 @@ export class RecommendationService {
           overall: locationScore,
         },
         rank: 0,
+        rental: {
+          ...candidateRoom.rental,
+          distance: distanceToUniversity,
+        },
       }
-    })
 
-    const sortedRooms = locationScoredRooms
-      .filter(room => room.similarityScore > 0.1)
+      scoredRooms.push(recommendedRoom)
+      processedCount++
+    }
+
+    const finalResults = scoredRooms
       .sort((a, b) => b.similarityScore - a.similarityScore)
       .slice(0, query.limit)
+      .map((room, index) => ({ ...room, rank: index + 1 }))
 
-    return sortedRooms.map((room, index) => ({
-      ...room,
-      rank: index + 1,
-    }))
+    const executionTime = Date.now() - startTime
+    this.logger.log(
+      `🗺️ Location-based optimization: ${finalResults.length} rooms ` +
+        `(processed ${processedCount}/${candidateRooms.length}) in ${executionTime}ms`
+    )
+
+    return finalResults
   }
 
+  private calculateDistanceCached(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number {
+    const cacheKey = `${lat1.toFixed(6)},${lng1.toFixed(6)}-${lat2.toFixed(6)},${lng2.toFixed(6)}`
+
+    // Check cache first
+    const cached = this.distanceCache.get(cacheKey)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    // Calculate and cache
+    const distance = this.calculateDistance(lat1, lng1, lat2, lng2)
+    this.distanceCache.set(cacheKey, distance)
+
+    // 🧹 Cache cleanup when too large
+    if (this.distanceCache.size > 1000) {
+      const firstKey = this.distanceCache.keys().next().value
+      this.distanceCache.delete(firstKey)
+    }
+
+    return distance
+  }
+
+  private calculateContentSimilarityCached(
+    targetRoom: any,
+    candidateRoom: any,
+    weights: SimilarityWeightsType,
+    query: GetRecommendationsQueryType
+  ): SimilarityBreakdownType {
+    const cacheKey = `${targetRoom.id}-${candidateRoom.id}-${JSON.stringify(weights)}`
+
+    // Check cache first
+    const cached = this.similarityCache.get(cacheKey)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    // Calculate and cache
+    const similarity = this.calculateContentSimilarity(
+      targetRoom,
+      candidateRoom,
+      weights,
+      query
+    )
+    this.similarityCache.set(cacheKey, similarity)
+
+    // 🧹 Cache cleanup
+    if (this.similarityCache.size > 500) {
+      const firstKey = this.similarityCache.keys().next().value
+      this.similarityCache.delete(firstKey)
+    }
+
+    return similarity
+  }
+
+  /**
+   * 🎯 Core similarity calculation method
+   */
   private calculateContentSimilarity(
     targetRoom: any,
     candidateRoom: any,
     weights: SimilarityWeightsType,
     query: GetRecommendationsQueryType
   ): SimilarityBreakdownType {
-    const distance = this.calculateDistance(
-      targetRoom.rental.lat,
-      targetRoom.rental.lng,
-      candidateRoom.rental.lat,
-      candidateRoom.rental.lng
+    // Use pre-computed distance to university for location scoring
+    const distanceToUniversity = this.convertToNumber(
+      candidateRoom.rental.distance || 0
     )
+
+    // Calculate location score based on distance to university
     const locationScore = this.calculateLocationScore(
-      distance,
-      query.maxDistance
+      distanceToUniversity,
+      query.maxDistance / 1000 // Convert maxDistance to km
     )
 
     const priceScore = this.calculatePriceScore(
@@ -403,7 +728,7 @@ export class RecommendationService {
     lat2: number,
     lng2: number
   ): number {
-    const R = 6371e3
+    const R = 6371 // 🔧 Earth radius in KILOMETERS (not meters)
     const φ1 = (lat1 * Math.PI) / 180
     const φ2 = (lat2 * Math.PI) / 180
     const Δφ = ((lat2 - lat1) * Math.PI) / 180
@@ -414,16 +739,17 @@ export class RecommendationService {
       Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
-    return R * c
+    return R * c // Returns distance in KILOMETERS
   }
 
   private calculateLocationScore(
     distance: number,
     maxDistance: number
   ): number {
-    if (distance <= 500) return 1.0
+    // 🔧 Update thresholds for KILOMETERS
+    if (distance <= 0.5) return 1.0 // Within 500m
     if (distance >= maxDistance) return 0.0
-    return Math.max(0, 1 - (distance - 500) / (maxDistance - 500))
+    return Math.max(0, 1 - (distance - 0.5) / (maxDistance - 0.5))
   }
 
   private calculatePriceScore(
@@ -472,21 +798,27 @@ export class RecommendationService {
   private generateContentBasedExplanation(
     targetRoom: any,
     recommendedRoom: any,
-    similarity: SimilarityBreakdownType
+    similarity: SimilarityBreakdownType,
+    distanceToUniversity?: number
   ): RecommendationExplanationType {
     const explanations: string[] = []
-    const distance = this.calculateDistance(
-      targetRoom.rental.lat,
-      targetRoom.rental.lng,
-      recommendedRoom.rental.lat,
-      recommendedRoom.rental.lng
-    )
+
+    // Use pre-computed distance to university instead of calculating between rooms
+    const distanceKm =
+      distanceToUniversity ||
+      this.convertToNumber(recommendedRoom.rental.distance || 0)
 
     if (similarity.location > 0.8) {
-      if (distance < 1000) {
-        explanations.push(`Rất gần vị trí (${Math.round(distance)}m)`)
+      if (distanceKm < 0.5) {
+        explanations.push(
+          `Rất gần Đại học Nam Cần Thơ (${Math.round(distanceKm * 1000)}m)`
+        )
+      } else if (distanceKm < 2) {
+        explanations.push(
+          `Gần Đại học Nam Cần Thơ (${distanceKm.toFixed(1)}km)`
+        )
       } else {
-        explanations.push(`Cùng khu vực`)
+        explanations.push(`Cùng khu vực với Đại học Nam Cần Thơ`)
       }
     }
 
@@ -519,7 +851,7 @@ export class RecommendationService {
 
     return {
       reasons: explanations,
-      distance: Math.round(distance),
+      distance: Math.round(distanceKm * 1000),
       priceDifference: Math.abs(targetRoom.price - recommendedRoom.price),
       areaDifference: Math.abs(targetRoom.area - recommendedRoom.area),
       commonAmenities,
@@ -650,6 +982,11 @@ export class RecommendationService {
           currentUserInteractions
         )
 
+        // Use pre-computed distance to university for collaborative recommendations
+        const distanceToUniversity = this.convertToNumber(
+          room.rental.distance || 0
+        )
+
         return {
           ...this.recommendationRepo.formatRoom(room),
           similarityScore: collaborativeScore.overall,
@@ -657,7 +994,8 @@ export class RecommendationService {
           explanation: this.generateCollaborativeExplanation(
             room,
             collaborativeScore,
-            similarUsers.length
+            similarUsers.length,
+            distanceToUniversity
           ),
           similarityBreakdown: {
             location: 0,
@@ -667,6 +1005,10 @@ export class RecommendationService {
             overall: collaborativeScore.overall,
           },
           rank: 0,
+          rental: {
+            ...room.rental,
+            distance: distanceToUniversity, // Add distance to rental object
+          },
         }
       })
 
@@ -949,7 +1291,8 @@ export class RecommendationService {
   private generateCollaborativeExplanation(
     room: any,
     collaborativeScore: { overall: number; confidence: number },
-    similarUsersCount: number
+    similarUsersCount: number,
+    distance?: number
   ): RecommendationExplanationType {
     const reasons: string[] = []
 
@@ -967,9 +1310,23 @@ export class RecommendationService {
       reasons.push(`Độ phù hợp cao với sở thích của bạn`)
     }
 
+    // Add distance to university information if available
+    if (distance !== undefined) {
+      if (distance < 0.5) {
+        reasons.push(
+          `Rất gần Đại học Nam Cần Thơ (${Math.round(distance * 1000)}m)`
+        )
+      } else if (distance < 2) {
+        reasons.push(`Gần Đại học Nam Cần Thơ (${distance.toFixed(1)}km)`)
+      } else {
+        reasons.push(`Cách Đại học Nam Cần Thơ ${distance.toFixed(1)}km`)
+      }
+    }
+
     return {
       reasons,
-      distance: undefined,
+      distance:
+        distance !== undefined ? Math.round(distance * 1000) : undefined,
       priceDifference: undefined,
       areaDifference: undefined,
       commonAmenities: [],
@@ -1283,7 +1640,17 @@ export class RecommendationService {
         if (roomScores.has(roomId)) {
           const existing = roomScores.get(roomId)!
           roomScores.set(roomId, {
-            room: existing.room,
+            room: {
+              ...existing.room,
+              // Preserve distance if new room has it and existing doesn't
+              ...(room.rental?.distance !== undefined &&
+                existing.room.rental?.distance === undefined && {
+                  rental: {
+                    ...existing.room.rental,
+                    distance: room.rental.distance,
+                  },
+                }),
+            },
             totalScore: existing.totalScore + weightedScore,
             methodContributions: [...existing.methodContributions, methodName],
           })

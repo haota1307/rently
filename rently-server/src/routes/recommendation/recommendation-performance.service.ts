@@ -333,4 +333,123 @@ export class RecommendationPerformanceService {
       return true // If can't parse, consider it old
     }
   }
+
+  /**
+   * 📊 Track optimization performance metrics
+   */
+  async trackOptimizationPerformance(data: {
+    method: string
+    optimizationType: 'early_termination' | 'geographic_bounding' | 'combined'
+    candidatesReduced: number
+    totalCandidates: number
+    processedCandidates: number
+    executionTime: number
+    roomId: number
+    userId?: number
+  }): Promise<void> {
+    try {
+      const key = `opt:${data.optimizationType}:${new Date().toISOString().slice(0, 10)}`
+
+      const existing = this.metrics.get(key) || {
+        totalQueries: 0,
+        totalCandidatesReduced: 0,
+        totalCandidatesOriginal: 0,
+        totalCandidatesProcessed: 0,
+        totalExecutionTime: 0,
+        averageReductionRate: 0,
+        averageProcessingRate: 0,
+      }
+
+      existing.totalQueries += 1
+      existing.totalCandidatesReduced += data.candidatesReduced
+      existing.totalCandidatesOriginal += data.totalCandidates
+      existing.totalCandidatesProcessed += data.processedCandidates
+      existing.totalExecutionTime += data.executionTime
+
+      // Calculate rates
+      existing.averageReductionRate =
+        (existing.totalCandidatesReduced / existing.totalCandidatesOriginal) *
+        100
+      existing.averageProcessingRate =
+        (existing.totalCandidatesProcessed / existing.totalCandidatesOriginal) *
+        100
+
+      this.metrics.set(key, existing)
+
+      // Log significant optimizations
+      if (data.candidatesReduced > data.totalCandidates * 0.5) {
+        this.logger.log(
+          `🚀 Significant optimization: ${data.optimizationType} reduced ` +
+            `${data.candidatesReduced}/${data.totalCandidates} candidates ` +
+            `(${((data.candidatesReduced / data.totalCandidates) * 100).toFixed(1)}%)`
+        )
+      }
+    } catch (error) {
+      this.logger.error('Error tracking optimization performance:', error)
+    }
+  }
+
+  /**
+   * 📈 Get optimization statistics
+   */
+  async getOptimizationStats(days: number = 7): Promise<{
+    earlyTermination: any
+    geographicBounding: any
+    combined: any
+  }> {
+    try {
+      const stats = {
+        earlyTermination: this.getOptimizationStatsByType(
+          'early_termination',
+          days
+        ),
+        geographicBounding: this.getOptimizationStatsByType(
+          'geographic_bounding',
+          days
+        ),
+        combined: this.getOptimizationStatsByType('combined', days),
+      }
+
+      return stats
+    } catch (error) {
+      this.logger.error('Error getting optimization stats:', error)
+      return {
+        earlyTermination: null,
+        geographicBounding: null,
+        combined: null,
+      }
+    }
+  }
+
+  private getOptimizationStatsByType(type: string, days: number) {
+    let totalQueries = 0
+    let totalReduced = 0
+    let totalOriginal = 0
+    let totalProcessed = 0
+    let totalTime = 0
+
+    for (const [key, data] of this.metrics.entries()) {
+      if (key.includes(`opt:${type}:`) && this.isWithinDays(key, days)) {
+        totalQueries += data.totalQueries || 0
+        totalReduced += data.totalCandidatesReduced || 0
+        totalOriginal += data.totalCandidatesOriginal || 0
+        totalProcessed += data.totalCandidatesProcessed || 0
+        totalTime += data.totalExecutionTime || 0
+      }
+    }
+
+    return {
+      totalQueries,
+      averageReductionRate:
+        totalOriginal > 0 ? (totalReduced / totalOriginal) * 100 : 0,
+      averageProcessingRate:
+        totalOriginal > 0 ? (totalProcessed / totalOriginal) * 100 : 0,
+      averageExecutionTime: totalQueries > 0 ? totalTime / totalQueries : 0,
+      candidatesSaved: totalReduced,
+      efficiencyGain:
+        totalOriginal > 0
+          ? ((totalOriginal - totalProcessed) / totalOriginal) * 100
+          : 0,
+    }
+  }
 }

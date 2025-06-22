@@ -18,7 +18,39 @@ import { Decimal } from '@prisma/client/runtime/library'
 export class RecommendationRepo {
   private readonly logger = new Logger(RecommendationRepo.name)
 
+  // 🧠 Smart Memory Cache for calculations
+  private readonly calculationCache = new Map<string, any>()
+  private readonly cacheExpiry = 5 * 60 * 1000 // 5 minutes
+  private readonly maxCacheSize = 1000 // Maximum cached items
+
   constructor(private readonly prismaService: PrismaService) {}
+
+  /**
+   * 🧠 Smart cache for expensive calculations
+   */
+  private getCachedCalculation(key: string): any | null {
+    const cached = this.calculationCache.get(key)
+    if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+      return cached.value
+    }
+    if (cached) {
+      this.calculationCache.delete(key) // Remove expired
+    }
+    return null
+  }
+
+  private setCachedCalculation(key: string, value: any): void {
+    // 🚀 LRU cache management
+    if (this.calculationCache.size >= this.maxCacheSize) {
+      const firstKey = this.calculationCache.keys().next().value
+      this.calculationCache.delete(firstKey)
+    }
+
+    this.calculationCache.set(key, {
+      value,
+      timestamp: Date.now(),
+    })
+  }
 
   /**
    * Lấy thông tin chi tiết của phòng target
@@ -617,6 +649,300 @@ export class RecommendationRepo {
     } catch (error) {
       this.logger.error('Error getting user interaction count:', error)
       return 0
+    }
+  }
+
+  /**
+   * 🌍 Calculate geographic bounding box for optimized location filtering
+   */
+  private calculateBoundingBox(
+    lat: number,
+    lng: number,
+    radiusMeters: number
+  ): {
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+  } {
+    const earthRadius = 6371000 // Earth radius in meters
+    // 🔧 Handle both km and m inputs - if radiusMeters < 100, assume it's km
+    const radiusInMeters =
+      radiusMeters < 100 ? radiusMeters * 1000 : radiusMeters
+    const latDelta = (radiusInMeters / earthRadius) * (180 / Math.PI)
+    const lngDelta =
+      ((radiusInMeters / earthRadius) * (180 / Math.PI)) /
+      Math.cos((lat * Math.PI) / 180)
+
+    return {
+      minLat: lat - latDelta,
+      maxLat: lat + latDelta,
+      minLng: lng - lngDelta,
+      maxLng: lng + lngDelta,
+    }
+  }
+
+  /**
+   * 🚀 Optimized candidate rooms with geographic bounding box
+   */
+  async getCandidateRoomsOptimized(
+    excludeRoomId: number,
+    targetRoom: any,
+    query: GetRecommendationsQueryType,
+    userId?: number
+  ) {
+    try {
+      const startTime = Date.now()
+
+      // 🎯 Step 1: Geographic Bounding Box Filtering
+      const { minLat, maxLat, minLng, maxLng } = this.calculateBoundingBox(
+        targetRoom.rental.lat,
+        targetRoom.rental.lng,
+        query.maxDistance
+      )
+
+      // 💰 Step 2: Price Range Filtering (±50% of target price)
+      const targetPrice = Number(targetRoom.price)
+      const priceVariance = query.priceVariance || 0.5
+      const minPrice = targetPrice * (1 - priceVariance)
+      const maxPrice = targetPrice * (1 + priceVariance)
+
+      // 📏 Step 3: Area Range Filtering (±60% of target area)
+      const targetArea = Number(targetRoom.area)
+      const areaVariance = query.areaVariance || 0.6
+      const minArea = targetArea * (1 - areaVariance)
+      const maxArea = targetArea * (1 + areaVariance)
+
+      const whereClause: any = {
+        id: { not: excludeRoomId },
+        isAvailable: true,
+        // 🌍 Geographic bounds filter (MAJOR optimization!)
+        rental: {
+          lat: { gte: minLat, lte: maxLat },
+          lng: { gte: minLng, lte: maxLng },
+        },
+        // 💰 Price range filter
+        price: { gte: minPrice, lte: maxPrice },
+        // 📏 Area range filter
+        area: { gte: minArea, lte: maxArea },
+        // Chỉ lấy phòng có bài đăng active
+        RentalPost: {
+          some: {
+            status: 'ACTIVE',
+            endDate: { gte: new Date() },
+          },
+        },
+      }
+
+      // Loại trừ phòng user đã tương tác (nếu có userId)
+      if (userId) {
+        whereClause.RentalPost.some.NOT = {
+          OR: [
+            {
+              rental: {
+                favorites: {
+                  some: { userId },
+                },
+              },
+            },
+            {
+              landlordRentalRequests: {
+                some: { tenantId: userId },
+              },
+            },
+            {
+              viewingSchedules: {
+                some: { tenantId: userId },
+              },
+            },
+          ],
+        }
+      }
+
+      const candidateRooms = await this.prismaService.room.findMany({
+        where: whereClause,
+        include: {
+          rental: {
+            include: {
+              rentalImages: {
+                orderBy: { order: 'asc' },
+                take: 3,
+              },
+            },
+          },
+          roomImages: {
+            orderBy: { order: 'asc' },
+            take: 3,
+          },
+          roomAmenities: {
+            include: {
+              amenity: true,
+            },
+          },
+          RentalPost: {
+            where: {
+              status: 'ACTIVE',
+              endDate: { gte: new Date() },
+            },
+            take: 1,
+            include: {
+              landlord: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatar: true,
+                  phoneNumber: true,
+                },
+              },
+            },
+          },
+        },
+        take: query.limit * 4, // Giảm từ 5x xuống 4x do đã filter tốt hơn
+        orderBy: [
+          // Ưu tiên phòng gần nhất trước
+          {
+            rental: {
+              lat: targetRoom.rental.lat > 0 ? 'asc' : 'desc',
+            },
+          },
+        ],
+      })
+
+      const executionTime = Date.now() - startTime
+      this.logger.debug(
+        `🚀 Geographic optimization: Found ${candidateRooms.length} candidates in ${executionTime}ms ` +
+          `(bounds: lat ${minLat.toFixed(4)}-${maxLat.toFixed(4)}, ` +
+          `lng ${minLng.toFixed(4)}-${maxLng.toFixed(4)})`
+      )
+
+      return candidateRooms
+    } catch (error) {
+      this.logger.error('Error getting optimized candidate rooms:', error)
+      // Fallback to original method
+      return this.getCandidateRooms(excludeRoomId, query, userId)
+    }
+  }
+
+  /**
+   * 🚀 PARALLEL DATA FETCHING - Major Performance Boost!
+   * Fetch all recommendation data in parallel instead of sequential
+   */
+  async getRecommendationDataParallel(
+    roomId: number,
+    query: GetRecommendationsQueryType,
+    userId?: number
+  ) {
+    const startTime = Date.now()
+
+    try {
+      // 🔥 Execute ALL queries in parallel for maximum speed
+      const [targetRoom, popularRooms, userInteractions, weights] =
+        await Promise.all([
+          // Query 1: Target room details
+          this.getRoomDetails(roomId),
+
+          // Query 2: Popular rooms (for popularity-based method)
+          this.getPopularRooms(roomId, query.limit),
+
+          // Query 3: User interactions (only if userId provided)
+          userId ? this.getUserInteractions(userId) : Promise.resolve(null),
+
+          // Query 4: Recommendation weights
+          this.getRecommendationWeights(),
+        ])
+
+      if (!targetRoom) {
+        throw new Error(`Room with ID ${roomId} not found`)
+      }
+
+      // 🚀 After getting target room, fetch optimized candidates in parallel
+      const candidateRooms = await this.getCandidateRoomsOptimized(
+        roomId,
+        targetRoom,
+        query,
+        userId
+      )
+
+      const executionTime = Date.now() - startTime
+      this.logger.debug(
+        `🚀 Parallel data fetch completed in ${executionTime}ms (${candidateRooms.length} candidates)`
+      )
+
+      return {
+        targetRoom,
+        candidateRooms,
+        popularRooms,
+        userInteractions,
+        weights,
+        executionTime,
+      }
+    } catch (error) {
+      this.logger.error('Error in parallel data fetch:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 🔥 OPTIMIZED BATCH QUERY for better database performance
+   */
+  async getBatchRoomDetails(roomIds: number[]) {
+    const startTime = Date.now()
+
+    try {
+      // 🚀 Single query to fetch multiple rooms
+      const rooms = await this.prismaService.room.findMany({
+        where: {
+          id: { in: roomIds },
+        },
+        include: {
+          rental: {
+            include: {
+              rentalImages: {
+                orderBy: { order: 'asc' },
+                take: 3, // Limit images for performance
+              },
+            },
+          },
+          roomImages: {
+            orderBy: { order: 'asc' },
+            take: 3,
+          },
+          roomAmenities: {
+            include: {
+              amenity: true,
+            },
+          },
+          RentalPost: {
+            where: {
+              status: 'ACTIVE',
+              endDate: { gte: new Date() },
+            },
+            take: 1,
+            include: {
+              landlord: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatar: true,
+                  phoneNumber: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      const executionTime = Date.now() - startTime
+      this.logger.debug(
+        `🔥 Batch room fetch: ${rooms.length} rooms in ${executionTime}ms`
+      )
+
+      // Convert to map for O(1) lookup
+      const roomMap = new Map(rooms.map(room => [room.id, room]))
+      return roomMap
+    } catch (error) {
+      this.logger.error('Error in batch room fetch:', error)
+      throw error
     }
   }
 }
