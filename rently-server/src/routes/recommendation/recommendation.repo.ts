@@ -192,11 +192,11 @@ export class RecommendationRepo {
         include: {
           favorites: {
             include: {
-              rental: {
+              post: {
                 include: {
-                  rooms: {
-                    where: { isAvailable: true },
+                  room: {
                     include: {
+                      rental: true,
                       roomAmenities: {
                         include: { amenity: true },
                       },
@@ -280,7 +280,6 @@ export class RecommendationRepo {
           rental: {
             include: {
               rentalImages: { orderBy: { order: 'asc' }, take: 3 },
-              favorites: true, // Lấy favorites
             },
           },
           roomImages: { orderBy: { order: 'asc' }, take: 3 },
@@ -305,7 +304,6 @@ export class RecommendationRepo {
 
       // Tính toán popularity score cho mỗi phòng
       const roomsWithPopularity = availableRooms.map(room => {
-        const favoriteCount = room.rental.favorites.length
         const viewingCount = room.RentalPost.reduce(
           (sum, post) => sum + post.viewingSchedules.length,
           0
@@ -315,8 +313,7 @@ export class RecommendationRepo {
           0
         )
 
-        const popularityScore =
-          favoriteCount * 1 + viewingCount * 2 + requestCount * 3
+        const popularityScore = viewingCount * 2 + requestCount * 3
 
         return {
           ...room,
@@ -542,11 +539,11 @@ export class RecommendationRepo {
               },
             },
             include: {
-              rental: {
+              post: {
                 include: {
-                  rooms: {
-                    where: { isAvailable: true },
+                  room: {
                     include: {
+                      rental: true,
                       roomAmenities: {
                         include: { amenity: true },
                       },

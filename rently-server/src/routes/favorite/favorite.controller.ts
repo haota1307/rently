@@ -58,11 +58,11 @@ export class FavoriteController {
     return this.favoriteService.toggleFavorite(userId, body)
   }
 
-  @Get('check/:rentalId')
+  @Get('check/:postId')
   checkFavoriteStatus(
-    @Param('rentalId') rentalId: string,
+    @Param('postId') postId: string,
     @ActiveUser('userId') userId: number
   ) {
-    return this.favoriteService.checkFavoriteStatus(userId, Number(rentalId))
+    return this.favoriteService.checkFavoriteStatus(userId, Number(postId))
   }
 }

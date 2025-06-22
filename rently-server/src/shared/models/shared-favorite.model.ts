@@ -1,17 +1,16 @@
 import { UserType } from 'src/shared/models/shared-user.model'
-import { RentalType } from 'src/shared/models/shared-rental.mode'
 
 export type FavoriteType = {
   id: number
   createdAt: Date
   userId: number
-  rentalId: number
+  postId: number
   user?: UserType
-  rental?: RentalType
+  post?: any
 }
 
 export type CreateFavoriteBodyType = {
-  rentalId: number
+  postId: number
 }
 
 export type DeleteFavoriteParamType = {
@@ -23,10 +22,23 @@ export type GetUserFavoritesQueryType = {
   limit: number
 }
 
+export type FavoriteWithPostType = {
+  id: number
+  createdAt: Date
+  userId: number
+  postId: number
+  post: any
+}
+
 export type GetUserFavoritesResType = {
-  data: FavoriteType[]
+  data: FavoriteWithPostType[]
   totalItems: number
   page: number
   limit: number
   totalPages: number
+}
+
+export type FavoriteStatusType = {
+  isFavorited: boolean
+  favoriteId: number | null
 }

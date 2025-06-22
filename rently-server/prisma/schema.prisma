@@ -147,21 +147,22 @@ model VerificationCode {
 }
 
 model Rental {
-  id           Int           @id @default(autoincrement())
-  title        String
-  description  String
-  address      String
-  lat          Decimal
-  lng          Decimal
-  createdAt    DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime      @updatedAt @db.Timestamptz(6)
-  landlordId   Int
-  distance     Decimal?
-  favorites    Favorite[]
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  address     String
+  lat         Decimal
+  lng         Decimal
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  landlordId  Int
+  distance    Decimal?
+
   landlord     User          @relation("LandlordRentals", fields: [landlordId], references: [id], onDelete: Cascade)
   rentalImages RentalImage[]
   rentalPosts  RentalPost[]
   rooms        Room[]
+  Favorite     Favorite[]
 
   @@index([landlordId])
   @@index([title])
@@ -255,6 +256,7 @@ model RentalPost {
   room             Room              @relation(fields: [roomId], references: [id], onDelete: Cascade)
   rentalRequests   RentalRequest[]
   viewingSchedules ViewingSchedule[]
+  Favorite         Favorite[]
 
   @@index([rentalId])
   @@index([landlordId])
@@ -367,14 +369,18 @@ model Review {
 }
 
 model Favorite {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now()) @db.Timestamptz(6)
   userId    Int
-  rentalId  Int
-  rental    Rental   @relation(fields: [rentalId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    Int
+  post      RentalPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Rental    Rental?    @relation(fields: [rentalId], references: [id])
+  rentalId  Int?
 
-  @@unique([userId, rentalId])
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
 }
 
 model Comment {

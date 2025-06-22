@@ -460,7 +460,7 @@ export class RecommendationService {
     return popularRooms.map((room, index) => {
       // Use pre-computed distance to university
       const distanceToUniversity = this.convertToNumber(
-        room.rental.distance || 0
+        room.rental?.distance || 0
       )
 
       return {
@@ -1058,9 +1058,11 @@ export class RecommendationService {
             userId: otherUser.id,
             similarity,
             interactions: {
-              favorites: otherUser.favorites,
-              tenantRentalRequests: otherUser.tenantRentalRequests,
-              tenantViewingSchedules: otherUser.tenantViewingSchedules,
+              favorites: (otherUser as any).favorites || [],
+              tenantRentalRequests:
+                (otherUser as any).tenantRentalRequests || [],
+              tenantViewingSchedules:
+                (otherUser as any).tenantViewingSchedules || [],
             },
           })
         }
@@ -1083,9 +1085,7 @@ export class RecommendationService {
     try {
       // Lấy set các phòng mà user A đã tương tác
       const roomsA = new Set([
-        ...userA.favorites
-          .map((f: any) => f.rental.rooms[0]?.id)
-          .filter(Boolean),
+        ...userA.favorites.map((f: any) => f.post?.room?.id).filter(Boolean),
         ...userA.tenantViewingSchedules
           .map((v: any) => v.post.room?.id)
           .filter(Boolean),
@@ -1096,9 +1096,7 @@ export class RecommendationService {
 
       // Lấy set các phòng mà user B đã tương tác
       const roomsB = new Set([
-        ...userB.favorites
-          .map((f: any) => f.rental.rooms[0]?.id)
-          .filter(Boolean),
+        ...userB.favorites.map((f: any) => f.post?.room?.id).filter(Boolean),
         ...userB.tenantViewingSchedules
           .map((v: any) => v.post.room?.id)
           .filter(Boolean),
@@ -1150,15 +1148,15 @@ export class RecommendationService {
         // Lấy các phòng mà user này đã tương tác
         const interactedRooms = [
           ...similarUser.interactions.favorites.map((f: any) => ({
-            room: f.rental.rooms[0],
+            room: f.post?.room,
             weight: 1.0, // favorite
           })),
           ...similarUser.interactions.tenantRentalRequests.map((r: any) => ({
-            room: r.post.room,
+            room: r.post?.room,
             weight: 2.0, // rental request (quan trọng hơn)
           })),
           ...similarUser.interactions.tenantViewingSchedules.map((v: any) => ({
-            room: v.post.room,
+            room: v.post?.room,
             weight: 1.5, // viewing schedule
           })),
         ].filter(item => item.room && item.room.id !== excludeRoomId)
@@ -1263,19 +1261,19 @@ export class RecommendationService {
     try {
       // Kiểm tra favorites
       const hasFavorite = userInteractions.favorites.some(
-        (f: any) => f.rental.rooms[0]?.id === roomId
+        (f: any) => f.post?.room?.id === roomId
       )
       if (hasFavorite) return { hasInteraction: true, weight: 1.0 }
 
       // Kiểm tra rental requests (quan trọng nhất)
       const hasRentalRequest = userInteractions.tenantRentalRequests.some(
-        (r: any) => r.post.room?.id === roomId
+        (r: any) => r.post?.room?.id === roomId
       )
       if (hasRentalRequest) return { hasInteraction: true, weight: 2.0 }
 
       // Kiểm tra viewing schedules
       const hasViewingSchedule = userInteractions.tenantViewingSchedules.some(
-        (v: any) => v.post.room?.id === roomId
+        (v: any) => v.post?.room?.id === roomId
       )
       if (hasViewingSchedule) return { hasInteraction: true, weight: 1.5 }
 

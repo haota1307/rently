@@ -12,58 +12,76 @@ export const FavoriteSchema = z.object({
   id: z.number(),
   createdAt: z.date(),
   userId: z.number(),
-  rentalId: z.number(),
+  postId: z.number(),
 })
 
-export const RentalInFavoriteSchema = z.object({
+export const PostInFavoriteSchema = z.object({
   id: z.number(),
   title: z.string(),
   description: z.string(),
-  address: z.string(),
-  lat: z
+  startDate: z.date(),
+  endDate: z.date(),
+  deposit: z
     .number()
     .or(z.string())
     .transform(val => Number(val)),
-  lng: z
-    .number()
-    .or(z.string())
-    .transform(val => Number(val)),
-  distance: z
-    .number()
-    .or(z.string())
-    .transform(val => Number(val))
-    .nullable(),
+  status: z.string(),
   createdAt: z.date(),
-  updatedAt: z.date(),
-  landlordId: z.number(),
-  rentalImages: z.array(
-    z.object({
-      id: z.number(),
-      imageUrl: z.string(),
-      createdAt: z.date(),
-      order: z.number(),
-      rentalId: z.number(),
-    })
-  ),
-  rooms: z.array(
-    z.object({
+  room: z.object({
+    id: z.number(),
+    title: z.string(),
+    price: z
+      .number()
+      .or(z.string())
+      .transform(val => Number(val)),
+    area: z.number(),
+    isAvailable: z.boolean(),
+    rental: z.object({
       id: z.number(),
       title: z.string(),
-      price: z
+      description: z.string(),
+      address: z.string(),
+      lat: z
         .number()
         .or(z.string())
         .transform(val => Number(val)),
-      area: z.number(),
-      isAvailable: z.boolean(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-      rentalId: z.number(),
-    })
-  ),
+      lng: z
+        .number()
+        .or(z.string())
+        .transform(val => Number(val)),
+      distance: z
+        .number()
+        .or(z.string())
+        .transform(val => Number(val))
+        .nullable(),
+      rentalImages: z.array(
+        z.object({
+          id: z.number(),
+          imageUrl: z.string(),
+          order: z.number(),
+        })
+      ),
+    }),
+    roomImages: z.array(
+      z.object({
+        id: z.number(),
+        imageUrl: z.string(),
+        order: z.number(),
+      })
+    ),
+    roomAmenities: z.array(
+      z.object({
+        amenity: z.object({
+          id: z.number(),
+          name: z.string(),
+        }),
+      })
+    ),
+  }),
 })
 
-export const FavoriteWithRentalSchema = FavoriteSchema.extend({
-  rental: RentalInFavoriteSchema,
+export const FavoriteWithPostSchema = FavoriteSchema.extend({
+  post: PostInFavoriteSchema,
 })
 
 export class GetUserFavoritesQueryDTO extends createZodDto(

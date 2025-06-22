@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
-import { FavoriteRepo } from 'src/routes/favorite/favorite.repo'
+import { FavoriteRepo } from './favorite.repo'
 import {
   CreateFavoriteBodyType,
   GetUserFavoritesQueryType,
-} from 'src/shared/models/shared-favorite.model'
+} from './favorite.model'
 
 @Injectable()
 export class FavoriteService {
@@ -13,21 +13,20 @@ export class FavoriteService {
     return await this.favoriteRepo.getUserFavorites(userId, query)
   }
 
-  async create(userId: number, data: CreateFavoriteBodyType) {
-    try {
-      return await this.favoriteRepo.create(userId, data)
-    } catch (error) {
-      if (error.message === 'Nhà trọ không tồn tại') {
-        throw new NotFoundException('Nhà trọ không tồn tại')
-      }
-      throw error
+  async create(
+    userId: number,
+    data: CreateFavoriteBodyType
+  ): Promise<{ message: string }> {
+    await this.favoriteRepo.create(userId, data)
+    return {
+      message: 'Đã lưu bài đăng thành công',
     }
   }
 
   async delete(id: number, userId: number): Promise<{ message: string }> {
     await this.favoriteRepo.delete(id, userId)
     return {
-      message: 'Xóa tin đã lưu thành công',
+      message: 'Xóa bài đăng đã lưu thành công',
     }
   }
 
@@ -39,32 +38,32 @@ export class FavoriteService {
       // Kiểm tra xem bài đăng đã được lưu chưa
       const existingFavorite = await this.favoriteRepo.checkUserFavorite(
         userId,
-        data.rentalId
+        data.postId
       )
 
       if (existingFavorite) {
         // Nếu đã lưu rồi thì xóa đi
-        await this.favoriteRepo.deleteByRentalId(userId, data.rentalId)
+        await this.favoriteRepo.deleteByPostId(userId, data.postId)
         return {
-          message: 'Đã bỏ lưu tin đăng',
+          message: 'Đã bỏ lưu bài đăng',
         }
       } else {
         // Nếu chưa lưu thì thêm vào
         await this.favoriteRepo.create(userId, data)
         return {
-          message: 'Đã lưu tin đăng',
+          message: 'Đã lưu bài đăng',
         }
       }
     } catch (error) {
-      if (error.message === 'Nhà trọ không tồn tại') {
-        throw new NotFoundException('Nhà trọ không tồn tại')
+      if (error.message === 'Bài đăng không tồn tại') {
+        throw new NotFoundException('Bài đăng không tồn tại')
       }
       throw error
     }
   }
 
-  async checkFavoriteStatus(userId: number, rentalId: number) {
-    const favorite = await this.favoriteRepo.checkUserFavorite(userId, rentalId)
+  async checkFavoriteStatus(userId: number, postId: number) {
+    const favorite = await this.favoriteRepo.checkUserFavorite(userId, postId)
     return {
       isFavorited: !!favorite,
       favoriteId: favorite?.id || null,

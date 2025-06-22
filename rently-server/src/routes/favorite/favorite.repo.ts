@@ -1,11 +1,15 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common'
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import {
   CreateFavoriteBodyType,
   FavoriteType,
   GetUserFavoritesQueryType,
   GetUserFavoritesResType,
-} from 'src/shared/models/shared-favorite.model'
+} from './favorite.model'
 import { isNotFoundPrismaError, toNumber } from 'src/shared/helpers'
 import { NotFoundRecordException } from 'src/shared/error'
 
@@ -32,10 +36,23 @@ export class FavoriteRepo {
             userId,
           },
           include: {
-            rental: {
+            post: {
               include: {
-                rentalImages: true,
-                rooms: true,
+                room: {
+                  include: {
+                    rental: {
+                      include: {
+                        rentalImages: { orderBy: { order: 'asc' } },
+                      },
+                    },
+                    roomImages: { orderBy: { order: 'asc' } },
+                    roomAmenities: {
+                      include: {
+                        amenity: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -47,30 +64,31 @@ export class FavoriteRepo {
         }),
       ])
 
-      // Format the rental data in each favorite
-      const formattedFavorites = favorites.map(favorite => {
-        if (favorite.rental) {
-          return {
-            ...favorite,
-            rental: {
-              ...favorite.rental,
-              lat: toNumber(favorite.rental.lat),
-              lng: toNumber(favorite.rental.lng),
-              distance: favorite.rental.distance
-                ? toNumber(favorite.rental.distance)
-                : null,
-              rooms: favorite.rental.rooms.map(room => ({
-                ...room,
-                price: toNumber(room.price),
-              })),
+      // Format the data for each favorite
+      const formattedFavorites = favorites
+        .filter(favorite => favorite.post && favorite.post.room)
+        .map(favorite => ({
+          ...favorite,
+          post: {
+            ...favorite.post!,
+            deposit: toNumber(favorite.post!.deposit),
+            room: {
+              ...favorite.post!.room!,
+              price: toNumber(favorite.post!.room!.price),
+              rental: {
+                ...favorite.post!.room!.rental,
+                lat: toNumber(favorite.post!.room!.rental.lat),
+                lng: toNumber(favorite.post!.room!.rental.lng),
+                distance: favorite.post!.room!.rental.distance
+                  ? toNumber(favorite.post!.room!.rental.distance)
+                  : null,
+              },
             },
-          }
-        }
-        return favorite
-      })
+          },
+        }))
 
       return {
-        data: formattedFavorites as FavoriteType[],
+        data: formattedFavorites,
         totalItems,
         page: query.page,
         limit: query.limit,
@@ -81,40 +99,34 @@ export class FavoriteRepo {
     }
   }
 
-  async create(
-    userId: number,
-    data: CreateFavoriteBodyType
-  ): Promise<FavoriteType> {
+  async create(userId: number, data: CreateFavoriteBodyType) {
     try {
-      // Kiểm tra xem rental có tồn tại không
-      const rental = await this.prismaService.rental.findUnique({
-        where: {
-          id: data.rentalId,
-        },
+      // Kiểm tra bài đăng có tồn tại không
+      const post = await this.prismaService.rentalPost.findUnique({
+        where: { id: data.postId },
       })
 
-      if (!rental) {
-        throw new Error('Nhà trọ không tồn tại')
+      if (!post) {
+        throw new Error('Bài đăng không tồn tại')
       }
 
       return await this.prismaService.favorite.create({
         data: {
           userId,
-          rentalId: data.rentalId,
+          postId: data.postId,
         },
       })
     } catch (error) {
-      // Check if the error is a unique constraint violation
-      if (error.code === 'P2002') {
-        throw new Error('Bạn đã lưu tin này rồi')
+      if (isNotFoundPrismaError(error)) {
+        throw new NotFoundException('Bài đăng không tồn tại')
       }
       throw new InternalServerErrorException(error.message)
     }
   }
 
-  async delete(id: number, userId: number): Promise<void> {
+  async delete(id: number, userId: number) {
     try {
-      await this.prismaService.favorite.delete({
+      return await this.prismaService.favorite.delete({
         where: {
           id,
           userId,
@@ -122,21 +134,18 @@ export class FavoriteRepo {
       })
     } catch (error) {
       if (isNotFoundPrismaError(error)) {
-        throw NotFoundRecordException
+        throw new NotFoundException('Favorite không tồn tại')
       }
       throw new InternalServerErrorException(error.message)
     }
   }
 
-  async checkUserFavorite(
-    userId: number,
-    rentalId: number
-  ): Promise<FavoriteType | null> {
+  async deleteByPostId(userId: number, postId: number) {
     try {
-      return await this.prismaService.favorite.findFirst({
+      return await this.prismaService.favorite.deleteMany({
         where: {
           userId,
-          rentalId,
+          postId,
         },
       })
     } catch (error) {
@@ -144,12 +153,12 @@ export class FavoriteRepo {
     }
   }
 
-  async deleteByRentalId(userId: number, rentalId: number): Promise<void> {
+  async checkUserFavorite(userId: number, postId: number) {
     try {
-      await this.prismaService.favorite.deleteMany({
+      return await this.prismaService.favorite.findFirst({
         where: {
           userId,
-          rentalId,
+          postId,
         },
       })
     } catch (error) {
