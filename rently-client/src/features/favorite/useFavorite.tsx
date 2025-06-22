@@ -4,15 +4,15 @@ import { toast } from "sonner";
 import {
   CreateFavoriteBodyType,
   GetFavoritesQueryType,
-} from "@/schemas/favorite.schema";
-import { useAuth } from "@/hooks/use-auth";
+} from "../../schemas/favorite.schema";
+import { useAuth } from "../../hooks/use-auth";
 
 export const useFavoritesMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: favoriteApiRequest.toggleFavorite,
-    onSuccess: (response) => {
+    onSuccess: (response: any) => {
       toast.success(response.payload.message);
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
       queryClient.invalidateQueries({ queryKey: ["favorite-status"] });
@@ -25,8 +25,8 @@ export const useCreateFavoriteMutation = () => {
 
   return useMutation({
     mutationFn: favoriteApiRequest.createFavorite,
-    onSuccess: (response) => {
-      toast.success(response.payload.message || "Đã lưu tin thành công");
+    onSuccess: (response: any) => {
+      toast.success(response.payload.message || "Đã lưu bài đăng thành công");
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
     },
   });
@@ -37,8 +37,8 @@ export const useDeleteFavoriteMutation = () => {
 
   return useMutation({
     mutationFn: favoriteApiRequest.deleteFavorite,
-    onSuccess: (response) => {
-      toast.success(response.payload.message || "Đã xóa tin đã lưu");
+    onSuccess: (response: any) => {
+      toast.success(response.payload.message || "Đã xóa bài đăng đã lưu");
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
     },
   });
@@ -55,13 +55,13 @@ export const useGetUserFavoritesQuery = (query: GetFavoritesQueryType) => {
   });
 };
 
-export const useCheckFavoriteStatusQuery = (rentalId: number) => {
+export const useCheckFavoriteStatusQuery = (postId: number) => {
   const { isAuthenticated } = useAuth();
 
   return useQuery({
-    queryKey: ["favorite-status", rentalId],
-    queryFn: () => favoriteApiRequest.checkFavoriteStatus(rentalId),
+    queryKey: ["favorite-status", postId],
+    queryFn: () => favoriteApiRequest.checkFavoriteStatus(postId),
     select: (data) => data.payload,
-    enabled: isAuthenticated && !!rentalId,
+    enabled: isAuthenticated && !!postId,
   });
 };

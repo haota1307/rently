@@ -4,58 +4,76 @@ export const FavoriteSchema = z.object({
   id: z.number(),
   createdAt: z.string().or(z.date()),
   userId: z.number(),
-  rentalId: z.number(),
+  postId: z.number(),
 });
 
-export const RentalInFavoriteSchema = z.object({
+export const PostInFavoriteSchema = z.object({
   id: z.number(),
   title: z.string(),
   description: z.string(),
-  address: z.string(),
-  lat: z
+  startDate: z.string().or(z.date()),
+  endDate: z.string().or(z.date()),
+  deposit: z
     .number()
     .or(z.string())
     .transform((val) => Number(val)),
-  lng: z
-    .number()
-    .or(z.string())
-    .transform((val) => Number(val)),
-  distance: z
-    .number()
-    .or(z.string())
-    .transform((val) => Number(val))
-    .nullable(),
+  status: z.string(),
   createdAt: z.string().or(z.date()),
-  updatedAt: z.string().or(z.date()),
-  landlordId: z.number(),
-  rentalImages: z.array(
-    z.object({
-      id: z.number(),
-      imageUrl: z.string(),
-      createdAt: z.string().or(z.date()),
-      order: z.number(),
-      rentalId: z.number(),
-    })
-  ),
-  rooms: z.array(
-    z.object({
+  room: z.object({
+    id: z.number(),
+    title: z.string(),
+    price: z
+      .number()
+      .or(z.string())
+      .transform((val) => Number(val)),
+    area: z.number(),
+    isAvailable: z.boolean(),
+    rental: z.object({
       id: z.number(),
       title: z.string(),
-      price: z
+      description: z.string(),
+      address: z.string(),
+      lat: z
         .number()
         .or(z.string())
         .transform((val) => Number(val)),
-      area: z.number(),
-      isAvailable: z.boolean(),
-      createdAt: z.string().or(z.date()),
-      updatedAt: z.string().or(z.date()),
-      rentalId: z.number(),
-    })
-  ),
+      lng: z
+        .number()
+        .or(z.string())
+        .transform((val) => Number(val)),
+      distance: z
+        .number()
+        .or(z.string())
+        .transform((val) => Number(val))
+        .nullable(),
+      rentalImages: z.array(
+        z.object({
+          id: z.number(),
+          imageUrl: z.string(),
+          order: z.number(),
+        })
+      ),
+    }),
+    roomImages: z.array(
+      z.object({
+        id: z.number(),
+        imageUrl: z.string(),
+        order: z.number(),
+      })
+    ),
+    roomAmenities: z.array(
+      z.object({
+        amenity: z.object({
+          id: z.number(),
+          name: z.string(),
+        }),
+      })
+    ),
+  }),
 });
 
-export const FavoriteWithRentalSchema = FavoriteSchema.extend({
-  rental: RentalInFavoriteSchema,
+export const FavoriteWithPostSchema = FavoriteSchema.extend({
+  post: PostInFavoriteSchema,
 });
 
 export const GetFavoritesQuerySchema = z.object({
@@ -64,7 +82,7 @@ export const GetFavoritesQuerySchema = z.object({
 });
 
 export const CreateFavoriteBodySchema = z.object({
-  rentalId: z.number(),
+  postId: z.number(),
 });
 
 export const FavoriteStatusSchema = z.object({
@@ -73,8 +91,8 @@ export const FavoriteStatusSchema = z.object({
 });
 
 export type FavoriteType = z.infer<typeof FavoriteSchema>;
-export type RentalInFavoriteType = z.infer<typeof RentalInFavoriteSchema>;
-export type FavoriteWithRentalType = z.infer<typeof FavoriteWithRentalSchema>;
+export type PostInFavoriteType = z.infer<typeof PostInFavoriteSchema>;
+export type FavoriteWithPostType = z.infer<typeof FavoriteWithPostSchema>;
 export type GetFavoritesQueryType = z.infer<typeof GetFavoritesQuerySchema>;
 export type CreateFavoriteBodyType = z.infer<typeof CreateFavoriteBodySchema>;
 export type FavoriteStatusType = z.infer<typeof FavoriteStatusSchema>;

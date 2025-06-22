@@ -62,7 +62,7 @@ export function PostActions({
       <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-0">
         {post && post.rental && (
           <>
-            <FavoriteButton rentalId={post.rental.id} size="default" />
+            <FavoriteButton postId={post.id} size="default" />
             <ShareButton rentalDetail={post} />
             <ComparisonButton
               post={post}

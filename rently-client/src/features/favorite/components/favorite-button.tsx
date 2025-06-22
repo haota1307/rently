@@ -10,20 +10,20 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
 interface FavoriteButtonProps {
-  rentalId: number;
+  postId: number;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
 }
 
 export const FavoriteButton = ({
-  rentalId,
+  postId,
   variant = "outline",
   size = "icon",
   className,
 }: FavoriteButtonProps) => {
   const { isAuthenticated } = useAuth();
-  const { data, isLoading } = useCheckFavoriteStatusQuery(rentalId);
+  const { data, isLoading } = useCheckFavoriteStatusQuery(postId);
   const favoritesMutation = useFavoritesMutation();
 
   const isFavorited = data?.isFavorited || false;
@@ -33,7 +33,7 @@ export const FavoriteButton = ({
       return (window.location.href = "/dang-nhap");
     }
 
-    favoritesMutation.mutate({ rentalId });
+    favoritesMutation.mutate({ postId });
   };
 
   return (
