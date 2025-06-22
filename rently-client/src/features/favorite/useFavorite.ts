@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import {
   CreateFavoriteBodyType,
   GetFavoritesQueryType,
-} from "@/schemas/favorite.schema";
-import { useAuth } from "@/hooks/use-auth";
+} from "../../schemas/favorite.schema";
+import { useAuth } from "../../hooks/use-auth";
 
 export const useGetUserFavoritesQuery = (query: GetFavoritesQueryType) => {
   const { isAuthenticated } = useAuth();
@@ -13,20 +13,20 @@ export const useGetUserFavoritesQuery = (query: GetFavoritesQueryType) => {
   return useQuery({
     queryKey: ["favorites", query],
     queryFn: () => favoriteApiRequest.getUserFavorites(query),
-    select: (data) => data.data,
+    select: (data) => data.payload,
     enabled: isAuthenticated,
     staleTime: 1000 * 60, // 1 phút
   });
 };
 
-export const useCheckFavoriteStatusQuery = (rentalId: number) => {
+export const useCheckFavoriteStatusQuery = (postId: number) => {
   const { isAuthenticated } = useAuth();
 
   return useQuery({
-    queryKey: ["favoriteStatus", rentalId],
-    queryFn: () => favoriteApiRequest.checkFavoriteStatus(rentalId),
-    select: (data) => data.data,
-    enabled: isAuthenticated && !!rentalId,
+    queryKey: ["favoriteStatus", postId],
+    queryFn: () => favoriteApiRequest.checkFavoriteStatus(postId),
+    select: (data) => data.payload,
+    enabled: isAuthenticated && !!postId,
     staleTime: 1000 * 60, // 1 phút
   });
 };
@@ -39,11 +39,11 @@ export const useFavoritesMutation = () => {
       return await favoriteApiRequest.toggleFavorite(data);
     },
     onSuccess: (response, variables) => {
-      toast.success(response.data.message);
+      toast.success(response.payload.message);
 
       // Cập nhật trạng thái yêu thích
       queryClient.invalidateQueries({
-        queryKey: ["favoriteStatus", variables.rentalId],
+        queryKey: ["favoriteStatus", variables.postId],
       });
 
       // Cập nhật danh sách yêu thích
