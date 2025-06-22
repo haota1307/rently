@@ -28,6 +28,7 @@ interface Listing {
   isNew?: boolean;
   isRental?: boolean;
   isAvailable?: boolean;
+  rentalId?: string; // Optional rentalId for recommendation
 }
 
 export interface RentalCardProps {
@@ -38,6 +39,7 @@ export interface RentalCardProps {
   isNearbyPost?: boolean;
   postId?: number; // Optional postId override
   rentalId?: number; // Optional rentalId fallback
+  onRecommendationClick?: (roomId: number, rentalId: number) => void; // Callback for recommendation
 }
 
 export const RentalCard = ({
@@ -48,6 +50,7 @@ export const RentalCard = ({
   isNearbyPost = false,
   postId,
   rentalId,
+  onRecommendationClick,
 }: RentalCardProps) => {
   const processedListing = rental
     ? {
@@ -84,6 +87,17 @@ export const RentalCard = ({
   // 2. explicit rentalId (fallback - when postId is null/unavailable)
   // 3. processedListing.id (default - from data)
   const finalPostId = postId || rentalId || Number(processedListing.id);
+
+  // Extract roomId and rentalId for recommendation system
+  const roomId = rental?.rooms?.[0]?.id;
+  const extractedRentalId =
+    rentalId || rental?.id || Number(processedListing.rentalId);
+
+  const handleRecommendationTrigger = () => {
+    if (onRecommendationClick && roomId && extractedRentalId) {
+      onRecommendationClick(roomId, extractedRentalId);
+    }
+  };
 
   // Tạo slug cho bài đăng
   const postSlug = createPostSlug(processedListing.title, processedListing.id);
@@ -206,6 +220,7 @@ export const RentalCard = ({
             <div className="flex justify-between items-center">
               <FavoriteButton
                 postId={finalPostId}
+                rentalId={extractedRentalId}
                 variant="outline"
                 size="sm"
                 className="text-xs px-2"
@@ -341,6 +356,7 @@ export const RentalCard = ({
             <div className="flex justify-between items-center mt-auto">
               <FavoriteButton
                 postId={finalPostId}
+                rentalId={extractedRentalId}
                 variant="outline"
                 size="sm"
               />

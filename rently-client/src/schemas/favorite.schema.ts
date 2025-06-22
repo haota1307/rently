@@ -83,6 +83,7 @@ export const GetFavoritesQuerySchema = z.object({
 
 export const CreateFavoriteBodySchema = z.object({
   postId: z.number(),
+  rentalId: z.number().optional(), // Optional rentalId for additional context
 });
 
 export const FavoriteStatusSchema = z.object({

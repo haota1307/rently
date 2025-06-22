@@ -1,16 +1,17 @@
 "use client";
 
-import { Button } from "../../../components/ui/button";
 import { Heart } from "lucide-react";
 import {
   useFavoritesMutation,
   useCheckFavoriteStatusQuery,
 } from "../useFavorite";
-import { cn } from "../../../lib/utils";
-import { useAuth } from "../../../hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 interface FavoriteButtonProps {
-  postId: number;
+  postId?: number;
+  rentalId?: number;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
@@ -18,12 +19,22 @@ interface FavoriteButtonProps {
 
 export const FavoriteButton = ({
   postId,
+  rentalId,
   variant = "outline",
   size = "icon",
   className,
 }: FavoriteButtonProps) => {
   const { isAuthenticated } = useAuth();
-  const { data, isLoading } = useCheckFavoriteStatusQuery(postId);
+
+  // Use postId with fallback to rentalId
+  const finalPostId = postId || rentalId;
+
+  if (!finalPostId) {
+    console.warn("FavoriteButton: Both postId and rentalId are missing");
+    return null;
+  }
+
+  const { data, isLoading } = useCheckFavoriteStatusQuery(finalPostId);
   const favoritesMutation = useFavoritesMutation();
 
   const isFavorited = data?.isFavorited || false;
@@ -33,7 +44,11 @@ export const FavoriteButton = ({
       return (window.location.href = "/dang-nhap");
     }
 
-    favoritesMutation.mutate({ postId });
+    // Send both postId and rentalId to API
+    favoritesMutation.mutate({
+      postId: finalPostId,
+      ...(rentalId && { rentalId }),
+    });
   };
 
   return (

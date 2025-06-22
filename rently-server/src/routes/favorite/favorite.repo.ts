@@ -104,16 +104,27 @@ export class FavoriteRepo {
       // Kiểm tra bài đăng có tồn tại không
       const post = await this.prismaService.rentalPost.findUnique({
         where: { id: data.postId },
+        include: {
+          room: {
+            include: {
+              rental: true,
+            },
+          },
+        },
       })
 
       if (!post) {
         throw new Error('Bài đăng không tồn tại')
       }
 
+      // Use rentalId from payload or extract from post data
+      const rentalId = data.rentalId || post.room.rental.id
+
       return await this.prismaService.favorite.create({
         data: {
           userId,
           postId: data.postId,
+          rentalId,
         },
       })
     } catch (error) {

@@ -10,6 +10,11 @@ export const CreateFavoriteBodySchema = z.object({
     required_error: 'ID bài đăng là bắt buộc',
     invalid_type_error: 'ID bài đăng phải là số',
   }),
+  rentalId: z
+    .number({
+      invalid_type_error: 'ID nhà trọ phải là số',
+    })
+    .optional(),
 })
 
 export const DeleteFavoriteParamSchema = z.object({
