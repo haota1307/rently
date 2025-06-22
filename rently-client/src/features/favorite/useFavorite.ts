@@ -36,6 +36,10 @@ export const useFavoritesMutation = () => {
 
   return useMutation({
     mutationFn: async (data: CreateFavoriteBodyType) => {
+      console.log("Toggle favorite mutation data:", data); // Debug log
+      if (!data.postId) {
+        throw new Error("postId is required");
+      }
       return await favoriteApiRequest.toggleFavorite(data);
     },
     onSuccess: (response, variables) => {
@@ -50,8 +54,11 @@ export const useFavoritesMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
     },
     onError: (error: any) => {
+      console.error("Toggle favorite error:", error);
       toast.error(
-        error.message || "Đã xảy ra lỗi khi thực hiện thao tác yêu thích"
+        error?.response?.data?.message ||
+          error.message ||
+          "Đã xảy ra lỗi khi thực hiện thao tác yêu thích"
       );
     },
   });

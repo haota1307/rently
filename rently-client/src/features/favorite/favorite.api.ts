@@ -1,12 +1,12 @@
-import http from "@/lib/http";
+import http from "../../lib/http";
 import {
   CreateFavoriteBodyType,
   FavoriteStatusType,
   FavoriteWithPostType,
   GetFavoritesQueryType,
-} from "@/schemas/favorite.schema";
-import { MessageResType } from "@/types/message.type";
-import { PaginatedResponseType } from "@/types/pagination.type";
+} from "../../schemas/favorite.schema";
+import { MessageResType } from "../../types/message.type";
+import { PaginatedResponseType } from "../../types/pagination.type";
 
 const favoriteApiRequest = {
   getUserFavorites: (query: GetFavoritesQueryType) =>

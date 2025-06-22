@@ -1,13 +1,13 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import { Heart } from "lucide-react";
 import {
   useFavoritesMutation,
   useCheckFavoriteStatusQuery,
 } from "../useFavorite";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+import { cn } from "../../../lib/utils";
+import { useAuth } from "../../../hooks/use-auth";
 
 interface FavoriteButtonProps {
   postId: number;

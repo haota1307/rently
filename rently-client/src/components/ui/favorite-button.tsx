@@ -1,11 +1,11 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "./button";
 import { Heart } from "lucide-react";
 import {
   useFavoritesMutation,
   useCheckFavoriteStatusQuery,
-} from "@/features/favorite/useFavorite";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+} from "../../features/favorite/useFavorite";
+import { cn } from "../../lib/utils";
+import { useAuth } from "../../hooks/use-auth";
 
 interface FavoriteButtonProps {
   postId: number;

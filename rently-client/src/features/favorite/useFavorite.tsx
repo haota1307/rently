@@ -11,11 +11,25 @@ export const useFavoritesMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: favoriteApiRequest.toggleFavorite,
-    onSuccess: (response: any) => {
+    mutationFn: (data: CreateFavoriteBodyType) => {
+      console.log("Toggle favorite mutation data:", data); // Debug log
+      if (!data.postId) {
+        throw new Error("postId is required");
+      }
+      return favoriteApiRequest.toggleFavorite(data);
+    },
+    onSuccess: (response: any, variables) => {
       toast.success(response.payload.message);
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
-      queryClient.invalidateQueries({ queryKey: ["favorite-status"] });
+      queryClient.invalidateQueries({
+        queryKey: ["favorite-status", variables.postId],
+      });
+    },
+    onError: (error: any) => {
+      console.error("Toggle favorite error:", error);
+      toast.error(
+        error?.response?.data?.message || error.message || "Có lỗi xảy ra"
+      );
     },
   });
 };
