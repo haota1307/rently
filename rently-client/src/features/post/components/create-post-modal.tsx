@@ -85,14 +85,6 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     withoutActivePosts: true, // Chỉ lấy phòng chưa có bài đăng active
   });
 
-  // Debug logging
-  console.log(
-    "Rooms data for create post:",
-    roomsData?.data?.length || 0,
-    "rooms"
-  );
-  console.log("Room details:", roomsData?.data);
-
   const rentalOptions = rentalsData?.data || [];
   const allRooms = roomsData?.data || [];
 

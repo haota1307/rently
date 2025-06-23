@@ -53,6 +53,7 @@ export const useCreatePost = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] }); // Invalidate rooms để update available rooms
     },
   });
 };
@@ -67,6 +68,7 @@ export const useCreateBulkPosts = (onSuccessCallback?: () => void) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] }); // Invalidate rooms để update available rooms
       onSuccessCallback?.();
     },
   });
@@ -91,6 +93,7 @@ export const useUpdatePost = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] }); // Invalidate rooms khi post update
     },
   });
 };
@@ -106,6 +109,7 @@ export const useDeletePost = () => {
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] }); // Invalidate rooms để room trở lại available
     },
   });
 };
@@ -160,6 +164,7 @@ export const useUpdatePostStatus = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] }); // Invalidate rooms khi status thay đổi
     },
   });
 };

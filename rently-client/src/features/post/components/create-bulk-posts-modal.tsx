@@ -134,11 +134,6 @@ export function CreateBulkPostsModal({
         room.isAvailable // Chỉ hiển thị phòng còn trống
     ) ?? [];
 
-  // Debug logging
-  console.log("Total rooms from API:", roomsData?.data?.length || 0);
-  console.log("Available rooms after filter:", availableRooms.length);
-  console.log("Available rooms details:", availableRooms);
-
   // Preview posts
   const previewPosts = selectedRoomIds
     .map((roomId) => {
