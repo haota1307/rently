@@ -140,16 +140,18 @@ export function RecommendationErrorCompact({
 }: RecommendationErrorProps) {
   return (
     <div
-      className={`p-4 bg-red-50 border border-red-200 rounded-lg ${className}`}
+      className={`p-4 bg-gray-50 border border-gray-200 rounded-lg ${className}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 text-gray-400 flex-shrink-0" />
           <div>
-            <p className="text-sm font-medium text-red-800">
-              Không thể tải gợi ý
+            <p className="text-sm font-medium text-gray-700">
+              Không có bài đăng nào gợi ý cho bạn
             </p>
-            <p className="text-xs text-red-600">{error.message}</p>
+            <p className="text-xs text-gray-500">
+              Hãy chọn và xem một bài viết để nhận gợi ý phù hợp
+            </p>
           </div>
         </div>
 
@@ -158,7 +160,7 @@ export function RecommendationErrorCompact({
             onClick={onRetry}
             variant="outline"
             size="sm"
-            className="border-red-300 text-red-700 hover:bg-red-50"
+            className="border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             <RefreshCw className="w-3 h-3 mr-1" />
             Thử lại

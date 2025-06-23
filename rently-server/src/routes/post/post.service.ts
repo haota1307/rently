@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common'
 import {
   CreatePostBodyType,
+  CreateBulkPostsBodyType,
   GetPostsQueryType,
   UpdatePostBodyType,
   RentalPostStatus,
@@ -147,6 +148,154 @@ export class PostService {
     })
 
     return result
+  }
+
+  async createBulk({
+    data,
+    landlordId,
+  }: {
+    data: CreateBulkPostsBodyType
+    landlordId: number
+  }) {
+    const { roomIds, baseName, rentalId, ...postData } = data
+    const postFee = await this.getPostFee()
+
+    // Kiểm tra user và balance
+    const user = await this.prismaService.user.findUnique({
+      where: { id: landlordId },
+      include: { role: true },
+    })
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy thông tin người dùng')
+    }
+
+    const isAdmin = user.role?.name === RoleName.Admin
+    const totalPostFee = postFee * roomIds.length
+
+    if (!isAdmin && user.balance < totalPostFee) {
+      throw new BadRequestException(
+        `Số dư tài khoản không đủ để đăng ${roomIds.length} bài. Cần ít nhất ${totalPostFee} VNĐ. Vui lòng nạp thêm tiền vào tài khoản.`
+      )
+    }
+
+    // Kiểm tra rental thuộc về landlord
+    const rental = await this.prismaService.rental.findFirst({
+      where: {
+        id: rentalId,
+        landlordId: landlordId,
+      },
+    })
+
+    if (!rental) {
+      throw new NotFoundException(
+        'Nhà trọ không tồn tại hoặc không thuộc về bạn'
+      )
+    }
+
+    // Kiểm tra tất cả rooms có tồn tại và thuộc về rental không
+    const rooms = await this.prismaService.room.findMany({
+      where: {
+        id: { in: roomIds },
+        rentalId: rentalId,
+      },
+    })
+
+    if (rooms.length !== roomIds.length) {
+      throw new BadRequestException(
+        'Một số phòng không tồn tại hoặc không thuộc về nhà trọ được chọn'
+      )
+    }
+
+    // Kiểm tra phòng đã có bài đăng chưa
+    const existingPosts = await this.prismaService.rentalPost.findMany({
+      where: {
+        roomId: { in: roomIds },
+        status: { in: [RentalPostStatus.ACTIVE, RentalPostStatus.INACTIVE] },
+      },
+    })
+
+    if (existingPosts.length > 0) {
+      const occupiedRoomIds = existingPosts.map(post => post.roomId)
+      const occupiedRooms = rooms
+        .filter(room => occupiedRoomIds.includes(room.id))
+        .map(room => room.title)
+
+      throw new BadRequestException(
+        `Các phòng sau đã có bài đăng: ${occupiedRooms.join(', ')}`
+      )
+    }
+
+    // Xử lý ngày tháng
+    const currentDate = new Date()
+    currentDate.setHours(0, 0, 0, 0)
+    const startDate = new Date(postData.startDate)
+    startDate.setHours(0, 0, 0, 0)
+
+    let status = postData.status || RentalPostStatus.ACTIVE
+    if (startDate > currentDate) {
+      status = RentalPostStatus.INACTIVE
+    }
+
+    const postDuration = await this.getPostDuration()
+    if (!postData.endDate) {
+      const endDate = new Date(startDate)
+      endDate.setDate(endDate.getDate() + postDuration)
+      postData.endDate = endDate
+    }
+
+    // Xử lý payment trong transaction
+    await this.prismaService.$transaction(async prisma => {
+      if (!isAdmin) {
+        await prisma.user.update({
+          where: { id: landlordId },
+          data: { balance: { decrement: totalPostFee } },
+        })
+
+        await prisma.payment.create({
+          data: {
+            amount: totalPostFee,
+            status: 'COMPLETED',
+            description: `Phí đăng ${roomIds.length} bài`,
+            userId: landlordId,
+          },
+        })
+      }
+    })
+
+    // Tạo bài đăng cho từng phòng
+    const createdPosts: any[] = []
+    for (const roomId of roomIds) {
+      const room = rooms.find(r => r.id === roomId)
+      if (room) {
+        const rentalName = rental.title
+        const title = `${baseName} ${room.title} - ${rentalName}`
+
+        const createData = {
+          title,
+          description: postData.description,
+          startDate: postData.startDate,
+          endDate: postData.endDate,
+          pricePaid: room.price?.toNumber() || 0, // Lấy giá từ phòng
+          deposit: postData.deposit || 0,
+          status,
+          roomId,
+          rentalId,
+        } as CreatePostBodyType
+
+        const post = await this.rentalPostRepo.create({
+          data: createData,
+          landlordId,
+        })
+        createdPosts.push(post)
+      }
+    }
+
+    return {
+      message: `Tạo thành công ${createdPosts.length} bài đăng`,
+      createdPosts: createdPosts,
+      totalCreated: createdPosts.length,
+    }
   }
 
   async update({

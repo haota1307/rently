@@ -110,10 +110,20 @@ export function CreateBulkRoomsModal({
 
   // Watch form values for preview
   const watchedValues = form.watch();
+
+  // Lấy tên nhà trọ đã chọn
+  const selectedRental = rentalOptions.find(
+    (rental) => rental.id === watchedValues.rentalId
+  );
+  const rentalName = selectedRental?.title || "";
+
   const previewRooms = Array.from(
     { length: watchedValues.count || 0 },
-    (_, index) =>
-      `${watchedValues.baseName} ${watchedValues.startNumber + index}`
+    (_, index) => {
+      const roomNumber = watchedValues.startNumber + index;
+      const baseName = `${watchedValues.baseName} ${roomNumber}`;
+      return rentalName ? `${baseName} - ${rentalName}` : baseName;
+    }
   );
 
   const handleSubmit = async (values: CreateBulkRoomsBodyType) => {
@@ -251,8 +261,9 @@ export function CreateBulkRoomsModal({
                         <Input placeholder="Phòng" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Tên sẽ được đánh số tự động: {field.value} 1,{" "}
-                        {field.value} 2, ...
+                        Tên sẽ được đánh số tự động: {field.value} 1
+                        {rentalName ? ` - ${rentalName}` : ""}, {field.value} 2
+                        {rentalName ? ` - ${rentalName}` : ""}, ...
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -312,21 +323,23 @@ export function CreateBulkRoomsModal({
                   control={form.control}
                   name="isAvailable"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">
-                          Phòng còn trống
-                        </FormLabel>
-                        <FormDescription>
-                          Đánh dấu phòng có sẵn để cho thuê
-                        </FormDescription>
+                    <FormItem className="md:col-span-2">
+                      <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Phòng còn trống
+                          </FormLabel>
+                          <FormDescription>
+                            Đánh dấu phòng có sẵn để cho thuê
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
                       </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
                     </FormItem>
                   )}
                 />

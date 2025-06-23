@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { CreatePostModal } from "@/features/post/components/create-post-modal";
+import { CreateBulkPostsModal } from "@/features/post/components/create-bulk-posts-modal";
 import { EditPostModal } from "@/features/post/components/edit-post-modal";
 import { PostDetailModal } from "@/features/post/components/post-detail-modal";
 import { ConfirmModal } from "@/components/confirm-modal";
@@ -66,6 +67,7 @@ export default function RentalPostsPage() {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isBulkCreateModalOpen, setIsBulkCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -307,10 +309,19 @@ export default function RentalPostsPage() {
           }
           searchPlaceholder="Tìm kiếm theo tiêu đề..."
           actionButton={
-            <Button onClick={() => setIsCreateModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              <span>Thêm bài đăng</span>
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setIsCreateModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Thêm bài đăng</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsBulkCreateModalOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Thêm hàng loạt</span>
+              </Button>
+            </div>
           }
           filterControls={
             <div className="flex gap-2">
@@ -411,6 +422,14 @@ export default function RentalPostsPage() {
         <CreatePostModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
+        />
+
+        <CreateBulkPostsModal
+          open={isBulkCreateModalOpen}
+          onOpenChange={setIsBulkCreateModalOpen}
+          onSuccess={() => {
+            // Refresh data after successful bulk creation
+          }}
         />
 
         {selectedPost && (

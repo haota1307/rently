@@ -199,6 +199,62 @@ export const UpdatePostStatusSchema = z.object({
   }),
 });
 
+// Schema cho tạo bài đăng hàng loạt
+export const CreateBulkPostsBodySchema = z
+  .object({
+    rentalId: z.number({ invalid_type_error: "ID nhà thuê phải là số" }),
+    baseName: z.string().min(1, "Tên cơ bản không được để trống"), // Tên cơ bản cho bài đăng
+    roomIds: z
+      .array(z.number({ invalid_type_error: "ID phòng phải là số" }))
+      .min(1, "Phải chọn ít nhất 1 phòng")
+      .max(50, "Tối đa 50 phòng"), // Danh sách ID phòng
+    startDate: z
+      .string({ invalid_type_error: "Ngày bắt đầu phải là chuỗi" })
+      .refine((val) => !isNaN(Date.parse(val)), {
+        message: "Ngày bắt đầu không hợp lệ",
+      })
+      .transform((val) => new Date(val)),
+    endDate: z
+      .string({ invalid_type_error: "Ngày kết thúc phải là chuỗi" })
+      .refine((val) => !isNaN(Date.parse(val)), {
+        message: "Ngày kết thúc không hợp lệ",
+      })
+      .transform((val) => new Date(val)),
+    description: z
+      .string({ invalid_type_error: "Mô tả phải là chuỗi" })
+      .min(10, { message: "Mô tả phải có ít nhất 10 ký tự" }),
+    status: z
+      .nativeEnum(RentalPostStatus, {
+        errorMap: () => ({ message: "Trạng thái bài đăng không hợp lệ" }),
+      })
+      .optional()
+      .default(RentalPostStatus.ACTIVE),
+    // pricePaid sẽ được lấy từ giá phòng, không cần nhập
+    deposit: z
+      .number({ invalid_type_error: "Tiền đặt cọc phải là số" })
+      .min(0, { message: "Tiền đặt cọc không được âm" })
+      .optional()
+      .default(0),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      const startDate = new Date(data.startDate);
+      const endDate = new Date(data.endDate);
+      return startDate < endDate;
+    },
+    {
+      message: "Ngày bắt đầu phải trước ngày kết thúc",
+      path: ["startDate"],
+    }
+  );
+
+export const CreateBulkPostsResSchema = z.object({
+  message: z.string(),
+  createdPosts: z.array(PostDetailSchema),
+  totalCreated: z.number(),
+});
+
 // Thêm schema cho API getNearbyPosts
 export const GetNearbyPostsResSchema = z.object({
   data: z.array(
@@ -230,4 +286,6 @@ export type GetPostDetailResType = z.infer<typeof GetPostDetailResSchema>;
 export type CreatePostBodyType = z.infer<typeof CreatePostBodySchema>;
 export type UpdatePostBodyType = z.infer<typeof UpdatePostBodySchema>;
 export type UpdatePostStatusType = z.infer<typeof UpdatePostStatusSchema>;
+export type CreateBulkPostsBodyType = z.infer<typeof CreateBulkPostsBodySchema>;
+export type CreateBulkPostsResType = z.infer<typeof CreateBulkPostsResSchema>;
 export type GetNearbyPostsResType = z.infer<typeof GetNearbyPostsResSchema>;

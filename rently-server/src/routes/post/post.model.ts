@@ -136,6 +136,54 @@ export const UpdatePostStatusSchema = z
   })
   .strict()
 
+// Schema cho tạo bài đăng hàng loạt
+export const CreateBulkPostsBodySchema = z
+  .object({
+    rentalId: z.number(),
+    baseName: z.string().min(1, 'Tên cơ bản không được để trống'),
+    roomIds: z
+      .array(z.number())
+      .min(1, 'Phải chọn ít nhất 1 phòng')
+      .max(50, 'Tối đa 50 phòng'),
+    startDate: z
+      .string()
+      .refine(val => !isNaN(Date.parse(val)), { message: 'Invalid startDate' })
+      .transform(val => new Date(val)),
+    endDate: z
+      .string()
+      .refine(val => !isNaN(Date.parse(val)), { message: 'Invalid endDate' })
+      .transform(val => new Date(val)),
+    description: z.string().min(10, 'Mô tả phải có ít nhất 10 ký tự'),
+    status: z
+      .nativeEnum(RentalPostStatus)
+      .optional()
+      .default(RentalPostStatus.ACTIVE),
+    // pricePaid sẽ được lấy từ giá phòng, không cần nhập
+    deposit: z
+      .number()
+      .min(0, 'Tiền đặt cọc không được âm')
+      .optional()
+      .default(0),
+  })
+  .strict()
+  .refine(
+    data => {
+      const startDate = new Date(data.startDate)
+      const endDate = new Date(data.endDate)
+      return startDate < endDate
+    },
+    {
+      message: 'Ngày bắt đầu phải trước ngày kết thúc',
+      path: ['startDate'],
+    }
+  )
+
+export const CreateBulkPostsResSchema = z.object({
+  message: z.string(),
+  createdPosts: z.array(PostDetailSchema),
+  totalCreated: z.number(),
+})
+
 export type PostType = z.infer<typeof PostDetailSchema>
 export type GetPostsResType = z.infer<typeof GetPostsResSchema>
 export type GetPostsQueryType = z.infer<typeof GetPostsQuerySchema>
@@ -144,3 +192,5 @@ export type GetPostDetailResType = z.infer<typeof GetPostDetailResSchema>
 export type CreatePostBodyType = z.infer<typeof CreatePostBodySchema>
 export type UpdatePostBodyType = z.infer<typeof UpdatePostBodySchema>
 export type UpdatePostStatusType = z.infer<typeof UpdatePostStatusSchema>
+export type CreateBulkPostsBodyType = z.infer<typeof CreateBulkPostsBodySchema>
+export type CreateBulkPostsResType = z.infer<typeof CreateBulkPostsResSchema>

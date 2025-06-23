@@ -317,15 +317,18 @@ export class RoomRepo {
         )
       }
 
+      // Tạo danh sách tên phòng với tên nhà trọ
+      const roomTitles = Array.from(
+        { length: count },
+        (_, index) => `${baseName} ${startNumber + index} - ${rental.title}`
+      )
+
       // Kiểm tra xem có phòng nào đã tồn tại với tên tương tự không
       const existingRooms = await this.prismaService.room.findMany({
         where: {
           rentalId: baseRoomData.rentalId,
           title: {
-            in: Array.from(
-              { length: count },
-              (_, index) => `${baseName} ${startNumber + index}`
-            ),
+            in: roomTitles,
           },
         },
       })
@@ -339,7 +342,7 @@ export class RoomRepo {
       // Tạo danh sách phòng cần tạo
       const roomsToCreate = Array.from({ length: count }, (_, index) => ({
         ...baseRoomData,
-        title: `${baseName} ${startNumber + index}`,
+        title: roomTitles[index],
       }))
 
       // Sử dụng transaction để đảm bảo tính nhất quán với timeout tăng lên

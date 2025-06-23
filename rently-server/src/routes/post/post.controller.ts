@@ -12,6 +12,8 @@ import {
 import { ZodSerializerDto } from 'nestjs-zod'
 import {
   CreatePostBodyDTO,
+  CreateBulkPostsBodyDTO,
+  CreateBulkPostsResDTO,
   GetPostDetailResDTO,
   GetPostParamsDTO,
   GetPostsQueryDTO,
@@ -87,6 +89,18 @@ export class PostController {
     @ActiveUser('userId') userId: number
   ) {
     return this.rentalPostService.create({
+      data: body,
+      landlordId: userId,
+    })
+  }
+
+  @Post('bulk')
+  @ZodSerializerDto(CreateBulkPostsResDTO)
+  createBulk(
+    @Body() body: CreateBulkPostsBodyDTO,
+    @ActiveUser('userId') userId: number
+  ) {
+    return this.rentalPostService.createBulk({
       data: body,
       landlordId: userId,
     })

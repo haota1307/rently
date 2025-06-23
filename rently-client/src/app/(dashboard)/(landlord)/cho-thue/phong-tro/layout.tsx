@@ -28,12 +28,6 @@ export default function LandlordRoomLayout({
       icon: <Receipt className="h-4 w-4" />,
       exact: false,
     },
-    {
-      title: "Cài đặt",
-      href: "/cho-thue/phong-tro/cai-dat",
-      icon: <Settings className="h-4 w-4" />,
-      exact: false,
-    },
   ];
 
   return (

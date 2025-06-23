@@ -163,8 +163,18 @@ export function RoomRecommendations({
             Thử lại
           </Button>
         </div>
-        <div className="text-center py-8 text-red-600 bg-red-50 rounded-lg">
-          <p>Lỗi khi tải gợi ý: {error.message}</p>
+        <div className="text-center py-8 text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex flex-col items-center space-y-3">
+            <AlertCircle className="h-12 w-12 text-gray-400" />
+            <div>
+              <p className="text-lg font-medium text-gray-700 mb-1">
+                Không có bài đăng nào gợi ý cho bạn
+              </p>
+              <p className="text-sm text-gray-500">
+                Hãy chọn và xem một bài viết để nhận gợi ý phù hợp
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );

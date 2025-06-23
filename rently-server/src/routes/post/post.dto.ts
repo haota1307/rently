@@ -1,6 +1,8 @@
 import { createZodDto } from 'nestjs-zod'
 import {
   CreatePostBodySchema,
+  CreateBulkPostsBodySchema,
+  CreateBulkPostsResSchema,
   GetPostDetailResSchema,
   GetPostParamsSchema,
   GetPostsQuerySchema,
@@ -15,6 +17,12 @@ export class GetPostsQueryDTO extends createZodDto(GetPostsQuerySchema) {}
 export class GetPostParamsDTO extends createZodDto(GetPostParamsSchema) {}
 export class GetPostDetailResDTO extends createZodDto(GetPostDetailResSchema) {}
 export class CreatePostBodyDTO extends createZodDto(CreatePostBodySchema) {}
+export class CreateBulkPostsBodyDTO extends createZodDto(
+  CreateBulkPostsBodySchema
+) {}
+export class CreateBulkPostsResDTO extends createZodDto(
+  CreateBulkPostsResSchema
+) {}
 export class UpdatePostBodyDTO extends createZodDto(UpdatePostBodySchema) {}
 export class UpdatePostStatusDTO extends createZodDto(UpdatePostStatusSchema) {}
 

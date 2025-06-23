@@ -4,6 +4,7 @@ import {
   GetPostsQueryType,
   PostType,
   CreatePostBodyType,
+  CreateBulkPostsBodyType,
   UpdatePostBodyType,
   UpdatePostStatusType,
 } from "@/schemas/post.schema";
@@ -52,6 +53,21 @@ export const useCreatePost = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+    },
+  });
+};
+
+export const useCreateBulkPosts = (onSuccessCallback?: () => void) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: CreateBulkPostsBodyType) => {
+      const res = await postApiRequest.createBulk(body);
+      return res.payload;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+      onSuccessCallback?.();
     },
   });
 };

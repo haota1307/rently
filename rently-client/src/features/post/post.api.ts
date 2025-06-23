@@ -1,6 +1,8 @@
 import http from "@/lib/http";
 import {
   CreatePostBodyType,
+  CreateBulkPostsBodyType,
+  CreateBulkPostsResType,
   GetNearbyPostsResType,
   GetPostsQueryType,
   GetPostsResType,
@@ -41,6 +43,9 @@ const postApiRequest = {
   detail: (postId: number) => http.get<PostType>(`${prefix}/${postId}`),
 
   create: (body: CreatePostBodyType) => http.post<PostType>(`${prefix}`, body),
+
+  createBulk: (body: CreateBulkPostsBodyType) =>
+    http.post<CreateBulkPostsResType>(`${prefix}/bulk`, body),
 
   update: (postId: number, body: UpdatePostBodyType) =>
     http.put<PostType>(`${prefix}/${postId}`, body),
