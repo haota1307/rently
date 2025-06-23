@@ -692,20 +692,36 @@ export class RecommendationRepo {
       const startTime = Date.now()
 
       // 🎯 Step 1: Geographic Bounding Box Filtering
+      // ✅ Convert Decimal to number to prevent string concatenation
+      const roomLat =
+        targetRoom.rental.lat instanceof Decimal
+          ? targetRoom.rental.lat.toNumber()
+          : Number(targetRoom.rental.lat)
+      const roomLng =
+        targetRoom.rental.lng instanceof Decimal
+          ? targetRoom.rental.lng.toNumber()
+          : Number(targetRoom.rental.lng)
+
       const { minLat, maxLat, minLng, maxLng } = this.calculateBoundingBox(
-        targetRoom.rental.lat,
-        targetRoom.rental.lng,
+        roomLat,
+        roomLng,
         query.maxDistance
       )
 
       // 💰 Step 2: Price Range Filtering (±50% of target price)
-      const targetPrice = Number(targetRoom.price)
+      const targetPrice =
+        targetRoom.price instanceof Decimal
+          ? targetRoom.price.toNumber()
+          : Number(targetRoom.price)
       const priceVariance = query.priceVariance || 0.5
       const minPrice = targetPrice * (1 - priceVariance)
       const maxPrice = targetPrice * (1 + priceVariance)
 
       // 📏 Step 3: Area Range Filtering (±60% of target area)
-      const targetArea = Number(targetRoom.area)
+      const targetArea =
+        targetRoom.area instanceof Decimal
+          ? targetRoom.area.toNumber()
+          : Number(targetRoom.area)
       const areaVariance = query.areaVariance || 0.6
       const minArea = targetArea * (1 - areaVariance)
       const maxArea = targetArea * (1 + areaVariance)
