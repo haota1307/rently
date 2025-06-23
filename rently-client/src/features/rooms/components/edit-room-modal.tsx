@@ -91,20 +91,36 @@ export function EditRoomModal({
 
   // Khi dữ liệu phòng được tải, cập nhật form và danh sách tiện ích đã chọn
   useEffect(() => {
-    if (roomData && open && rentalOptions.length > 0) {
-      form.reset({
-        title: roomData.title || "",
-        price: roomData.price || 0,
-        area: roomData.area || 0,
-        rentalId: roomData.rentalId || rentalOptions[0].id,
-        isAvailable:
-          roomData.isAvailable !== undefined ? roomData.isAvailable : true,
-      });
+    if (roomData && open && !isRentalsLoading) {
+      // Chỉ set form khi rentalOptions đã load xong để đảm bảo Select component có data
+      const currentRental = rentalOptions.find(
+        (rental) => rental.id === roomData.rentalId
+      );
+
+      if (!currentRental && rentalOptions.length > 0) {
+        console.warn(
+          `Rental ID ${roomData.rentalId} not found in available rentals. This room might belong to a different landlord.`
+        );
+      }
+
+      // Sử dụng setTimeout để đảm bảo Select component đã được render với options
+      setTimeout(() => {
+        form.reset({
+          title: roomData.title || "",
+          price: roomData.price || 0,
+          area: roomData.area || 0,
+          rentalId: roomData.rentalId,
+          isAvailable:
+            roomData.isAvailable !== undefined ? roomData.isAvailable : true,
+        });
+      }, 50);
+
       setSelectedAmenities(
         roomData.roomAmenities
           ? roomData.roomAmenities.map((ra) => ra.amenity)
           : []
       );
+
       // Nếu phòng có hình ảnh, cập nhật các slot hình ảnh
       if (roomData.roomImages && roomData.roomImages.length > 0) {
         const newImageSlots: ImageSlot[] = [null, null, null, null, null];
@@ -122,7 +138,7 @@ export function EditRoomModal({
         setImageSlots([null, null, null, null, null]);
       }
     }
-  }, [roomData, open, form, rentalOptions]);
+  }, [roomData, open, form, rentalOptions, isRentalsLoading]);
 
   const handleSubmit = async (values: UpdateRoomBodyType) => {
     console.log(values);
@@ -264,41 +280,49 @@ export function EditRoomModal({
                 <FormField
                   control={form.control}
                   name="rentalId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nhà trọ</FormLabel>
-                      <Select
-                        disabled={isRentalsLoading}
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value ? String(field.value) : undefined}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={
-                                isRentalsLoading
-                                  ? "Đang tải nhà trọ..."
-                                  : "Chọn nhà trọ"
-                              }
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {rentalOptions.map((rental: any) => (
-                            <SelectItem
-                              key={rental.id}
-                              value={String(rental.id)}
-                            >
-                              {rental.title ||
-                                rental.name ||
-                                `Nhà trọ ${rental.id}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    return (
+                      <FormItem>
+                        <FormLabel>Nhà trọ</FormLabel>
+                        <Select
+                          key={`rental-select-${field.value}-${rentalOptions.length}`} // Force re-mount khi data thay đổi
+                          disabled={isRentalsLoading}
+                          onValueChange={(value) => {
+                            field.onChange(Number(value));
+                          }}
+                          value={field.value ? String(field.value) : ""}
+                          defaultValue={
+                            field.value ? String(field.value) : undefined
+                          }
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  isRentalsLoading
+                                    ? "Đang tải nhà trọ..."
+                                    : "Chọn nhà trọ"
+                                }
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {rentalOptions.map((rental: any) => (
+                              <SelectItem
+                                key={rental.id}
+                                value={String(rental.id)}
+                              >
+                                {rental.title ||
+                                  rental.name ||
+                                  `Nhà trọ ${rental.id}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 {/* Giá */}

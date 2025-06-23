@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Filter } from "lucide-react";
+import { Plus, MoreHorizontal, Filter, ChevronDown, Copy } from "lucide-react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { CreatePostModal } from "@/features/post/components/create-post-modal";
 import { CreateBulkPostsModal } from "@/features/post/components/create-bulk-posts-modal";
@@ -309,19 +308,29 @@ export default function RentalPostsPage() {
           }
           searchPlaceholder="Tìm kiếm theo tiêu đề..."
           actionButton={
-            <div className="flex gap-2">
-              <Button onClick={() => setIsCreateModalOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                <span>Thêm bài đăng</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setIsBulkCreateModalOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                <span>Thêm hàng loạt</span>
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Thêm bài đăng</span>
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Loại tạo bài đăng</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsCreateModalOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tạo bài đăng đơn lẻ
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsBulkCreateModalOpen(true)}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Tạo bài đăng hàng loạt
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           }
           filterControls={
             <div className="flex gap-2">
