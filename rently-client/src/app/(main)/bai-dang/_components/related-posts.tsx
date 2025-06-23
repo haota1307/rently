@@ -2,11 +2,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { SimilarPostCard } from "@/components/similar-post-card";
+import { RentalCard } from "@/components/rental-card";
 import {
   useGetSimilarPostsByPrice,
   useGetSameRentalPosts,
 } from "@/features/post/usePost";
+import { RentalType } from "@/schemas/rental.schema";
 
 interface RelatedPostsSectionProps {
   postId: number;
@@ -25,6 +26,57 @@ export function RelatedPostsSection({
   const hasSimilarPosts = similarPosts?.data && similarPosts.data.length > 0;
   const hasSameRentalPosts =
     sameRentalPosts?.data && sameRentalPosts.data.length > 0;
+
+  // Convert post data to rental format like RoomRecommendations does
+  const convertPostToRental = (post: any): RentalType => {
+    const room = post.room;
+    const rental = post.rental;
+
+    return {
+      id: rental?.id || post.id,
+      title: rental?.title || "Nhà trọ",
+      address: rental?.address || "",
+      description: post.title || "",
+      lat: rental?.lat || 0,
+      lng: rental?.lng || 0,
+      distance: rental?.distance || 0,
+      landlordId: rental?.landlordId || 0,
+      createdAt: new Date(post.createdAt),
+      updatedAt: new Date(post.updatedAt || post.createdAt),
+      rentalImages:
+        rental?.rentalImages?.map((img: any, index: number) => ({
+          id: img.id || index,
+          imageUrl: img.imageUrl,
+          rentalId: rental.id,
+          order: img.order || index,
+        })) || [],
+      rooms: [
+        {
+          id: room?.id || post.id,
+          price: room?.price || 0,
+          area: room?.area || 0,
+          isAvailable: room?.isAvailable ?? true,
+          rentalId: rental?.id || post.id,
+          roomImages:
+            room?.roomImages?.map((img: any, index: number) => ({
+              id: img.id || index,
+              imageUrl: img.imageUrl,
+              roomId: room.id,
+              order: img.order || index,
+            })) || [],
+          roomAmenities:
+            room?.roomAmenities?.map((ra: any, index: number) => ({
+              roomId: room.id,
+              amenityId: ra.amenity?.id || index,
+              amenity: {
+                id: ra.amenity?.id || index,
+                name: ra.amenity?.name || "",
+              },
+            })) || [],
+        },
+      ],
+    } as RentalType;
+  };
 
   return (
     <div className="mt-6 sm:mt-10">
@@ -53,7 +105,7 @@ export function RelatedPostsSection({
 
         <TabsContent value="similar">
           {loadingSimilar ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="overflow-hidden">
                   <Skeleton className="aspect-[4/3] w-full" />
@@ -73,9 +125,15 @@ export function RelatedPostsSection({
               Không tìm thấy phòng trọ có giá tương tự
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
               {similarPosts.data.map((post) => (
-                <SimilarPostCard key={post.id} post={post} />
+                <RentalCard
+                  key={post.id}
+                  rental={convertPostToRental(post)}
+                  viewMode="grid"
+                  postId={post.id}
+                  rentalId={post.rental?.id}
+                />
               ))}
             </div>
           )}
@@ -83,7 +141,7 @@ export function RelatedPostsSection({
 
         <TabsContent value="sameRental">
           {loadingSameRental ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="overflow-hidden">
                   <Skeleton className="aspect-[4/3] w-full" />
@@ -103,9 +161,15 @@ export function RelatedPostsSection({
               Không tìm thấy phòng trọ khác trong cùng nhà trọ
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
               {sameRentalPosts.data.map((post) => (
-                <SimilarPostCard key={post.id} post={post} />
+                <RentalCard
+                  key={post.id}
+                  rental={convertPostToRental(post)}
+                  viewMode="grid"
+                  postId={post.id}
+                  rentalId={post.rental?.id}
+                />
               ))}
             </div>
           )}

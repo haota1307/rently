@@ -227,25 +227,27 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             {/* Phần bình luận */}
             <CommentSection postId={postId} />
 
-            {/* 🎯 HỆ THỐNG GỢI Ý - PHÒNG TRỌ CÓ THỂ BẠN QUAN TÂM */}
-            {room?.id && (
-              <div className="mt-12 mb-8">
-                <RoomRecommendations
-                  roomId={room.id}
-                  method="HYBRID"
-                  limit={6}
-                  title="Bạn có thể quan tâm"
-                  showMetadata={true}
-                  showSimilarityBreakdown={false}
-                  defaultViewMode="list"
-                  maxColumns={3}
-                  className="bg-gray-50 rounded-xl p-6"
-                />
-              </div>
-            )}
+            {/* 🎯 PHẦN GỢI Ý CHỈ HIỂN THỊ TRÊN DESKTOP/TABLET */}
+            <div className="hidden lg:block">
+              {/* HỆ THỐNG GỢI Ý - PHÒNG TRỌ CÓ THỂ BẠN QUAN TÂM */}
+              {room?.id && (
+                <div className="mt-12 mb-8">
+                  <RoomRecommendations
+                    roomId={room.id}
+                    method="HYBRID"
+                    limit={6}
+                    title="Bạn có thể quan tâm"
+                    showMetadata={true}
+                    showSimilarityBreakdown={false}
+                    defaultViewMode="grid"
+                    maxColumns={3}
+                  />
+                </div>
+              )}
 
-            {/* Bài đăng liên quan */}
-            <RelatedPostsSection postId={postId} rentalId={rental?.id || 0} />
+              {/* Bài đăng liên quan */}
+              <RelatedPostsSection postId={postId} rentalId={rental?.id || 0} />
+            </div>
           </div>
 
           {/* Sidebar với thông tin chủ nhà và nhà trọ */}
@@ -315,6 +317,30 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* 🎯 PHẦN GỢI Ý CHO MOBILE - HIỂN THỊ Ở DƯỚI CÙNG */}
+        <div className="lg:hidden mt-8 sm:mt-12">
+          {/* HỆ THỐNG GỢI Ý - PHÒNG TRỌ CÓ THỂ BẠN QUAN TÂM */}
+          {room?.id && (
+            <div className="mb-8">
+              <RoomRecommendations
+                roomId={room.id}
+                method="HYBRID"
+                limit={6}
+                title="Bạn có thể quan tâm"
+                showMetadata={true}
+                showSimilarityBreakdown={false}
+                defaultViewMode="grid"
+                maxColumns={3}
+              />
+            </div>
+          )}
+
+          {/* Bài đăng liên quan */}
+          <div className="mb-6">
+            <RelatedPostsSection postId={postId} rentalId={rental?.id || 0} />
           </div>
         </div>
       </div>

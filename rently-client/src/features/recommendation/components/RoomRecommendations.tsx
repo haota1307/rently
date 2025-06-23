@@ -94,11 +94,11 @@ export function RoomRecommendations({
   const methodConfig = methodLabels[method];
   const Icon = methodConfig.icon;
 
-  // Dynamic grid classes based on maxColumns
+  // Dynamic grid classes based on maxColumns with better mobile responsive
   const gridClasses =
     maxColumns === 4
-      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-      : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+      ? "grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
+      : "grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6";
 
   // Convert recommendation data to rental format for RentalCard
   const convertToRental = (room: any): RentalType => {
@@ -179,19 +179,23 @@ export function RoomRecommendations({
             {title}
           </h3>
         )}
-        <div className={cn(viewMode === "grid" ? gridClasses : "space-y-4")}>
-          {Array.from({ length: limit }).map((_, index) => (
+        <div
+          className={cn(
+            viewMode === "grid" ? gridClasses : "space-y-3 sm:space-y-4"
+          )}
+        >
+          {Array.from({ length: Math.min(limit, 6) }).map((_, index) => (
             <div key={index} className="animate-pulse">
               <div
                 className={cn(
-                  "bg-gray-200 rounded-lg mb-3",
-                  viewMode === "grid" ? "aspect-[4/3]" : "h-32"
+                  "bg-gray-200 rounded-lg mb-2 sm:mb-3",
+                  viewMode === "grid" ? "aspect-[4/3]" : "h-24 sm:h-32"
                 )}
               ></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              <div className="space-y-1.5 sm:space-y-2">
+                <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-2.5 sm:h-3 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-2.5 sm:h-3 bg-gray-200 rounded w-2/3"></div>
               </div>
             </div>
           ))}
@@ -209,8 +213,8 @@ export function RoomRecommendations({
             {title}
           </h3>
         )}
-        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-          <p>Không có gợi ý nào</p>
+        <div className="text-center py-6 sm:py-8 text-gray-500 bg-gray-50 rounded-lg">
+          <p className="text-sm sm:text-base">Không có gợi ý nào</p>
         </div>
       </div>
     );
@@ -220,19 +224,20 @@ export function RoomRecommendations({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="flex items-center justify-between">
+      {/* Responsive Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           {title && (
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Icon className="h-5 w-5" />
-              {title}
+            <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="truncate">{title}</span>
             </h3>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="flex items-center border rounded-lg p-1">
+        <div className="flex items-center justify-between sm:justify-end gap-2">
+          {/* View Mode Toggle - Hidden on mobile */}
+          <div className="hidden sm:flex items-center border rounded-lg p-1">
             <Button
               variant={viewMode === "grid" ? "default" : "ghost"}
               size="sm"
@@ -254,9 +259,9 @@ export function RoomRecommendations({
           </div>
 
           {showMetadata && (
-            <>
-              <Badge variant="secondary">{recommendations.length} phòng</Badge>
-            </>
+            <Badge variant="secondary" className="text-xs sm:text-sm">
+              {recommendations.length} phòng
+            </Badge>
           )}
         </div>
       </div>
