@@ -103,7 +103,7 @@ export function RoomRecommendations({
   // Convert recommendation data to rental format for RentalCard
   const convertToRental = (room: any): RentalType => {
     return {
-      id: room.id,
+      id: room.rental?.id || room.id,
       title: room.title || "Phòng trọ",
       address: room.rental?.address || "",
       description: room.rental?.title || "",
@@ -125,7 +125,7 @@ export function RoomRecommendations({
           id: room.id,
           price: room.price || 0,
           area: room.area || 0,
-          isAvailable: true,
+          isAvailable: room.isAvailable ?? true,
           rentalId: room.rental?.id || room.id,
           roomImages:
             room.roomImages?.map((img: any, index: number) => ({
@@ -297,6 +297,7 @@ export function RoomRecommendations({
                 viewMode={viewMode}
                 isNearbyPost={method === "LOCATION_BASED"}
                 postId={room.RentalPost?.[0]?.id}
+                rentalId={room.rental?.id}
               />
             </div>
           </div>

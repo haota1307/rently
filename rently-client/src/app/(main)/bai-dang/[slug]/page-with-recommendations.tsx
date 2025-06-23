@@ -222,7 +222,7 @@ export default function PostDetailPageWithRecommendations({
                   roomId={room.id}
                   method="CONTENT_BASED"
                   limit={8}
-                  title="Phòng trọ có thể bạn quan tâm"
+                  title="Bạn có thể quan tâm"
                   showMetadata={true}
                   showSimilarityBreakdown={false}
                   className="bg-gray-50 rounded-xl p-6"

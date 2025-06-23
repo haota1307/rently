@@ -86,12 +86,25 @@ export const RentalCard = ({
   // 1. explicit postId (preferred - actual post ID)
   // 2. explicit rentalId (fallback - when postId is null/unavailable)
   // 3. processedListing.id (default - from data)
-  const finalPostId = postId || rentalId || Number(processedListing.id);
+  const finalPostId =
+    postId && postId > 0
+      ? postId
+      : rentalId && rentalId > 0
+        ? rentalId
+        : Number(processedListing.id) > 0
+          ? Number(processedListing.id)
+          : null;
 
   // Extract roomId and rentalId for recommendation system
   const roomId = rental?.rooms?.[0]?.id;
   const extractedRentalId =
-    rentalId || rental?.id || Number(processedListing.rentalId);
+    rentalId && rentalId > 0
+      ? rentalId
+      : rental?.id && rental.id > 0
+        ? rental.id
+        : Number(processedListing.rentalId) > 0
+          ? Number(processedListing.rentalId)
+          : null;
 
   const handleRecommendationTrigger = () => {
     if (onRecommendationClick && roomId && extractedRentalId) {

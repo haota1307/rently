@@ -234,10 +234,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   roomId={room.id}
                   method="HYBRID"
                   limit={6}
-                  title="Phòng trọ có thể bạn quan tâm"
+                  title="Bạn có thể quan tâm"
                   showMetadata={true}
                   showSimilarityBreakdown={false}
-                  defaultViewMode="grid"
+                  defaultViewMode="list"
                   maxColumns={3}
                   className="bg-gray-50 rounded-xl p-6"
                 />

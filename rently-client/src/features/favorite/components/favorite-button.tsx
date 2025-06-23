@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
 interface FavoriteButtonProps {
-  postId?: number;
-  rentalId?: number;
+  postId?: number | null;
+  rentalId?: number | null;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
@@ -26,11 +26,15 @@ export const FavoriteButton = ({
 }: FavoriteButtonProps) => {
   const { isAuthenticated } = useAuth();
 
-  // Use postId with fallback to rentalId
-  const finalPostId = postId || rentalId;
+  // Use postId with fallback to rentalId - ensure it's a valid number
+  const finalPostId =
+    postId && postId > 0 ? postId : rentalId && rentalId > 0 ? rentalId : null;
 
   if (!finalPostId) {
-    console.warn("FavoriteButton: Both postId and rentalId are missing");
+    console.warn(
+      "FavoriteButton: Both postId and rentalId are missing or invalid",
+      { postId, rentalId }
+    );
     return null;
   }
 
@@ -47,7 +51,7 @@ export const FavoriteButton = ({
     // Send both postId and rentalId to API
     favoritesMutation.mutate({
       postId: finalPostId,
-      ...(rentalId && { rentalId }),
+      ...(rentalId && rentalId > 0 && { rentalId }),
     });
   };
 
