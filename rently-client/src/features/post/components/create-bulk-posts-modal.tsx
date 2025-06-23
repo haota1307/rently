@@ -122,7 +122,7 @@ export function CreateBulkPostsModal({
   const { data: roomsData, isLoading: isRoomsLoading } = useGetMyRooms({
     limit: 100,
     page: 1,
-    // Lọc theo nhà trọ đã chọn thông qua ownerId (landlordId của rental)
+    withoutActivePosts: true, // Chỉ lấy phòng chưa có bài đăng active
   });
 
   // Lọc rooms theo rental đã chọn
@@ -133,6 +133,11 @@ export function CreateBulkPostsModal({
         room.rentalId === selectedRental.id &&
         room.isAvailable // Chỉ hiển thị phòng còn trống
     ) ?? [];
+
+  // Debug logging
+  console.log("Total rooms from API:", roomsData?.data?.length || 0);
+  console.log("Available rooms after filter:", availableRooms.length);
+  console.log("Available rooms details:", availableRooms);
 
   // Preview posts
   const previewPosts = selectedRoomIds

@@ -104,6 +104,39 @@ export class PostService {
       }
     }
 
+    // Kiểm tra phòng đã có bài đăng active/inactive chưa
+    const existingPost = await this.prismaService.rentalPost.findFirst({
+      where: {
+        roomId: data.roomId,
+        status: { in: [RentalPostStatus.ACTIVE, RentalPostStatus.INACTIVE] },
+      },
+      include: {
+        room: { select: { title: true } },
+      },
+    })
+
+    if (existingPost) {
+      throw new BadRequestException(
+        `Phòng "${existingPost.room.title}" đã có bài đăng đang hoạt động. Mỗi phòng chỉ được có một bài đăng cùng lúc.`
+      )
+    }
+
+    // Kiểm tra room có thuộc về landlord không
+    const room = await this.prismaService.room.findFirst({
+      where: {
+        id: data.roomId,
+        rental: {
+          landlordId: landlordId,
+        },
+      },
+    })
+
+    if (!room) {
+      throw new BadRequestException(
+        'Phòng không tồn tại hoặc không thuộc về bạn'
+      )
+    }
+
     const currentDate = new Date()
     currentDate.setHours(0, 0, 0, 0)
 

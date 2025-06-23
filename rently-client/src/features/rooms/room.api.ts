@@ -33,6 +33,7 @@ const roomApiRequest = {
           status: params.status,
           priceRange: params.priceRange,
           areaRange: params.areaRange,
+          withoutActivePosts: params.withoutActivePosts,
         })
     ),
   detail: (roomId: number) =>

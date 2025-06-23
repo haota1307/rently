@@ -58,6 +58,7 @@ export const GetRoomsQuerySchema = z
     status: z.string().optional(),
     priceRange: z.string().optional(),
     areaRange: z.coerce.string().optional(),
+    withoutActivePosts: z.coerce.boolean().optional(), // Filter phòng chưa có bài đăng active
   })
   .strict()
 

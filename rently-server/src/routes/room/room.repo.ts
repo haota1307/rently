@@ -26,6 +26,7 @@ export class RoomRepo {
 
   async list(query: GetRoomsQueryType): Promise<GetRoomsResType> {
     try {
+      console.log('Room.repo.list received query:', query)
       const skip = (query.page - 1) * query.limit
       const take = query.limit
       const where: any = {}
@@ -84,6 +85,16 @@ export class RoomRepo {
         }
 
         where.rentalId = { in: rentalIds }
+      }
+
+      // Filter phòng chưa có bài đăng active/inactive
+      if (query.withoutActivePosts) {
+        console.log('Applying withoutActivePosts filter...')
+        where.RentalPost = {
+          none: {
+            status: { in: ['ACTIVE', 'INACTIVE'] },
+          },
+        }
       }
 
       const [totalItems, data] = await Promise.all([
