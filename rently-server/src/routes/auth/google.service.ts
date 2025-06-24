@@ -81,6 +81,7 @@ export class GoogleService {
           roleId: clientRoleId,
           phoneNumber: '',
           avatar: data.picture ?? '',
+          status: UserStatus.ACTIVE,
         })
       } else {
         // Kiểm tra nếu tài khoản đã bị khóa

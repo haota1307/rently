@@ -28,7 +28,13 @@ export class AuthRepository {
   async createUserIncludeRole(
     user: Pick<
       UserType,
-      'roleId' | 'email' | 'name' | 'phoneNumber' | 'avatar' | 'password'
+      | 'roleId'
+      | 'email'
+      | 'name'
+      | 'phoneNumber'
+      | 'avatar'
+      | 'password'
+      | 'status'
     >
   ): Promise<UserType & { role: RoleType }> {
     return this.prismaService.user.create({
