@@ -87,6 +87,17 @@ export const GetPostsQuerySchema = z
   .object({
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().default(10),
+    // Tham số sắp xếp: newest | price-asc | price-desc | area-asc | area-desc | distance
+    sort: z
+      .enum([
+        'newest',
+        'price-asc',
+        'price-desc',
+        'area-asc',
+        'area-desc',
+        'distance',
+      ] as const)
+      .optional(),
     title: z.string().optional(),
     status: z.string().optional(),
     startDate: z.string().optional(),

@@ -20,7 +20,11 @@ import { Button } from "@/components/ui/button";
 import { Grid3X3, LayoutList, X } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
 import { useGetPosts } from "@/features/post/usePost";
-import { PostType, RentalPostStatus } from "@/schemas/post.schema";
+import {
+  PostType,
+  RentalPostStatus,
+  GetPostsQueryType,
+} from "@/schemas/post.schema";
 import { useSearchParams } from "next/navigation";
 import { FilterValues } from "./search-filters";
 import { Badge } from "@/components/ui/badge";
@@ -48,13 +52,15 @@ interface RentalListingsProps {
   onFiltersChange?: (filters: FilterValues) => void;
 }
 
+type SortOption = Exclude<NonNullable<GetPostsQueryType["sort"]>, undefined>;
+
 // Component chính kèm params
 function RentalListingsContent({
   filters = {},
   onFiltersChange,
 }: RentalListingsProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortOption, setSortOption] = useState("newest");
+  const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   // Gọi API với các filter
@@ -67,6 +73,7 @@ function RentalListingsContent({
     area: filters.area,
     price: filters.price,
     amenityIds: filters.amenities,
+    sort: sortOption,
   });
 
   const posts = postsData?.data || [];
@@ -167,25 +174,8 @@ function RentalListingsContent({
     return true;
   });
 
-  // Sắp xếp danh sách theo option được chọn
-  const sortedListings = [...filteredListings].sort((a, b) => {
-    switch (sortOption) {
-      case "newest":
-        return 0; // Giữ thứ tự ban đầu từ API
-      case "price-asc":
-        return a.price - b.price;
-      case "price-desc":
-        return b.price - a.price;
-      case "area-asc":
-        return a.area - b.area;
-      case "area-desc":
-        return b.area - a.area;
-      case "distance":
-        return a.distance - b.distance;
-      default:
-        return 0;
-    }
-  });
+  // Không cần tự sort ở client nữa, backend đã sắp xếp
+  const sortedListings = filteredListings;
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -301,7 +291,10 @@ function RentalListingsContent({
           )}
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select value={sortOption} onValueChange={setSortOption}>
+          <Select
+            value={sortOption}
+            onValueChange={(val) => setSortOption(val as SortOption)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Sắp xếp theo" />
             </SelectTrigger>

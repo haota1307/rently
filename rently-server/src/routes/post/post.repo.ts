@@ -63,15 +63,38 @@ export class PostRepo {
         whereClause.status = pagination.status
       }
 
+      // Xác định điều kiện sắp xếp
+      let orderByClause: any = { createdAt: 'desc' }
+
+      switch (pagination.sort) {
+        case 'price-asc':
+          orderByClause = { room: { price: 'asc' } }
+          break
+        case 'price-desc':
+          orderByClause = { room: { price: 'desc' } }
+          break
+        case 'area-asc':
+          orderByClause = { room: { area: 'asc' } }
+          break
+        case 'area-desc':
+          orderByClause = { room: { area: 'desc' } }
+          break
+        case 'distance':
+          orderByClause = { rental: { distance: 'asc' } }
+          break
+        case 'newest':
+        default:
+          orderByClause = { createdAt: 'desc' }
+          break
+      }
+
       const [totalItems, data] = await Promise.all([
         this.prismaService.rentalPost.count({ where: whereClause }),
         this.prismaService.rentalPost.findMany({
           skip,
           take,
           where: whereClause,
-          orderBy: {
-            createdAt: 'desc',
-          },
+          orderBy: orderByClause,
           include: {
             rental: {
               include: {

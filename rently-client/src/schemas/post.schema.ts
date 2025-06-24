@@ -124,6 +124,16 @@ export const GetPostsQuerySchema = z
       .string({ invalid_type_error: "Diện tích phải là chuỗi" })
       .optional(),
     price: z.string({ invalid_type_error: "Giá phải là chuỗi" }).optional(),
+    sort: z
+      .enum([
+        "newest",
+        "price-asc",
+        "price-desc",
+        "area-asc",
+        "area-desc",
+        "distance",
+      ] as const)
+      .optional(),
     amenityIds: z
       .array(z.number({ invalid_type_error: "ID tiện ích phải là số" }))
       .optional(),

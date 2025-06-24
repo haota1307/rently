@@ -18,11 +18,10 @@ const postApiRequest = {
   list: (params: GetPostsQueryType) =>
     http.get<GetPostsResType>(
       `${prefix}?` +
-        queryString.stringify({
-          limit: params.limit,
-          page: params.page,
-          title: params.title,
-          status: params.status,
+        queryString.stringify(params as any, {
+          arrayFormat: "comma",
+          skipNull: true,
+          skipEmptyString: true,
         })
     ),
 
