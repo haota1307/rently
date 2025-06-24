@@ -104,9 +104,9 @@ export function RoomRecommendations({
   const convertToRental = (room: any): RentalType => {
     return {
       id: room.rental?.id || room.id,
-      title: room.title || "Phòng trọ",
+      title: room.RentalPost?.[0]?.title || room.title || "Phòng trọ",
       address: room.rental?.address || "",
-      description: room.rental?.title || "",
+      description: room.description || room.rental?.description || "",
       lat: room.rental?.lat || 0,
       lng: room.rental?.lng || 0,
       distance: room.rental?.distance || 0,
@@ -142,6 +142,11 @@ export function RoomRecommendations({
                 id: ra.amenity?.id || index,
                 name: ra.amenity?.name || "",
               },
+            })) || [],
+          amenities:
+            room.roomAmenities?.map((ra: any) => ({
+              id: ra.amenity?.id || 0,
+              name: ra.amenity?.name || "",
             })) || [],
         },
       ],

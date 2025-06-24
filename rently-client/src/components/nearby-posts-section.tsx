@@ -78,23 +78,25 @@ export function NearbyPostsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-6">
         {data.data.map((post) => (
-          <RentalCard
-            key={post.id}
-            listing={{
-              id: post.id.toString(),
-              title: post.title,
-              address: post.address,
-              price: Number(post.price),
-              area: Number(post.area),
-              images: post.images.map((img) => img.url),
-              amenities: post.amenities,
-              distance: Number(post.distance || 0),
-              isAvailable: post.status === "ACTIVE",
-            }}
-            isNearbyPost={true}
-          />
+          <div key={post.id} className="h-full">
+            <RentalCard
+              listing={{
+                id: post.id.toString(),
+                title: post.title,
+                address: post.address,
+                price: Number(post.price),
+                area: Number(post.area),
+                images: post.images.map((img) => img.url),
+                amenities: post.amenities,
+                distance: Number(post.distance || 0),
+                isAvailable: post.status === "ACTIVE",
+              }}
+              viewMode="list"
+              isNearbyPost={true}
+            />
+          </div>
         ))}
       </div>
     </div>

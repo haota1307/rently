@@ -111,10 +111,33 @@ export default function LandlordRentalPage() {
     try {
       await deleteRental(selectedRental.id);
       toast.success("Xóa nhà trọ thành công");
-    } catch (error: any) {
-      toast.error(`Xóa nhà trọ thất bại: ${error?.payload?.message}`);
-    } finally {
       setIsDeleteModalOpen(false);
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.payload?.message ||
+        "Không thể xóa nhà trọ. Vui lòng thử lại sau.";
+
+      // Hiển thị thông báo lỗi
+      toast.error(`Không thể xóa nhà trọ: ${errorMessage}`);
+
+      // Cập nhật nội dung modal để hiển thị lỗi
+      const dialogContent = document.querySelector(
+        '[role="dialog"] [role="document"]'
+      );
+      if (dialogContent) {
+        const errorElement = document.createElement("div");
+        errorElement.className =
+          "mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm";
+        errorElement.textContent = errorMessage;
+
+        // Xóa thông báo lỗi cũ nếu có
+        const oldError = dialogContent.querySelector(".bg-red-50");
+        if (oldError) oldError.remove();
+
+        // Thêm thông báo lỗi mới
+        dialogContent.appendChild(errorElement);
+      }
     }
   };
 

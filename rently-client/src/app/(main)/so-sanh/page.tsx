@@ -281,35 +281,6 @@ export default function ComparisonPage() {
                     ))}
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-medium">Chủ nhà</TableCell>
-                    {items.map((post) => (
-                      <TableCell key={post.id}>
-                        <div className="flex items-center gap-2">
-                          {post.landlord?.avatar && (
-                            <div className="relative w-8 h-8 rounded-full overflow-hidden">
-                              <Image
-                                src={post.landlord.avatar}
-                                alt={post.landlord.name || ""}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-medium">
-                              {post.landlord?.name || "Không có thông tin"}
-                            </p>
-                            {post.landlord?.phoneNumber && (
-                              <p className="text-xs text-muted-foreground">
-                                {post.landlord.phoneNumber}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                  <TableRow>
                     <TableCell className="font-medium">Hành động</TableCell>
                     {items.map((post) => (
                       <TableCell key={post.id}>

@@ -286,10 +286,36 @@ export class RoomRepo {
 
   async delete({ id }: { id: number }): Promise<RoomType> {
     try {
-      const room = await this.prismaService.room.delete({
-        where: { id },
+      // Kiểm tra nếu phòng còn đang được gắn với bài đăng ACTIVE/INACTIVE
+      const existingPost = await this.prismaService.rentalPost.findFirst({
+        where: {
+          roomId: id,
+          status: { in: ['ACTIVE', 'INACTIVE'] },
+        },
+        select: { id: true },
       })
-      return this.formatRoom(room)
+
+      if (existingPost) {
+        throw new InternalServerErrorException(
+          'Không thể xóa phòng vì đang có bài đăng còn hiệu lực'
+        )
+      }
+
+      // Thực hiện xóa trong transaction để đảm bảo toàn vẹn
+      const deletedRoom = await this.prismaService.$transaction(
+        async prisma => {
+          // Xóa roomImages trước
+          await prisma.roomImage.deleteMany({ where: { roomId: id } })
+
+          // Xóa roomAmenities
+          await prisma.roomAmenity.deleteMany({ where: { roomId: id } })
+
+          // Cuối cùng xóa room
+          return prisma.room.delete({ where: { id } })
+        }
+      )
+
+      return this.formatRoom(deletedRoom)
     } catch (error) {
       throw new InternalServerErrorException(error.message)
     }

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Heart, Home, Loader2 } from "lucide-react";
 import { RentalCard } from "@/components/rental-card";
 import { CustomPagination } from "@/components/ui/custom-pagination";
-import { FavoriteWithRentalType } from "@/schemas/favorite.schema";
+import { FavoriteWithPostType } from "@/schemas/favorite.schema";
 import { Container } from "@/components/container";
 
 // Import recommendation system
@@ -95,40 +95,34 @@ export default function SavedListingsPage() {
       ) : (
         <>
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {favorites.map((favorite: FavoriteWithRentalType) => {
-              // Chuyển đổi dữ liệu để phù hợp với RentalCard
+            {favorites.map((favorite: FavoriteWithPostType) => {
+              // API mới: favorite.post.room.rental
+              const rentalData = favorite.post.room.rental;
+
               const rental = {
-                ...favorite.rental,
-                createdAt:
-                  favorite.rental.createdAt instanceof Date
-                    ? favorite.rental.createdAt
-                    : new Date(favorite.rental.createdAt),
-                updatedAt:
-                  favorite.rental.updatedAt instanceof Date
-                    ? favorite.rental.updatedAt
-                    : new Date(favorite.rental.updatedAt),
-                distance: favorite.rental.distance || undefined,
-                rooms: favorite.rental.rooms.map((room) => ({
-                  ...room,
-                  createdAt:
-                    room.createdAt instanceof Date
-                      ? room.createdAt
-                      : new Date(room.createdAt),
-                  updatedAt:
-                    room.updatedAt instanceof Date
-                      ? room.updatedAt
-                      : new Date(room.updatedAt),
-                })),
-                rentalImages: favorite.rental.rentalImages.map((img) => ({
-                  ...img,
-                  createdAt:
-                    img.createdAt instanceof Date
-                      ? img.createdAt
-                      : new Date(img.createdAt),
-                })),
+                ...rentalData,
+                title: favorite.post.title,
+                distance: rentalData.distance ?? undefined,
+                // rooms: chỉ bao gồm room của bài đăng hiện tại
+                rooms: [
+                  {
+                    ...favorite.post.room,
+                    amenities:
+                      favorite.post.room.roomAmenities?.map(
+                        (ra) => ra.amenity
+                      ) || [],
+                  },
+                ],
+                rentalImages: rentalData.rentalImages,
               };
 
-              return <RentalCard key={favorite.id} rental={rental} />;
+              return (
+                <RentalCard
+                  key={favorite.id}
+                  rental={rental as any}
+                  postId={favorite.postId}
+                />
+              );
             })}
           </div>
 
@@ -146,7 +140,7 @@ export default function SavedListingsPage() {
           <div className="mt-12">
             <div className="bg-gray-50 rounded-xl p-6">
               <RoomRecommendations
-                roomId={1} // Sử dụng roomId mặc định cho recommendations
+                roomId={favorites.length > 0 ? favorites[0].post.room.id : 1} // Sử dụng roomId từ favorite đầu tiên nếu có
                 method="HYBRID"
                 limit={6}
                 title="Có thể bạn cũng thích"

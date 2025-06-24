@@ -33,8 +33,30 @@ export function DeleteRoomConfirm({
     try {
       await deleteRoom(roomId);
       onOpenChange(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting room:", err);
+      // Hiển thị thông báo lỗi từ server
+      const errorMessage =
+        err?.response?.data?.message ||
+        "Không thể xóa phòng trọ. Vui lòng thử lại sau.";
+
+      // Cập nhật dialog để hiển thị lỗi thay vì đóng nó
+      const dialogContent = document.querySelector(
+        '[role="dialog"] [role="document"]'
+      );
+      if (dialogContent) {
+        const errorElement = document.createElement("div");
+        errorElement.className =
+          "mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm";
+        errorElement.textContent = errorMessage;
+
+        // Xóa thông báo lỗi cũ nếu có
+        const oldError = dialogContent.querySelector(".bg-red-50");
+        if (oldError) oldError.remove();
+
+        // Thêm thông báo lỗi mới
+        dialogContent.appendChild(errorElement);
+      }
     }
   };
 

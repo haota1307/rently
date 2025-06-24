@@ -122,7 +122,7 @@ export const RentalCard = ({
     return (
       <Card
         className={cn(
-          "overflow-hidden group hover:shadow-lg transition-shadow",
+          "overflow-hidden group hover:shadow-lg transition-shadow h-full",
           processedListing.isAvailable === false &&
             "opacity-75 grayscale-[40%] bg-gray-100"
         )}
@@ -172,15 +172,15 @@ export const RentalCard = ({
           </CardHeader>
         </Link>
 
-        <CardContent className="p-4">
-          <div className="space-y-3">
+        <CardContent className="p-4 flex flex-col h-[230px]">
+          <div className="space-y-3 flex-1">
             <div className="flex justify-between items-start">
               <div className="space-y-1 flex-1">
                 <Link
                   href={`/bai-dang/${postSlug}`}
                   className="hover:underline"
                 >
-                  <h3 className="font-semibold text-ellipsis line-clamp-1">
+                  <h3 className="font-semibold text-ellipsis line-clamp-1 min-h-[28px]">
                     {processedListing.title}
                   </h3>
                 </Link>
