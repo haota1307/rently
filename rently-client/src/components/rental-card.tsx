@@ -112,8 +112,10 @@ export const RentalCard = ({
     }
   };
 
-  // Tạo slug cho bài đăng
-  const postSlug = createPostSlug(processedListing.title, processedListing.id);
+  // Dùng postId/rentalId đúng để tạo slug thay vì roomId
+  const postSlug = finalPostId
+    ? createPostSlug(processedListing.title, finalPostId.toString())
+    : createPostSlug(processedListing.title, processedListing.id);
 
   // Card theo dạng lưới (grid)
   if (viewMode === "grid") {
