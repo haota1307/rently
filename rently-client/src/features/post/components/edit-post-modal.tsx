@@ -201,7 +201,7 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
               />
             </div>
 
-            {/* Chọn phòng */}
+            {/* Chọn phòng - Disabled */}
             <div className="md:col-span-2">
               <label htmlFor="roomId" className="text-sm font-medium">
                 Phòng đã chọn
@@ -211,9 +211,9 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
                 name="roomId"
                 value={formData.roomId}
                 onChange={handleInputChange}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1.5"
+                className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm mt-1.5 opacity-60 cursor-not-allowed"
+                disabled
                 required
-                disabled={true}
               >
                 <option value="">
                   {isRoomsLoading ? "Đang tải phòng..." : "Chọn phòng trọ"}
@@ -225,6 +225,9 @@ export function EditPostModal({ isOpen, onClose, post }: EditPostModalProps) {
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Không thể thay đổi phòng của bài đăng đã tạo
+              </p>
             </div>
 
             {/* Ngày bắt đầu */}
