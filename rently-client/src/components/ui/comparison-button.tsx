@@ -48,7 +48,7 @@ export function ComparisonButton({
   if (post) {
     itemId = post.id;
   } else if (rental) {
-    itemId = rental.id;
+    itemId = rental.rooms?.[0]?.id ?? rental.id;
   }
 
   const isInComparison = itemId ? isAdded(itemId) : false;

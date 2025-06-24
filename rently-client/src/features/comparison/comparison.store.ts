@@ -62,6 +62,10 @@ export const useComparisonStore = create<ComparisonStore>()(
           return false;
         }
 
+        // Sử dụng roomId làm id chính để bảo đảm mỗi phòng trọ có mã duy nhất,
+        // tránh trường hợp nhiều phòng cùng nhà trọ chia sẻ chung rental.id
+        const uniqueId = rental.rooms?.[0]?.id || rental.id;
+
         // Tạo object date không null
         const createdAt = rental.createdAt || new Date();
         const roomCreatedAt = rental.rooms?.[0]?.createdAt || new Date();
@@ -71,7 +75,7 @@ export const useComparisonStore = create<ComparisonStore>()(
         // Chuyển đổi RentalType sang PostType
         try {
           const post: PostType = {
-            id: rental.id,
+            id: uniqueId,
             title: rental.title,
             description: rental.description,
             status: RentalPostStatus.ACTIVE,
