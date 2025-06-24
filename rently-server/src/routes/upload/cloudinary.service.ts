@@ -29,10 +29,7 @@ export class UploadService {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
             folder,
-            transformation: [
-              { quality: 'auto', fetch_format: 'auto' },
-              { width: 'auto', crop: 'scale' },
-            ],
+            transformation: [{ quality: 'auto:best', fetch_format: 'auto' }],
           },
           (error: UploadApiErrorResponse, result: UploadApiResponse) => {
             if (error) {
@@ -142,7 +139,7 @@ export class UploadService {
           }),
           // Nếu là hình ảnh, áp dụng transformation
           ...(resourceType === 'image' && {
-            transformation: [{ quality: 'auto', fetch_format: 'auto' }],
+            transformation: [{ quality: 'auto:best', fetch_format: 'auto' }],
           }),
           // Nếu là video, áp dụng transformation riêng
           ...(resourceType === 'video' && {
@@ -194,7 +191,7 @@ export class UploadService {
       return 'image'
     } else if (mimeType.startsWith('video/')) {
       return 'video'
-    } else if (mimeType.startsWith('audio/')) {
+    } else if (mimeType.includes('audio')) {
       return 'video' // Cloudinary xử lý audio dưới dạng video
     } else {
       return 'raw' // Tất cả các loại file khác

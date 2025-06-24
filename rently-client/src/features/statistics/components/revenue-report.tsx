@@ -1,5 +1,11 @@
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { RevenueDataPoint } from "../statistics.api";
 import { formatCurrency } from "@/lib/utils";
 import { FileDown } from "lucide-react";
@@ -278,15 +284,82 @@ const RevenueReport: React.FC<RevenueReportProps> = ({
     };
   };
 
+  // Xuất Excel sử dụng SheetJS
+  const handleExportExcel = async () => {
+    try {
+      const XLSX = await import("xlsx");
+
+      // Xác định tên cột tương tự hàm PDF
+      const hasDepositFeeData = data?.some(
+        (item) =>
+          item["đặt cọc"] !== undefined ||
+          item["phí đăng bài"] !== undefined ||
+          item["hoàn cọc"] !== undefined ||
+          item["phí gói dịch vụ"] !== undefined
+      );
+
+      const column1Name = hasDepositFeeData ? "Tiền đặt cọc" : "Nạp tiền";
+      const column2Name = hasDepositFeeData ? "Phí đăng bài" : "Rút tiền";
+      const column3Name = hasDepositFeeData ? "Hoàn tiền cọc" : "";
+      const column4Name = hasDepositFeeData ? "Phí gói dịch vụ" : "";
+
+      // Chuẩn bị dữ liệu
+      const rows: (string | number)[][] = [];
+
+      // Header
+      rows.push([
+        "Ngày tháng",
+        column1Name,
+        column2Name,
+        column3Name,
+        column4Name,
+      ]);
+
+      // Body
+      data.forEach((item) => {
+        rows.push([
+          format(new Date(item.date), "dd/MM/yyyy", { locale: vi }),
+          hasDepositFeeData ? item["đặt cọc"] || 0 : item.nạp || 0,
+          hasDepositFeeData ? item["phí đăng bài"] || 0 : item.rút || 0,
+          hasDepositFeeData ? item["hoàn cọc"] || 0 : "",
+          hasDepositFeeData ? item["phí gói dịch vụ"] || 0 : "",
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "BaoCao");
+
+      // Tên file
+      const currentDate = format(new Date(), "dd-MM-yyyy");
+      const fileName = `bao-cao-doanh-thu-${currentDate}.xlsx`;
+
+      XLSX.writeFile(wb, fileName);
+    } catch (err) {
+      console.error("Export excel error", err);
+    }
+  };
+
   return (
-    <Button
-      onClick={handlePrintReport}
-      className="h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3 flex items-center gap-1"
-      variant="outline"
-    >
-      <FileDown className="h-3 w-3 md:h-4 md:w-4" />
-      Xuất báo cáo
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          className="h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3 flex items-center gap-1"
+          variant="outline"
+        >
+          <FileDown className="h-3 w-3 md:h-4 md:w-4" />
+          Xuất báo cáo
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={handlePrintReport}>
+          Xuất PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleExportExcel}>
+          Xuất Excel
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
