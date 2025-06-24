@@ -13,7 +13,16 @@ interface CommentSectionProps {
 
 export function CommentSection({ postId }: CommentSectionProps) {
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
-  const { totalComments } = useComments(postId);
+  const {
+    comments,
+    loading,
+    isSubmitting,
+    newComment,
+    setNewComment,
+    addComment,
+    isAuth,
+    totalComments,
+  } = useComments(postId);
 
   return (
     <div className="mt-6 sm:mt-8">
@@ -56,6 +65,14 @@ export function CommentSection({ postId }: CommentSectionProps) {
             <RealTimeComments
               postId={postId}
               commentInputRef={commentInputRef}
+              comments={comments}
+              loading={loading}
+              isSubmitting={isSubmitting}
+              newComment={newComment}
+              setNewComment={setNewComment}
+              addComment={addComment}
+              isAuth={isAuth}
+              totalComments={totalComments}
             />
           </div>
         </CardContent>

@@ -1,4 +1,4 @@
-import { useComments } from "@/features/comment/useComment";
+import { Comment } from "@/features/comment/comment.api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,23 +9,28 @@ import Link from "next/link";
 interface RealTimeCommentsProps {
   postId: number;
   commentInputRef: React.RefObject<HTMLTextAreaElement>;
+  comments: Comment[];
+  loading: boolean;
+  isSubmitting: boolean;
+  newComment: string;
+  setNewComment: (value: string) => void;
+  addComment: () => Promise<void>;
+  isAuth: boolean;
+  totalComments: number;
 }
 
 export function RealTimeComments({
   postId,
   commentInputRef,
+  comments,
+  loading,
+  isSubmitting,
+  newComment,
+  setNewComment,
+  addComment,
+  isAuth,
+  totalComments,
 }: RealTimeCommentsProps) {
-  const {
-    comments,
-    loading,
-    isSubmitting,
-    newComment,
-    setNewComment,
-    addComment,
-    isAuth,
-    totalComments,
-  } = useComments(postId);
-
   const handleAddComment = async () => {
     if (!newComment.trim() || !isAuth) return;
 
