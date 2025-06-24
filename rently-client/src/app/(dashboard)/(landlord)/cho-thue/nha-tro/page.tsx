@@ -9,11 +9,19 @@ import { Separator } from "@/components/ui/separator";
 import { rentalColumns } from "@/features/dashboard/components/columns/rental-columns";
 import { CreateRentalModal } from "@/features/rental/component/create-rental-modal";
 import { CreateRentalBodyType, RentalType } from "@/schemas/rental.schema";
+
+// Mở rộng kiểu RentalType để thêm các thuộc tính cần thiết cho việc xóa
+interface ExtendedRentalType extends RentalType {
+  rentedRoomsCount?: number;
+  roomsWithPostsCount?: number;
+  totalRoomsCount?: number;
+}
 import {
   useGetRentalsById,
   useDeleteRental,
   useGetRentalDetail,
 } from "@/features/rental/useRental";
+import rentalApiRequest from "@/features/rental/rental.api";
 import { decodeAccessToken, getAccessTokenFromLocalStorage } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -52,7 +60,8 @@ export default function LandlordRentalPage() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedRental, setSelectedRental] = useState<RentalType | null>(null);
+  const [selectedRental, setSelectedRental] =
+    useState<ExtendedRentalType | null>(null);
   const [selectedRentalId, setSelectedRentalId] = useState<number | null>(null);
 
   const { mutateAsync: deleteRental, isPending } = useDeleteRental();
@@ -99,9 +108,36 @@ export default function LandlordRentalPage() {
   };
 
   // Xử lý xóa
-  const handleDeleteRental = (rental: RentalType) => {
-    setSelectedRental(rental);
-    setIsDeleteModalOpen(true);
+  const handleDeleteRental = async (rental: RentalType) => {
+    try {
+      // Lấy thông tin chi tiết về nhà trọ trước khi xóa để kiểm tra các điều kiện
+      const response = await rentalApiRequest.detail(rental.id);
+      const detailedRental = response.payload;
+
+      // Kiểm tra xem có phòng nào đang được thuê không
+      const rentedRooms =
+        detailedRental.rooms?.filter((room) => room.isAvailable === false) ||
+        [];
+
+      // Kiểm tra xem có phòng nào có bài đăng active không
+      const roomsWithPosts =
+        detailedRental.rooms?.filter(
+          (room: any) => room.RentalPost && room.RentalPost.length > 0
+        ) || [];
+
+      // Lưu thông tin chi tiết vào state để hiển thị trong modal xác nhận
+      setSelectedRental({
+        ...rental,
+        rentedRoomsCount: rentedRooms.length,
+        roomsWithPostsCount: roomsWithPosts.length,
+        totalRoomsCount: detailedRental.rooms?.length || 0,
+      });
+
+      setIsDeleteModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching rental details:", error);
+      toast.error("Không thể lấy thông tin chi tiết nhà trọ");
+    }
   };
 
   // Xác nhận xóa
@@ -111,33 +147,10 @@ export default function LandlordRentalPage() {
     try {
       await deleteRental(selectedRental.id);
       toast.success("Xóa nhà trọ thành công");
-      setIsDeleteModalOpen(false);
     } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.payload?.message ||
-        "Không thể xóa nhà trọ. Vui lòng thử lại sau.";
-
-      // Hiển thị thông báo lỗi
-      toast.error(`Không thể xóa nhà trọ: ${errorMessage}`);
-
-      // Cập nhật nội dung modal để hiển thị lỗi
-      const dialogContent = document.querySelector(
-        '[role="dialog"] [role="document"]'
-      );
-      if (dialogContent) {
-        const errorElement = document.createElement("div");
-        errorElement.className =
-          "mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm";
-        errorElement.textContent = errorMessage;
-
-        // Xóa thông báo lỗi cũ nếu có
-        const oldError = dialogContent.querySelector(".bg-red-50");
-        if (oldError) oldError.remove();
-
-        // Thêm thông báo lỗi mới
-        dialogContent.appendChild(errorElement);
-      }
+      toast.error(`Xóa nhà trọ thất bại: ${error?.payload?.message}`);
+    } finally {
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -259,9 +272,30 @@ export default function LandlordRentalPage() {
               onClose={() => setIsDeleteModalOpen(false)}
               onConfirm={confirmDelete}
               title="Xác nhận xóa"
-              description="Bạn có chắc chắn muốn xóa nhà trọ này không? Sau khi xóa, dữ liệu sẽ không thể khôi phục lại."
-              confirmText="Xóa"
-              cancelText="Hủy"
+              description={
+                selectedRental.totalRoomsCount &&
+                selectedRental.totalRoomsCount > 0
+                  ? selectedRental.rentedRoomsCount &&
+                    selectedRental.rentedRoomsCount > 0
+                    ? `Không thể xóa nhà trọ vì có ${selectedRental.rentedRoomsCount} phòng đang được thuê.`
+                    : selectedRental.roomsWithPostsCount &&
+                        selectedRental.roomsWithPostsCount > 0
+                      ? `Không thể xóa nhà trọ vì có ${selectedRental.roomsWithPostsCount} phòng đang có bài đăng cho thuê.`
+                      : `Không thể xóa nhà trọ vì có ${selectedRental.totalRoomsCount} phòng trọ. Vui lòng xóa hết các phòng trước.`
+                  : "Bạn có chắc chắn muốn xóa nhà trọ này không? Sau khi xóa, dữ liệu sẽ không thể khôi phục lại."
+              }
+              confirmText={
+                selectedRental.totalRoomsCount &&
+                selectedRental.totalRoomsCount > 0
+                  ? undefined
+                  : "Xóa"
+              }
+              cancelText={
+                selectedRental.totalRoomsCount &&
+                selectedRental.totalRoomsCount > 0
+                  ? "Đóng"
+                  : "Hủy"
+              }
             />
           </>
         )}

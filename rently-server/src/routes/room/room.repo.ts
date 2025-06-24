@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common'
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common'
 
 import { PrismaService } from 'src/shared/services/prisma.service'
 import { Decimal } from '@prisma/client/runtime/library'
@@ -222,6 +226,34 @@ export class RoomRepo {
     try {
       const { amenityIds, roomImages, ...roomData } = data
 
+      // Kiểm tra nếu đang cố gắng thay đổi trạng thái từ đã thuê sang còn trống
+      if (roomData.isAvailable === true) {
+        const room = await this.prismaService.room.findUnique({
+          where: { id },
+          select: { isAvailable: true },
+        })
+
+        if (room && room.isAvailable === false) {
+          // Kiểm tra xem có hợp đồng đang hoạt động không
+          const now = new Date()
+          const activeContract =
+            await this.prismaService.rentalContract.findFirst({
+              where: {
+                roomId: id,
+                status: 'ACTIVE',
+                startDate: { lte: now },
+                endDate: { gte: now },
+              },
+            })
+
+          if (activeContract) {
+            throw new BadRequestException(
+              'Không thể thay đổi trạng thái phòng vì đang có hợp đồng thuê còn hiệu lực'
+            )
+          }
+        }
+      }
+
       // Nếu có amenityIds, xóa tất cả liên kết hiện tại và tạo mới
       if (amenityIds) {
         // Xóa tất cả room amenities hiện tại
@@ -292,12 +324,24 @@ export class RoomRepo {
           roomId: id,
           status: { in: ['ACTIVE', 'INACTIVE'] },
         },
-        select: { id: true },
+        select: { id: true, title: true },
       })
 
       if (existingPost) {
         throw new InternalServerErrorException(
-          'Không thể xóa phòng vì đang có bài đăng còn hiệu lực'
+          `Không thể xóa phòng vì đang có bài đăng "${existingPost.title}" còn hiệu lực`
+        )
+      }
+
+      // Kiểm tra nếu phòng đã được thuê (isAvailable = false)
+      const room = await this.prismaService.room.findUnique({
+        where: { id },
+        select: { isAvailable: true },
+      })
+
+      if (room && room.isAvailable === false) {
+        throw new InternalServerErrorException(
+          'Không thể xóa phòng vì đang được thuê'
         )
       }
 

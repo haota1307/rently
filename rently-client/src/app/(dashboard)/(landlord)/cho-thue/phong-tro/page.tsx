@@ -91,7 +91,19 @@ export default function RoomsPage() {
 
   // Callback khi người dùng chọn xóa
   const handleDeleteRoom = (room: any) => {
-    setSelectedRoom(room);
+    // Kiểm tra xem phòng có đang được thuê không
+    const isRented = !room.isAvailable;
+
+    // Kiểm tra xem phòng có bài đăng active không
+    const hasActivePost = room.RentalPost && room.RentalPost.length > 0;
+    const postTitle = hasActivePost ? room.RentalPost[0]?.title : undefined;
+
+    setSelectedRoom({
+      ...room,
+      isRented,
+      hasActivePost,
+      postTitle,
+    });
     setIsDeleteModalOpen(true);
   };
 
@@ -255,6 +267,9 @@ export default function RoomsPage() {
             onOpenChange={setIsDeleteModalOpen}
             roomId={selectedRoom.id}
             roomTitle={selectedRoom.title}
+            isRented={selectedRoom.isRented}
+            hasActivePost={selectedRoom.hasActivePost}
+            postTitle={selectedRoom.postTitle}
           />
 
           {/* Modal tạo hóa đơn */}

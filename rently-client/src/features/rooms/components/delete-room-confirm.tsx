@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { useDeleteRoom } from "@/features/rooms/useRoom";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   Dialog,
@@ -17,6 +19,9 @@ type DeleteRoomConfirmProps = {
   onOpenChange: (open: boolean) => void;
   roomId: number | null;
   roomTitle?: string;
+  isRented?: boolean;
+  hasActivePost?: boolean;
+  postTitle?: string;
 };
 
 export function DeleteRoomConfirm({
@@ -24,41 +29,35 @@ export function DeleteRoomConfirm({
   onOpenChange,
   roomId,
   roomTitle,
+  isRented = false,
+  hasActivePost = false,
+  postTitle,
 }: DeleteRoomConfirmProps) {
   const { mutateAsync: deleteRoom, isPending } = useDeleteRoom();
+  const [error, setError] = useState<string | null>(null);
 
   const handleDelete = async () => {
     if (!roomId) return;
+    setError(null);
 
     try {
       await deleteRoom(roomId);
       onOpenChange(false);
+      toast.success("Xóa phòng trọ thành công");
     } catch (err: any) {
       console.error("Error deleting room:", err);
-      // Hiển thị thông báo lỗi từ server
-      const errorMessage =
-        err?.response?.data?.message ||
-        "Không thể xóa phòng trọ. Vui lòng thử lại sau.";
-
-      // Cập nhật dialog để hiển thị lỗi thay vì đóng nó
-      const dialogContent = document.querySelector(
-        '[role="dialog"] [role="document"]'
-      );
-      if (dialogContent) {
-        const errorElement = document.createElement("div");
-        errorElement.className =
-          "mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm";
-        errorElement.textContent = errorMessage;
-
-        // Xóa thông báo lỗi cũ nếu có
-        const oldError = dialogContent.querySelector(".bg-red-50");
-        if (oldError) oldError.remove();
-
-        // Thêm thông báo lỗi mới
-        dialogContent.appendChild(errorElement);
-      }
+      setError(err?.payload?.message || "Không thể xóa phòng trọ");
+      toast.error(err?.payload?.message || "Không thể xóa phòng trọ");
     }
   };
+
+  // Kiểm tra nếu phòng đang được thuê hoặc có bài đăng
+  const cannotDelete = isRented || hasActivePost;
+  const reasonText = isRented
+    ? "Phòng đang được thuê"
+    : hasActivePost
+      ? `Phòng đang có bài đăng "${postTitle || "cho thuê"}" còn hiệu lực`
+      : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,26 +65,45 @@ export function DeleteRoomConfirm({
         <DialogHeader>
           <DialogTitle>Xác nhận xóa</DialogTitle>
           <DialogDescription>
-            Bạn có chắc chắn muốn xóa phòng trọ{" "}
-            <span className="font-medium">{roomTitle || `#${roomId}`}</span>?
-            Hành động này không thể hoàn tác.
+            {!cannotDelete ? (
+              <>
+                Bạn có chắc chắn muốn xóa phòng trọ{" "}
+                <span className="font-medium">{roomTitle || `#${roomId}`}</span>
+                ? Hành động này không thể hoàn tác.
+              </>
+            ) : (
+              <>
+                <span className="text-red-500 font-medium">
+                  Không thể xóa phòng trọ
+                </span>{" "}
+                <span className="font-medium">{roomTitle || `#${roomId}`}</span>{" "}
+                vì: {reasonText}
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+            {error}
+          </div>
+        )}
         <DialogFooter>
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            Hủy
+            {cannotDelete ? "Đóng" : "Hủy"}
           </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={isPending}
-          >
-            {isPending ? "Đang xóa..." : "Xóa"}
-          </Button>
+          {!cannotDelete && (
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isPending}
+            >
+              {isPending ? "Đang xóa..." : "Xóa"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

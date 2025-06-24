@@ -271,13 +271,45 @@ export class RentalRepo {
     try {
       const rental = await this.prismaService.rental.findUnique({
         where: { id },
-        include: { rooms: true },
+        include: {
+          rooms: {
+            include: {
+              RentalPost: {
+                where: {
+                  status: { in: ['ACTIVE', 'INACTIVE'] },
+                },
+                select: { id: true },
+              },
+            },
+          },
+        },
       })
 
       if (!rental) {
         throw NotFoundRecordException
       }
 
+      // Kiểm tra xem có phòng nào đang được cho thuê không
+      const rentedRooms = rental.rooms?.filter(
+        room => room.isAvailable === false
+      )
+      if (rentedRooms && rentedRooms.length > 0) {
+        throw new BadRequestException(
+          `Không thể xóa nhà trọ vì có ${rentedRooms.length} phòng đang được thuê. Vui lòng chờ hết hợp đồng hoặc hủy hợp đồng trước khi xóa.`
+        )
+      }
+
+      // Kiểm tra xem có phòng nào đang có bài đăng cho thuê không
+      const roomsWithPosts = rental.rooms?.filter(
+        room => room.RentalPost?.length > 0
+      )
+      if (roomsWithPosts && roomsWithPosts.length > 0) {
+        throw new BadRequestException(
+          `Không thể xóa nhà trọ vì có ${roomsWithPosts.length} phòng đang có bài đăng cho thuê. Vui lòng xóa các bài đăng trước.`
+        )
+      }
+
+      // Kiểm tra nếu còn phòng trọ nào
       if (rental?.rooms && rental.rooms.length > 0) {
         throw new BadRequestException(
           'Không thể xóa nhà trọ vì có phòng trọ. Vui lòng xóa hết các phòng trước.'
