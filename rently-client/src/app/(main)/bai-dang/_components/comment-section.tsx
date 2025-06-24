@@ -22,6 +22,13 @@ export function CommentSection({ postId }: CommentSectionProps) {
     addComment,
     isAuth,
     totalComments,
+    editingComment,
+    editContent,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    submitEdit,
+    deleteComment,
   } = useComments(postId);
 
   return (
@@ -73,6 +80,13 @@ export function CommentSection({ postId }: CommentSectionProps) {
               addComment={addComment}
               isAuth={isAuth}
               totalComments={totalComments}
+              editingComment={editingComment}
+              editContent={editContent}
+              setEditContent={setEditContent}
+              startEdit={startEdit}
+              cancelEdit={cancelEdit}
+              submitEdit={submitEdit}
+              deleteComment={deleteComment}
             />
           </div>
         </CardContent>
