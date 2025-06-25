@@ -723,6 +723,13 @@ export class RentalRequestRepo {
     tenantName: string,
     prismaTransaction?: any
   ) {
+    console.log('REFUND DEPOSIT - Params:', {
+      tenantId,
+      landlordId,
+      amount,
+      postTitle,
+    })
+
     const executeRefund = async (prisma: any) => {
       // Trừ tiền từ tài khoản chủ nhà
       await prisma.user.update({
@@ -752,6 +759,22 @@ export class RentalRequestRepo {
         },
       })
 
+      // Tạo giao dịch hoàn tiền cho chủ nhà (amountIn = 0, amountOut > 0)
+      const landlordTransaction = await prisma.paymentTransaction.create({
+        data: {
+          gateway: 'SYSTEM',
+          transactionDate: new Date(),
+          amountIn: 0,
+          amountOut: amount,
+          transactionContent: `Hoàn tiền đặt cọc cho bài đăng: ${postTitle}`,
+          userId: landlordId,
+        },
+      })
+      console.log('REFUND - Created transactions:', {
+        tenant: tenantTransaction.id,
+        landlord: landlordTransaction.id,
+      })
+
       // Tạo bản ghi thanh toán hoàn tiền cho người thuê
       await prisma.payment.create({
         data: {
@@ -760,6 +783,18 @@ export class RentalRequestRepo {
           description: `Hoàn tiền đặt cọc cho bài đăng: ${postTitle}`,
           userId: tenantId,
           transactionId: tenantTransaction.id,
+          metadata: { type: 'DEPOSIT_REFUND' },
+        },
+      })
+
+      // Tạo bản ghi thanh toán hoàn tiền cho chủ nhà
+      await prisma.payment.create({
+        data: {
+          amount: amount,
+          status: PaymentStatus.COMPLETED,
+          description: `Hoàn tiền đặt cọc cho bài đăng: ${postTitle}`,
+          userId: landlordId,
+          transactionId: landlordTransaction.id,
           metadata: { type: 'DEPOSIT_REFUND' },
         },
       })

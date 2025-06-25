@@ -915,6 +915,8 @@ export class StatisticsRepo {
 
       const result = await this.prismaService.$queryRawUnsafe(sql, ...params)
 
+      console.log('result123', result)
+
       // Chuyển đổi kết quả thành định dạng phản hồi
       return (result as any[]).map(row => ({
         name: row.display_date,

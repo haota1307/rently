@@ -76,6 +76,38 @@ const ROOM_TYPES = [
   { name: 'Mini apartment', basePrice: 6000000, baseArea: 35 },
 ]
 
+// Tọa độ điểm tham chiếu (Đại học Nam Cần Thơ)
+const REFERENCE_POINT = {
+  lat: 10.03012,
+  lng: 105.76852,
+  name: 'Đại học Nam Cần Thơ',
+}
+
+/**
+ * Tính khoảng cách giữa 2 điểm sử dụng công thức Haversine
+ * @param {number} lat1 - Latitude điểm 1
+ * @param {number} lng1 - Longitude điểm 1
+ * @param {number} lat2 - Latitude điểm 2
+ * @param {number} lng2 - Longitude điểm 2
+ * @returns {number} - Khoảng cách tính bằng kilomet
+ */
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371e3 // Bán kính Trái Đất tính bằng mét
+  const φ1 = (lat1 * Math.PI) / 180 // φ, λ in radians
+  const φ2 = (lat2 * Math.PI) / 180
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180
+  const Δλ = ((lng2 - lng1) * Math.PI) / 180
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  const distanceInMeters = R * c // in metres
+  const distanceInKm = distanceInMeters / 1000 // chuyển sang km
+  return Math.round(distanceInKm * 10) / 10 // Làm tròn đến 1 chữ số thập phân
+}
+
 function randomInRange(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
@@ -211,19 +243,33 @@ async function createRentalsAndRooms(users) {
       const latVariation = (Math.random() - 0.5) * 0.01
       const lngVariation = (Math.random() - 0.5) * 0.01
 
+      const rentalLat = address.lat + latVariation
+      const rentalLng = address.lng + lngVariation
+
+      // Tính khoảng cách từ rental đến Đại học Nam Cần Thơ
+      const distanceToUniversity = calculateDistance(
+        rentalLat,
+        rentalLng,
+        REFERENCE_POINT.lat,
+        REFERENCE_POINT.lng
+      )
+
       const rental = await prisma.rental.create({
         data: {
           title: rentalTitle,
           address: `${randomInRange(1, 999)} ${address.street}, ${address.ward}, ${address.district}, Cần Thơ`,
-          lat: address.lat + latVariation,
-          lng: address.lng + lngVariation,
+          lat: rentalLat,
+          lng: rentalLng,
+          distance: distanceToUniversity, // Thêm field distance tính bằng km
           landlordId: user.id,
-          description: `Nhà trọ chất lượng tại ${address.district}, gần các trường đại học và tiện ích công cộng.`,
+          description: `Nhà trọ chất lượng tại ${address.district}, gần các trường đại học và tiện ích công cộng. Cách ${REFERENCE_POINT.name} ${distanceToUniversity}km.`,
         },
       })
 
       createdData.rentals.push(rental)
-      console.log(`  ✅ Created rental: ${rentalTitle}`)
+      console.log(
+        `  ✅ Created rental: ${rentalTitle} (${Math.round(distanceToUniversity)}m to ${REFERENCE_POINT.name})`
+      )
 
       for (let roomIndex = 0; roomIndex < 5; roomIndex++) {
         const roomType = ROOM_TYPES[roomIndex % ROOM_TYPES.length]
@@ -303,6 +349,7 @@ async function main() {
     console.log(`   🏠 Rooms: ${rooms.length}`)
     console.log(`   📋 Posts: ${posts.length}`)
     console.log(`   🔧 Amenities: ${SAMPLE_AMENITIES.length}`)
+    console.log(`   📍 Distance calculated to: ${REFERENCE_POINT.name}`)
 
     console.log('\n💡 Test with these room IDs:')
     const sampleRooms = rooms.slice(0, 5)
@@ -313,7 +360,7 @@ async function main() {
     console.log('\n🌐 API Test URLs:')
     sampleRooms.forEach(room => {
       console.log(
-        `   GET /api/recommendations?roomId=${room.id}&limit=8&method=CONTENT_BASED`
+        `   GET /api/recommendations?roomId=${room.id}&limit=8&method=HYBRID`
       )
     })
 

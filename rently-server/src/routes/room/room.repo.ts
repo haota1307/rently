@@ -246,7 +246,14 @@ export class RoomRepo {
               },
             })
 
-          if (activeContract) {
+          // Nếu phòng đang được đánh dấu là đã thuê, nhưng không có hợp đồng đang active
+          // thì cho phép thay đổi trạng thái sang còn trống
+          if (!activeContract) {
+            // Phòng đang hiển thị đã thuê nhưng không có hợp đồng active, cho phép cập nhật trạng thái
+            console.log(
+              `Room ${id} is marked as rented but has no active contract. Allowing status update.`
+            )
+          } else {
             throw new BadRequestException(
               'Không thể thay đổi trạng thái phòng vì đang có hợp đồng thuê còn hiệu lực'
             )
