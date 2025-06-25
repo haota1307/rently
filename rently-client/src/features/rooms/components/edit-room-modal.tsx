@@ -83,6 +83,8 @@ export function EditRoomModal({
     error: roomError,
   } = useGetRoomDetail(roomId || 0);
 
+  console.log("roomData", roomData);
+
   const { data: rentalsData, isLoading: isRentalsLoading } = useGetRentals({
     limit: 10,
     page: 1,
@@ -104,17 +106,9 @@ export function EditRoomModal({
         );
       }
 
-      // Kiểm tra xem phòng có đang được thuê không
-      const isRented = roomData.isAvailable === false;
-
-      // Nếu phòng đang được thuê, kiểm tra xem có hợp đồng đang hoạt động không
-      if (isRented) {
-        // Giả định rằng nếu phòng không available thì có hợp đồng đang hoạt động
-        // Trong thực tế, chúng ta có thể gọi API để kiểm tra chính xác
-        setHasActiveContract(true);
-      } else {
-        setHasActiveContract(false);
-      }
+      // Đừng giả định về contract dựa trên isAvailable
+      // Trạng thái hợp đồng sẽ được kiểm tra bởi server khi cập nhật
+      setHasActiveContract(false);
 
       // Sử dụng setTimeout để đảm bảo Select component đã được render với options
       setTimeout(() => {
@@ -156,14 +150,6 @@ export function EditRoomModal({
   const handleSubmit = async (values: UpdateRoomBodyType) => {
     console.log(values);
     if (!roomId) return;
-
-    // Kiểm tra nếu phòng đang có hợp đồng và đang cố gắng thay đổi trạng thái
-    if (hasActiveContract && !roomData?.isAvailable && values.isAvailable) {
-      toast.error(
-        "Không thể thay đổi trạng thái phòng vì đang có hợp đồng thuê còn hiệu lực"
-      );
-      return;
-    }
 
     try {
       // Thêm danh sách ID tiện ích
@@ -414,17 +400,10 @@ export function EditRoomModal({
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          disabled={!field.value && hasActiveContract}
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Còn trống</FormLabel>
-                        {!field.value && hasActiveContract && (
-                          <p className="text-xs text-red-500 mt-1">
-                            Không thể thay đổi trạng thái vì đang có hợp đồng
-                            thuê còn hiệu lực
-                          </p>
-                        )}
                       </div>
                     </FormItem>
                   )}

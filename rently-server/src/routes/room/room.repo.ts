@@ -234,8 +234,33 @@ export class RoomRepo {
         })
 
         if (room && room.isAvailable === false) {
-          // Kiểm tra xem có hợp đồng đang hoạt động không
+          // Kiểm tra xem có bất kỳ hợp đồng đang hoạt động nào không
           const now = new Date()
+
+          // Log để debug
+          console.log(`Checking contracts for room ${id}`)
+
+          // Kiểm tra toàn diện hơn: tìm tất cả hợp đồng liên quan đến phòng này
+          const allContracts = await this.prismaService.rentalContract.findMany(
+            {
+              where: {
+                roomId: id,
+              },
+              select: {
+                id: true,
+                status: true,
+                startDate: true,
+                endDate: true,
+              },
+            }
+          )
+
+          console.log(
+            'All contracts for room:',
+            JSON.stringify(allContracts, null, 2)
+          )
+
+          // Tìm contract đang active
           const activeContract =
             await this.prismaService.rentalContract.findFirst({
               where: {
@@ -246,16 +271,55 @@ export class RoomRepo {
               },
             })
 
-          // Nếu phòng đang được đánh dấu là đã thuê, nhưng không có hợp đồng đang active
-          // thì cho phép thay đổi trạng thái sang còn trống
-          if (!activeContract) {
-            // Phòng đang hiển thị đã thuê nhưng không có hợp đồng active, cho phép cập nhật trạng thái
+          // Ghi log chi tiết hơn
+          if (activeContract) {
             console.log(
-              `Room ${id} is marked as rented but has no active contract. Allowing status update.`
+              `Found active contract for room ${id}:`,
+              JSON.stringify(activeContract, null, 2)
             )
           } else {
+            console.log(
+              `No active contract found for room ${id}, checking for pending contracts`
+            )
+          }
+
+          // Kiểm tra xem có hợp đồng đang chờ ký không
+          const pendingContract =
+            await this.prismaService.rentalContract.findFirst({
+              where: {
+                roomId: id,
+                status: {
+                  in: [
+                    'AWAITING_LANDLORD_SIGNATURE',
+                    'AWAITING_TENANT_SIGNATURE',
+                    'DRAFT',
+                  ],
+                },
+              },
+            })
+
+          if (pendingContract) {
+            console.log(
+              `Found pending contract for room ${id}:`,
+              JSON.stringify(pendingContract, null, 2)
+            )
+          } else {
+            console.log(`No pending contract found for room ${id}`)
+          }
+
+          // Nếu không có hợp đồng active hoặc đang chờ ký, cho phép thay đổi trạng thái
+          if (!activeContract && !pendingContract) {
+            // Phòng đang hiển thị đã thuê nhưng không có hợp đồng active, cho phép cập nhật trạng thái
+            console.log(
+              `Room ${id} is marked as rented but has no active or pending contract. Allowing status update.`
+            )
+          } else if (activeContract) {
             throw new BadRequestException(
               'Không thể thay đổi trạng thái phòng vì đang có hợp đồng thuê còn hiệu lực'
+            )
+          } else if (pendingContract) {
+            throw new BadRequestException(
+              'Không thể thay đổi trạng thái phòng vì đang có hợp đồng đang chờ ký kết'
             )
           }
         }
@@ -280,10 +344,19 @@ export class RoomRepo {
       }
 
       // Cập nhật thông tin cơ bản của phòng
-      const room = await this.prismaService.room.update({
-        where: { id },
-        data: roomData,
-      })
+      let updatedRoomBasic
+      try {
+        updatedRoomBasic = await this.prismaService.room.update({
+          where: { id },
+          data: roomData,
+        })
+        console.log('Room basic info updated successfully:', id)
+      } catch (updateError) {
+        console.error('Error updating room:', updateError.message)
+        throw new InternalServerErrorException(
+          `Không thể cập nhật phòng: ${updateError.message}`
+        )
+      }
 
       // Nếu có cập nhật hình ảnh
       if (roomImages) {
