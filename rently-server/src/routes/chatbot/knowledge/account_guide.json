@@ -1,7 +1,7 @@
 [
   {
     "id": "acc_1",
-    "content": "Để đăng ký tài khoản trên Rently: 1) Nhấn vào nút 'Đăng ký' ở góc phải trên cùng, 2) Chọn loại tài khoản (Người thuê hoặc Chủ trọ), 3) Điền thông tin cá nhân (họ tên, email, số điện thoại, mật khẩu), 4) Xác nhận email được gửi đến, 5) Hoàn tất đăng ký. Nếu chọn loại tài khoản Chủ trọ, bạn cần cung cấp thêm giấy tờ xác thực và đợi quản trị viên phê duyệt.",
+    "content": "Để đăng ký tài khoản trên Rently: 1) Nhấn vào nút 'Đăng ký' ở góc phải trên cùng, 2) Điền thông tin cá nhân (họ tên, email, số điện thoại, mật khẩu), 3) Xác nhận email được gửi đến, 4) Hoàn tất đăng ký.",
     "metadata": {
       "source": "default",
       "category": "account_guide",
