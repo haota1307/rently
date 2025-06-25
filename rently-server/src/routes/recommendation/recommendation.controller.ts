@@ -33,7 +33,6 @@ export class RecommendationController {
    * Public endpoint - không cần auth
    */
   @Get()
-  @IsPublic()
   async getRecommendations(
     @Query('roomId') roomId: string,
     @Query('limit') limit: string = '8',

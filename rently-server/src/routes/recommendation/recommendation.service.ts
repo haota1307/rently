@@ -329,7 +329,7 @@ export class RecommendationService {
     )
 
     // 🚀 PARALLEL BATCH PROCESSING for better performance
-    const batchSize = 20 // Process 20 rooms at a time
+    const batchSize = 30 // Process 30 rooms at a time
     const totalBatches = Math.ceil(candidateRooms.length / batchSize)
 
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {

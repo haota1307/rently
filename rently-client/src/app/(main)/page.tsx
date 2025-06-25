@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 // Import recommendation system
 import { RoomRecommendations } from "@/features/recommendation";
 import { useRoomHistory } from "@/hooks/use-room-history";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
   const [activeFilters, setActiveFilters] = useState<FilterValues>({});
@@ -24,16 +25,21 @@ export default function Home() {
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const { getSmartRoomId, hasHistory } = useRoomHistory();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setIsLoaded(true);
-    // Lấy roomId thông minh cho recommendations
-    const smartRoomId = getSmartRoomId();
-    setRecommendationRoomId(smartRoomId);
-  }, []); // Chỉ chạy một lần khi mount
+    // Chỉ lấy roomId thông minh cho recommendations khi user đã đăng nhập
+    if (isAuthenticated) {
+      const smartRoomId = getSmartRoomId();
+      setRecommendationRoomId(smartRoomId);
+    }
+  }, [isAuthenticated, getSmartRoomId]); // Phụ thuộc vào trạng thái đăng nhập
 
-  // Refresh recommendations khi user quay lại trang (focus event)
+  // Refresh recommendations khi user quay lại trang (focus event) - chỉ khi đã đăng nhập
   useEffect(() => {
+    if (!isAuthenticated) return; // Không setup listener nếu chưa đăng nhập
+
     const handleFocus = () => {
       const smartRoomId = getSmartRoomId();
       setRecommendationRoomId(smartRoomId);
@@ -41,7 +47,7 @@ export default function Home() {
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, []); // Chỉ setup listener một lần
+  }, [isAuthenticated, getSmartRoomId]); // Phụ thuộc vào trạng thái đăng nhập
 
   // Scroll đến kết quả khi tìm kiếm
   useEffect(() => {
@@ -199,45 +205,47 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* 🎯 HỆ THỐNG GỢI Ý - TRANG CHỦ */}
-          <motion.div
-            className="mt-24"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <div className="relative mb-12">
-              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 w-40 h-1.5 bg-gradient-to-r from-purple-300 via-pink-300 to-red-300 dark:from-purple-600 dark:via-pink-600 dark:to-red-600 rounded-full opacity-70 blur-sm"></div>
+          {/* 🎯 HỆ THỐNG GỢI Ý - TRANG CHỦ - Chỉ hiển thị khi đã đăng nhập */}
+          {isAuthenticated && (
+            <motion.div
+              className="mt-24"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
+              <div className="relative mb-12">
+                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 w-40 h-1.5 bg-gradient-to-r from-purple-300 via-pink-300 to-red-300 dark:from-purple-600 dark:via-pink-600 dark:to-red-600 rounded-full opacity-70 blur-sm"></div>
 
-              <PageHeader
-                title="Gợi ý dành cho bạn"
-                description={
-                  recommendationRoomId === 1
-                    ? "Những phòng trọ được quan tâm nhiều nhất trong khu vực"
-                    : "Dựa trên phòng bạn đã xem gần đây"
-                }
-              />
-            </div>
-
-            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
-              {/* Hiệu ứng trang trí góc */}
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-purple-200/40 via-pink-200/30 to-red-200/40 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-red-900/20 rounded-full blur-2xl"></div>
-              <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-pink-200/30 via-red-200/20 to-orange-200/30 dark:from-pink-900/20 dark:via-red-900/20 dark:to-orange-900/20 rounded-full blur-2xl"></div>
-
-              <div className="relative z-10">
-                <RoomRecommendations
-                  roomId={recommendationRoomId} // Sử dụng roomId thông minh dựa trên lịch sử xem
-                  method="HYBRID"
-                  limit={8}
-                  title=""
-                  showMetadata={true}
-                  showSimilarityBreakdown={false}
-                  defaultViewMode="grid"
-                  className=""
+                <PageHeader
+                  title="Gợi ý dành cho bạn"
+                  description={
+                    recommendationRoomId === 1
+                      ? "Những phòng trọ được quan tâm nhiều nhất trong khu vực"
+                      : "Dựa trên phòng bạn đã xem gần đây"
+                  }
                 />
               </div>
-            </div>
-          </motion.div>
+
+              <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+                {/* Hiệu ứng trang trí góc */}
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-purple-200/40 via-pink-200/30 to-red-200/40 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-red-900/20 rounded-full blur-2xl"></div>
+                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-pink-200/30 via-red-200/20 to-orange-200/30 dark:from-pink-900/20 dark:via-red-900/20 dark:to-orange-900/20 rounded-full blur-2xl"></div>
+
+                <div className="relative z-10">
+                  <RoomRecommendations
+                    roomId={recommendationRoomId} // Sử dụng roomId thông minh dựa trên lịch sử xem
+                    method="HYBRID"
+                    limit={8}
+                    title=""
+                    showMetadata={true}
+                    showSimilarityBreakdown={false}
+                    defaultViewMode="grid"
+                    className=""
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </div>
