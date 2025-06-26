@@ -117,7 +117,9 @@ export default function ComparisonPage() {
                 />
               </div>
               <CardHeader className="p-4">
-                <CardTitle className="text-lg">{post.title}</CardTitle>
+                <CardTitle className="text-lg line-clamp-1" title={post.title}>
+                  {post.title}
+                </CardTitle>
                 <CardDescription className="line-clamp-2">
                   {post.description}
                 </CardDescription>
@@ -162,7 +164,11 @@ export default function ComparisonPage() {
                   <TableRow>
                     <TableHead className="w-[180px]">Tiêu chí</TableHead>
                     {items.map((post) => (
-                      <TableHead key={post.id}>{post.title}</TableHead>
+                      <TableHead key={post.id} className="max-w-[200px]">
+                        <span className="line-clamp-1" title={post.title}>
+                          {post.title}
+                        </span>
+                      </TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
