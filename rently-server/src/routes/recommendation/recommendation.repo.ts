@@ -114,15 +114,13 @@ export class RecommendationRepo {
           OR: [
             // Phòng đã favorite
             {
-              rental: {
-                favorites: {
-                  some: { userId },
-                },
+              Favorite: {
+                some: { userId },
               },
             },
             // Phòng đã có rental request
             {
-              landlordRentalRequests: {
+              rentalRequests: {
                 some: { tenantId: userId },
               },
             },
@@ -752,14 +750,12 @@ export class RecommendationRepo {
         whereClause.RentalPost.some.NOT = {
           OR: [
             {
-              rental: {
-                favorites: {
-                  some: { userId },
-                },
+              Favorite: {
+                some: { userId },
               },
             },
             {
-              landlordRentalRequests: {
+              rentalRequests: {
                 some: { tenantId: userId },
               },
             },
