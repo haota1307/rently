@@ -73,6 +73,12 @@ export function RelatedPostsSection({
                 name: ra.amenity?.name || "",
               },
             })) || [],
+          amenities:
+            room?.roomAmenities?.map((ra: any) => ({
+              id: ra.amenity?.id || 0,
+              name: ra.amenity?.name || "",
+              createdAt: new Date(ra.amenity?.createdAt || Date.now()),
+            })) || [],
         },
       ],
     } as RentalType;
