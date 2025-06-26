@@ -285,12 +285,25 @@ export class PostService {
           data: { balance: { decrement: totalPostFee } },
         })
 
-        await prisma.payment.create({
+        const payment = await prisma.payment.create({
           data: {
             amount: totalPostFee,
             status: 'COMPLETED',
             description: `Phí đăng ${roomIds.length} bài`,
             userId: landlordId,
+          },
+        })
+
+        // Tạo paymentTransaction để ghi nhận giao dịch
+        await prisma.paymentTransaction.create({
+          data: {
+            userId: landlordId,
+            gateway: 'internal',
+            amountOut: totalPostFee,
+            transactionContent: `Thanh toán phí đăng ${roomIds.length} bài`,
+            referenceNumber: `POST_FEE_${landlordId}_${Date.now()}`,
+            paymentId: payment.id,
+            code: 'POST_FEE',
           },
         })
       }
