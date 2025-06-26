@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common'
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common'
 import {
   CreatePostBodyType,
   GetPostsQueryType,
@@ -309,27 +313,83 @@ export class PostRepo {
 
   async delete({ id }: { id: number }): Promise<PostType> {
     try {
-      const post = await this.prismaService.rentalPost.delete({
+      // Kiểm tra bài đăng có tồn tại không
+      const existingPost = await this.prismaService.rentalPost.findUnique({
         where: { id },
         include: {
-          rental: {
-            include: {
-              rentalImages: true,
+          rentalRequests: true,
+          viewingSchedules: true,
+          Favorite: true,
+          comments: true,
+          PostReport: true,
+        },
+      })
+
+      if (!existingPost) {
+        throw new NotFoundException('Không tìm thấy bài đăng')
+      }
+
+      // Xóa các bản ghi liên quan trước (transaction để đảm bảo tính nhất quán)
+      const post = await this.prismaService.$transaction(async prisma => {
+        // Xóa các yêu cầu thuê phòng liên quan
+        if (existingPost.rentalRequests.length > 0) {
+          await prisma.rentalRequest.deleteMany({
+            where: { postId: id },
+          })
+        }
+
+        // Xóa các lịch xem phòng liên quan
+        if (existingPost.viewingSchedules.length > 0) {
+          await prisma.viewingSchedule.deleteMany({
+            where: { postId: id },
+          })
+        }
+
+        // Xóa các bản ghi yêu thích liên quan
+        if (existingPost.Favorite.length > 0) {
+          await prisma.favorite.deleteMany({
+            where: { postId: id },
+          })
+        }
+
+        // Xóa các bình luận liên quan
+        if (existingPost.comments.length > 0) {
+          await prisma.comment.deleteMany({
+            where: { postId: id },
+          })
+        }
+
+        // Xóa các báo cáo liên quan
+        if (existingPost.PostReport.length > 0) {
+          await prisma.postReport.deleteMany({
+            where: { postId: id },
+          })
+        }
+
+        // Cuối cùng xóa bài đăng
+        return prisma.rentalPost.delete({
+          where: { id },
+          include: {
+            rental: {
+              include: {
+                rentalImages: true,
+              },
             },
-          },
-          landlord: true,
-          room: {
-            include: {
-              roomImages: true,
-              roomAmenities: {
-                include: {
-                  amenity: true,
+            landlord: true,
+            room: {
+              include: {
+                roomImages: true,
+                roomAmenities: {
+                  include: {
+                    amenity: true,
+                  },
                 },
               },
             },
           },
-        },
+        })
       })
+
       return this.formatPost(post)
     } catch (error) {
       throw new InternalServerErrorException(error.message)
