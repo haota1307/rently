@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common'
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common'
 import { RoomRepo } from 'src/routes/room/room.repo'
 import { NotFoundRecordException } from 'src/shared/error'
 import {
@@ -51,6 +55,13 @@ export class RoomService {
       await this.roomRepo.delete({ id })
       return { message: 'Delete successfully' }
     } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error
+      }
+
       throw NotFoundRecordException
     }
   }

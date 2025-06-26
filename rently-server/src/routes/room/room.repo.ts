@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common'
 
 import { PrismaService } from 'src/shared/services/prisma.service'
@@ -398,6 +399,20 @@ export class RoomRepo {
 
   async delete({ id }: { id: number }): Promise<RoomType> {
     try {
+      // Kiểm tra xem phòng có tồn tại không
+      const existingRoom = await this.prismaService.room.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          title: true,
+          isAvailable: true,
+        },
+      })
+
+      if (!existingRoom) {
+        throw new NotFoundException(`Không tìm thấy phòng với ID ${id}`)
+      }
+
       // Kiểm tra nếu phòng còn đang được gắn với bài đăng ACTIVE/INACTIVE
       const existingPost = await this.prismaService.rentalPost.findFirst({
         where: {
@@ -408,20 +423,38 @@ export class RoomRepo {
       })
 
       if (existingPost) {
-        throw new InternalServerErrorException(
-          `Không thể xóa phòng vì đang có bài đăng "${existingPost.title}" còn hiệu lực`
+        throw new BadRequestException(
+          `Không thể xóa phòng "${existingRoom.title}" vì đang có bài đăng "${existingPost.title}" còn hiệu lực. Vui lòng xóa bài đăng trước.`
         )
       }
 
       // Kiểm tra nếu phòng đã được thuê (isAvailable = false)
-      const room = await this.prismaService.room.findUnique({
-        where: { id },
-        select: { isAvailable: true },
-      })
+      if (existingRoom.isAvailable === false) {
+        throw new BadRequestException(
+          `Không thể xóa phòng "${existingRoom.title}" vì đang được thuê. Vui lòng đợi đến khi hợp đồng kết thúc hoặc chuyển trạng thái phòng thành "Còn trống" trước.`
+        )
+      }
 
-      if (room && room.isAvailable === false) {
-        throw new InternalServerErrorException(
-          'Không thể xóa phòng vì đang được thuê'
+      // Kiểm tra xem có hợp đồng liên quan đến phòng không
+      const existingContract =
+        await this.prismaService.rentalContract.findFirst({
+          where: {
+            roomId: id,
+            status: {
+              in: [
+                'ACTIVE',
+                'AWAITING_LANDLORD_SIGNATURE',
+                'AWAITING_TENANT_SIGNATURE',
+                'DRAFT',
+              ],
+            },
+          },
+          select: { id: true, contractNumber: true },
+        })
+
+      if (existingContract) {
+        throw new BadRequestException(
+          `Không thể xóa phòng "${existingRoom.title}" vì có hợp đồng số "${existingContract.contractNumber}" đang còn hiệu lực. Vui lòng chấm dứt hợp đồng trước.`
         )
       }
 
@@ -441,7 +474,15 @@ export class RoomRepo {
 
       return this.formatRoom(deletedRoom)
     } catch (error) {
-      throw new InternalServerErrorException(error.message)
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error
+      }
+      throw new InternalServerErrorException(
+        `Lỗi khi xóa phòng: ${error.message}`
+      )
     }
   }
 
