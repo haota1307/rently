@@ -172,8 +172,8 @@ export const RentalCard = ({
           </CardHeader>
         </Link>
 
-        <CardContent className="p-4 flex flex-col h-[230px]">
-          <div className="space-y-3 flex-1">
+        <CardContent className="p-3 flex flex-col">
+          <div className="space-y-2 flex-1">
             <div className="flex justify-between items-start">
               <div className="space-y-1 flex-1">
                 <Link
