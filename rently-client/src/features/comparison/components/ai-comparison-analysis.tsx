@@ -65,8 +65,8 @@ export function AIComparisonAnalysis({ rooms }: AIComparisonAnalysisProps) {
     setError(null);
 
     try {
-      // Extract room IDs
-      const roomIds = rooms.map((room) => room.id);
+      // Extract room IDs from posts
+      const roomIds = rooms.map((room) => room.room?.id || 0);
 
       // Call AI API
       const response = await http.post<AIAnalysisResponse>(

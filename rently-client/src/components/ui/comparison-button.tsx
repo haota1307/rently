@@ -46,7 +46,7 @@ export function ComparisonButton({
   // Kiểm tra xem item có trong danh sách so sánh không
   let itemId: number | undefined;
   if (post) {
-    itemId = post.id;
+    itemId = post.room?.id ?? post.id;
   } else if (rental) {
     itemId = rental.rooms?.[0]?.id ?? rental.id;
   }

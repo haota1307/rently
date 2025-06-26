@@ -35,7 +35,7 @@ export const useComparisonStore = create<ComparisonStore>()(
         const items = get().items;
 
         // Nếu đã tồn tại phòng này thì không thêm nữa
-        if (items.some((item) => item.id === post.id)) {
+        if (items.some((item) => item.room?.id === post.room?.id)) {
           return false;
         }
 
@@ -132,12 +132,12 @@ export const useComparisonStore = create<ComparisonStore>()(
 
       removeItem: (postId: number) => {
         set({
-          items: get().items.filter((item) => item.id !== postId),
+          items: get().items.filter((item) => item.room?.id !== postId),
         });
       },
 
       isAdded: (postId: number) => {
-        return get().items.some((item) => item.id === postId);
+        return get().items.some((item) => item.room?.id === postId);
       },
 
       clearAll: () => {
