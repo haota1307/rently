@@ -302,7 +302,7 @@ export class PostService {
             amountOut: totalPostFee,
             transactionContent: `Thanh toán phí đăng ${roomIds.length} bài`,
             referenceNumber: `POST_FEE_${landlordId}_${Date.now()}`,
-            paymentId: payment.id,
+            payment: { connect: { id: payment.id } },
             code: 'POST_FEE',
           },
         })
