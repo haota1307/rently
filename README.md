@@ -1,4 +1,4 @@
-# Rently – Hệ sinh thái thuê trọ thông minh 🇻🇳
+# Rently – Hệ sinh thái thuê trọ
 
 > **Rently** là nền tảng end-to-end giúp kết nối _người thuê_, _chủ trọ_ và _ban quản trị_ thông qua trải nghiệm **tìm – đặt – ký – thanh toán** phòng trọ hoàn toàn số hoá.
 
