@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AppProvider } from "@/components/app-provider";
 import NextTopLoader from "nextjs-toploader";
@@ -31,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" suppressHydrationWarning>
+    <html lang="vi">
       <head />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased w-auto min-h-screen bg-background overflow-x-hidden`}
@@ -42,17 +41,10 @@ export default function RootLayout({
           speed={500}
         />
         <AppProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <DynamicFavicon />
-            <DynamicMetadata />
-            {children}
-            <Toaster />
-          </ThemeProvider>
+          <DynamicFavicon />
+          <DynamicMetadata />
+          {children}
+          <Toaster />
         </AppProvider>
       </body>
     </html>

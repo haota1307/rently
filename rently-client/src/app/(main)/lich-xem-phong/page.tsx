@@ -25,7 +25,6 @@ import {
   ThumbsUpIcon,
   HelpCircleIcon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 
@@ -33,7 +32,6 @@ import { PageHeader } from "@/components/page-header";
 type TabType = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED";
 
 export default function ViewingSchedulePage() {
-  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>("ALL");
 
   return (

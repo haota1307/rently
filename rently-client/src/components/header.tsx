@@ -28,7 +28,6 @@ import { useAppStore } from "@/components/app-provider";
 import DropdownAvatar from "@/components/dropdown-avatar";
 import { normalizePath, cn } from "@/lib/utils";
 import { Role } from "@/constants/type";
-import { ModeToggle } from "@/components/mode-toggle";
 import {
   Popover,
   PopoverContent,
@@ -335,7 +334,6 @@ export function Header() {
         <div className="flex items-center space-x-3">
           {/* Desktop actions */}
           <div className="hidden md:flex items-center space-x-2">
-            <ModeToggle />
             {isHydrated ? (
               isAuth ? (
                 <>
@@ -442,8 +440,6 @@ export function Header() {
                 </nav>
 
                 <div className="mt-8 flex items-center justify-between gap-2">
-                  <ModeToggle />
-
                   {isHydrated ? (
                     !isAuth ? (
                       <div className="flex flex-col w-full space-y-2">
