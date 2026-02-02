@@ -51,19 +51,8 @@ export function SmartHeroSection({ onSearchResults }: SmartHeroSectionProps) {
               transition={{ duration: 0.8 }}
               className="mb-6 md:mb-8"
             >
-              <div className="flex items-center justify-center gap-2 mb-3 md:mb-4">
-                <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-yellow-400 animate-pulse" />
-                <span className="text-yellow-400 font-semibold text-base md:text-lg">
-                  Tìm kiếm thông minh với AI
-                </span>
-                <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-yellow-400 animate-pulse" />
-              </div>
-
               <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
-                Tìm phòng trọ gần
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent block mt-1 md:mt-2">
-                  Đại học Nam Cần Thơ
-                </span>
+                Tìm phòng trọ gần Đại học Nam Cần Thơ
               </h1>
 
               <p className="text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed max-w-lg md:max-w-2xl mx-auto">

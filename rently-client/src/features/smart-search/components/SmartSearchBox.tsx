@@ -86,21 +86,21 @@ export function SmartSearchBox({
             isFocused || query ? "ring-2 ring-blue-500/20" : "",
             isHeroVariant
               ? "bg-white rounded-2xl shadow-xl border border-gray-200 h-12 md:h-16"
-              : "bg-white rounded-lg shadow-md border border-gray-200 h-12"
+              : "bg-white rounded-lg shadow-md border border-gray-200 h-12",
           )}
         >
           {/* Icon tìm kiếm */}
           <div
             className={cn(
               "flex items-center justify-center text-gray-400",
-              isHeroVariant ? "pl-4 md:pl-6 pr-3 md:pr-4" : "pl-4 pr-3"
+              isHeroVariant ? "pl-4 md:pl-6 pr-3 md:pr-4" : "pl-4 pr-3",
             )}
           >
             <Search
               className={cn(
                 "transition-colors",
                 isFocused && "text-blue-500",
-                isHeroVariant ? "h-6 w-6" : "h-5 w-5"
+                isHeroVariant ? "h-6 w-6" : "h-5 w-5",
               )}
             />
           </div>
@@ -116,7 +116,7 @@ export function SmartSearchBox({
               "flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0",
               isHeroVariant
                 ? "text-base md:text-lg placeholder:text-gray-400 h-full"
-                : "text-base placeholder:text-gray-400 h-full"
+                : "text-base placeholder:text-gray-400 h-full",
             )}
           />
 
@@ -127,7 +127,7 @@ export function SmartSearchBox({
               animate={{ opacity: 1, scale: 1 }}
               className={cn(
                 "flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs rounded-full font-medium",
-                isHeroVariant ? "mx-2 md:mx-3" : "mx-2"
+                isHeroVariant ? "mx-2 md:mx-3" : "mx-2",
               )}
             >
               <Sparkles className="h-3 w-3" />
@@ -143,7 +143,7 @@ export function SmartSearchBox({
               "rounded-xl font-medium transition-all",
               isHeroVariant
                 ? "h-10 md:h-12 px-4 md:px-8 text-sm md:text-base mr-1 md:mr-2"
-                : "h-8 px-4 text-sm mr-1"
+                : "h-8 px-4 text-sm mr-1",
             )}
           >
             {isSearching ? (
@@ -169,7 +169,7 @@ export function SmartSearchBox({
               "mt-2 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100",
               isHeroVariant
                 ? "text-sm md:text-base px-4 md:px-6 py-2 md:py-3"
-                : ""
+                : "",
             )}
           >
             <div className="flex items-center gap-2">
@@ -192,7 +192,7 @@ export function SmartSearchBox({
             <div className="p-3">
               <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
                 <Sparkles className="h-3 w-3" />
-                Gợi ý tìm kiếm thông minh
+                Gợi ý
               </div>
               <div className="space-y-1">
                 {suggestions.map((suggestion, index) => (
@@ -248,9 +248,6 @@ export function SearchResults({ results, className }: SearchResultsProps) {
             <div className="flex items-start gap-3">
               <Sparkles className="h-5 w-5 text-blue-500 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-blue-900 mb-1">
-                  Tìm kiếm thông minh
-                </p>
                 <p className="text-sm text-blue-700">{results.summary}</p>
               </div>
             </div>

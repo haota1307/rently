@@ -67,7 +67,6 @@ let clientLogoutRequest: null | Promise<any> = null;
 let refreshTokenRequest: null | Promise<any> = null;
 const isClient = typeof window !== "undefined";
 
-// Agent xử lý token refresh
 class AuthAgent {
   // Cố gắng refresh token và trả về token mới
   async refreshTokens() {
