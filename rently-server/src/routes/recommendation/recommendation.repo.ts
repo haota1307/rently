@@ -31,6 +31,9 @@ export class RecommendationRepo {
   private getCachedCalculation(key: string): any | null {
     const cached = this.calculationCache.get(key)
     if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+      // 🚀 LRU: Move to end by re-inserting
+      this.calculationCache.delete(key)
+      this.calculationCache.set(key, cached)
       return cached.value
     }
     if (cached) {
@@ -89,11 +92,13 @@ export class RecommendationRepo {
 
   /**
    * Lấy danh sách phòng ứng viên cho recommendation
+   * 🚀 OPTIMIZED: Thêm price/area range filtering tại DB level, giảm take multiplier
    */
   async getCandidateRooms(
     excludeRoomId: number,
     query: GetRecommendationsQueryType,
-    userId?: number
+    userId?: number,
+    targetRoom?: any
   ) {
     try {
       const whereClause: any = {
@@ -106,6 +111,33 @@ export class RecommendationRepo {
             endDate: { gte: new Date() },
           },
         },
+      }
+
+      // 🚀 Thêm price/area filtering nếu có target room
+      if (targetRoom) {
+        const targetPrice =
+          targetRoom.price instanceof Decimal
+            ? targetRoom.price.toNumber()
+            : Number(targetRoom.price || 0)
+        const targetArea =
+          targetRoom.area instanceof Decimal
+            ? targetRoom.area.toNumber()
+            : Number(targetRoom.area || 0)
+
+        if (targetPrice > 0) {
+          const priceVariance = query.priceVariance || 0.5
+          whereClause.price = {
+            gte: targetPrice * (1 - priceVariance),
+            lte: targetPrice * (1 + priceVariance),
+          }
+        }
+        if (targetArea > 0) {
+          const areaVariance = query.areaVariance || 0.6
+          whereClause.area = {
+            gte: Math.floor(targetArea * (1 - areaVariance)),
+            lte: Math.ceil(targetArea * (1 + areaVariance)),
+          }
+        }
       }
 
       // Loại trừ phòng user đã tương tác (nếu có userId)
@@ -172,7 +204,7 @@ export class RecommendationRepo {
             },
           },
         },
-        take: query.limit * 5, // Lấy nhiều hơn để có nhiều lựa chọn khi tính similarity
+        take: query.limit * 3, // 🚀 Giảm từ 5x xuống 3x do đã filter tốt hơn ở DB level
       })
     } catch (error) {
       this.logger.error('Error getting candidate rooms:', error)
@@ -182,19 +214,36 @@ export class RecommendationRepo {
 
   /**
    * Lấy user interactions để tính collaborative filtering
+   * 🚀 OPTIMIZED: Thêm take limit, chỉ select field cần thiết
    */
   async getUserInteractions(userId: number) {
     try {
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+      const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+
       return await this.prismaService.user.findUnique({
         where: { id: userId },
         include: {
           favorites: {
+            take: 30,
+            orderBy: { createdAt: 'desc' },
             include: {
               post: {
-                include: {
+                select: {
                   room: {
-                    include: {
-                      rental: true,
+                    select: {
+                      id: true,
+                      price: true,
+                      area: true,
+                      rental: {
+                        select: {
+                          id: true,
+                          lat: true,
+                          lng: true,
+                          address: true,
+                          distance: true,
+                        },
+                      },
                       roomAmenities: {
                         include: { amenity: true },
                       },
@@ -206,16 +255,27 @@ export class RecommendationRepo {
           },
           tenantViewingSchedules: {
             where: {
-              createdAt: {
-                gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-              }, // Last 90 days
+              createdAt: { gte: ninetyDaysAgo },
             },
+            take: 30,
+            orderBy: { createdAt: 'desc' },
             include: {
               post: {
-                include: {
+                select: {
                   room: {
-                    include: {
-                      rental: true,
+                    select: {
+                      id: true,
+                      price: true,
+                      area: true,
+                      rental: {
+                        select: {
+                          id: true,
+                          lat: true,
+                          lng: true,
+                          address: true,
+                          distance: true,
+                        },
+                      },
                       roomAmenities: {
                         include: { amenity: true },
                       },
@@ -227,16 +287,27 @@ export class RecommendationRepo {
           },
           tenantRentalRequests: {
             where: {
-              createdAt: {
-                gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-              }, // Last 180 days
+              createdAt: { gte: sixMonthsAgo },
             },
+            take: 20,
+            orderBy: { createdAt: 'desc' },
             include: {
               post: {
-                include: {
+                select: {
                   room: {
-                    include: {
-                      rental: true,
+                    select: {
+                      id: true,
+                      price: true,
+                      area: true,
+                      rental: {
+                        select: {
+                          id: true,
+                          lat: true,
+                          lng: true,
+                          address: true,
+                          distance: true,
+                        },
+                      },
                       roomAmenities: {
                         include: { amenity: true },
                       },
@@ -259,10 +330,11 @@ export class RecommendationRepo {
 
   /**
    * Lấy phòng phổ biến (popular rooms) dựa trên số lượng tương tác
+   * 🚀 OPTIMIZED: Sử dụng _count thay vì load toàn bộ nested data
    */
   async getPopularRooms(excludeRoomId: number, limit: number = 10) {
     try {
-      // Lấy tất cả phòng có sẵn với các post active
+      // 🚀 Step 1: Lấy phòng với _count aggregation thay vì load toàn bộ viewingSchedules/rentalRequests
       const availableRooms = await this.prismaService.room.findMany({
         where: {
           id: { not: excludeRoomId },
@@ -287,27 +359,41 @@ export class RecommendationRepo {
               status: 'ACTIVE',
               endDate: { gte: new Date() },
             },
+            take: 1,
             include: {
-              viewingSchedules: true,
-              rentalRequests: true,
+              _count: {
+                select: {
+                  viewingSchedules: true,
+                  rentalRequests: true,
+                },
+              },
+              landlord: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatar: true,
+                  phoneNumber: true,
+                },
+              },
             },
           },
         },
         orderBy: { createdAt: 'desc' },
+        take: limit * 3, // 🚀 Giới hạn số phòng load từ DB (thay vì load tất cả)
       })
 
       if (availableRooms.length === 0) {
         return []
       }
 
-      // Tính toán popularity score cho mỗi phòng
+      // Tính toán popularity score cho mỗi phòng (sử dụng _count thay vì load data)
       const roomsWithPopularity = availableRooms.map(room => {
         const viewingCount = room.RentalPost.reduce(
-          (sum, post) => sum + post.viewingSchedules.length,
+          (sum, post) => sum + ((post as any)._count?.viewingSchedules || 0),
           0
         )
         const requestCount = room.RentalPost.reduce(
-          (sum, post) => sum + post.rentalRequests.length,
+          (sum, post) => sum + ((post as any)._count?.rentalRequests || 0),
           0
         )
 
@@ -489,41 +575,37 @@ export class RecommendationRepo {
   /**
    * 🤝 COLLABORATIVE FILTERING SUPPORT
    * Lấy danh sách user active có tương tác để tính collaborative filtering
+   * 🚀 OPTIMIZED: Giảm limit, chỉ select field cần thiết cho Jaccard similarity
    */
-  async getActiveUsers(excludeUserId: number, limit: number = 100) {
+  async getActiveUsers(excludeUserId: number, limit: number = 30) {
     try {
+      const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+
       return await this.prismaService.user.findMany({
         where: {
           id: { not: excludeUserId },
           role: {
             name: 'CLIENT',
-          }, // Chỉ lấy user CLIENT
-          // Có ít nhất 1 tương tác trong 6 tháng qua
+          },
           OR: [
             {
               favorites: {
                 some: {
-                  createdAt: {
-                    gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000), // 6 months
-                  },
+                  createdAt: { gte: threeMonthsAgo },
                 },
               },
             },
             {
               tenantViewingSchedules: {
                 some: {
-                  createdAt: {
-                    gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-                  },
+                  createdAt: { gte: threeMonthsAgo },
                 },
               },
             },
             {
               tenantRentalRequests: {
                 some: {
-                  createdAt: {
-                    gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-                  },
+                  createdAt: { gte: threeMonthsAgo },
                 },
               },
             },
@@ -532,18 +614,22 @@ export class RecommendationRepo {
         include: {
           favorites: {
             where: {
-              createdAt: {
-                gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-              },
+              createdAt: { gte: threeMonthsAgo },
             },
+            take: 20,
             include: {
               post: {
-                include: {
+                select: {
                   room: {
-                    include: {
-                      rental: true,
+                    select: {
+                      id: true,
+                      price: true,
+                      area: true,
+                      rental: {
+                        select: { lat: true, lng: true },
+                      },
                       roomAmenities: {
-                        include: { amenity: true },
+                        select: { amenityId: true },
                       },
                     },
                   },
@@ -553,18 +639,22 @@ export class RecommendationRepo {
           },
           tenantViewingSchedules: {
             where: {
-              createdAt: {
-                gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-              },
+              createdAt: { gte: threeMonthsAgo },
             },
+            take: 20,
             include: {
               post: {
-                include: {
+                select: {
                   room: {
-                    include: {
-                      rental: true,
+                    select: {
+                      id: true,
+                      price: true,
+                      area: true,
+                      rental: {
+                        select: { lat: true, lng: true },
+                      },
                       roomAmenities: {
-                        include: { amenity: true },
+                        select: { amenityId: true },
                       },
                     },
                   },
@@ -574,18 +664,22 @@ export class RecommendationRepo {
           },
           tenantRentalRequests: {
             where: {
-              createdAt: {
-                gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
-              },
+              createdAt: { gte: threeMonthsAgo },
             },
+            take: 20,
             include: {
               post: {
-                include: {
+                select: {
                   room: {
-                    include: {
-                      rental: true,
+                    select: {
+                      id: true,
+                      price: true,
+                      area: true,
+                      rental: {
+                        select: { lat: true, lng: true },
+                      },
                       roomAmenities: {
-                        include: { amenity: true },
+                        select: { amenityId: true },
                       },
                     },
                   },
@@ -828,7 +922,7 @@ export class RecommendationRepo {
     } catch (error) {
       this.logger.error('Error getting optimized candidate rooms:', error)
       // Fallback to original method
-      return this.getCandidateRooms(excludeRoomId, query, userId)
+      return this.getCandidateRooms(excludeRoomId, query, userId, targetRoom)
     }
   }
 

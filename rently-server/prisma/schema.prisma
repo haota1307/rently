@@ -167,6 +167,7 @@ model Rental {
   @@index([landlordId])
   @@index([title])
   @@index([createdAt])
+  @@index([lat, lng])
 }
 
 model Room {
@@ -189,6 +190,8 @@ model Room {
   @@index([rentalId])
   @@index([isAvailable])
   @@index([price])
+  @@index([area])
+  @@index([isAvailable, rentalId])
 }
 
 model RentalImage {
@@ -261,6 +264,8 @@ model RentalPost {
   @@index([rentalId])
   @@index([landlordId])
   @@index([startDate])
+  @@index([status, endDate])
+  @@index([roomId])
 }
 
 model Payment {

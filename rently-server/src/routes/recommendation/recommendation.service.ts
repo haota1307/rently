@@ -622,19 +622,22 @@ export class RecommendationService {
     // Check cache first
     const cached = this.distanceCache.get(cacheKey)
     if (cached !== undefined) {
+      // 🚀 LRU: Move to end by re-inserting
+      this.distanceCache.delete(cacheKey)
+      this.distanceCache.set(cacheKey, cached)
       return cached
     }
 
     // Calculate and cache
     const distance = this.calculateDistance(lat1, lng1, lat2, lng2)
-    this.distanceCache.set(cacheKey, distance)
 
-    // 🧹 Cache cleanup when too large
-    if (this.distanceCache.size > 1000) {
+    // 🧹 LRU eviction: remove oldest entry (first in Map)
+    if (this.distanceCache.size >= 1000) {
       const firstKey = this.distanceCache.keys().next().value
-      this.distanceCache.delete(firstKey)
+      if (firstKey !== undefined) this.distanceCache.delete(firstKey)
     }
 
+    this.distanceCache.set(cacheKey, distance)
     return distance
   }
 
@@ -649,6 +652,9 @@ export class RecommendationService {
     // Check cache first
     const cached = this.similarityCache.get(cacheKey)
     if (cached !== undefined) {
+      // 🚀 LRU: Move to end by re-inserting
+      this.similarityCache.delete(cacheKey)
+      this.similarityCache.set(cacheKey, cached)
       return cached
     }
 
@@ -659,14 +665,14 @@ export class RecommendationService {
       weights,
       query
     )
-    this.similarityCache.set(cacheKey, similarity)
 
-    // 🧹 Cache cleanup
-    if (this.similarityCache.size > 500) {
+    // 🧹 LRU eviction: remove oldest entry (first in Map)
+    if (this.similarityCache.size >= 500) {
       const firstKey = this.similarityCache.keys().next().value
-      this.similarityCache.delete(firstKey)
+      if (firstKey !== undefined) this.similarityCache.delete(firstKey)
     }
 
+    this.similarityCache.set(cacheKey, similarity)
     return similarity
   }
 
@@ -1034,10 +1040,10 @@ export class RecommendationService {
     currentUserInteractions: any
   ): Promise<Array<{ userId: number; similarity: number; interactions: any }>> {
     try {
-      // Lấy danh sách user khác có tương tác
+      // Lấy danh sách user khác có tương tác (🚀 giảm từ 100 xuống 30)
       const otherUsers = await this.recommendationRepo.getActiveUsers(
         userId,
-        100
+        30
       )
 
       const similarUsers: Array<{
@@ -1356,34 +1362,91 @@ export class RecommendationService {
     const startTime = Date.now()
 
     try {
-      // 1. Phân tích context để quyết định strategy
-      const context = await this.analyzeRecommendationContext(
-        targetRoom,
-        userId
-      )
+      // 🚀 OPTIMIZATION: Pre-fetch ALL shared data ONCE instead of each sub-algorithm fetching independently
+      const [candidateRooms, popularRooms, userInteractions, weights] =
+        await Promise.all([
+          this.recommendationRepo.getCandidateRoomsOptimized(
+            targetRoom.id,
+            targetRoom,
+            query,
+            userId
+          ),
+          this.recommendationRepo.getPopularRooms(targetRoom.id, query.limit),
+          userId
+            ? this.recommendationRepo.getUserInteractions(userId)
+            : Promise.resolve(null),
+          this.recommendationRepo.getRecommendationWeights(),
+        ])
+
+      // 1. Phân tích context (sử dụng userInteractions đã fetch, không fetch lại)
+      const userInteractionCount =
+        this.getUserInteractionCount(userInteractions)
+      const context = {
+        userInteractionCount,
+        roomDataQuality: this.assessRoomDataQuality(targetRoom),
+        userAge: 30,
+        hasLocationData: !!(targetRoom.rental?.lat && targetRoom.rental?.lng),
+        timeOfDay: (() => {
+          const hour = new Date().getHours()
+          return hour < 6
+            ? ('night' as const)
+            : hour < 12
+              ? ('morning' as const)
+              : hour < 18
+                ? ('afternoon' as const)
+                : ('evening' as const)
+        })(),
+        isWeekend: new Date().getDay() === 0 || new Date().getDay() === 6,
+      }
 
       // 2. Tính toán trọng số động cho từng phương pháp
       const methodWeights = this.calculateMethodWeights(context)
 
-      // 3. Chạy song song các phương pháp (với optimization)
+      // 3. 🚀 Chạy song song các phương pháp — truyền pre-fetched data vào
+      const prefetchedData = {
+        candidateRooms,
+        popularRooms,
+        userInteractions,
+        weights,
+      }
+
       const [
         contentResults,
         collaborativeResults,
         popularityResults,
         locationResults,
       ] = await Promise.allSettled([
-        this.getContentBasedRecommendations(targetRoom, query, userId),
+        this.getContentBasedRecommendationsWithData(
+          targetRoom,
+          query,
+          prefetchedData,
+          userId
+        ),
         // Chỉ chạy collaborative nếu có user và weight > 0.1
         userId && methodWeights.collaborative > 0.1
-          ? this.getCollaborativeRecommendations(targetRoom, query, userId)
+          ? this.getCollaborativeRecommendationsWithData(
+              targetRoom,
+              query,
+              prefetchedData,
+              userId
+            )
           : Promise.resolve([]),
         // Chỉ chạy popularity nếu weight > 0.1
         methodWeights.popularity > 0.1
-          ? this.getPopularityBasedRecommendations(targetRoom, query)
+          ? this.getPopularityBasedRecommendationsWithData(
+              targetRoom,
+              query,
+              prefetchedData
+            )
           : Promise.resolve([]),
         // Chỉ chạy location nếu có GPS data và weight > 0.1
         context.hasLocationData && methodWeights.location > 0.1
-          ? this.getLocationBasedRecommendations(targetRoom, query, userId)
+          ? this.getLocationBasedRecommendationsWithData(
+              targetRoom,
+              query,
+              prefetchedData,
+              userId
+            )
           : Promise.resolve([]),
       ])
 
@@ -1434,6 +1497,245 @@ export class RecommendationService {
 
       return this.getContentBasedRecommendations(targetRoom, query, userId)
     }
+  }
+
+  // ====================================================================
+  // 🚀 OPTIMIZED METHODS: Accept pre-fetched data to eliminate duplicate queries
+  // ====================================================================
+
+  /**
+   * Content-based recommendations using pre-fetched data (no extra DB queries)
+   */
+  private async getContentBasedRecommendationsWithData(
+    targetRoom: any,
+    query: GetRecommendationsQueryType,
+    prefetchedData: { candidateRooms: any[]; weights: SimilarityWeightsType },
+    userId?: number
+  ): Promise<RecommendedRoomType[]> {
+    const startTime = Date.now()
+    const { candidateRooms, weights } = prefetchedData
+
+    this.logger.debug(
+      `🔥 Content-based (optimized): Processing ${candidateRooms.length} candidates for room ${targetRoom.id}`
+    )
+
+    const recommendations = await this.applyEarlyTerminationAlgorithm(
+      targetRoom,
+      candidateRooms,
+      weights,
+      query
+    )
+
+    const executionTime = Date.now() - startTime
+    this.logger.debug(
+      `✅ Content-based (optimized) completed: ${recommendations.length} recommendations in ${executionTime}ms`
+    )
+    return recommendations
+  }
+
+  /**
+   * Collaborative recommendations using pre-fetched data
+   */
+  private async getCollaborativeRecommendationsWithData(
+    targetRoom: any,
+    query: GetRecommendationsQueryType,
+    prefetchedData: { userInteractions: any },
+    userId?: number
+  ): Promise<RecommendedRoomType[]> {
+    if (!userId) return []
+
+    try {
+      const { userInteractions: currentUserInteractions } = prefetchedData
+
+      if (
+        !currentUserInteractions ||
+        this.getUserInteractionCount(currentUserInteractions) < 3
+      ) {
+        return []
+      }
+
+      // Tìm similar users (this is the only new query needed)
+      const similarUsers = await this.findSimilarUsers(
+        userId,
+        currentUserInteractions
+      )
+
+      if (similarUsers.length === 0) return []
+
+      const candidateRooms = await this.getRecommendationsFromSimilarUsers(
+        similarUsers,
+        targetRoom.id,
+        query.limit * 2
+      )
+
+      const scoredRooms = candidateRooms.map(room => {
+        const collaborativeScore = this.calculateCollaborativeScore(
+          room,
+          similarUsers,
+          currentUserInteractions
+        )
+        const distanceToUniversity = this.convertToNumber(
+          room.rental?.distance || 0
+        )
+
+        return {
+          ...this.recommendationRepo.formatRoom(room),
+          similarityScore: collaborativeScore.overall,
+          method: RecommendationMethod.COLLABORATIVE,
+          explanation: this.generateCollaborativeExplanation(
+            room,
+            collaborativeScore,
+            similarUsers.length,
+            distanceToUniversity
+          ),
+          similarityBreakdown: {
+            location: 0,
+            price: 0,
+            area: 0,
+            amenities: 0,
+            overall: collaborativeScore.overall,
+          },
+          rank: 0,
+          rental: {
+            ...room.rental,
+            distance: distanceToUniversity,
+          },
+        }
+      })
+
+      const sortedRooms = this.diversifyAndSortResults(scoredRooms, query.limit)
+      return sortedRooms.map((room, index) => ({ ...room, rank: index + 1 }))
+    } catch (error) {
+      this.logger.error('Error in collaborative filtering (optimized):', error)
+      return []
+    }
+  }
+
+  /**
+   * Popularity-based recommendations using pre-fetched popular rooms
+   */
+  private getPopularityBasedRecommendationsWithData(
+    targetRoom: any,
+    query: GetRecommendationsQueryType,
+    prefetchedData: { popularRooms: any[] }
+  ): RecommendedRoomType[] {
+    const { popularRooms } = prefetchedData
+
+    return popularRooms.slice(0, query.limit).map((room, index) => {
+      const distanceToUniversity = this.convertToNumber(
+        room.rental?.distance || 0
+      )
+
+      return {
+        ...this.recommendationRepo.formatRoom(room),
+        similarityScore: 0.5,
+        method: RecommendationMethod.POPULARITY,
+        explanation: {
+          reasons: [
+            'Phòng trọ phổ biến được nhiều người quan tâm',
+            distanceToUniversity < 0.5
+              ? `Rất gần Đại học Nam Cần Thơ (${Math.round(distanceToUniversity * 1000)}m)`
+              : distanceToUniversity < 2
+                ? `Gần Đại học Nam Cần Thơ (${distanceToUniversity.toFixed(1)}km)`
+                : `Cách Đại học Nam Cần Thơ ${distanceToUniversity.toFixed(1)}km`,
+          ],
+          distance: Math.round(distanceToUniversity * 1000),
+          priceDifference: undefined,
+          areaDifference: undefined,
+          commonAmenities: [],
+        },
+        similarityBreakdown: {
+          location: 0,
+          price: 0,
+          area: 0,
+          amenities: 0,
+          overall: 0.5,
+        },
+        rank: index + 1,
+        rental: {
+          ...room.rental,
+          distance: distanceToUniversity,
+        },
+      }
+    })
+  }
+
+  /**
+   * Location-based recommendations using pre-fetched candidate rooms
+   */
+  private getLocationBasedRecommendationsWithData(
+    targetRoom: any,
+    query: GetRecommendationsQueryType,
+    prefetchedData: { candidateRooms: any[] },
+    userId?: number
+  ): RecommendedRoomType[] {
+    const { candidateRooms } = prefetchedData
+
+    if (candidateRooms.length === 0) return []
+
+    const MAX_DISTANCE_THRESHOLD = Math.min(query.maxDistance, 3000)
+    const scoredRooms: RecommendedRoomType[] = []
+
+    // Sort by distance to university
+    const sortedCandidates = [...candidateRooms].sort((a, b) => {
+      const distA = this.convertToNumber(a.rental?.distance || 0)
+      const distB = this.convertToNumber(b.rental?.distance || 0)
+      return distA - distB
+    })
+
+    let processedCount = 0
+    const maxProcess = query.limit * 2
+
+    for (const candidateRoom of sortedCandidates) {
+      if (scoredRooms.length >= query.limit && processedCount >= maxProcess)
+        break
+
+      const distanceToUniversity = this.convertToNumber(
+        candidateRoom.rental?.distance || 0
+      )
+      if (distanceToUniversity > MAX_DISTANCE_THRESHOLD / 1000) continue
+
+      const locationScore = this.calculateLocationScore(
+        distanceToUniversity,
+        MAX_DISTANCE_THRESHOLD / 1000
+      )
+      if (locationScore < 0.3) {
+        processedCount++
+        continue
+      }
+
+      scoredRooms.push({
+        ...this.recommendationRepo.formatRoom(candidateRoom),
+        similarityScore: locationScore,
+        method: RecommendationMethod.LOCATION_BASED,
+        explanation: {
+          reasons: [
+            `Cách Đại học Nam Cần Thơ ${distanceToUniversity.toFixed(1)}km`,
+            distanceToUniversity < 0.5
+              ? 'Rất gần trường, có thể đi bộ'
+              : distanceToUniversity < 1.5
+                ? 'Khoảng cách hợp lý đến trường'
+                : 'Trong khu vực gần trường',
+          ],
+          distance: Math.round(distanceToUniversity * 1000),
+        },
+        similarityBreakdown: {
+          location: locationScore,
+          price: 0,
+          area: 0,
+          amenities: 0,
+          overall: locationScore,
+        },
+        rank: 0,
+        rental: { ...candidateRoom.rental, distance: distanceToUniversity },
+      })
+      processedCount++
+    }
+
+    return scoredRooms
+      .sort((a, b) => b.similarityScore - a.similarityScore)
+      .slice(0, query.limit)
+      .map((room, index) => ({ ...room, rank: index + 1 }))
   }
 
   /**

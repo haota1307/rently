@@ -64,7 +64,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   // Kiểm tra xem người dùng đã có lịch hẹn chưa bị từ chối
   const existingSchedule = schedules?.data?.find(
-    (schedule) => schedule.post.id === postId && schedule.status !== "REJECTED"
+    (schedule) => schedule.post.id === postId && schedule.status !== "REJECTED",
   );
 
   // Kiểm tra xem người dùng có phải là chủ nhà hay không
@@ -169,7 +169,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   // Lấy danh sách tiện ích từ phòng
   const amenities = room?.roomAmenities
     ? room.roomAmenities.map(
-        (amenity: { amenity: { name: any } }) => amenity.amenity.name
+        (amenity: { amenity: { name: any } }) => amenity.amenity.name,
       )
     : [];
 
@@ -320,20 +320,20 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           </div>
         </div>
 
-        {/* 🎯 PHẦN GỢI Ý CHO MOBILE - HIỂN THỊ Ở DƯỚI CÙNG */}
+        {/* 🎯 PHẦN GỢI Ý CHO MOBILE - HIỂN THỊ Ở DƯỚI CÙNG (dùng CSS ẩn/hiện, chỉ mount 1 lần) */}
         <div className="lg:hidden mt-8 sm:mt-12">
-          {/* HỆ THỐNG GỢI Ý - PHÒNG TRỌ CÓ THỂ BẠN QUAN TÂM */}
+          {/* HỆ THỐNG GỢI Ý — chỉ render trên mobile, desktop đã render ở trên */}
           {room?.id && (
             <div className="mb-8">
               <RoomRecommendations
                 roomId={room.id}
                 method="HYBRID"
-                limit={6}
+                limit={4}
                 title="Bạn có thể quan tâm"
-                showMetadata={true}
+                showMetadata={false}
                 showSimilarityBreakdown={false}
                 defaultViewMode="grid"
-                maxColumns={3}
+                maxColumns={4}
               />
             </div>
           )}

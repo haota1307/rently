@@ -1,7 +1,8 @@
 import React from 'react'
 
 import { Injectable } from '@nestjs/common'
-import { Resend } from 'resend'
+import * as nodemailer from 'nodemailer'
+import { render } from '@react-email/render'
 import envConfig from 'src/shared/config'
 import { SystemSettingRepository } from '../repositories/system-setting.repo'
 
@@ -17,9 +18,33 @@ import Handlebars from 'handlebars'
 
 @Injectable()
 export class EmailService {
-  private resend: Resend
+  private transporter: nodemailer.Transporter
   constructor(private readonly systemSettingRepo: SystemSettingRepository) {
-    this.resend = new Resend(envConfig.RESEND_API_KEY)
+    this.transporter = nodemailer.createTransport({
+      host: envConfig.SMTP_HOST,
+      port: Number(envConfig.SMTP_PORT),
+      secure: Number(envConfig.SMTP_PORT) === 465,
+      auth: {
+        user: envConfig.SMTP_USER,
+        pass: envConfig.SMTP_PASS,
+      },
+    })
+  }
+
+  // Helper method gửi email qua Nodemailer
+  private async sendEmail(options: {
+    to: string | string[]
+    subject: string
+    html: string
+    replyTo?: string
+  }) {
+    return this.transporter.sendMail({
+      from: envConfig.EMAIL_FROM,
+      to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+      subject: options.subject,
+      html: options.html,
+      replyTo: options.replyTo,
+    })
   }
 
   // Phương thức lấy template email từ database
@@ -82,22 +107,15 @@ export class EmailService {
     if (dbTemplate && !dbTemplate.includes('import')) {
       console.log('Using HTML template from database')
       const html = this.renderTemplate(dbTemplate, { code: payload.code })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.email],
-        subject,
-        html,
-      })
+      return this.sendEmail({ to: payload.email, subject, html })
     }
 
     // Nếu không có hoặc là template React thì dùng React Component
     console.log('Using React component template from file')
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.email],
-      subject,
-      react: <OTPEmail otpCode={payload.code} title={subject} />,
-    })
+    const html = await render(
+      <OTPEmail otpCode={payload.code} title={subject} />
+    )
+    return this.sendEmail({ to: payload.email, subject, html })
   }
 
   async sendViewingReminder(payload: {
@@ -130,30 +148,21 @@ export class EmailService {
           'vi-VN'
         ),
       })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.email],
-        subject,
-        html,
-      })
+      return this.sendEmail({ to: payload.email, subject, html })
     }
 
     // Nếu không có hoặc là template React thì dùng React Component
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.email],
-      subject,
-      react: (
-        <ViewingReminderEmail
-          scheduledTime={payload.scheduledTime}
-          propertyName={payload.propertyName}
-          propertyAddress={payload.propertyAddress}
-          landlordName={payload.landlordName}
-          landlordPhone={payload.landlordPhone}
-          tenantName={payload.tenantName}
-        />
-      ),
-    })
+    const html = await render(
+      <ViewingReminderEmail
+        scheduledTime={payload.scheduledTime}
+        propertyName={payload.propertyName}
+        propertyAddress={payload.propertyAddress}
+        landlordName={payload.landlordName}
+        landlordPhone={payload.landlordPhone}
+        tenantName={payload.tenantName}
+      />
+    )
+    return this.sendEmail({ to: payload.email, subject, html })
   }
 
   // Phương thức gửi thông báo yêu cầu thuê mới
@@ -187,34 +196,25 @@ export class EmailService {
         note: payload.note || '',
         post_url: payload.postUrl || '',
       })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.email],
-        subject,
-        html,
-      })
+      return this.sendEmail({ to: payload.email, subject, html })
     }
 
     // Nếu không có hoặc là template React thì dùng React Component
     console.log(
       '[EmailService] Sử dụng React component từ file cho yêu cầu thuê mới'
     )
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.email],
-      subject,
-      react: (
-        <RentalRequestEmail
-          landlordName={payload.landlordName}
-          tenantName={payload.tenantName}
-          postTitle={payload.postTitle}
-          startDate={payload.startDate}
-          duration={payload.duration}
-          note={payload.note}
-          postUrl={payload.postUrl}
-        />
-      ),
-    })
+    const html = await render(
+      <RentalRequestEmail
+        landlordName={payload.landlordName}
+        tenantName={payload.tenantName}
+        postTitle={payload.postTitle}
+        startDate={payload.startDate}
+        duration={payload.duration}
+        note={payload.note}
+        postUrl={payload.postUrl}
+      />
+    )
+    return this.sendEmail({ to: payload.email, subject, html })
   }
 
   // Phương thức gửi thông báo cập nhật trạng thái yêu cầu thuê
@@ -248,42 +248,32 @@ export class EmailService {
         rejection_reason: payload.rejectionReason || '',
         request_url: payload.requestUrl || '',
       })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.email],
-        subject,
-        html,
-      })
+      return this.sendEmail({ to: payload.email, subject, html })
     }
 
     // Nếu không có hoặc là template React thì dùng React Component
     console.log(
       '[EmailService] Sử dụng React component từ file cho cập nhật trạng thái'
     )
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.email],
-      subject,
-      react: (
-        <RentalStatusUpdateEmail
-          receiverName={payload.receiverName}
-          senderName={payload.senderName}
-          postTitle={payload.postTitle}
-          statusMessage={payload.statusMessage}
-          statusColor={payload.statusColor}
-          rejectionReason={payload.rejectionReason}
-          requestUrl={payload.requestUrl}
-        />
-      ),
-    })
+    const html = await render(
+      <RentalStatusUpdateEmail
+        receiverName={payload.receiverName}
+        senderName={payload.senderName}
+        postTitle={payload.postTitle}
+        statusMessage={payload.statusMessage}
+        statusColor={payload.statusColor}
+        rejectionReason={payload.rejectionReason}
+        requestUrl={payload.requestUrl}
+      />
+    )
+    return this.sendEmail({ to: payload.email, subject, html })
   }
 
   // Phương thức gửi email dạng HTML thông thường
   send(payload: { to: string; subject: string; html: string }) {
     console.log('[EmailService] Gửi email HTML thông thường')
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.to],
+    return this.sendEmail({
+      to: payload.to,
       subject: payload.subject,
       html: payload.html,
     })
@@ -310,22 +300,15 @@ export class EmailService {
         code: payload.code,
         expiry: payload.expiry,
       })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.email],
-        subject,
-        html,
-      })
+      return this.sendEmail({ to: payload.email, subject, html })
     }
 
     // Nếu không có hoặc là template React thì dùng React Component
     console.log('[EmailService] Sử dụng React component cho đặt lại mật khẩu')
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.email],
-      subject,
-      react: <ResetPasswordEmail code={payload.code} expiry={payload.expiry} />,
-    })
+    const html = await render(
+      <ResetPasswordEmail code={payload.code} expiry={payload.expiry} />
+    )
+    return this.sendEmail({ to: payload.email, subject, html })
   }
 
   // Phương thức gửi thông báo có liên hệ mới cho admin
@@ -357,33 +340,24 @@ export class EmailService {
         message: payload.message,
         admin_dashboard_url: payload.adminDashboardUrl || '/quan-ly/lien-he',
       })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.adminEmail],
-        subject,
-        html,
-      })
+      return this.sendEmail({ to: payload.adminEmail, subject, html })
     }
 
     // Nếu không có hoặc là template React thì dùng React Component
     console.log(
       '[EmailService] Sử dụng React component từ file cho thông báo liên hệ mới'
     )
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.adminEmail],
-      subject,
-      react: (
-        <ContactNotificationEmail
-          fullName={payload.fullName}
-          email={payload.email}
-          phoneNumber={payload.phoneNumber}
-          subject={payload.subject}
-          message={payload.message}
-          adminDashboardUrl={payload.adminDashboardUrl}
-        />
-      ),
-    })
+    const html = await render(
+      <ContactNotificationEmail
+        fullName={payload.fullName}
+        email={payload.email}
+        phoneNumber={payload.phoneNumber}
+        subject={payload.subject}
+        message={payload.message}
+        adminDashboardUrl={payload.adminDashboardUrl}
+      />
+    )
+    return this.sendEmail({ to: payload.adminEmail, subject, html })
   }
 
   // Phương thức gửi phản hồi liên hệ cho người dùng
@@ -413,32 +387,23 @@ export class EmailService {
         response_message: payload.responseMessage,
         website_url: payload.websiteUrl || 'https://rently.top',
       })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.to],
-        subject,
-        html,
-      })
+      return this.sendEmail({ to: payload.to, subject, html })
     }
 
     // Nếu không có hoặc là template React thì dùng React Component
     console.log(
       '[EmailService] Sử dụng React component từ file cho phản hồi liên hệ'
     )
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.to],
-      subject,
-      react: (
-        <ContactResponseEmail
-          userName={payload.userName}
-          subject={payload.subject}
-          originalMessage={payload.originalMessage}
-          responseMessage={payload.responseMessage}
-          websiteUrl={payload.websiteUrl}
-        />
-      ),
-    })
+    const html = await render(
+      <ContactResponseEmail
+        userName={payload.userName}
+        subject={payload.subject}
+        originalMessage={payload.originalMessage}
+        responseMessage={payload.responseMessage}
+        websiteUrl={payload.websiteUrl}
+      />
+    )
+    return this.sendEmail({ to: payload.to, subject, html })
   }
 
   // Phương thức gửi email hóa đơn tiền phòng
@@ -494,45 +459,36 @@ export class EmailService {
         note: payload.note || '',
         payment_url: payload.paymentUrl || 'https://rently.top/nap-tien',
       })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.email],
-        subject,
-        html,
-      })
+      return this.sendEmail({ to: payload.email, subject, html })
     }
 
     // Nếu không có hoặc là template React thì dùng React Component
     console.log(
       '[EmailService] Sử dụng React component từ file cho hóa đơn tiền phòng'
     )
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.email],
-      subject,
-      react: (
-        <RoomBillEmail
-          tenantName={payload.tenantName}
-          roomTitle={payload.roomTitle}
-          billingMonth={payload.billingMonth}
-          dueDate={payload.dueDate}
-          electricityOld={payload.electricityOld}
-          electricityNew={payload.electricityNew}
-          electricityUsage={payload.electricityUsage}
-          electricityPrice={payload.electricityPrice}
-          electricityAmount={payload.electricityAmount}
-          waterOld={payload.waterOld}
-          waterNew={payload.waterNew}
-          waterUsage={payload.waterUsage}
-          waterPrice={payload.waterPrice}
-          waterAmount={payload.waterAmount}
-          otherFees={payload.otherFees}
-          totalAmount={payload.totalAmount}
-          note={payload.note}
-          paymentUrl={payload.paymentUrl}
-        />
-      ),
-    })
+    const html = await render(
+      <RoomBillEmail
+        tenantName={payload.tenantName}
+        roomTitle={payload.roomTitle}
+        billingMonth={payload.billingMonth}
+        dueDate={payload.dueDate}
+        electricityOld={payload.electricityOld}
+        electricityNew={payload.electricityNew}
+        electricityUsage={payload.electricityUsage}
+        electricityPrice={payload.electricityPrice}
+        electricityAmount={payload.electricityAmount}
+        waterOld={payload.waterOld}
+        waterNew={payload.waterNew}
+        waterUsage={payload.waterUsage}
+        waterPrice={payload.waterPrice}
+        waterAmount={payload.waterAmount}
+        otherFees={payload.otherFees}
+        totalAmount={payload.totalAmount}
+        note={payload.note}
+        paymentUrl={payload.paymentUrl}
+      />
+    )
+    return this.sendEmail({ to: payload.email, subject, html })
   }
 
   async sendAutoRenewNotification(payload: {
@@ -546,9 +502,8 @@ export class EmailService {
   }) {
     const subject = `Thông báo gia hạn tự động gói ${payload.planName}`
 
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.email],
+    return this.sendEmail({
+      to: payload.email,
       subject,
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
@@ -624,12 +579,11 @@ export class EmailService {
         admin_name: payload.adminName,
         admin_email: payload.adminEmail,
       })
-      return this.resend.emails.send({
-        from: 'Rently <no-reply@rently.top>',
-        to: [payload.to],
+      return this.sendEmail({
+        to: payload.to,
         subject,
         html,
-        replyTo: payload.adminEmail, // Cho phép user reply trực tiếp về admin
+        replyTo: payload.adminEmail,
       })
     }
 
@@ -638,11 +592,10 @@ export class EmailService {
       '[EmailService] Sử dụng HTML template mặc định cho admin direct email'
     )
 
-    return this.resend.emails.send({
-      from: 'Rently <no-reply@rently.top>',
-      to: [payload.to],
+    return this.sendEmail({
+      to: payload.to,
       subject,
-      replyTo: payload.adminEmail, // Cho phép user reply trực tiếp về admin
+      replyTo: payload.adminEmail,
       html: `
         <!DOCTYPE html>
         <html lang="vi">
