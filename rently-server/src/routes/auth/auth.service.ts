@@ -135,7 +135,7 @@ export class AuthService {
     const code = generateOTP()
     const expiryTime = ms(envConfig.OTP_EXPIRES_IN) // Thời gian hết hạn tính bằng milli giây
 
-    this.authRepository.createVerificationCode({
+    await this.authRepository.createVerificationCode({
       email: body.email,
       code,
       type: body.type,

@@ -69,6 +69,7 @@ export class AuthRepository {
       },
       create: payload,
       update: {
+        type: payload.type,
         code: payload.code,
         expiresAt: payload.expiresAt,
       },
